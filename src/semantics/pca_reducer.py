@@ -62,9 +62,9 @@ from sklearn.decomposition import IncrementalPCA
 # ─────────────────────────────────────────────────────────────────────
 # Constants
 # ─────────────────────────────────────────────────────────────────────
-EMBED_DIM_IN  = 1024   # V-JEPA2 ViT-L embedding dimension (input)
-EMBED_DIM_OUT = 64     # target reduced dimension (output)
-BATCH_SIZE    = 512    # IncrementalPCA mini-batch size (number of vectors)
+EMBED_DIM_IN = 1024  # V-JEPA2 ViT-L embedding dimension (input)
+EMBED_DIM_OUT = 64  # target reduced dimension (output)
+BATCH_SIZE = 512  # IncrementalPCA mini-batch size (number of vectors)
 
 
 class PCAReducer:
@@ -129,14 +129,16 @@ class PCAReducer:
                 if len(batch) >= self.n_components:
                     self._pca.partial_fit(batch)
 
-            print(f"  Processed clip {i+1}/{len(embeddings_list)} "
-                  f"({len(flat):,} vectors, running total: {total_vectors:,})")
+            print(
+                f"  Processed clip {i+1}/{len(embeddings_list)} "
+                f"({len(flat):,} vectors, running total: {total_vectors:,})"
+            )
 
         self._is_fitted = True
 
         # Report explained variance
         explained = self._pca.explained_variance_ratio_.sum() * 100
-        print(f"\nPCA training complete.")
+        print("\nPCA training complete.")
         print(f"  Components       : {self.n_components}")
         print(f"  Total vectors    : {total_vectors:,}")
         print(f"  Variance retained: {explained:.1f}%")
@@ -165,9 +167,7 @@ class PCAReducer:
             RuntimeError: If fit() has not been called yet.
         """
         if not self._is_fitted:
-            raise RuntimeError(
-                "PCAReducer is not fitted. Call fit() or load() first."
-            )
+            raise RuntimeError("PCAReducer is not fitted. Call fit() or load() first.")
 
         original_shape = embeddings.shape
         flat = embeddings.reshape(-1, EMBED_DIM_IN).astype(np.float32)
@@ -215,11 +215,14 @@ class PCAReducer:
 
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "wb") as f:
-            pickle.dump({
-                "pca":          self._pca,
-                "n_components": self.n_components,
-                "is_fitted":    self._is_fitted,
-            }, f)
+            pickle.dump(
+                {
+                    "pca": self._pca,
+                    "n_components": self.n_components,
+                    "is_fitted": self._is_fitted,
+                },
+                f,
+            )
         size_kb = os.path.getsize(path) / 1024
         print(f"PCA model saved: {path}  ({size_kb:.1f} KB)")
 
@@ -238,10 +241,12 @@ class PCAReducer:
             data = pickle.load(f)
 
         reducer = cls(n_components=data["n_components"])
-        reducer._pca       = data["pca"]
+        reducer._pca = data["pca"]
         reducer._is_fitted = data["is_fitted"]
-        print(f"PCA model loaded: {path}  "
-              f"({data['n_components']}-d, fitted={data['is_fitted']})")
+        print(
+            f"PCA model loaded: {path}  "
+            f"({data['n_components']}-d, fitted={data['is_fitted']})"
+        )
         return reducer
 
     # ─────────────────────────────────────────────────────────────
@@ -260,8 +265,14 @@ class PCAReducer:
         milestones = [10, 20, 32, 48, 64]
         for k in milestones:
             if k <= len(cumulative):
-                print(f"  First {k:2d} components: {cumulative[k-1]:.1f}% variance retained")
-        print(f"  All {self.n_components:2d} components: {cumulative[-1]:.1f}% variance retained")
+                print(
+                    f"  First {k:2d} components: "
+                    f"{cumulative[k-1]:.1f}% variance retained"
+                )
+        print(
+            f"  All {self.n_components:2d} components: "
+            f"{cumulative[-1]:.1f}% variance retained"
+        )
 
 
 # ─────────────────────────────────────────────────────────────────────
@@ -273,10 +284,7 @@ if __name__ == "__main__":
     # Simulate V-JEPA embeddings for 3 video clips
     # Shape: [B=1, T=4, N=100, 1024]
     np.random.seed(42)
-    clips = [
-        np.random.randn(1, 4, 100, 1024).astype(np.float32)
-        for _ in range(3)
-    ]
+    clips = [np.random.randn(1, 4, 100, 1024).astype(np.float32) for _ in range(3)]
 
     # Train PCA
     reducer = PCAReducer(n_components=64)
@@ -284,8 +292,8 @@ if __name__ == "__main__":
 
     # Transform one clip
     reduced = reducer.transform(clips[0])
-    print(f"\nInput  shape: {clips[0].shape}")    # (1, 4, 100, 1024)
-    print(f"Output shape: {reduced.shape}")       # (1, 4, 100, 64)
+    print(f"\nInput  shape: {clips[0].shape}")  # (1, 4, 100, 1024)
+    print(f"Output shape: {reduced.shape}")  # (1, 4, 100, 64)
     assert reduced.shape == (1, 4, 100, 64), "Shape mismatch!"
     print("Shape test passed ✅")
 

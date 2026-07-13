@@ -1,5 +1,5 @@
 import os
-import numpy as np
+import numpy as np  # noqa: F401
 import openvino as ov
 import nncf
 
@@ -11,7 +11,7 @@ import nncf
 os.makedirs("../models/int8", exist_ok=True)
 
 # Load CoTracker3 IR model
-core  = ov.Core()
+core = ov.Core()
 model = core.read_model("../models/ir/cotracker3.xml")
 
 # ----------------------------
@@ -37,10 +37,7 @@ INT8_ASYM:
     - Provides improved accuracy compared to symmetric INT8 in many cases
 """
 
-compressed = nncf.compress_weights(
-    model,
-    mode=nncf.CompressWeightsMode.INT8_ASYM
-)
+compressed = nncf.compress_weights(model, mode=nncf.CompressWeightsMode.INT8_ASYM)
 
 # ----------------------------
 # Save Model

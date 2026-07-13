@@ -66,7 +66,7 @@ import torch.nn as nn
 # ----------------------------
 
 WEIGHTS_PATH = "../models/weights/cotracker3/scaled_offline.pth"
-ONNX_PATH    = "../models/onnx/cotracker3_ovfix.onnx"
+ONNX_PATH = "../models/onnx/cotracker3_ovfix.onnx"
 
 os.makedirs("../models/onnx", exist_ok=True)
 
@@ -74,8 +74,9 @@ os.makedirs("../models/onnx", exist_ok=True)
 _orig_grid_sample = F.grid_sample
 
 
-def _grid_sample_ov(input, grid, mode='bilinear',
-                    padding_mode='border', align_corners=True):
+def _grid_sample_ov(
+    input, grid, mode="bilinear", padding_mode="border", align_corners=True
+):
     """
     OpenVINO-compatible replacement for torch.nn.functional.grid_sample.
 
@@ -94,9 +95,13 @@ def _grid_sample_ov(input, grid, mode='bilinear',
 
     # Case 1: Standard 4D input (supported by OpenVINO)
     if input.dim() == 4:
-        return _orig_grid_sample(input, grid, mode=mode,
-                                 padding_mode=padding_mode,
-                                 align_corners=align_corners)
+        return _orig_grid_sample(
+            input,
+            grid,
+            mode=mode,
+            padding_mode=padding_mode,
+            align_corners=align_corners,
+        )
 
     # Case 2: 5D input (requires decomposition)
     if input.dim() == 5:
@@ -112,8 +117,8 @@ def _grid_sample_ov(input, grid, mode='bilinear',
             frame = input[:, :, t_idx, :, :]
 
             # Extract spatial coordinates (x, y)
-            xy = grid[..., :2]                          # [B, Ho, Wo, To, 2]
-            xy_4d = xy.reshape(B, Ho, Wo * To, 2)       # [B, Ho, Wo*To, 2]
+            xy = grid[..., :2]  # [B, Ho, Wo, To, 2]
+            xy_4d = xy.reshape(B, Ho, Wo * To, 2)  # [B, Ho, Wo*To, 2]
 
             # Temporal coordinate in range [-1, 1]
             t_coord = grid[..., 2]
@@ -131,7 +136,7 @@ def _grid_sample_ov(input, grid, mode='bilinear',
                 xy_4d,
                 mode=mode,
                 padding_mode=padding_mode,
-                align_corners=align_corners
+                align_corners=align_corners,
             )
 
             # Apply temporal weight
@@ -153,7 +158,8 @@ def _grid_sample_ov(input, grid, mode='bilinear',
 F.grid_sample = _grid_sample_ov
 
 # Patch inside CoTracker utilities as well
-import cotracker.models.core.model_utils as mu
+import cotracker.models.core.model_utils as mu  # noqa: E402
+
 mu.F.grid_sample = _grid_sample_ov
 
 
@@ -163,13 +169,9 @@ mu.F.grid_sample = _grid_sample_ov
 
 print("Loading CoTracker3 model...")
 
-from cotracker.predictor import CoTrackerPredictor
+from cotracker.predictor import CoTrackerPredictor  # noqa: E402
 
-predictor = CoTrackerPredictor(
-    checkpoint=WEIGHTS_PATH,
-    offline=True,
-    window_len=60
-)
+predictor = CoTrackerPredictor(checkpoint=WEIGHTS_PATH, offline=True, window_len=60)
 
 cotracker = predictor.model
 cotracker.eval()
@@ -208,7 +210,7 @@ wrapped.eval()
 # Queries shape: [B, N, 3]
 B, T, C, H, W = 1, 4, 3, 224, 224
 
-video   = torch.randn(B, T, C, H, W)
+video = torch.randn(B, T, C, H, W)
 queries = torch.randn(B, 100, 3)
 
 print(f"video  : {list(video.shape)}")
@@ -237,9 +239,9 @@ with torch.no_grad():
         output_names=["tracks"],
         opset_version=17,
         dynamic_axes={
-            "video"  : {0: "batch"},
+            "video": {0: "batch"},
             "queries": {0: "batch"},
-            "tracks" : {0: "batch"},
+            "tracks": {0: "batch"},
         },
         dynamo=False,
     )

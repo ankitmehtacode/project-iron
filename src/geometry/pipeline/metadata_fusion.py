@@ -9,16 +9,14 @@ import numpy as np
 from geometry.ocr.text_detector import OCRResult as OCRDetection
 
 
-# Module-level logger                                                          
+# Module-level logger
 logger = logging.getLogger(__name__)
 
 
-
-# Data structures                     
+# Data structures
 @dataclass(frozen=True, slots=True)
 class CameraIntrinsics:
-    """Pinhole camera intrinsic parameters.
-    """
+    """Pinhole camera intrinsic parameters."""
 
     fx: float
     fy: float
@@ -34,8 +32,7 @@ class CameraIntrinsics:
 
 @dataclass(frozen=True, slots=True)
 class TextAnnotation3D:
-    """A recognised text string attached to a 3-D world point.
-    """
+    """A recognised text string attached to a 3-D world point."""
 
     text: str
     position_3d: tuple[float, float, float]
@@ -53,16 +50,13 @@ class TextAnnotation3D:
         }
 
 
-
-# Core helpers                                                                 
+# Core helpers
 def _validate_depth_map(depth_map: np.ndarray) -> None:
     """Raise informative errors for obviously wrong depth maps."""
     if not isinstance(depth_map, np.ndarray):
         raise TypeError(f"depth_map must be a NumPy array; got {type(depth_map)}.")
     if depth_map.ndim != 2:
-        raise ValueError(
-            f"depth_map must be 2-D (H, W); got shape {depth_map.shape}."
-        )
+        raise ValueError(f"depth_map must be 2-D (H, W); got shape {depth_map.shape}.")
     if depth_map.size == 0:
         raise ValueError("depth_map must not be empty.")
 
@@ -81,15 +75,13 @@ def _backproject(
     z: np.ndarray,
     intrinsics: CameraIntrinsics,
 ) -> np.ndarray:
-    """Vectorised pinhole back-projection.
-    """
+    """Vectorised pinhole back-projection."""
     x_cam = (u - intrinsics.cx) * z / intrinsics.fx
     y_cam = (v - intrinsics.cy) * z / intrinsics.fy
     return np.stack([x_cam, y_cam, z], axis=-1)  # (N, 3)
 
 
-
-# Primary public function                                                      
+# Primary public function
 def attach_text_to_3d(
     detections: Sequence[OCRDetection],
     depth_map: np.ndarray,
@@ -110,39 +102,39 @@ def attach_text_to_3d(
 
     H, W = depth_map.shape
 
-    
-    #Filter by confidence (keep detections with confidence=None)
+    # Filter by confidence (keep detections with confidence=None)
     kept: list[OCRDetection] = [
-        d for d in detections
-        if d.confidence is None or d.confidence >= min_confidence
+        d for d in detections if d.confidence is None or d.confidence >= min_confidence
     ]
 
     if not kept:
-        logger.debug("All %d detections filtered out by min_confidence=%.2f.",
-                     len(detections), min_confidence)
+        logger.debug(
+            "All %d detections filtered out by min_confidence=%.2f.",
+            len(detections),
+            min_confidence,
+        )
         return []
 
-    
-    # Compute bounding-box centres (vectorised)                  
+    # Compute bounding-box centres (vectorised)
     bboxes = np.array([d.bbox for d in kept], dtype=np.float64)
     cx_px = bboxes[:, 0] + bboxes[:, 2] / 2.0  # u (horizontal)
     cy_px = bboxes[:, 1] + bboxes[:, 3] / 2.0  # v (vertical)
 
-    
-    #  Convert to integer indices and clip to valid bounds         
+    #  Convert to integer indices and clip to valid bounds
     u_idx = np.clip(np.round(cx_px).astype(np.intp), 0, W - 1)
     v_idx = np.clip(np.round(cy_px).astype(np.intp), 0, H - 1)
 
-    #Batch depth lookup 
+    # Batch depth lookup
     raw_depths = depth_map[v_idx, u_idx].astype(np.float64) * depth_scale
 
-    # Mask out invalid depth values 
+    # Mask out invalid depth values
     valid_mask: np.ndarray = (raw_depths > 0) & np.isfinite(raw_depths)
     n_invalid = int(np.count_nonzero(~valid_mask))
     if n_invalid:
         logger.debug(
             "%d / %d detections skipped due to invalid depth (zero or NaN).",
-            n_invalid, len(kept),
+            n_invalid,
+            len(kept),
         )
 
     valid_idx = np.where(valid_mask)[0]
@@ -157,7 +149,7 @@ def attach_text_to_3d(
         intrinsics,
     )  # shape (M, 3)
 
-    #Assemble output list 
+    # Assemble output list
     results: list[TextAnnotation3D] = []
     for local_i, global_i in enumerate(valid_idx):
         det = kept[global_i]
@@ -173,7 +165,8 @@ def attach_text_to_3d(
 
     return results
 
-#level convenience wrapper for single frame processing
+
+# level convenience wrapper for single frame processing
 def process_frame_with_metadata(
     image: np.ndarray,
     depth_map: np.ndarray,
@@ -196,7 +189,7 @@ def process_frame_with_metadata(
     )
 
 
-#Batch processing 
+# Batch processing
 def batch_process(
     frames: Sequence[tuple[np.ndarray, np.ndarray]],
     intrinsics: CameraIntrinsics,
@@ -206,7 +199,6 @@ def batch_process(
     depth_scale: float = 1.0,
     yield_frame_index: bool = False,
 ) -> Iterator[list[TextAnnotation3D] | tuple[int, list[TextAnnotation3D]]]:
-    
     for frame_idx, (image, depth_map) in enumerate(frames):
         annotations = process_frame_with_metadata(
             image,

@@ -1,6 +1,7 @@
 import numpy as np
 from src.interface.temporal_stitching import TemporalStitcher
 
+
 class MockTracker:
     def predict(self, inputs):
         video_len = inputs["video"].shape[0]

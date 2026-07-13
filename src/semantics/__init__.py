@@ -19,7 +19,7 @@ from .semantic_extractor import SemanticExtractor, pixel_to_patch_index
 from .pca_reducer import PCAReducer
 
 __version__ = "0.2.0"
-__author__  = "Radhe Tare"
+__author__ = "Radhe Tare"
 
 __all__ = [
     "SemanticExtractor",

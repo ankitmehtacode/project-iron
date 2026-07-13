@@ -20,14 +20,15 @@ PLACEHOLDER_DIM = 128
 def build_fusion_graph(
     positions: Tensor,
     track_ids: Tensor,
-    embeddings: Optional[Tensor] = None, # optional, since we might not have real ones yet and need to use zeros
+    embeddings: Optional[
+        Tensor
+    ] = None,  # optional, since we might not have real ones yet and need to use zeros
     radius: float = 1.0,
     max_num_neighbors: int = 32,
     loop: bool = False,
     batch: Optional[Tensor] = None,
     placeholder_dim: int = PLACEHOLDER_DIM,
 ) -> Data:
-    
     # fill in zero embeddings if we don't have real ones yet
     embeddings = _get_embeddings(positions, embeddings, placeholder_dim)
 
@@ -81,7 +82,6 @@ def compute_identity_embedding(
     track_embeddings: Tensor,
     weights: Optional[Tensor] = None,
 ) -> Tensor:
-    
     if track_embeddings.ndim != 2:
         raise ValueError(
             f"expected 2D tensor (T, D), got shape {tuple(track_embeddings.shape)}"
@@ -92,7 +92,9 @@ def compute_identity_embedding(
     # no frames = return zeros, don't crash
     if T == 0:
         logger.warning("empty track, returning zero embedding")
-        return torch.zeros(D, dtype=track_embeddings.dtype, device=track_embeddings.device)
+        return torch.zeros(
+            D, dtype=track_embeddings.dtype, device=track_embeddings.device
+        )
 
     if weights is not None:
         if weights.shape != (T,):
@@ -119,7 +121,6 @@ def group_embeddings_by_track(
     embeddings: Optional[Tensor] = None,
     placeholder_dim: int = PLACEHOLDER_DIM,
 ) -> dict[int, Tensor]:
-    
     N = track_ids.size(0)
 
     if N == 0:
@@ -135,10 +136,7 @@ def group_embeddings_by_track(
     unique_ids = track_ids.unique()
 
     # boolean mask slice per track - cleaner than looping
-    return {
-        int(tid): embeddings[track_ids == tid]
-        for tid in unique_ids
-    }
+    return {int(tid): embeddings[track_ids == tid] for tid in unique_ids}
 
 
 def build_fusion_graphs_batch(
@@ -150,7 +148,6 @@ def build_fusion_graphs_batch(
     loop: bool = False,
     placeholder_dim: int = PLACEHOLDER_DIM,
 ) -> Batch:
-   
     n = len(positions_list)
 
     if len(track_ids_list) != n:
@@ -179,6 +176,7 @@ def build_fusion_graphs_batch(
 
 # --- internal helpers, not part of the public API ---
 
+
 def _get_embeddings(
     positions: Tensor,
     embeddings: Optional[Tensor],
@@ -194,7 +192,9 @@ def _get_embeddings(
 
     N = positions.size(0)
     logger.debug("no embeddings, using zeros (N=%d, D=%d)", N, placeholder_dim)
-    return torch.zeros(N, placeholder_dim, dtype=positions.dtype, device=positions.device)
+    return torch.zeros(
+        N, placeholder_dim, dtype=positions.dtype, device=positions.device
+    )
 
 
 def _check_inputs(
@@ -210,7 +210,9 @@ def _check_inputs(
         raise ValueError(f"embeddings should be (N, D), got {tuple(embeddings.shape)}")
     N = positions.size(0)
     if embeddings.size(0) != N:
-        raise ValueError(f"positions and embeddings have different N: {N} vs {embeddings.size(0)}")
+        raise ValueError(
+            f"positions and embeddings have different N: {N} vs {embeddings.size(0)}"
+        )
     if track_ids.shape != (N,):
         raise ValueError(f"track_ids should be ({N},), got {tuple(track_ids.shape)}")
     if batch is not None and batch.shape != (N,):
@@ -223,7 +225,7 @@ if __name__ == "__main__":
     torch.manual_seed(42)
 
     N, D = 50, 128
-    pos  = torch.randn(N, 3)
+    pos = torch.randn(N, 3)
     tids = torch.arange(N)
 
     # test without embeddings

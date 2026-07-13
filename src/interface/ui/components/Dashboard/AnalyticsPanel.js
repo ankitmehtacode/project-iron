@@ -15,11 +15,11 @@ const calculateFPS = () => {
 
 export const updateDashboard = (activeTracks) => {
     const fps = calculateFPS();
-    
-    // Failsafe: performance.memory is a Chrome-specific API. 
+
+    // Failsafe: performance.memory is a Chrome-specific API.
     // If testing in Firefox/Safari, it will return 'N/A' instead of crashing.
     const mem = performance.memory ? (performance.memory.usedJSHeapSize / 1048576).toFixed(2) : 'N/A';
-    
+
     const panel = document.getElementById('analytics-panel');
     if (panel) {
         panel.innerHTML = `

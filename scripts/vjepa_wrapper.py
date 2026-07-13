@@ -80,7 +80,6 @@ def profile_inference(wrapper, video_tensor):
 
 
 if __name__ == "__main__":
-
     # Path to locally downloaded V-JEPA2 weights
     model_dir = "../models/weights/vjepa2_vitl"
 

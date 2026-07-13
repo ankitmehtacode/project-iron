@@ -2,6 +2,7 @@ import numpy as np
 import openvino as ov
 import nncf
 from nncf import Dataset
+import os
 
 # ----------------------------
 # Paths
@@ -20,7 +21,7 @@ os.makedirs("../models/int8", exist_ok=True)
 # Load Model
 # ----------------------------
 
-core  = ov.Core()
+core = ov.Core()
 model = core.read_model(MODEL_XML)
 
 # Retrieve model input name dynamically
@@ -31,6 +32,7 @@ print(f"Model input shape : {model.inputs[0].partial_shape}")
 # ----------------------------
 # Calibration Dataset
 # ----------------------------
+
 
 def transform_fn(data_item):
     """
@@ -51,8 +53,7 @@ def transform_fn(data_item):
 # accuracy, replace with real representative input samples.
 N_CALIB = 10
 calibration_data = [
-    np.random.randn(1, 3, 224, 224).astype(np.float32)
-    for _ in range(N_CALIB)
+    np.random.randn(1, 3, 224, 224).astype(np.float32) for _ in range(N_CALIB)
 ]
 
 dataset = Dataset(calibration_data, transform_fn)
@@ -77,7 +78,7 @@ assert os.path.exists(OUTPUT_XML), "ERROR: .xml not written!"
 assert os.path.exists(OUTPUT_BIN), "ERROR: .bin not written!"
 
 orig_mb = os.path.getsize(MODEL_XML.replace(".xml", ".bin")) / 1e6
-bin_mb  = os.path.getsize(OUTPUT_BIN) / 1e6
+bin_mb = os.path.getsize(OUTPUT_BIN) / 1e6
 
 print("Quantization complete!")
 print(f"  Original : {orig_mb:.1f} MB")

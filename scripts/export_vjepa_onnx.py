@@ -22,10 +22,7 @@ os.makedirs("../models/onnx", exist_ok=True)
 print("Loading V-JEPA ViT-L model...")
 
 # Load model with trust_remote_code=True since V-JEPA uses custom architecture
-model = AutoModel.from_pretrained(
-    MODEL_DIR,
-    trust_remote_code=True
-)
+model = AutoModel.from_pretrained(MODEL_DIR, trust_remote_code=True)
 
 model.eval()
 
@@ -43,6 +40,7 @@ dummy_video = torch.randn(1, 8, 3, 224, 224)
 # ----------------------------
 # Wrapper (required for ONNX export)
 # ----------------------------
+
 
 class Wrapper(torch.nn.Module):
     """
@@ -102,14 +100,14 @@ with torch.no_grad():
         wrapped_model,
         dummy_video,
         ONNX_PATH,
-        input_names=["video"],       # Input video tensor
-        output_names=["features"],   # Output feature embeddings
-        opset_version=18,            # Required for newer transformer ops
+        input_names=["video"],  # Input video tensor
+        output_names=["features"],  # Output feature embeddings
+        opset_version=18,  # Required for newer transformer ops
         dynamic_axes={
             "video": {0: "batch", 1: "time"},  # Variable batch size and frame count
-            "features": {0: "batch"}
+            "features": {0: "batch"},
         },
-        dynamo=False   # Use legacy exporter for better stability with complex models
+        dynamo=False,  # Use legacy exporter for better stability with complex models
     )
 
 print(f"ONNX export complete! Saved at: {ONNX_PATH}")

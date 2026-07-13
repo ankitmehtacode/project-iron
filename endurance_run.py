@@ -52,24 +52,24 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 # ---------------------------------------------------------------------------
 
 # Model paths relative to project root
-VJEPA_XML     = "../models/int8/vjepa2_vitl_int8.xml"
+VJEPA_XML = "../models/int8/vjepa2_vitl_int8.xml"
 COTRACKER_PTH = "../models/weights/cotracker3/scaled_offline.pth"
 
 # Number of clips to process
 NUM_CLIPS = 200
 
 # Synthetic clip dimensions  (matches model input specification)
-CLIP_FRAMES   = 4
+CLIP_FRAMES = 4
 CLIP_CHANNELS = 3
-CLIP_H        = 224
-CLIP_W        = 224
+CLIP_H = 224
+CLIP_W = 224
 
 # Memory stability threshold.
 # If RAM grows more than this after the warm-up clip, the run fails.
 LEAK_THRESHOLD_MB = 150
 
 # Log file
-LOG_DIR  = "logs"
+LOG_DIR = "logs"
 LOG_FILE = os.path.join(LOG_DIR, "endurance_run.log")
 os.makedirs(LOG_DIR, exist_ok=True)
 
@@ -77,6 +77,7 @@ os.makedirs(LOG_DIR, exist_ok=True)
 # ---------------------------------------------------------------------------
 # Utility functions
 # ---------------------------------------------------------------------------
+
 
 def get_process_ram_mb():
     """Return the current process RSS memory usage in megabytes."""
@@ -99,9 +100,9 @@ def make_synthetic_clip():
         np.ndarray: float32 array of shape [1, CLIP_FRAMES, CLIP_CHANNELS,
                     CLIP_H, CLIP_W] with values in [0, 1].
     """
-    return np.random.rand(
-        1, CLIP_FRAMES, CLIP_CHANNELS, CLIP_H, CLIP_W
-    ).astype(np.float32)
+    return np.random.rand(1, CLIP_FRAMES, CLIP_CHANNELS, CLIP_H, CLIP_W).astype(
+        np.float32
+    )
 
 
 def log(message, filehandle=None):
@@ -123,18 +124,24 @@ def log(message, filehandle=None):
 # Main
 # ---------------------------------------------------------------------------
 
+
 def main():
     with open(LOG_FILE, "w") as logfile:
-
         # Header
         log("=" * 65, logfile)
         log("Endurance Run - Continuous Pipeline Memory Stability Test", logfile)
         log("=" * 65, logfile)
         log(f"Clips          : {NUM_CLIPS}", logfile)
-        log(f"Clip shape     : [1, {CLIP_FRAMES}, {CLIP_CHANNELS}, "
-            f"{CLIP_H}, {CLIP_W}]", logfile)
-        log(f"Leak threshold : {LEAK_THRESHOLD_MB} MB steady growth "
-            f"after warm-up clip", logfile)
+        log(
+            f"Clip shape     : [1, {CLIP_FRAMES}, {CLIP_CHANNELS}, "
+            f"{CLIP_H}, {CLIP_W}]",
+            logfile,
+        )
+        log(
+            f"Leak threshold : {LEAK_THRESHOLD_MB} MB steady growth "
+            f"after warm-up clip",
+            logfile,
+        )
         log(f"V-JEPA2 model  : {VJEPA_XML}", logfile)
         log(f"CoTracker3     : {COTRACKER_PTH}", logfile)
         log("", logfile)
@@ -143,8 +150,10 @@ def main():
         for path in [VJEPA_XML, COTRACKER_PTH]:
             if not os.path.exists(path):
                 log(f"ERROR: Model file not found: {path}", logfile)
-                log("Ensure you are running from the project-iron root "
-                    "directory.", logfile)
+                log(
+                    "Ensure you are running from the project-iron root " "directory.",
+                    logfile,
+                )
                 sys.exit(1)
 
         # -------------------------------------------------------------------
@@ -161,36 +170,40 @@ def main():
         extractor = SemanticExtractor(
             vjepa_xml=VJEPA_XML,
             cotracker_checkpoint=COTRACKER_PTH,
-            grid_size=10,   # 10x10 grid = 100 tracked points per clip
+            grid_size=10,  # 10x10 grid = 100 tracked points per clip
             device="CPU",
         )
 
         load_time = time.time() - load_start
         log(f"Pipeline ready in {load_time:.1f}s", logfile)
-        log(f"Process RAM after loading  : {get_process_ram_mb():.1f} MB",
-            logfile)
-        log(f"System RAM available       : "
-            f"{get_system_available_ram_mb():.1f} MB", logfile)
+        log(f"Process RAM after loading  : {get_process_ram_mb():.1f} MB", logfile)
+        log(
+            f"System RAM available       : " f"{get_system_available_ram_mb():.1f} MB",
+            logfile,
+        )
         log("", logfile)
-        log("Clip 1 is the warm-up pass. Baseline is set from its final "
-            "RAM level.", logfile)
-        log("Delta values for clips 2-200 are measured from that baseline.",
-            logfile)
+        log(
+            "Clip 1 is the warm-up pass. Baseline is set from its final " "RAM level.",
+            logfile,
+        )
+        log("Delta values for clips 2-200 are measured from that baseline.", logfile)
         log("", logfile)
 
         # -------------------------------------------------------------------
         # Inference loop
         # -------------------------------------------------------------------
-        header = (f"{'Clip':>5}  {'RAM (MB)':>10}  {'Delta (MB)':>11}  "
-                  f"{'Sys Avail (MB)':>14}  {'Time (s)':>9}  Status")
+        header = (
+            f"{'Clip':>5}  {'RAM (MB)':>10}  {'Delta (MB)':>11}  "
+            f"{'Sys Avail (MB)':>14}  {'Time (s)':>9}  Status"
+        )
         log(header, logfile)
         log("-" * 68, logfile)
 
-        ram_baseline = None   # established after clip 1
-        ram_readings = []     # post-warm-up readings for trend analysis
-        errors       = 0
-        total_start  = time.time()
-        clip_idx     = 0
+        ram_baseline = None  # established after clip 1
+        ram_readings = []  # post-warm-up readings for trend analysis
+        errors = 0
+        total_start = time.time()
+        clip_idx = 0
 
         for clip_idx in range(1, NUM_CLIPS + 1):
             clip_start = time.time()
@@ -215,15 +228,15 @@ def main():
                     break
                 continue
 
-            elapsed   = time.time() - clip_start
-            ram_now   = get_process_ram_mb()
+            elapsed = time.time() - clip_start
+            ram_now = get_process_ram_mb()
             sys_avail = get_system_available_ram_mb()
 
             # Clip 1 establishes the warm-up baseline
             if clip_idx == 1:
                 ram_baseline = ram_now
-                delta        = 0.0
-                status       = "WARMUP"
+                delta = 0.0
+                status = "WARMUP"
             else:
                 delta = ram_now - ram_baseline
                 ram_readings.append(ram_now)
@@ -234,16 +247,18 @@ def main():
                 else:
                     status = "OK"
 
-            row = (f"{clip_idx:>5}  {ram_now:>10.1f}  {delta:>+11.1f}  "
-                   f"{sys_avail:>14.1f}  {elapsed:>9.2f}  {status}")
+            row = (
+                f"{clip_idx:>5}  {ram_now:>10.1f}  {delta:>+11.1f}  "
+                f"{sys_avail:>14.1f}  {elapsed:>9.2f}  {status}"
+            )
             log(row, logfile)
 
         # -------------------------------------------------------------------
         # Summary report
         # -------------------------------------------------------------------
         total_elapsed = time.time() - total_start
-        ram_end       = get_process_ram_mb()
-        total_growth  = ram_end - (ram_baseline or ram_end)
+        ram_end = get_process_ram_mb()
+        total_growth = ram_end - (ram_baseline or ram_end)
 
         log("", logfile)
         log("=" * 65, logfile)
@@ -251,10 +266,12 @@ def main():
         log("=" * 65, logfile)
         log(f"Clips processed        : {clip_idx} / {NUM_CLIPS}", logfile)
         log(f"Errors                 : {errors}", logfile)
-        log(f"Total time             : {total_elapsed:.1f}s  "
-            f"({total_elapsed / max(clip_idx, 1):.2f}s per clip)", logfile)
-        log(f"RAM after warm-up clip : {ram_baseline:.1f} MB  (baseline)",
-            logfile)
+        log(
+            f"Total time             : {total_elapsed:.1f}s  "
+            f"({total_elapsed / max(clip_idx, 1):.2f}s per clip)",
+            logfile,
+        )
+        log(f"RAM after warm-up clip : {ram_baseline:.1f} MB  (baseline)", logfile)
         log(f"RAM at end of run      : {ram_end:.1f} MB", logfile)
         log(f"Total growth           : {total_growth:+.1f} MB", logfile)
         log(f"Leak threshold         : {LEAK_THRESHOLD_MB} MB", logfile)
@@ -264,8 +281,10 @@ def main():
         # to distinguish between a one-time allocation and a true leak.
         if len(ram_readings) >= 20:
             trend = np.mean(ram_readings[-10:]) - np.mean(ram_readings[:10])
-            log(f"Trend (last 10 vs first 10 post-warmup clips): "
-                f"{trend:+.1f} MB", logfile)
+            log(
+                f"Trend (last 10 vs first 10 post-warmup clips): " f"{trend:+.1f} MB",
+                logfile,
+            )
         else:
             trend = total_growth
 
@@ -277,11 +296,13 @@ def main():
             log("  Investigate object retention in SemanticExtractor.", logfile)
         else:
             log("RESULT: PASSED", logfile)
-            log(f"  RAM remained stable after warm-up.", logfile)
-            log(f"  Growth of {total_growth:+.1f} MB is within the "
-                f"{LEAK_THRESHOLD_MB} MB threshold.", logfile)
-            log("  No memory leak detected across 200 inference passes.",
-                logfile)
+            log("  RAM remained stable after warm-up.", logfile)
+            log(
+                f"  Growth of {total_growth:+.1f} MB is within the "
+                f"{LEAK_THRESHOLD_MB} MB threshold.",
+                logfile,
+            )
+            log("  No memory leak detected across 200 inference passes.", logfile)
 
         log("=" * 65, logfile)
         log(f"Full log: {LOG_FILE}", logfile)

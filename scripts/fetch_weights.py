@@ -10,7 +10,7 @@ from huggingface_hub import snapshot_download
 MODELS = {
     "vjepa2_vitl": "facebook/vjepa2-vitl-fpc64-256",
     "cotracker3": "facebook/cotracker3",
-    "depth_anything_v2_small": "depth-anything/Depth-Anything-V2-Small-hf"
+    "depth_anything_v2_small": "depth-anything/Depth-Anything-V2-Small-hf",
 }
 
 # Directory where model weights will be stored
@@ -24,6 +24,7 @@ os.makedirs(SAVE_DIR, exist_ok=True)
 # ----------------------------
 # SHA256 Function
 # ----------------------------
+
 
 def sha256sum(filepath):
     """
@@ -41,9 +42,11 @@ def sha256sum(filepath):
             h.update(chunk)
     return h.hexdigest()
 
+
 # ----------------------------
 # Download + Verify
 # ----------------------------
+
 
 def main():
     """

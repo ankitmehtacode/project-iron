@@ -1,5 +1,6 @@
-import numpy as np # pyright: ignore[reportMissingImports]
+import numpy as np  # pyright: ignore[reportMissingImports]
 from typing import Dict, List, Tuple
+
 
 class TemporalStitcher:
     def __init__(self, cotracker_model, window_size: int = 16, overlap: int = 4):

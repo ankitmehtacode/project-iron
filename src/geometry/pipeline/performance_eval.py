@@ -16,7 +16,6 @@ LATENCY_THRESHOLD_MS = 150.0
 
 
 def _time_callable(fn):
-   
     start = time.perf_counter()
     fn()
     end = time.perf_counter()
@@ -24,7 +23,6 @@ def _time_callable(fn):
 
 
 def run_pipeline_with_breakdown(stages):
-    
     if not stages:
         raise ValueError("Need at least one stage to measure.")
 
@@ -47,7 +45,6 @@ def measure_pipeline_performance(
     stages=None,
     print_results=True,
 ):
-
     if not callable(pipeline_fn):
         raise TypeError("pipeline_fn must be callable.")
     if warmup_runs >= num_runs:
@@ -116,9 +113,11 @@ def _print_results(results):
     print("  PIPELINE PERFORMANCE EVALUATION")
     print(sep)
 
-    print(f"\n  Runs        : {results['num_runs']}  "
-          f"(warm-up: {results['warmup_runs']}, "
-          f"measured: {results['measured_runs']})")
+    print(
+        f"\n  Runs        : {results['num_runs']}  "
+        f"(warm-up: {results['warmup_runs']}, "
+        f"measured: {results['measured_runs']})"
+    )
 
     print(f"\n  Average Latency : {results['avg_latency_ms']:.2f} ms")
     print(f"  Std Deviation   : {results['std_latency_ms']:.2f} ms")
@@ -129,7 +128,7 @@ def _print_results(results):
     # print stage breakdown if we have it
     breakdown = results.get("stage_breakdown")
     if breakdown:
-        print(f"\n  Stage-wise Breakdown:")
+        print("\n  Stage-wise Breakdown:")
         for stage_name, latency in breakdown.items():
             if stage_name == "total":
                 continue
@@ -178,23 +177,27 @@ def _demo():
 
     # simulate depth-based 3D projection
     def simulate_3d_projection():
-        from geometry.projector_vectorized import project_points_to_3d, compute_intrinsics
+        from geometry.projector_vectorized import (
+            project_points_to_3d,
+            compute_intrinsics,
+        )
+
         fx, fy, cx, cy = compute_intrinsics(224, 224)
         for t in range(dummy_tracks.shape[0]):
-            project_points_to_3d(
-                dummy_tracks[t], dummy_depth[t], fx, fy, cx, cy
-            )
+            project_points_to_3d(dummy_tracks[t], dummy_depth[t], fx, fy, cx, cy)
 
     # simulate fusion graph construction
     def simulate_fusion_graph():
         if torch is not None:
             from graph.fusion_graph import build_fusion_graph
+
             pos = torch.from_numpy(dummy_positions)
             tids = torch.from_numpy(dummy_track_ids).long()
             emb = torch.from_numpy(dummy_embeddings)
             build_fusion_graph(pos, tids, embeddings=emb, radius=1.5)
         else:
             from scipy.spatial import cKDTree
+
             tree = cKDTree(dummy_positions)
             _ = tree.query_ball_point(dummy_positions, r=1.5)
 
@@ -205,9 +208,9 @@ def _demo():
         simulate_fusion_graph()
 
     stages = {
-        "embedding":  simulate_embedding_extraction,
+        "embedding": simulate_embedding_extraction,
         "projection": simulate_3d_projection,
-        "graph":      simulate_fusion_graph,
+        "graph": simulate_fusion_graph,
     }
 
     results = measure_pipeline_performance(

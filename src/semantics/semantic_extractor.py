@@ -59,11 +59,11 @@ from cotracker.predictor import CoTrackerPredictor
 # ─────────────────────────────────────────────────────────────────────
 # Constants — V-JEPA2 ViT-L patch configuration
 # ─────────────────────────────────────────────────────────────────────
-IMAGE_SIZE  = 224    # input spatial resolution
-PATCH_SIZE  = 16     # ViT patch size (224 / 16 = 14 patches per axis)
-GRID_SIZE   = IMAGE_SIZE // PATCH_SIZE   # 14
-NUM_PATCHES = GRID_SIZE * GRID_SIZE      # 196  (14×14)
-EMBED_DIM   = 1024   # V-JEPA2 ViT-L embedding dimension
+IMAGE_SIZE = 224  # input spatial resolution
+PATCH_SIZE = 16  # ViT patch size (224 / 16 = 14 patches per axis)
+GRID_SIZE = IMAGE_SIZE // PATCH_SIZE  # 14
+NUM_PATCHES = GRID_SIZE * GRID_SIZE  # 196  (14×14)
+EMBED_DIM = 1024  # V-JEPA2 ViT-L embedding dimension
 
 
 def pixel_to_patch_index(x: np.ndarray, y: np.ndarray) -> np.ndarray:
@@ -85,10 +85,10 @@ def pixel_to_patch_index(x: np.ndarray, y: np.ndarray) -> np.ndarray:
     x = np.clip(x, 0, IMAGE_SIZE - 1)
     y = np.clip(y, 0, IMAGE_SIZE - 1)
 
-    patch_col = (x // PATCH_SIZE).astype(int)   # 0..13
-    patch_row = (y // PATCH_SIZE).astype(int)   # 0..13
+    patch_col = (x // PATCH_SIZE).astype(int)  # 0..13
+    patch_row = (y // PATCH_SIZE).astype(int)  # 0..13
 
-    return patch_row * GRID_SIZE + patch_col     # 0..195
+    return patch_row * GRID_SIZE + patch_col  # 0..195
 
 
 class SemanticExtractor:
@@ -203,11 +203,11 @@ class SemanticExtractor:
         for b in range(B):
             for t in range(T):
                 # pixel coords for all N points at frame t
-                x = tracks[b, t, :, 0]   # [N]
-                y = tracks[b, t, :, 1]   # [N]
+                x = tracks[b, t, :, 0]  # [N]
+                y = tracks[b, t, :, 1]  # [N]
 
                 # Map pixel → flat patch index (0..195)
-                patch_idx = pixel_to_patch_index(x, y)   # [N]
+                patch_idx = pixel_to_patch_index(x, y)  # [N]
 
                 # Map input frame t → nearest V-JEPA output temporal slot.
                 # If T_out < T, multiple input frames map to the same slot.
@@ -242,8 +242,10 @@ class SemanticExtractor:
                 "semantic_tracks" : float32 [B, T, N, 1024]  V-JEPA embeddings
         """
         assert video.ndim == 5, "Expected video shape [B, T, C, H, W]"
-        assert video.shape[3] == IMAGE_SIZE and video.shape[4] == IMAGE_SIZE, \
-            f"Expected spatial size {IMAGE_SIZE}×{IMAGE_SIZE}, got {video.shape[3]}×{video.shape[4]}"
+        assert video.shape[3] == IMAGE_SIZE and video.shape[4] == IMAGE_SIZE, (
+            f"Expected spatial size {IMAGE_SIZE}x{IMAGE_SIZE}, "
+            f"got {video.shape[3]}x{video.shape[4]}"
+        )
 
         # Step 1 — CoTracker3: pixel tracks
         video_torch = torch.from_numpy(video)
@@ -260,9 +262,9 @@ class SemanticExtractor:
         # semantic_tracks : [B, T, N, 1024]
 
         return {
-            "tracks":           tracks,          # [B, T, N, 2]
-            "visibility":       visibility,      # [B, T, N]
-            "semantic_tracks":  semantic_tracks, # [B, T, N, 1024]
+            "tracks": tracks,  # [B, T, N, 2]
+            "visibility": visibility,  # [B, T, N]
+            "semantic_tracks": semantic_tracks,  # [B, T, N, 1024]
         }
 
 
@@ -274,11 +276,11 @@ if __name__ == "__main__":
 
     # Test pixel_to_patch_index
     test_cases = [
-        (0,   0,   0),    # top-left     → patch 0
+        (0, 0, 0),  # top-left     → patch 0
         (223, 223, 195),  # bottom-right → patch 195
-        (16,  0,   1),    # second patch in row 0
-        (0,   16,  14),   # first patch in row 1
-        (112, 112, 7*14+7),  # centre
+        (16, 0, 1),  # second patch in row 0
+        (0, 16, 14),  # first patch in row 1
+        (112, 112, 7 * 14 + 7),  # centre
     ]
     all_pass = True
     for x, y, expected in test_cases:
@@ -286,7 +288,9 @@ if __name__ == "__main__":
         status = "✅" if got == expected else "❌"
         if got != expected:
             all_pass = False
-        print(f"  {status}  pixel ({x:3d},{y:3d}) → patch {got:3d}  (expected {expected})")
+        print(
+            f"  {status}  pixel ({x:3d},{y:3d}) → patch {got:3d}  (expected {expected})"
+        )
 
     print()
     if all_pass:
@@ -297,7 +301,7 @@ if __name__ == "__main__":
     # Test shape arithmetic
     print("\n=== Shape arithmetic check ===")
     B, T, N = 1, 4, 100
-    dummy_tracks   = np.random.rand(B, T, N, 2).astype(np.float32) * 224
+    dummy_tracks = np.random.rand(B, T, N, 2).astype(np.float32) * 224
     dummy_features = np.random.rand(B, T * NUM_PATCHES, EMBED_DIM).astype(np.float32)
 
     extractor_dummy = object.__new__(SemanticExtractor)

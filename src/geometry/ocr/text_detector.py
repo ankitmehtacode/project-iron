@@ -3,26 +3,23 @@ from __future__ import annotations
 import cv2
 import numpy as np
 import pytesseract
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Optional
 
 
 @dataclass
 class PreprocessConfig:
-
-    apply_threshold : bool  = True
-    denoise         : bool  = False
-    scale_factor    : float = 1.0
-    threshold_method: str   = "otsu"   # "otsu" | "adaptive"
+    apply_threshold: bool = True
+    denoise: bool = False
+    scale_factor: float = 1.0
+    threshold_method: str = "otsu"  # "otsu" | "adaptive"
 
 
 @dataclass
 class OCRResult:
-    
     text: str
     bbox: tuple[int, int, int, int]
     conf: int
-
 
 
 # Tesseract configuration
@@ -32,11 +29,10 @@ _TESS_CONFIG = "--psm 11 --oem 3"
 _MIN_CONFIDENCE: int = 40
 
 
-
 # Internal helpers
 
-def _preprocess(frame: np.ndarray, cfg: PreprocessConfig) -> np.ndarray:
 
+def _preprocess(frame: np.ndarray, cfg: PreprocessConfig) -> np.ndarray:
     # 1. Grayscale
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
@@ -54,22 +50,16 @@ def _preprocess(frame: np.ndarray, cfg: PreprocessConfig) -> np.ndarray:
     if cfg.apply_threshold:
         if cfg.threshold_method == "adaptive":
             gray = cv2.adaptiveThreshold(
-                gray, 255,
-                cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
-                cv2.THRESH_BINARY, 11, 2
+                gray, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 11, 2
             )
         else:  # default: Otsu
-            _, gray = cv2.threshold(
-                gray, 0, 255,
-                cv2.THRESH_BINARY + cv2.THRESH_OTSU
-            )
+            _, gray = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
 
     return gray
 
 
 def _scale_bbox(
-    bbox : tuple[int, int, int, int],
-    scale: float
+    bbox: tuple[int, int, int, int], scale: float
 ) -> tuple[int, int, int, int]:
     """
     Map a bounding box from the (possibly upscaled) preprocessed image back
@@ -86,13 +76,13 @@ def _scale_bbox(
     )
 
 
-
 # Public API — single frame
 
+
 def detect_text(
-    frame     : np.ndarray,
-    min_conf  : int                     = _MIN_CONFIDENCE,
-    tess_cfg  : str                     = _TESS_CONFIG,
+    frame: np.ndarray,
+    min_conf: int = _MIN_CONFIDENCE,
+    tess_cfg: str = _TESS_CONFIG,
     preprocess: Optional[PreprocessConfig] = None,
 ) -> list[OCRResult]:
     """
@@ -100,9 +90,7 @@ def detect_text(
     ValueError  : If ``frame`` does not have shape (H, W, 3).
     """
     if frame.ndim != 3 or frame.shape[2] != 3:
-        raise ValueError(
-            f"Expected frame of shape (H, W, 3), got {frame.shape}."
-        )
+        raise ValueError(f"Expected frame of shape (H, W, 3), got {frame.shape}.")
 
     cfg = preprocess if preprocess is not None else PreprocessConfig()
 
@@ -115,12 +103,12 @@ def detect_text(
         output_type=pytesseract.Output.DICT,
     )
 
-    texts  = np.array(data["text"])
-    confs  = np.array(data["conf"], dtype=int)  
-    lefts  = np.array(data["left"],  dtype=int)
-    tops   = np.array(data["top"],   dtype=int)
+    texts = np.array(data["text"])
+    confs = np.array(data["conf"], dtype=int)
+    lefts = np.array(data["left"], dtype=int)
+    tops = np.array(data["top"], dtype=int)
     widths = np.array(data["width"], dtype=int)
-    heights= np.array(data["height"],dtype=int)
+    heights = np.array(data["height"], dtype=int)
 
     mask = (confs >= min_conf) & (np.char.strip(texts.astype(str)) != "")
 
@@ -133,28 +121,28 @@ def detect_text(
             ),
             conf=int(confs[i]),
         )
-        for i in np.where(mask)[0]   
+        for i in np.where(mask)[0]
     ]
 
     return results
 
+
 # Public API — video tensor
 
+
 def detect_text_in_video(
-    frames      : np.ndarray,
-    frame_skip  : int                       = 1,
-    min_conf    : int                       = _MIN_CONFIDENCE,
-    tess_cfg    : str                       = _TESS_CONFIG,
-    preprocess  : Optional[PreprocessConfig]= None,
+    frames: np.ndarray,
+    frame_skip: int = 1,
+    min_conf: int = _MIN_CONFIDENCE,
+    tess_cfg: str = _TESS_CONFIG,
+    preprocess: Optional[PreprocessConfig] = None,
 ) -> dict[int, list[OCRResult]]:
     """
     Batch OCR over a video tensor with optional frame skipping.
     ValueError : If ``frames`` does not have shape (T, H, W, 3).
     """
     if frames.ndim != 4 or frames.shape[3] != 3:
-        raise ValueError(
-            f"Expected tensor of shape (T, H, W, 3), got {frames.shape}."
-        )
+        raise ValueError(f"Expected tensor of shape (T, H, W, 3), got {frames.shape}.")
 
     results: dict[int, list[OCRResult]] = {}
 
@@ -173,14 +161,20 @@ def detect_text_in_video(
 
     return results
 
+
 # Quick smoke-test (run: python text_detector.py)
 if __name__ == "__main__":
     # Synthesise a white canvas with black text for a dependency-free test.
     canvas = np.ones((120, 400, 3), dtype=np.uint8) * 255
     cv2.putText(
-        canvas, "Hello OCR 2025",
-        (20, 70), cv2.FONT_HERSHEY_SIMPLEX,
-        1.8, (0, 0, 0), 3, cv2.LINE_AA,
+        canvas,
+        "Hello OCR 2025",
+        (20, 70),
+        cv2.FONT_HERSHEY_SIMPLEX,
+        1.8,
+        (0, 0, 0),
+        3,
+        cv2.LINE_AA,
     )
 
     cfg = PreprocessConfig(apply_threshold=True, scale_factor=2.0)

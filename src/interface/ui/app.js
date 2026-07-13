@@ -19,8 +19,8 @@ renderer.setSize(window.innerWidth / 2, window.innerHeight);
 container.appendChild(renderer.domElement);
 
 // CRITICAL FIX: Moved camera closer to observe the origin-based dummy data
-camera.position.set(0, 0, 30); 
-camera.lookAt(0, 0, 0);         
+camera.position.set(0, 0, 30);
+camera.lookAt(0, 0, 0);
 
 const trajectoryLines = [];
 let gaussianSplatProxy = null;
@@ -36,8 +36,8 @@ function buildTrajectories(data) {
         track.path.forEach(pt => {
             points.push(new THREE.Vector3(pt.x, pt.y, pt.z));
             colors.push(
-                pt.r !== undefined ? pt.r : 1, 
-                pt.g !== undefined ? pt.g : 1, 
+                pt.r !== undefined ? pt.r : 1,
+                pt.g !== undefined ? pt.g : 1,
                 pt.b !== undefined ? pt.b : 1
             );
         });
@@ -46,8 +46,8 @@ function buildTrajectories(data) {
         geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
         const material = new THREE.LineBasicMaterial({ vertexColors: true, linewidth: 2 });
         const line = new THREE.Line(geometry, material);
-        
-        line.geometry.setDrawRange(0, 0); 
+
+        line.geometry.setDrawRange(0, 0);
         scene.add(line);
         trajectoryLines.push({ line: line, data: track.path });
 
@@ -79,8 +79,8 @@ fetch('trajectory_data.json')
     .catch(err => console.error("Data Loading Error:", err));
 
 function sync3DWithVideo() {
-    if (!globalTrajectoryData) return; 
-    
+    if (!globalTrajectoryData) return;
+
     const currentFrame = Math.floor(video.currentTime * globalTrajectoryData.fps);
     frameDisplay.innerText = currentFrame;
 
@@ -88,11 +88,11 @@ function sync3DWithVideo() {
         const lineObj = trajectoryLines[i];
         const path = lineObj.data;
         const targetIdx = Math.min(currentFrame, path.length - 1);
-        
+
         if (targetIdx >= 0) {
             lineObj.line.geometry.setDrawRange(0, targetIdx);
             const currentPos = path[targetIdx];
-            
+
             // CRITICAL FIX: Manipulating the exact BufferAttribute array for points
             if (gaussianSplatProxy && gaussianSplatProxy.mesh.geometry.attributes.position) {
                 const positions = gaussianSplatProxy.mesh.geometry.attributes.position.array;
@@ -120,4 +120,4 @@ function animate() {
     }
     renderer.render(scene, camera);
 }
-animate(); 
+animate();

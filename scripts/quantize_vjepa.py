@@ -59,7 +59,7 @@ import nncf
 # Paths
 # ----------------------------
 
-MODEL_XML  = "../models/ir/vjepa2_vitl.xml"
+MODEL_XML = "../models/ir/vjepa2_vitl.xml"
 OUTPUT_XML = "../models/int8/vjepa2_vitl_int8.xml"
 OUTPUT_BIN = "../models/int8/vjepa2_vitl_int8.bin"
 
@@ -70,12 +70,11 @@ os.makedirs("../models/int8", exist_ok=True)
 # ----------------------------
 
 print("Loading V-JEPA2 IR model...")
-core  = ov.Core()
+core = ov.Core()
 model = core.read_model(MODEL_XML)
 
 # Display input information for verification
-print(f"Input : {model.inputs[0].get_any_name()}  "
-      f"{model.inputs[0].partial_shape}")
+print(f"Input : {model.inputs[0].get_any_name()}  " f"{model.inputs[0].partial_shape}")
 
 # ----------------------------
 # Weight Compression
@@ -105,11 +104,10 @@ assert os.path.exists(OUTPUT_BIN), "ERROR: .bin not written!"
 # ----------------------------
 
 orig_mb = os.path.getsize(MODEL_XML.replace(".xml", ".bin")) / 1e6
-xml_mb  = os.path.getsize(OUTPUT_XML) / 1e6
-bin_mb  = os.path.getsize(OUTPUT_BIN) / 1e6
+xml_mb = os.path.getsize(OUTPUT_XML) / 1e6
+bin_mb = os.path.getsize(OUTPUT_BIN) / 1e6
 
 print("\nCompression complete!")
 print(f"Original  : {orig_mb:.1f} MB")
 print(f"Compressed: {bin_mb:.1f} MB  (.bin)")
 print(f"Reduction : {100*(1 - bin_mb/orig_mb):.1f}%")
-

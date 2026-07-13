@@ -47,13 +47,13 @@ torch.onnx.export(
     model,
     dummy_input,
     ONNX_PATH,
-    input_names=["input"],     # Name of input tensor in ONNX graph
-    output_names=["depth"],    # Output represents predicted depth map
-    opset_version=17,          # Stable opset for OpenVINO compatibility
+    input_names=["input"],  # Name of input tensor in ONNX graph
+    output_names=["depth"],  # Output represents predicted depth map
+    opset_version=17,  # Stable opset for OpenVINO compatibility
     dynamic_axes={
         "input": {0: "batch"},  # Allow variable batch size
-        "depth": {0: "batch"}
-    }
+        "depth": {0: "batch"},
+    },
 )
 
 print("ONNX export complete!")

@@ -1,4 +1,4 @@
-import os
+import os  # noqa: F401
 import time
 import numpy as np
 import torch
@@ -18,11 +18,12 @@ def load_image_sequence(image_dir: str, max_frames: int = 20) -> np.ndarray:
         raise FileNotFoundError(f"No images found in {image_dir}")
 
     frames = [np.array(Image.open(p).convert("RGB")) for p in image_paths]
-    video = np.stack(frames, axis=0)          # (T, H, W, 3)
+    video = np.stack(frames, axis=0)  # (T, H, W, 3)
 
     print(f"Loaded {len(frames)} frames from {image_dir}")
     print(f"Video shape: {video.shape}")
     return video
+
 
 def create_grid_points(
     height: int,
@@ -45,20 +46,19 @@ def create_grid_points(
     points : np.ndarray, shape (N, 2), dtype float32, C-contiguous
         Each row is (x, y).  N = len(xs) * len(ys).
     """
-    
-    xs = np.arange(0, width,  step, dtype=np.float32)   
-    ys = np.arange(0, height, step, dtype=np.float32)   
 
-   
-    grid_x, grid_y = np.meshgrid(xs, ys)               
+    xs = np.arange(0, width, step, dtype=np.float32)
+    ys = np.arange(0, height, step, dtype=np.float32)
 
-    points = np.stack([grid_x.ravel(), grid_y.ravel()], axis=-1)  
+    grid_x, grid_y = np.meshgrid(xs, ys)
+
+    points = np.stack([grid_x.ravel(), grid_y.ravel()], axis=-1)
 
     points = np.ascontiguousarray(points, dtype=np.float32)
 
-    assert points.ndim == 2 and points.shape[1] == 2, (
-        f"Expected shape (N, 2), got {points.shape}"
-    )
+    assert (
+        points.ndim == 2 and points.shape[1] == 2
+    ), f"Expected shape (N, 2), got {points.shape}"
     assert points.dtype == np.float32, f"Expected float32, got {points.dtype}"
 
     print(f"Grid points: {points.shape[0]}  (step={step}, grid {len(xs)}×{len(ys)})")
@@ -83,13 +83,13 @@ def build_queries(points: np.ndarray, device: torch.device) -> torch.Tensor:
     """
     N = points.shape[0]
 
-    pts_tensor = torch.from_numpy(points)                
+    pts_tensor = torch.from_numpy(points)
 
-    frame_ids = torch.zeros(N, 1, dtype=torch.float32)   
-    queries = torch.cat([frame_ids, pts_tensor], dim=-1)  
+    frame_ids = torch.zeros(N, 1, dtype=torch.float32)
+    queries = torch.cat([frame_ids, pts_tensor], dim=-1)
 
-    queries = queries.unsqueeze(0).to(device)           
-    
+    queries = queries.unsqueeze(0).to(device)
+
     assert queries.shape == (1, N, 3), f"Unexpected query shape: {queries.shape}"
 
     return queries
@@ -119,25 +119,18 @@ def run_cotracker(
     T, H, W, _ = video.shape
     N = points.shape[0]
 
-    
-    assert video.ndim == 4 and video.shape[3] == 3, (
-        f"video must be (T,H,W,3), got {video.shape}"
-    )
-    assert points.ndim == 2 and points.shape[1] == 2, (
-        f"points must be (N,2), got {points.shape}"
-    )
+    assert (
+        video.ndim == 4 and video.shape[3] == 3
+    ), f"video must be (T,H,W,3), got {video.shape}"
+    assert (
+        points.ndim == 2 and points.shape[1] == 2
+    ), f"points must be (N,2), got {points.shape}"
 
-    
     video_tensor = (
-        torch.from_numpy(video)
-        .permute(0, 3, 1, 2)       
-        .float()
-        .unsqueeze(0)               
-        .to(device)
+        torch.from_numpy(video).permute(0, 3, 1, 2).float().unsqueeze(0).to(device)
     )
 
-    
-    queries = build_queries(points, device)              
+    queries = build_queries(points, device)
 
     model = CoTrackerPredictor(checkpoint=None)
     model = model.to(device)
@@ -147,8 +140,8 @@ def run_cotracker(
     with torch.no_grad():
         pred_tracks, pred_visibility = model(video_tensor, queries=queries)
 
-    tracks     = pred_tracks.squeeze(0).cpu().numpy()      
-    visibility = pred_visibility.squeeze(0).cpu().numpy()  
+    tracks = pred_tracks.squeeze(0).cpu().numpy()
+    visibility = pred_visibility.squeeze(0).cpu().numpy()
 
     print(f"Output tracks shape    : {tracks.shape}")
     print(f"Output visibility shape: {visibility.shape}")
@@ -164,8 +157,9 @@ def _loop_grid_points(height: int, width: int, step: int) -> np.ndarray:
     return np.array(points, dtype=np.float32)
 
 
-def benchmark(height: int = 720, width: int = 1280, step: int = 20,
-              repeats: int = 100) -> None:
+def benchmark(
+    height: int = 720, width: int = 1280, step: int = 20, repeats: int = 100
+) -> None:
     """
     Compare loop-based vs vectorised grid generation.
 
@@ -194,14 +188,16 @@ def benchmark(height: int = 720, width: int = 1280, step: int = 20,
         pts_vec = create_grid_points(height, width, step)
         times_vec.append(time.perf_counter() - t0)
 
-    t_loop = np.array(times_loop) * 1e3   
-    t_vec  = np.array(times_vec)  * 1e3   
+    t_loop = np.array(times_loop) * 1e3
+    t_vec = np.array(times_vec) * 1e3
 
     print(f"\n  Loop-based  : {t_loop.mean():.3f} ms ± {t_loop.std():.3f} ms")
     print(f"  Vectorised  : {t_vec.mean():.3f} ms ± {t_vec.std():.3f} ms")
     print(f"  Speed-up    : {t_loop.mean() / t_vec.mean():.1f}×")
-    print(f"  Points generated: {pts_vec.shape[0]}  (both match: "
-          f"{np.allclose(pts_loop, pts_vec)})")
+    print(
+        f"  Points generated: {pts_vec.shape[0]}  (both match: "
+        f"{np.allclose(pts_loop, pts_vec)})"
+    )
     print("=" * 60 + "\n")
 
 
@@ -216,39 +212,45 @@ def main():
 
     # Load video from file instead of folder sequence
     import cv2
+
     cap = cv2.VideoCapture(video_path)
     frames = []
-    
+
     # CRITICAL FIX: Read up to 300 frames instead of 20
     while len(frames) < 300:
         ret, frame = cap.read()
-        if not ret: break
+        if not ret:
+            break
         frames.append(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
     cap.release()
-    
-    video = np.stack(frames, axis=0) # (T, H, W, 3)
+
+    video = np.stack(frames, axis=0)  # (T, H, W, 3)
     T, H, W, _ = video.shape
 
     points = create_grid_points(H, W, step=20)
     # --- FAILSAFE TRACKING BLOCK ---
     try:
-        from cotracker.predictor import CoTrackerPredictor
+        from cotracker.predictor import CoTrackerPredictor  # noqa: F401
+
         tracks, visibility = run_cotracker(video, points, device)
     except (ImportError, ModuleNotFoundError, Exception):
-        print("[Warning] CoTracker not found or failed. Generating mock tracks for UI testing.")
+        print(
+            "[Warning] CoTracker not found or failed. "
+            "Generating mock tracks for UI testing."
+        )
         T, H, W, _ = video.shape
         N = points.shape[0]
         # Create tracks that move slightly diagonally
         tracks = np.zeros((T, N, 2), dtype=np.float32)
         for t in range(T):
-            tracks[t] = points + (t * 2.5) 
+            tracks[t] = points + (t * 2.5)
         visibility = np.ones((T, N), dtype=bool)
     # --- END FAILSAFE ---
 
     # Save to 'outputs/' so projector_vectorized.py can find them
     np.save(output_dir / "tracks.npy", tracks)
     np.save(output_dir / "visibility.npy", visibility)
-    
+
     # Create dummy depth maps for testing since you don't have the depth model yet
     depth_dir = output_dir / "depth_maps"
     depth_dir.mkdir(parents=True, exist_ok=True)
@@ -257,6 +259,7 @@ def main():
         np.save(depth_dir / f"frame_{t:04d}.npy", dummy_depth)
 
     print(f"SUCCESS: Generated tracks and dummy depth maps in {output_dir}")
+
 
 if __name__ == "__main__":
     main()
