@@ -177,7 +177,7 @@ def _demo():
 
     # simulate depth-based 3D projection
     def simulate_3d_projection():
-        from geometry.projector_vectorized import (
+        from src.geometry.projector_vectorized import (
             project_points_to_3d,
             compute_intrinsics,
         )
@@ -189,7 +189,7 @@ def _demo():
     # simulate fusion graph construction
     def simulate_fusion_graph():
         if torch is not None:
-            from graph.fusion_graph import build_fusion_graph
+            from src.graph.fusion_graph import build_fusion_graph
 
             pos = torch.from_numpy(dummy_positions)
             tids = torch.from_numpy(dummy_track_ids).long()

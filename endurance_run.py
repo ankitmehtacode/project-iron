@@ -26,8 +26,7 @@ Synthetic clip specification:
     Storage: generated in memory, never written to disk
 
 Usage:
-    source ~/Internship/openvino_project/openvino_env/bin/activate
-    cd ~/Internship/openvino_project/project-iron
+    pip install -e .
     python endurance_run.py
 
 Output:
@@ -43,9 +42,6 @@ import time
 import traceback
 import numpy as np
 import psutil
-
-# Allow src/ imports when running from project root
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # ---------------------------------------------------------------------------
 # Configuration

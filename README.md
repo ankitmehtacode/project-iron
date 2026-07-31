@@ -21,47 +21,111 @@ src/
 
 ## Directory Structure
 
+<!-- BEGIN TREE -->
+<!-- regenerate with: python scripts/gen_tree.py -->
+
 ```
 project-iron/
-├── Dockerfile
-├── locking-requirements.txt
-├── conda_environment.yaml
-├── .pre-commit-config.yaml
-├── .gitignore
-├── setup.py
-│
+├── .claude/
+│   └── skills/
+│       ├── iron-cascade-runtime/
+│       │   └── SKILL.md
+│       ├── iron-contracts/
+│       │   └── SKILL.md
+│       ├── iron-eval-discipline/
+│       │   └── SKILL.md
+│       ├── iron-events/
+│       │   └── SKILL.md
+│       ├── iron-model-export/
+│       │   └── SKILL.md
+│       ├── iron-privacy-security/
+│       │   └── SKILL.md
+│       ├── iron-provenance/
+│       │   └── SKILL.md
+│       └── iron-testing/
+│           └── SKILL.md
+├── scripts/
+│   ├── export_cotracker3_onnx.py
+│   ├── export_depth_anything_onnx.py
+│   ├── export_vjepa_onnx.py
+│   ├── fetch_weights.py
+│   ├── gen_tree.py
+│   ├── mock_pipeline.py
+│   ├── quantize_cotracker3.py
+│   ├── quantize_depth_anything.py
+│   ├── quantize_vjepa.py
+│   └── vjepa_wrapper.py
 ├── src/
-│   ├── geometry/          ← Priyanshu (3D, depth, tracking)
+│   ├── geometry/
+│   │   ├── ocr/
+│   │   │   ├── __init__.py
+│   │   │   └── text_detector.py
+│   │   ├── pipeline/
+│   │   │   ├── __init__.py
+│   │   │   ├── metadata_fusion.py
+│   │   │   └── performance_eval.py
 │   │   ├── __init__.py
 │   │   ├── enhanced_cotracker.py
 │   │   └── projector_vectorized.py
-│   ├── semantics/         ← Radhe (language, reasoning)
-│   │   └── __init__.py
-│   ├── interface/         ← Rishi (API, orchestration)
-│   │   └── __init__.py
-│   ├── models/            ← AI model wrappers
+│   ├── graph/
 │   │   ├── __init__.py
-│   │   ├── model_wrapper.py       (base class)
-│   │   ├── cotracker3_wrapper.py  (point tracking)
-│   │   ├── dav2_wrapper.py        (depth estimation)
-│   │   └── vjepa_wrapper.py       (video understanding)
+│   │   ├── embedding_preparation.py
+│   │   └── fusion_graph.py
+│   ├── interface/
+│   │   ├── ui/
+│   │   │   ├── components/
+│   │   │   │   ├── Dashboard/
+│   │   │   │   │   └── AnalyticsPanel.js
+│   │   │   │   └── Visualizer/
+│   │   │   │       └── GaussianSplat.js
+│   │   │   ├── data/
+│   │   │   │   └── raw/
+│   │   │   │       └── test_video.mp4
+│   │   │   ├── workers/
+│   │   │   │   └── GaussianSorter.worker.js
+│   │   │   ├── app.js
+│   │   │   ├── index.html
+│   │   │   ├── serve.py
+│   │   │   ├── three.min.js
+│   │   │   └── trajectory_data.json
+│   │   ├── __init__.py
+│   │   ├── data_converter.py
+│   │   └── temporal_stitching.py
+│   ├── models/
+│   │   ├── __init__.py
+│   │   ├── cotracker3_wrapper.py
+│   │   ├── dav2_wrapper.py
+│   │   ├── model_wrapper.py
+│   │   └── vjepa_wrapper.py
+│   ├── semantics/
+│   │   ├── __init__.py
+│   │   ├── pca_reducer.py
+│   │   └── semantic_extractor.py
 │   ├── utils/
-│   │   ├── disk_cache.py          (SSD caching)
-│   │   └── parquet_writer.py      (output format)
-│   ├── orchestrator.py            (OpenVINO sequential loading)
-│   ├── memory_manager.py          (RAM management)
-│   └── main.py
-│
-├── models/                ← Saved checkpoints (.pt, .pth, .xml)
-├── data/
-│   ├── raw/              ← Input videos, images
-│   └── processed/        ← Cached depth maps, outputs
-├── output/               ← Parquet results
+│   │   ├── __init__.py
+│   │   ├── disk_cache.py
+│   │   └── parquet_writer.py
+│   ├── __init__.py
+│   ├── integration.py
+│   ├── main.py
+│   ├── memory_manager.py
+│   ├── orchestrator.py
+│   ├── rag_agent.py
+│   └── vector_database.py
 ├── tests/
-├── configs/
-├── scripts/
-└── docs/
+│   └── test_temporal_stitching.py
+├── .gitignore
+├── .pre-commit-config.yaml
+├── architecture.md
+├── conda_environment.yaml
+├── Dockerfile
+├── endurance_run.py
+├── locking-requirements.txt
+├── pyproject.toml
+├── README.md
+└── setup.py
 ```
+<!-- END TREE -->
 
 ---
 
@@ -71,7 +135,7 @@ project-iron/
 
 ```bash
 # Clone repository
-git clone https://github.com/Dalbirsm03/project-iron.git
+git clone https://github.com/ankitmehtacode/project-iron.git
 cd project-iron
 
 # Create virtual environment
@@ -171,12 +235,22 @@ writer.close()
 
 ## Running the Pipeline
 
-See `scripts/pipeline_example.py`:
+End-to-end integration demo (simulates input where weights are absent):
 
 ```bash
-python scripts/pipeline_example.py \
-  --video data/raw/test_video.mp4 \
-  --output output/results.parquet
+python -m src.integration
+```
+
+Parquet writer smoke test, no model weights required:
+
+```bash
+python scripts/mock_pipeline.py
+```
+
+Memory-stability soak test:
+
+```bash
+python endurance_run.py
 ```
 
 ---

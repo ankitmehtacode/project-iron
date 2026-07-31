@@ -46,9 +46,7 @@ USAGE
 ------------------------------------------------------------------
 Run in appropriate OpenVINO environment:
 
-    conda activate openvino310
-    cd ~/Internship/openvino_project/scripts
-    python quantize_vjepa.py
+    python scripts/quantize_vjepa.py
 """
 
 import os

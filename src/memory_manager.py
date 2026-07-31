@@ -3,7 +3,7 @@ import torch
 import numpy as np
 from typing import Dict, Any
 
-from utils.disk_cache import DiskCache
+from src.utils.disk_cache import DiskCache
 
 
 class MemoryManager:
@@ -38,7 +38,7 @@ class MemoryManager:
 
     def load_dav2(self, model_path: str, encoder: str = "vitl") -> None:
         """Load Depth Anything V2 model."""
-        from models.dav2_wrapper import DAv2Wrapper
+        from src.models.dav2_wrapper import DAv2Wrapper
 
         print("[MemMgr] Loading DA-v2...")
         self.dav2_model = DAv2Wrapper(
@@ -93,7 +93,7 @@ class MemoryManager:
 
     def load_cotracker(self, model_path: str) -> None:
         """Load CoTracker3 model."""
-        from models.cotracker3_wrapper import CoTracker3Wrapper
+        from src.models.cotracker3_wrapper import CoTracker3Wrapper
 
         print("[MemMgr] Loading CoTracker3...")
         self.cotracker_model = CoTracker3Wrapper(

@@ -44,15 +44,12 @@ This avoids unsupported 5D operations while preserving behavior.
 ------------------------------------------------------------------
 USAGE
 ------------------------------------------------------------------
-Run inside OpenVINO environment:
+Run inside the OpenVINO environment, from the repository root:
 
-    source ~/Internship/openvino_project/openvino_env/bin/activate
-    cd ~/Internship/openvino_project/scripts
-    python export_cotracker3_onnx.py
+    python scripts/export_cotracker3_onnx.py
 
 After export:
 
-    cd ~/Internship/openvino_project
     ovc models/onnx/cotracker3_ovfix.onnx --output_model models/ir/cotracker3.xml
 """
 

@@ -1,7 +1,7 @@
 from typing import Dict
 import numpy as np
 import torch
-from model_wrapper import ModelWrapper
+from src.models.model_wrapper import ModelWrapper
 
 
 class CoTracker3Wrapper(ModelWrapper):

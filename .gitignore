@@ -1,1 +1,29 @@
+# Virtual environments
 venv/
+.venv/
+
+# Editor / IDE state — machine-local, not shared engineering config
+.vscode/
+
+# Generated pipeline artifacts. These are run outputs, not source: they are
+# reproducible from the code plus a run manifest, and committing them makes
+# diffs unreviewable and the clone large.
+outputs/
+output/
+logs/
+
+# Model weights and exported IR — fetched via scripts/fetch_weights.py
+models/
+
+# Python build / cache
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.hypothesis/
+.coverage
+coverage.xml
+htmlcov/

@@ -1,11 +1,6 @@
 import numpy as np
-from pathlib import Path
-import sys
 
-# Ensure Python can find the src directory
-sys.path.append(str(Path(__file__).parent.parent))
-
-from src.utils.parquet_writer import ParquetWriter  # noqa: E402
+from src.utils.parquet_writer import ParquetWriter
 
 
 def run_mock_pipeline():

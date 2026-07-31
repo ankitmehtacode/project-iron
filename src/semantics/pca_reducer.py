@@ -33,7 +33,7 @@ sklearn's IncrementalPCA which processes data in mini-batches:
 USAGE
 ─────────────────────────────────────────────────────────────────────
 
-    from pca_reducer import PCAReducer
+    from src.semantics.pca_reducer import PCAReducer
 
     reducer = PCAReducer(n_components=64)
 

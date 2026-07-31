@@ -11,21 +11,17 @@ Author: AI Assistant
 """
 
 import os
-import sys
 
 import numpy as np
 import torch
 
-# Adjust path to import from src so local imports work
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-
 # 1. Component Imports
-from models.dav2_wrapper import DAv2Wrapper  # noqa: E402
-from semantics.semantic_extractor import SemanticExtractor  # noqa: E402
-from geometry.projector_vectorized import compute_intrinsics  # noqa: E402
-from geometry.projector_vectorized import project_points_to_3d  # noqa: E402
-from graph.fusion_graph import build_fusion_graphs_batch  # noqa: E402
-from rag_agent import RAGAgent  # noqa: E402
+from src.models.dav2_wrapper import DAv2Wrapper
+from src.semantics.semantic_extractor import SemanticExtractor
+from src.geometry.projector_vectorized import compute_intrinsics
+from src.geometry.projector_vectorized import project_points_to_3d
+from src.graph.fusion_graph import build_fusion_graphs_batch
+from src.rag_agent import RAGAgent
 
 
 def run_pipeline(video_path: str, output_dir: str):

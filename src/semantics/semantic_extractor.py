@@ -34,7 +34,7 @@ DATA FLOW
 USAGE
 ─────────────────────────────────────────────────────────────────────
 
-    from semantic_extractor import SemanticExtractor
+    from src.semantics.semantic_extractor import SemanticExtractor
 
     extractor = SemanticExtractor(
         vjepa_xml="models/int8/vjepa2_vitl_int8.xml",
