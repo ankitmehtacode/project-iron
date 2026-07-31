@@ -15,7 +15,7 @@ DATA FLOW
        │
        ├──► CoTracker3  →  tracks [B, T, N, 2]   (pixel x,y per point)
        │
-       └──► V-JEPA2     →  features [B, T×196, 1024]
+       └──► V-JEPA2     →  features [B, (T//tubelet)×196, 1024]
                                ↑
                         14×14 patch grid
                         (224px / 16px patch = 14 patches per axis)
@@ -26,7 +26,7 @@ DATA FLOW
       patch_idx = patch_row * 14 + patch_col   (0..195)
 
   Per frame t, the V-JEPA feature for tracked point n:
-      features[b, t*196 + patch_idx, :]    → shape (1024,)
+      features[b, (t//tubelet)*196 + patch_idx, :]  → shape (1024,)
 
   Final output: semantic_tracks [B, T, N, 1024]
 
@@ -58,7 +58,12 @@ import openvino as ov
 import torch
 from cotracker.predictor import CoTrackerPredictor
 
+from src.contracts import FrameGeometry, TemporalSpan
 from src.models.preprocess import PreprocessSpec
+from src.semantics.patch_mapping import (
+    map_tracks_to_embeddings,
+    tokens_from_encoder_output,
+)
 
 # ─────────────────────────────────────────────────────────────────────
 # Constants — V-JEPA2 ViT-L patch configuration
@@ -104,7 +109,7 @@ class SemanticExtractor:
 
     Pipeline:
         1. Run CoTracker3 → pixel tracks [B, T, N, 2]
-        2. Run V-JEPA2 IR  → patch features [B, T×196, 1024]
+        2. Run V-JEPA2 IR  → patch features [B, (T//tubelet)×196, 1024]
         3. Map each (t, x, y) → patch index → look up embedding
         4. Return semantic_tracks [B, T, N, 1024]
     """
@@ -216,42 +221,50 @@ class SemanticExtractor:
         """
         Look up V-JEPA patch embeddings at each tracked pixel coordinate.
 
+        Delegates to :mod:`src.semantics.patch_mapping`, which routes the
+        encoder output through :class:`~src.contracts.PatchTokens`. That type's
+        ``n_temporal == frames_covered // tubelet`` assertion is what makes the
+        temporal misassignment this method used to contain structurally
+        impossible rather than merely fixed.
+
         Args:
-            tracks  : float32 [B, T, N, 2]      — pixel (x, y) per track
-            features: float32 [B, T*196, 1024]   — V-JEPA patch embeddings
+            tracks  : float32 [B, T, N, 2] — pixel (x, y) per track
+            features: float32 [B, n_temporal * n_spatial, dim]
 
         Returns:
-            semantic_tracks: float32 [B, T, N, 1024]
+            semantic_tracks: float32 [B, T, N, dim]
         """
-        B, T, N, _ = tracks.shape
-        semantic = np.zeros((B, T, N, EMBED_DIM), dtype=np.float32)
+        batch, frames, _points, _ = tracks.shape
+        spec = self._preprocess
+        grid = (
+            spec.resolution[0] // spec.patch_size,
+            spec.resolution[1] // spec.patch_size,
+        )
+        geometry = FrameGeometry(width=spec.resolution[1], height=spec.resolution[0])
 
-        # V-JEPA INT8 may output fewer temporal slots than input frames.
-        # e.g. 4 input frames → 392 tokens = 2×196 (2 temporal slots).
-        # Derive actual output T from features shape.
-        T_out = features.shape[1] // NUM_PATCHES  # actual temporal slots
+        # Nanosecond span synthesized from the frame count. The encoder carries
+        # no wall-clock time; the span exists here to carry the tubelet into
+        # the contract check.
+        span = TemporalSpan(
+            start_ts_ns=0,
+            end_ts_ns=max(1, frames),
+            frames_covered=frames,
+            tubelet=spec.tubelet,
+        )
 
-        for b in range(B):
-            for t in range(T):
-                # pixel coords for all N points at frame t
-                x = tracks[b, t, :, 0]  # [N]
-                y = tracks[b, t, :, 1]  # [N]
+        outputs = []
+        for index in range(batch):
+            tokens = tokens_from_encoder_output(
+                features,
+                batch_index=index,
+                span=span,
+                grid=grid,
+                geometry=geometry,
+                encoder_sha=self.preprocess_sha,
+            )
+            outputs.append(map_tracks_to_embeddings(tokens, tracks[index]))
 
-                # Map pixel → flat patch index (0..195)
-                patch_idx = pixel_to_patch_index(x, y)  # [N]
-
-                # Map input frame t → nearest V-JEPA output temporal slot.
-                # If T_out < T, multiple input frames map to the same slot.
-                t_out = min(t, T_out - 1)
-
-                # V-JEPA features for temporal slot t_out start at t_out*196
-                frame_offset = t_out * NUM_PATCHES
-                token_indices = frame_offset + patch_idx  # [N]
-
-                # Extract embeddings: [N, 1024]
-                semantic[b, t] = features[b, token_indices, :]
-
-        return semantic
+        return np.stack(outputs, axis=0).astype(np.float32)
 
     # ─────────────────────────────────────────────────────────────
     # Public API
