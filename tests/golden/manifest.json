@@ -1,0 +1,31 @@
+{
+  "clip_geometry": {
+    "channels": 3,
+    "dtype": "uint8",
+    "frames": 4,
+    "height": 224,
+    "layout": "[B, T, C, H, W]",
+    "value_range": "[0, 255]; divide by 255 before the preprocessor",
+    "width": 224
+  },
+  "clip_sha256": {
+    "real_test_video": "d096c26a6c6ee30fe38f2d578c4d3e4233c0c15227df3408394d391acfc29259",
+    "synthetic_seeded_noise": "9a2e2a98dea8b0fce00429527d5a50824cac83f61a3754dcab8c46976e8f51e0",
+    "synthetic_spatial_gradient": "079f69121b63cabdfcdc522cf8814c0979e0ba9d924594e999c7b76f0a99d197",
+    "synthetic_tubelet_probe": "1e9b791072a246e40112848b40f59ba8cfb3393beef169288522ab7580a948f7"
+  },
+  "generated_at_utc": "2026-07-31T11:39:43.045990+00:00",
+  "generator": "scripts/make_golden_vectors.py",
+  "real_clip_source": {
+    "channel_order": "RGB (converted from OpenCV BGR at read time)",
+    "path": "src/interface/ui/data/raw/test_video.mp4",
+    "resize_policy": "cv2.INTER_AREA stretch to 224x224 (aspect NOT preserved)"
+  },
+  "reference_blockers": [
+    "module 'torch' is not installed",
+    "module 'transformers' is not installed",
+    "official V-JEPA2 PyTorch weights not found at /Users/manishmehta/Desktop/project-iron-main/models/weights/vjepa2_vitl"
+  ],
+  "references": {},
+  "seed": 20260801
+}
