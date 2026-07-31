@@ -160,6 +160,7 @@ project-iron/
 ├── conda_environment.yaml
 ├── Dockerfile
 ├── endurance_run.py
+├── FOUNDATION_REPORT.md
 ├── locking-requirements.txt
 ├── mypy.ini
 ├── pyproject.toml
