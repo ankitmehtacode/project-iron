@@ -177,7 +177,9 @@ def process_frame_with_metadata(
     depth_scale: float = 1.0,
 ) -> list[TextAnnotation3D]:
     if detector_fn is None:
-        from src.geometry.ocr.text_detector import detect_text as detector_fn  # lazy import
+        from src.geometry.ocr.text_detector import (
+            detect_text as detector_fn,
+        )  # lazy import
 
     detections: list[OCRDetection] = detector_fn(image)
     return attach_text_to_3d(

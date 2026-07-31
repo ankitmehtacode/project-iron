@@ -1,3 +1,60 @@
 [build-system]
 requires = ["setuptools>=64"]
 build-backend = "setuptools.build_meta"
+
+[tool.black]
+# Single source of truth for black. .pre-commit-config.yaml and CI both run a
+# bare `black`, so the line length cannot drift between them.
+line-length = 88
+extend-exclude = '''
+/(
+    \.venv
+  | src/interface/ui
+)/
+'''
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Unregistered markers are warnings by default, and a warning nobody reads is
+# how a typo like `@pytest.mark.require_weights` silently stops skipping.
+# --strict-markers turns that into an error.
+addopts = "--strict-markers"
+markers = [
+    "requires_weights: needs model checkpoints or heavy runtime libraries. Skips with an explicit reason when they are absent — never fails on missing weights, never fake-passes. CI runs -m 'not requires_weights'.",
+    "known_bug: encodes a defect found in the audit. Paired with xfail(strict=False) so CI reports it without failing. When the fix lands, both the marker and the xfail are removed in the same change, and the test becomes a permanent regression guard.",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["src"]
+# Measure only the packages written during the foundation work. Including the
+# legacy modules would average a real 90% over a largely untested tree and
+# produce a single number that means nothing — which is worse than no number,
+# because it looks like evidence. They come off this list module-by-module as
+# they gain tests, matching how mypy.ini tightens.
+omit = [
+    "src/geometry/*",
+    "src/graph/*",
+    "src/interface/*",
+    "src/models/*",
+    "src/semantics/*",
+    "src/utils/*",
+    "src/integration.py",
+    "src/main.py",
+    "src/memory_manager.py",
+    "src/orchestrator.py",
+    "src/rag_agent.py",
+    "src/vector_database.py",
+]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    # Stub bodies in src/cascade/stages.py: the raise IS the implementation,
+    # and its docstring is the specification for whoever replaces it.
+    "raise NotImplementedError",
+    "if TYPE_CHECKING:",
+    "\\.\\.\\.$",
+]

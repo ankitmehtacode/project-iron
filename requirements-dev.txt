@@ -1,0 +1,38 @@
+# Development and CI dependencies.
+#
+# Deliberately excludes torch, openvino, and cotracker. CI runs
+# `pytest -m "not requires_weights"`, which deselects everything needing them,
+# and installing torch from its custom CPU index adds minutes to every job for
+# tests that will not run. Tests that DO need them skip with an explicit
+# reason rather than failing — see tests/test_known_bugs.py.
+#
+# For the full runtime stack, install locking-requirements.txt.
+
+# Runtime dependencies of the foundation packages.
+numpy>=1.26
+pydantic>=2.5
+pydantic-settings>=2.2.0
+PyYAML>=6.0
+psutil>=5.9.0
+scipy>=1.11.0
+pyarrow>=18.0
+pandas>=2.1
+# Used by the cascade motion gate; the headless build has no GUI deps, which
+# matters in a container. The gate falls back to frame differencing without it.
+opencv-python-headless>=4.8
+
+# Test and lint tooling. black and flake8 are pinned to exactly the versions in
+# .pre-commit-config.yaml so a local hook and a CI run can never disagree —
+# they format differently between major releases, and a lint job that
+# contradicts the commit hook trains people to ignore both.
+pytest>=7.4
+pytest-cov>=4.1
+hypothesis>=6.98
+black==23.12.1
+flake8==7.0.0
+mypy>=1.8.0
+
+# Stubs, so mypy --strict has something to check these against.
+types-psutil
+types-PyYAML
+scipy-stubs

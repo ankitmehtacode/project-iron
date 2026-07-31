@@ -87,7 +87,8 @@ class Stage(Protocol):
     """
 
     @property
-    def name(self) -> str: ...
+    def name(self) -> str:
+        ...
 
     def process(self, frame_batch: FrameBatch, ctx: StageContext) -> StageOutput:
         """Do this stage's work and report whether to wake the next one."""

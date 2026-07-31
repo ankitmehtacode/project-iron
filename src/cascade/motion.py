@@ -109,7 +109,8 @@ class MotionBackend(Protocol):
     """A foreground estimator."""
 
     @property
-    def name(self) -> str: ...
+    def name(self) -> str:
+        ...
 
     def foreground_fraction(self, gray: GrayFrame) -> float:
         """Return the share of pixels judged to be foreground, in [0, 1]."""

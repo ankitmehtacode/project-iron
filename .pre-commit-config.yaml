@@ -11,14 +11,15 @@ repos:
     hooks:
       - id: black
         language_version: python3.10
-        args: ["--line-length=88"]
+        # Configured by [tool.black] in pyproject.toml, so this hook and the
+        # CI lint job cannot disagree about line length.
 
   # Flake8: lints Python code for errors/style
   - repo: https://github.com/pycqa/flake8
     rev: 7.0.0
     hooks:
       - id: flake8
-        args: ["--max-line-length=88", "--extend-ignore=E203,W503"]
+        # Configured by .flake8, shared with the CI lint job.
 
   # General hygiene
   - repo: https://github.com/pre-commit/pre-commit-hooks

@@ -1,5 +1,7 @@
 # Project Iron
 
+[![CI](https://github.com/ankitmehtacode/project-iron/actions/workflows/ci.yaml/badge.svg)](https://github.com/ankitmehtacode/project-iron/actions/workflows/ci.yaml)
+
 AI inference system with memory-efficient model orchestration for robotics and spatial understanding.
 
 ---
@@ -44,7 +46,14 @@ project-iron/
 │       │   └── SKILL.md
 │       └── iron-testing/
 │           └── SKILL.md
+├── .github/
+│   └── workflows/
+│       └── ci.yaml
+├── configs/
+│   └── default.yaml
 ├── scripts/
+│   ├── cascade_bench.py
+│   ├── demo_events.py
 │   ├── export_cotracker3_onnx.py
 │   ├── export_depth_anything_onnx.py
 │   ├── export_vjepa_onnx.py
@@ -56,6 +65,27 @@ project-iron/
 │   ├── quantize_vjepa.py
 │   └── vjepa_wrapper.py
 ├── src/
+│   ├── cascade/
+│   │   ├── __init__.py
+│   │   ├── motion.py
+│   │   ├── runner.py
+│   │   ├── stage.py
+│   │   └── stages.py
+│   ├── contracts/
+│   │   ├── __init__.py
+│   │   ├── errors.py
+│   │   ├── fields.py
+│   │   ├── frames.py
+│   │   ├── geometry.py
+│   │   └── tokens.py
+│   ├── endurance/
+│   │   ├── __init__.py
+│   │   ├── gates.py
+│   │   ├── memory.py
+│   │   └── runner.py
+│   ├── events/
+│   │   ├── __init__.py
+│   │   └── schema.py
 │   ├── geometry/
 │   │   ├── ocr/
 │   │   │   ├── __init__.py
@@ -106,14 +136,24 @@ project-iron/
 │   │   ├── disk_cache.py
 │   │   └── parquet_writer.py
 │   ├── __init__.py
+│   ├── config.py
 │   ├── integration.py
 │   ├── main.py
 │   ├── memory_manager.py
 │   ├── orchestrator.py
+│   ├── provenance.py
 │   ├── rag_agent.py
 │   └── vector_database.py
 ├── tests/
+│   ├── test_cascade.py
+│   ├── test_config.py
+│   ├── test_contracts_properties.py
+│   ├── test_endurance_gates.py
+│   ├── test_events_schema.py
+│   ├── test_known_bugs.py
+│   ├── test_provenance.py
 │   └── test_temporal_stitching.py
+├── .flake8
 ├── .gitignore
 ├── .pre-commit-config.yaml
 ├── architecture.md
@@ -121,8 +161,10 @@ project-iron/
 ├── Dockerfile
 ├── endurance_run.py
 ├── locking-requirements.txt
+├── mypy.ini
 ├── pyproject.toml
 ├── README.md
+├── requirements-dev.txt
 └── setup.py
 ```
 <!-- END TREE -->

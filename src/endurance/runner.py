@@ -66,7 +66,8 @@ class WeightsUnavailable(RuntimeError):
 class Extractor(Protocol):
     """The surface the harness needs from the pipeline under test."""
 
-    def extract(self, video: np.ndarray) -> dict[str, Any]: ...
+    def extract(self, video: np.ndarray) -> dict[str, Any]:
+        ...
 
 
 ExtractorFactory = Callable[[], Extractor]

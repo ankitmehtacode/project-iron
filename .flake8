@@ -1,0 +1,28 @@
+# Single source of truth for flake8.
+#
+# Settings live here rather than as arguments in .pre-commit-config.yaml and
+# again in .github/workflows/ci.yaml. Duplicated arguments drift, and a lint
+# job that disagrees with the commit hook teaches people to ignore both.
+# Both callers now run a bare `flake8`.
+
+[flake8]
+max-line-length = 88
+
+# E203: whitespace before ':' — black deliberately emits this in slices.
+# W503: line break before a binary operator — black's preferred style, and
+#       PEP 8's own recommendation since 2016. Both rules contradict the
+#       formatter, so leaving them on would mean the two tools fight forever.
+extend-ignore = E203, W503
+
+exclude =
+    .git,
+    .venv,
+    venv,
+    __pycache__,
+    .pytest_cache,
+    .mypy_cache,
+    .hypothesis,
+    build,
+    dist,
+    *.egg-info,
+    src/interface/ui

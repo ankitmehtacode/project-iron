@@ -1,0 +1,176 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to the same branch makes the previous run's answer irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The repository's floor, declared in setup.py as python_requires=">=3.10"
+  # and in .pre-commit-config.yaml as black's language_version. CI tests the
+  # floor, because that is the version most likely to break and least likely
+  # to be run locally.
+  PYTHON_VERSION: "3.10"
+
+jobs:
+  lint:
+    name: lint (black, flake8)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install tooling
+        run: pip install -r requirements-dev.txt
+
+      # Both tools are configured by files the pre-commit hooks also read
+      # ([tool.black] in pyproject.toml, and .flake8), and requirements-dev.txt
+      # pins them to the versions .pre-commit-config.yaml uses. There are no
+      # arguments here to drift out of sync, and black formats differently
+      # between major releases — a CI job that contradicted the commit hook
+      # would train everyone to ignore both.
+      - name: black --check
+        run: black --check .
+
+      - name: flake8
+        run: flake8
+
+      - name: README directory tree is current
+        run: python scripts/gen_tree.py --check
+
+  types:
+    name: types (mypy --strict)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install tooling
+        run: pip install -r requirements-dev.txt
+
+      # Scope lives in mypy.ini, not here, so a local `mypy` and this job check
+      # the same files. Legacy modules are excluded and tighten one at a time —
+      # see the comment at the top of mypy.ini for why turning --strict on
+      # everywhere at once would make the check useless rather than useful.
+      - name: mypy --strict (scoped by mypy.ini)
+        run: mypy
+
+  tests:
+    name: tests (no weights) + coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install
+        run: |
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+      # Tests needing model weights are deselected, not skipped-and-counted:
+      # they are nightly work, since fetching and quantizing the checkpoints
+      # takes far longer than a PR should wait.
+      #
+      # known_bug tests carry xfail(strict=False), so a confirmed defect is
+      # reported as xfailed without failing the suite, and a defect that
+      # silently starts passing shows up as xpassed rather than disappearing.
+      - name: pytest
+        run: |
+          pytest -m "not requires_weights" \
+            --cov --cov-report=term-missing --cov-report=xml \
+            --cov-fail-under=85 \
+            -ra
+
+      - name: Upload coverage
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: warn
+
+  endurance-gates:
+    name: endurance gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install
+        run: |
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+      # Run as their own job rather than relying on the suite above. These
+      # tests are what decide whether a memory regression can be detected at
+      # all; if they break, every soak result afterwards is unverified, and
+      # that should be visible as its own red check rather than one line in a
+      # 190-test summary.
+      - name: Leak gate and latency unit tests
+        run: pytest tests/test_endurance_gates.py -v
+
+      - name: Endurance harness smoke run (no weights present)
+        # Exit code 2 is the documented "prerequisites missing" path: a clean
+        # message, no traceback. Asserting on it keeps that path working, since
+        # it is the one every developer without checkpoints will hit.
+        run: |
+          set +e
+          python endurance_run.py --clips 3
+          code=$?
+          set -e
+          if [ "$code" -ne 2 ]; then
+            echo "expected exit code 2 (weights absent), got $code"
+            exit 1
+          fi
+          echo "endurance_run.py exited 2 with a clean weights-missing message"
+
+  cascade-bench:
+    name: cascade bench
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Install
+        run: |
+          pip install -r requirements-dev.txt
+          pip install -e .
+
+      # Asserts the motion gate wakes the next stage on roughly the third of
+      # frames that actually contain motion. It also prints stage-0 cost per
+      # frame, which currently misses the Tier-1 idle budget — see the table in
+      # src/cascade/motion.py. The wake-rate assertion is enforced; the cost is
+      # reported, because the runner timings on a shared CI machine are too
+      # noisy to gate on.
+      - name: Motion gate wake-rate benchmark
+        run: python scripts/cascade_bench.py --seconds 20 --static-seconds 13

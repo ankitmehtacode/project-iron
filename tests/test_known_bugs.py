@@ -87,6 +87,9 @@ def _require_semantic_extractor(config: IronConfig) -> Any:
 
 @pytest.mark.known_bug
 @pytest.mark.requires_weights
+@pytest.mark.xfail(
+    strict=False, reason="AUDIT FINDING 1: unverified — needs the V-JEPA2 IR to resolve"
+)
 def test_vjepa_token_count_matches_tubelet() -> None:
     """AUDIT FINDING 1: V-JEPA2 token count vs. the repo's documented T*196.
 
@@ -137,6 +140,9 @@ def test_vjepa_token_count_matches_tubelet() -> None:
 
 @pytest.mark.known_bug
 @pytest.mark.requires_weights
+@pytest.mark.xfail(
+    strict=False, reason="AUDIT FINDING 2: unverified — needs weights to resolve"
+)
 def test_patch_mapper_temporal_alignment() -> None:
     """AUDIT FINDING 2: temporal misalignment in _map_tracks_to_embeddings.
 
@@ -265,6 +271,10 @@ def test_standardisation_detector_ignores_range_scaling() -> None:
 
 
 @pytest.mark.known_bug
+@pytest.mark.xfail(
+    strict=False,
+    reason="AUDIT FINDING 3: CONFIRMED — production encoder path applies no mean/std",
+)
 def test_preprocess_normalization() -> None:
     """AUDIT FINDING 3: the encoder is fed [0,1] pixels with no mean/std applied.
 
@@ -323,6 +333,10 @@ def test_preprocess_normalization() -> None:
 
 
 @pytest.mark.known_bug
+@pytest.mark.xfail(
+    strict=False,
+    reason="AUDIT FINDING 4: CONFIRMED — DA-V2 relative disparity published as metres",
+)
 def test_depth_output_declares_units() -> None:
     """AUDIT FINDING 4: DA-V2 relative depth is published as "meters".
 
