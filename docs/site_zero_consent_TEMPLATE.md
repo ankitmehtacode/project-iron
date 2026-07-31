@@ -113,6 +113,16 @@ To exercise any of these, contact ⟨contact⟩. Deletion is completed within
 >
 > ⟨Counsel: does this satisfy the erasure obligation, or must retraining be
 > offered? This is the sharpest open question in this document.⟩
+>
+> ⟨Internal, not for participants: the paragraph above is accurate for a
+> model whose backbone was fine-tuned on personal data. `docs/adr/
+> 0001-identity-adapter-architecture.md` decides that identity capability
+> will instead live in a small deletable adapter over a frozen backbone,
+> which makes a withdrawal a gallery eviction plus an hours-long adapter
+> rebuild rather than an irreversible fact. **Do not soften this paragraph
+> until that architecture is built and a withdrawal drill has actually been
+> run end to end.** When it has, this paragraph and the ADR are revised
+> together.⟩
 
 ## 8. What you are agreeing to
 
