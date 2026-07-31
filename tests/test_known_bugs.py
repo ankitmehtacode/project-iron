@@ -35,45 +35,70 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 # ---------------------------------------------------------------------------
 
 
-def _require_openvino() -> Any:
-    """Return the openvino module, or skip with a reason naming what is absent."""
-    if importlib.util.find_spec("openvino") is None:
+def _missing(
+    modules: tuple[tuple[str, str], ...],
+    files: tuple[tuple[str, Path], ...],
+) -> list[str]:
+    """Collect *every* unmet prerequisite rather than the first one found.
+
+    Reporting one blocker at a time turns bringing an environment up into a
+    sequence of rerun-and-discover cycles. These tests are the ones someone
+    runs the moment weights land, so the skip message states everything still
+    needed, in one pass.
+    """
+    unmet: list[str] = []
+    for name, hint in modules:
+        if importlib.util.find_spec(name) is None:
+            unmet.append(f"module {name!r} is not installed — {hint}")
+    for label, path in files:
+        if not path.exists():
+            unmet.append(f"{label} not found at {path}")
+    return unmet
+
+
+def _skip_unless_ready(
+    modules: tuple[tuple[str, str], ...],
+    files: tuple[tuple[str, Path], ...],
+) -> None:
+    """Skip with a complete, actionable list of what is still missing."""
+    unmet = _missing(modules, files)
+    if unmet:
         pytest.skip(
-            "openvino is not installed in this environment; install "
-            "locking-requirements.txt to exercise the V-JEPA2 IR path"
+            f"{len(unmet)} unmet prerequisite(s): "
+            + "; ".join(unmet)
+            + ". Install locking-requirements.txt and fetch weights with "
+            "scripts/fetch_weights.py, then export/quantize per scripts/."
         )
+
+
+_OPENVINO = ("openvino", "pip install -r locking-requirements.txt")
+_TORCH = ("torch", "pip install -r locking-requirements.txt")
+_COTRACKER = (
+    "cotracker",
+    "install CoTracker3 from https://github.com/facebookresearch/co-tracker",
+)
+
+
+def _require_openvino(config: IronConfig) -> Any:
+    """Return the openvino module, skipping if it or the IR is unavailable."""
+    _skip_unless_ready(
+        (_OPENVINO,),
+        (("V-JEPA2 OpenVINO IR", config.paths.resolved_vjepa_xml),),
+    )
     import openvino as ov
 
     return ov
 
 
-def _require_vjepa_ir(config: IronConfig) -> Path:
-    path = config.paths.resolved_vjepa_xml
-    if not path.exists():
-        pytest.skip(
-            f"V-JEPA2 OpenVINO IR not found at {path}. Fetch and export it with "
-            "scripts/fetch_weights.py and scripts/quantize_vjepa.py, then rerun."
-        )
-    return path
-
-
 def _require_semantic_extractor(config: IronConfig) -> Any:
-    """Import SemanticExtractor, skipping if its heavy dependencies are absent."""
-    for module, hint in (
-        ("openvino", "install locking-requirements.txt"),
-        ("torch", "install locking-requirements.txt"),
+    """Import SemanticExtractor, skipping if anything it needs is absent."""
+    _skip_unless_ready(
+        (_OPENVINO, _TORCH, _COTRACKER),
         (
-            "cotracker",
-            "install CoTracker3 from https://github.com/facebookresearch/co-tracker",
+            ("V-JEPA2 OpenVINO IR", config.paths.resolved_vjepa_xml),
+            ("CoTracker3 checkpoint", config.paths.resolved_cotracker_checkpoint),
         ),
-    ):
-        if importlib.util.find_spec(module) is None:
-            pytest.skip(f"{module} is not installed; {hint}")
-
-    _require_vjepa_ir(config)
-    checkpoint = config.paths.resolved_cotracker_checkpoint
-    if not checkpoint.exists():
-        pytest.skip(f"CoTracker3 checkpoint not found at {checkpoint}")
+    )
 
     from src.semantics.semantic_extractor import SemanticExtractor
 
@@ -103,8 +128,8 @@ def test_vjepa_token_count_matches_tubelet() -> None:
     than a bare mismatch.
     """
     config = IronConfig.load()
-    ov = _require_openvino()
-    xml_path = _require_vjepa_ir(config)
+    ov = _require_openvino(config)
+    xml_path = config.paths.resolved_vjepa_xml
 
     pipeline = config.pipeline
     core = ov.Core()
