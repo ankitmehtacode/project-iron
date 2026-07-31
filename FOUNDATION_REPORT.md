@@ -883,3 +883,148 @@ done before the thing above it.
 Still queued behind those, from Day 2: the mapper fix (Day 4 at the earliest,
 and only after the tubelet verdict, one variable at a time); real-footage
 wake-parity as a CI addition; and `DAv2Wrapper.predict` returning a `DepthField`.
+
+
+---
+
+# Day 3 (resumed, post-amendment)
+
+Gate reads **PROCEED** with the production-artifact rows parked. Objectives 4,
+2 and 3 ran in that order; Objective 1 stays parked.
+
+**279 passed, 2 skipped, 1 xfailed** on the pinned venv (Python 3.10.20, torch
+2.2.0, openvino 2024.6.0, numpy 1.26.2, opencv 4.8.1.78). `mypy --strict` clean.
+
+## D3.4 — The headline: normalization fix, measured
+
+Per-patch cosine against the official PyTorch reference, all four golden clips:
+
+| | BEFORE | AFTER |
+|---|---|---|
+| **p1** (gated) | **0.331903** | **0.999987** |
+| p50 | 0.746654 | 1.000000 |
+| mean | 0.715315 | 0.999999 |
+| min | 0.281222 | 0.999672 |
+
+Per clip, before → after (p1):
+
+| clip | before | after |
+|---|---|---|
+| `real_test_video` | 0.331928 | 1.000000 |
+| `synthetic_seeded_noise` | 0.356102 | 1.000000 |
+| `synthetic_spatial_gradient` | 0.324355 | 1.000000 |
+| `synthetic_tubelet_probe` | 0.360102 | 0.999963 |
+
+A p1 of 0.33 means the worst 1% of patches were nearly orthogonal to what the
+model should have produced. The stop condition was p1 < 0.98 after the fix,
+which would have meant a second export-level defect still in the path;
+0.999987 clears it, so the fix is complete rather than partial.
+
+The change is one call site: `_run_vjepa` applies the model's `PreprocessSpec`.
+`known_bug` and `xfail` were removed from both the golden test and
+`test_preprocess_normalization` in the same commit, so they now guard forever.
+
+## D3.5 — Tubelet verdict: answered at the reference level
+
+**Tubelet = 2. Confirmed three independent ways, none of them the production
+artifact.**
+
+1. `config.json` from the official checkpoint: `tubelet_size: 2`.
+2. Reference forward pass, 4 frames @ 224px → `(1, 392, 1024)`.
+   392 = (4 // 2) × (14 × 14).
+3. The fresh export's token-count check, which aborts on mismatch:
+   `392 = 2 temporal × 196 spatial`.
+
+The repository's documented `[B, T*196, 1024]` — 784 tokens for T=4 — is
+**refuted**. Hypothesis A holds, Hypothesis B does not.
+
+This is *not yet* the Objective-1 verdict. It establishes what the official
+model does, which is the ground truth the production artifact should match. The
+production artifact could still deviate, and that question stays parked until
+the file arrives.
+
+## D3.6 — Export manifest summary
+
+`models/export/2026-07-31/` — never the production path; the script refuses.
+
+| field | value |
+|---|---|
+| precision | FP32 (INT8 deferred until the encoder choice is frozen) |
+| encoder | context, `get_vision_features`, eager attention |
+| geometry | `(4 // 2) * (224 // 16)^2 = 392` tokens |
+| source checkpoint | `model.safetensors` sha `25466aef85727d16...` |
+| artifact | `vjepa2_vitl_fp32.xml` sha `5ca2d3da552016a6...`, 1.2 GB `.bin` |
+| preprocess_sha | `ea11d709b9241e68...` |
+| IR vs PyTorch | relative 6.7e-06, per-token cosine p1 1.000000 |
+
+Exported at 4f/224px while the checkpoint is native at 64f/256px, so position
+embeddings are interpolated — which is exactly what the token-count check
+verifies. That geometry was chosen to hold every variable but normalization
+fixed for today's measurement. It is not defensible as a long-term choice:
+4 frames at 12 fps is a third of a second, a still image at video-model prices.
+
+## D3.7 — Defects found in code written today
+
+**The export traced and verified on `torch.zeros`.** All-zero input makes every
+attention key identical, so softmax is uniform and tiny numerical differences
+compound through 24 layers. The same artifact scored max|IR−ref| **2.47** and
+cosine p1 **0.9953** on zeros, versus **8.3e-04** and **1.000000** on random
+input. Judging the export by the zeros number would have condemned a correct
+conversion. Now seeded random, and the deviation is an **abort** criterion
+rather than a number the script printed and moved past.
+
+**Two errors in the Day-2 canonical PreprocessSpec**, caught the moment values
+were read from the checkpoint instead of transcribed: it claimed 224×224 and 4
+frames where the checkpoint says `image_size: 256` and `frames_per_clip: 64`.
+mean/std were right. This is precisely why that file shipped marked
+`verified_against_official_config: false`.
+
+**A tension between two of my own tests.**
+`test_preprocess_normalization` looked for inline mean/std;
+`test_no_hardcoded_normalization_constants_in_source` forbids exactly that.
+Both could not pass until the detector learned that delegation to a
+`PreprocessSpec` *is* the required form — and better evidence than a constant
+in a file, because a spec can be verified against the checkpoint.
+
+**Fixture reproducibility.** The three synthetic clips are bit-identical across
+numpy 2.5 → 1.26. `real_test_video` changed, because `cv2.resize(INTER_AREA)`
+differs between OpenCV 5.0.0 and the pinned 4.8.1.78. The real-footage fixture
+is OpenCV-version-dependent; it is now regenerated under the pin, and any
+future reference must be regenerated with it.
+
+## D3.8 — Void artifacts: refusal verified against real files
+
+`scripts/rebuild_index.py --audit` → `0 artifact(s) carry provenance, 22 are
+void or unverifiable.`
+
+A negative test now asserts the guard refuses **all 22** real stale files under
+`outputs/`, each error naming `rebuild_index.py`, while a freshly stamped
+artifact still loads — a guard that refuses everything is as useless as one
+that refuses nothing.
+
+Those 22 were produced by the path that scored cosine 0.332. They are not
+"probably fine".
+
+## D3.9 — Day 4, ordered
+
+1. **Objective 1, verbatim, the moment the production `xml`/`bin` arrive.**
+   Append the side-by-side table: production artifact vs the 2026-07-31 export,
+   token count and temporal alignment for each. That is the only remaining
+   unknown, and no export substitutes for it.
+2. **The mapper off-by-2**, once (1) gives a verdict. `t_out = min(t, T_out-1)`
+   is still in `_map_tracks_to_embeddings`, and `PatchTokens` already rejects
+   the wrong shape. One variable per day: this did not move today because the
+   normalization change did.
+3. **Re-measure the cascade bench on the pinned stack.** Day 2's 2.97%-of-a-core
+   was taken on OpenCV 5.0.0; the parity conclusion holds, the absolute number
+   does not transfer.
+4. **Reconcile clip geometry with the checkpoint** — 4f/224 against a native
+   64f/256 model. `PreprocessSpec` now refuses a mismatch, so this is a hard
+   failure waiting to happen rather than silent degradation.
+5. **Delete or regenerate the 22 void artifacts**, and implement the rebuild
+   path now that the encoder is fixed.
+6. **`DAv2Wrapper.predict` returning a `DepthField`**, closing finding 4 at the
+   source rather than only at publication.
+7. Pin `transformers` (unpinned; resolved to 4.57.6 and is now part of the
+   reference provenance) and add `onnx` to the requirements — it is an
+   undeclared build dependency of the export path.

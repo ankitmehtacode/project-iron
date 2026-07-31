@@ -56,9 +56,11 @@ project-iron/
 ├── scripts/
 │   ├── cascade_bench.py
 │   ├── demo_events.py
+│   ├── env_gate.py
 │   ├── export_cotracker3_onnx.py
 │   ├── export_depth_anything_onnx.py
 │   ├── export_vjepa_onnx.py
+│   ├── export_vjepa_ov.py
 │   ├── fetch_weights.py
 │   ├── gen_tree.py
 │   ├── make_golden_vectors.py
@@ -156,12 +158,18 @@ project-iron/
 │   │   │   ├── synthetic_seeded_noise.npz
 │   │   │   ├── synthetic_spatial_gradient.npz
 │   │   │   └── synthetic_tubelet_probe.npz
+│   │   ├── reference/
+│   │   │   ├── real_test_video.npz
+│   │   │   ├── synthetic_seeded_noise.npz
+│   │   │   ├── synthetic_spatial_gradient.npz
+│   │   │   └── synthetic_tubelet_probe.npz
 │   │   └── manifest.json
 │   ├── test_cascade.py
 │   ├── test_config.py
 │   ├── test_contracts_properties.py
 │   ├── test_depth_honesty.py
 │   ├── test_endurance_gates.py
+│   ├── test_env_gate.py
 │   ├── test_events_schema.py
 │   ├── test_golden_vectors.py
 │   ├── test_known_bugs.py
