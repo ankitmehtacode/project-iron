@@ -41,6 +41,21 @@ pipeline:
   tubelet: 2
   patch_size: 16
 
+cascade:
+  # The motion gate runs at this resolution regardless of source size. Gating
+  # asks "did anything move", not "what is it", so it does not need detector
+  # resolution. At 720p this is ~12x cheaper and, on every bench scenario,
+  # reaches identical wake decisions. Set either to 0 to gate at full size.
+  gate_width: 320
+  gate_height: 180
+  min_foreground_fraction: 0.002
+  stay_awake_frames: 12
+  diff_threshold: 25
+  warmup_frames: 10
+  stats_interval_s: 10.0
+  # Tier-1 idle budget: share of one core stage 0 may use per camera.
+  idle_core_budget_fraction: 0.03
+
 endurance:
   num_clips: 200
   # The first inference allocates framework buffers; including it would fit a

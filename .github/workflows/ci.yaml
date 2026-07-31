@@ -166,11 +166,21 @@ jobs:
           pip install -r requirements-dev.txt
           pip install -e .
 
-      # Asserts the motion gate wakes the next stage on roughly the third of
-      # frames that actually contain motion. It also prints stage-0 cost per
-      # frame, which currently misses the Tier-1 idle budget — see the table in
-      # src/cascade/motion.py. The wake-rate assertion is enforced; the cost is
-      # reported, because the runner timings on a shared CI machine are too
-      # noisy to gate on.
-      - name: Motion gate wake-rate benchmark
-        run: python scripts/cascade_bench.py --seconds 20 --static-seconds 13
+      # Three assertions, all enforced:
+      #   1. wake rate matches the share of frames that actually move;
+      #   2. wake decisions are IDENTICAL between full-resolution and
+      #      320x180 gating on every scenario, including the small-target
+      #      one — a distant person is the case downscaling could lose;
+      #   3. stage-0 cost is within the Tier-1 idle budget, and reduced-
+      #      resolution gating stays at least 3x cheaper than full.
+      #
+      # --budget-scale 2.0 does NOT change the product budget, which is
+      # defined on dedicated NUC-class hardware. A shared GitHub runner is
+      # not that, and measures slower for reasons unrelated to this code.
+      # The unscaled number is always printed, and the 3x speedup floor is
+      # machine-independent, so a regression that removed the downscale
+      # would still fail here regardless of runner speed.
+      - name: Motion gate parity and budget benchmark
+        run: |
+          python scripts/cascade_bench.py \
+            --seconds 20 --static-seconds 13 --budget-scale 2.0

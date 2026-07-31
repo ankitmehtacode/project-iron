@@ -360,3 +360,80 @@ def test_wake_rate_tracks_the_share_of_moving_frames() -> None:
 
     share = runner.stats()[0].woke_next / total
     assert 0.28 <= share <= 0.45, f"woke on {share:.1%} of frames"
+
+
+# ---------------------------------------------------------------------------
+# Reduced-resolution gating (day 2)
+# ---------------------------------------------------------------------------
+
+
+def test_gate_runs_at_the_configured_resolution() -> None:
+    """A 720p frame must be gated at 320x180, not at 720p."""
+    gate = MotionGate(MotionGateConfig(warmup_frames=1))
+    gate.process(np.zeros((1, 720, 1280, 3), dtype=np.uint8), ctx(0))
+    assert gate.gate_shape == (180, 320)
+
+
+def test_small_source_is_not_upscaled() -> None:
+    """Upscaling would invent detail and cost time for nothing."""
+    gate = MotionGate(MotionGateConfig(warmup_frames=1))
+    gate.process(np.zeros((1, 176, 320, 3), dtype=np.uint8), ctx(0))
+    assert gate.gate_shape == (176, 320)
+
+
+def test_downscaling_can_be_disabled() -> None:
+    config = MotionGateConfig(warmup_frames=1, gate_width=0, gate_height=0)
+    assert config.downscaling_enabled is False
+    gate = MotionGate(config)
+    gate.process(np.zeros((1, 480, 640, 3), dtype=np.uint8), ctx(0))
+    assert gate.gate_shape == (480, 640)
+
+
+def test_negative_gate_resolution_is_rejected() -> None:
+    with pytest.raises(ValueError, match="must not be negative"):
+        MotionGateConfig(gate_width=-1)
+
+
+def test_downscale_preserves_a_small_moving_target() -> None:
+    """The failure mode that would make this optimization unacceptable.
+
+    Nearest-neighbour subsampling drops whole rows and columns, so a distant
+    person can lose most of their pixels to the discard pattern and fall under
+    the foreground threshold — the gate would sleep through exactly the events
+    it exists to catch. Area averaging keeps the energy.
+    """
+    from src.cascade.motion import _downscale
+
+    source = np.zeros((720, 1280), dtype=np.uint8)
+    source[300:360, 600:660] = 255  # 60px target, as at 720p
+
+    small = _downscale(source, 180, 320)
+    assert small.shape == (180, 320)
+    assert small.max() > 200, "the target did not survive the downscale"
+    # 60px -> ~15px, so ~225 px of a 57,600 px frame: still over the 0.2% floor.
+    assert np.count_nonzero(small > 128) >= 150
+
+
+def test_greyscale_matches_the_numpy_channel_mean() -> None:
+    """cv2.transform must compute the mean, not ITU-R luma.
+
+    Luma weighting is channel-order dependent, and BGR/RGB confusion here is
+    silent. Rounding may differ by one grey level; anything larger means the
+    weights changed.
+    """
+    from src.cascade.motion import _to_gray
+
+    rng = np.random.default_rng(11)
+    frame = rng.integers(0, 256, (64, 96, 3), dtype=np.uint8)
+    reference = frame.mean(axis=2, dtype=np.float32).astype(np.uint8)
+    produced = _to_gray(frame)
+    assert np.abs(produced.astype(np.int16) - reference.astype(np.int16)).max() <= 1
+
+
+def test_gate_resolution_is_config_driven() -> None:
+    from src.config import IronConfig
+
+    cascade = IronConfig.load().cascade
+    produced = cascade.motion_gate_config()
+    assert produced.gate_width == cascade.gate_width == 320
+    assert produced.gate_height == cascade.gate_height == 180

@@ -211,6 +211,53 @@ class PipelineConfig(BaseModel):
         return self.clip_frames // self.tubelet
 
 
+class CascadeConfig(BaseModel):
+    """Wake-hierarchy tuning.
+
+    Gate resolution is the lever that decides whether the Tier-1 idle budget
+    (under 3% of one core per camera) is reachable. Motion gating asks "did
+    anything move", not "what is it", so it does not need the resolution the
+    detector needs.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    gate_width: int = Field(default=320, ge=0)
+    gate_height: int = Field(default=180, ge=0)
+    """Resolution the motion gate runs at; 0 disables downscaling."""
+
+    min_foreground_fraction: float = Field(default=0.002, ge=0.0, le=1.0)
+    stay_awake_frames: int = Field(default=12, ge=0)
+    diff_threshold: int = Field(default=25, ge=0, le=255)
+    warmup_frames: int = Field(default=10, ge=0)
+
+    stats_interval_s: float = Field(default=10.0, gt=0)
+
+    idle_core_budget_fraction: float = Field(default=0.03, gt=0, le=1.0)
+    """Share of one core stage 0 may consume per camera on an idle scene.
+
+    The Tier-1 product claim is exactly as true as this budget being met on
+    reference hardware. ``scripts/cascade_bench.py`` asserts against it.
+    """
+
+    def motion_gate_config(self) -> Any:
+        """Build a :class:`~src.cascade.motion.MotionGateConfig` from this.
+
+        Imported lazily so that ``src.config`` stays free of any dependency on
+        the cascade package, keeping ``import src.config`` cheap.
+        """
+        from src.cascade.motion import MotionGateConfig
+
+        return MotionGateConfig(
+            min_foreground_fraction=self.min_foreground_fraction,
+            stay_awake_frames=self.stay_awake_frames,
+            diff_threshold=self.diff_threshold,
+            warmup_frames=self.warmup_frames,
+            gate_width=self.gate_width,
+            gate_height=self.gate_height,
+        )
+
+
 class EnduranceConfig(BaseModel):
     """Soak-test parameters.
 
@@ -269,6 +316,7 @@ class IronConfig(BaseSettings):
     paths: PathsConfig = Field(default_factory=PathsConfig)
     runtime: RuntimeConfig = Field(default_factory=RuntimeConfig)
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
+    cascade: CascadeConfig = Field(default_factory=CascadeConfig)
     endurance: EnduranceConfig = Field(default_factory=EnduranceConfig)
 
     @classmethod

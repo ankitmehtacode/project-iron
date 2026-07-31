@@ -160,6 +160,7 @@ project-iron/
 │   ├── test_cascade.py
 │   ├── test_config.py
 │   ├── test_contracts_properties.py
+│   ├── test_depth_honesty.py
 │   ├── test_endurance_gates.py
 │   ├── test_events_schema.py
 │   ├── test_golden_vectors.py
