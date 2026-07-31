@@ -1,0 +1,47 @@
+name: project-iron
+
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+
+dependencies:
+  # Python
+  - python=3.10.13
+
+  - libgl=1.7.0
+  - libusb=1.0.26
+
+  # PyTorch CPU
+  - pytorch=2.1.0
+  - torchvision=0.16.0
+  - cpuonly
+
+  # Core science
+  - numpy=1.26.2
+  - pandas=2.1.4
+  - pillow=10.1.0
+  - tqdm=4.66.1
+
+  # Dev tools
+  - git
+  - pip
+
+  # Everything else via pip (not on conda channels with exact versions)
+  - pip:
+    - openvino==2023.2.0
+    - openvino-dev==2023.2.0
+    - langchain==0.1.0
+    - langchain-community==0.0.10
+    - faiss-cpu==1.7.4
+    - transformers==4.36.0
+    - sentence-transformers==2.2.2
+    - huggingface-hub==0.20.1
+    - mlflow==2.9.2
+    - opencv-python-headless==4.8.1.78
+    - pydantic==2.5.3
+    - python-dotenv==1.0.0
+    - black==23.12.1
+    - flake8==7.0.0
+    - pre-commit==3.6.0
+    - pytest==7.4.3
