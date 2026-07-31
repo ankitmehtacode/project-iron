@@ -1,0 +1,11 @@
+{
+  "clip_count": 0,
+  "clips": [],
+  "description": "Original IDD-based driving set. RETAINED for pipeline regression only \u2014 it still catches shape/crash/throughput regressions. EXCLUDED from product metrics: depth priors, person scale, lighting and occlusion patterns are all driving-domain, and the product is indoor. Any INT8 calibration performed against this domain is void.",
+  "domain": "driving",
+  "schema_version": "1.0",
+  "set_sha": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "status": "legacy",
+  "supersedes": null,
+  "version": "v1-driving"
+}

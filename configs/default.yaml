@@ -56,6 +56,13 @@ cascade:
   # Tier-1 idle budget: share of one core stage 0 may use per camera.
   idle_core_budget_fraction: 0.03
 
+eval:
+  # Which golden set backs a reported number. v1 is driving-domain and legacy;
+  # the product is indoor, so v2 is the only set a product metric may cite.
+  golden_set_version: v2-indoor
+  golden_sets_dir: configs/golden
+  allow_legacy_golden_set: false
+
 endurance:
   num_clips: 200
   # The first inference allocates framework buffers; including it would fit a

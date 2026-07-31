@@ -299,6 +299,26 @@ class CascadeConfig(BaseModel):
         )
 
 
+class EvalConfig(BaseModel):
+    """Which golden set ``make eval`` measures against.
+
+    Versioned rather than a path, so switching the instrument is a recorded
+    config change with a config_sha behind it, not an argument someone passed
+    once.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    golden_set_version: str = "v2-indoor"
+    """Active set. v1 is driving-domain and legacy: it catches pipeline
+    regressions but must never back a product metric."""
+
+    golden_sets_dir: Path = Path("configs/golden")
+    allow_legacy_golden_set: bool = False
+    """Escape hatch for deliberately running the legacy driving set. The eval
+    entrypoint still refuses to label those numbers as product metrics."""
+
+
 class EnduranceConfig(BaseModel):
     """Soak-test parameters.
 
@@ -358,6 +378,7 @@ class IronConfig(BaseSettings):
     runtime: RuntimeConfig = Field(default_factory=RuntimeConfig)
     pipeline: PipelineConfig = Field(default_factory=PipelineConfig)
     cascade: CascadeConfig = Field(default_factory=CascadeConfig)
+    eval: EvalConfig = Field(default_factory=EvalConfig)
     endurance: EnduranceConfig = Field(default_factory=EnduranceConfig)
 
     @classmethod

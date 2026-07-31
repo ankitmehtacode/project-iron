@@ -1,0 +1,11 @@
+{
+  "clip_count": 0,
+  "clips": [],
+  "description": "Indoor product golden set. Populated from Site Zero capture (lane C) as sessions are annotated; empty until then, and an empty set is honest about having measured nothing.",
+  "domain": "indoor",
+  "schema_version": "1.0",
+  "set_sha": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+  "status": "active",
+  "supersedes": "v1-driving",
+  "version": "v2-indoor"
+}
