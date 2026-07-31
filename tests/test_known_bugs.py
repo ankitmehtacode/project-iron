@@ -367,19 +367,19 @@ def test_preprocess_normalization() -> None:
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.known_bug
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "AUDIT FINDING 4: PARTIALLY FIXED on day 2. The publication path is now "
-        "honest — the Parquet column is disparity_rel with a depth_units column, "
-        "the README no longer claims metres, and unproject() rejects the guessed "
-        "intrinsics. Still red because DAv2Wrapper.predict itself returns a bare "
-        "ndarray with no units; wrapping it in DepthField is a separate change."
-    ),
-)
 def test_depth_output_declares_units() -> None:
-    """AUDIT FINDING 4: DA-V2 relative depth is published as "meters".
+    """AUDIT FINDING 4, FIXED: DA-V2 output now declares its units.
+
+    ``known_bug`` and ``xfail`` are deliberately absent — removed in the same
+    change that fixed the defect, so this guards the behaviour permanently.
+
+    ``DAv2Wrapper.predict`` returns a ``DepthField`` with
+    ``units="disparity_rel"``, so ``unproject`` refuses it and no downstream
+    consumer can read the values as metric. Day 2 made the publication path
+    honest (the Parquet column, the README, the intrinsics guard); this closed
+    it at the source.
+
+    Historical description of the defect follows.
 
     Depth-Anything-V2 emits relative inverse depth on an arbitrary per-frame
     scale. ``DAv2Wrapper.predict`` returns ``{"depth": ...}`` with no units.

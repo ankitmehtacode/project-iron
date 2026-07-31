@@ -72,8 +72,13 @@ class MemoryManager:
             raise RuntimeError("DA-v2 not loaded. Call load_dav2() first.")
 
         print(f"[MemMgr] Computing depth for: {cache_key}")
+        # .data unwraps the DepthField deliberately: the disk cache stores raw
+        # arrays, and taking the values out of their envelope should be a
+        # visible act. Anything computing geometry from this must go back
+        # through the DepthField rather than trusting the bare array.
         result = self.dav2_model.predict({"image": image})
-        depth_map = result["depth"]
+        depth_field = result["depth"]
+        depth_map = depth_field.data
 
         # Cache to disk immediately
         self.cache.put(
