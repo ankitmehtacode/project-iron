@@ -146,6 +146,23 @@ def _assert_vocabulary_is_partitioned() -> None:
 _assert_vocabulary_is_partitioned()
 
 
+GT_EVENT_NAMESPACE = uuid.uuid5(uuid.NAMESPACE_URL, "iron://gt-events")
+
+
+def deterministic_event_id(*parts: str) -> uuid.UUID:
+    """A stable UUID for ground-truth events.
+
+    Production events get random ``uuid4`` ids because each detection is a new
+    fact. GT events are different: re-running a converter over the same input
+    must yield the same ids, or every re-conversion looks like a fresh set of
+    facts and any join against a previous conversion silently breaks. uuid5
+    over the identifying parts makes conversion idempotent.
+    """
+    if not parts or not all(parts):
+        raise SchemaError("deterministic_event_id needs non-empty parts")
+    return uuid.uuid5(GT_EVENT_NAMESPACE, "/".join(parts))
+
+
 class SchemaError(ValueError):
     """Raised when an event or record violates the v1 contract."""
 
