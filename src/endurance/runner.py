@@ -40,6 +40,7 @@ from src.endurance.gates import (
     summarize_latency,
 )
 from src.endurance.memory import MemorySample, MemorySampler, platform_fidelity_note
+from src.provenance import ManifestError, RunManifest
 
 DETERMINISM_COSINE_TOLERANCE = 1e-5
 
@@ -55,6 +56,7 @@ class ExitCode(enum.IntEnum):
     GATE_FAILED = 1
     PREREQUISITES_MISSING = 2
     PIPELINE_RAISED = 3
+    MANIFEST_UNWRITABLE = 4
 
 
 class WeightsUnavailable(RuntimeError):
@@ -259,11 +261,13 @@ class EnduranceRunner:
         factory: ExtractorFactory,
         log: RunLogger,
         metrics: JsonlWriter,
+        manifest_sha: str,
     ) -> None:
         self._config = config
         self._factory = factory
         self._log = log
         self._metrics = metrics
+        self._manifest_sha = manifest_sha
         self._sampler = MemorySampler(
             track_allocations=True,
             top_allocations=config.endurance.tracemalloc_top,
@@ -342,6 +346,7 @@ class EnduranceRunner:
             self._metrics.write(
                 {
                     "mode": "steady",
+                    "manifest_sha": self._manifest_sha,
                     "clip": clip_index,
                     "phase": phase,
                     "duration_s": round(elapsed, 6),
@@ -414,6 +419,7 @@ class EnduranceRunner:
             self._metrics.write(
                 {
                     "mode": "reinit",
+                    "manifest_sha": self._manifest_sha,
                     "cycle": cycle,
                     "duration_s": round(elapsed, 6),
                     "config_sha": self._config.config_sha(),
@@ -531,8 +537,34 @@ def execute(
         log(f"Metrics     : {metrics_path}")
         log("")
 
+        # The manifest is written before any processing. A run that cannot
+        # record what produced its results must not produce them: the outputs
+        # would be unattributable to a model version, config, or commit, and
+        # therefore unusable for any later comparison.
+        try:
+            manifest = RunManifest.capture(config)
+            manifest_path = manifest.write(
+                config.paths.resolved_output_dir / "manifest.json"
+            )
+        except ManifestError as exc:
+            log(f"ERROR: {exc}")
+            return ExitCode.MANIFEST_UNWRITABLE
+
+        log(manifest.summary())
+        log(f"manifest     : {manifest_path}")
+        if manifest.git.available and manifest.git.dirty:
+            log(
+                "WARNING: the working tree is dirty, so this run cannot be "
+                "reproduced from its commit alone."
+            )
+        log("")
+
         runner = EnduranceRunner(
-            config, factory or default_extractor_factory(config), log, metrics
+            config,
+            factory or default_extractor_factory(config),
+            log,
+            metrics,
+            manifest.manifest_sha,
         )
         try:
             outcome = runner.run(mode, iterations)
