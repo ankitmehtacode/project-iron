@@ -43,8 +43,9 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from src.config import IronConfig
 
-SCHEMA_VERSION: Literal["1.0"] = "1.0"
+SCHEMA_VERSION: Literal["1.1"] = "1.1"
 _HASH_CHUNK_BYTES = 1024 * 1024
+_NO_PREPROCESS_SPEC = "NONE — encoder path has no spec wired in"
 
 # Recorded because each one can change numerical output. Absence is recorded
 # as "not installed" rather than omitted, so a manifest never leaves ambiguity
@@ -198,10 +199,18 @@ class RunManifest(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    schema_version: Literal["1.0"] = SCHEMA_VERSION
+    schema_version: Literal["1.1"] = SCHEMA_VERSION
     started_at_utc: str
     git: GitState
     config_sha: str
+    preprocess_sha: str | None = None
+    """Hash of the preprocessing spec in force, when one is loaded.
+
+    ``None`` means no spec was loaded — which as of schema 1.1 means the
+    encoder path had none wired in. Recorded rather than omitted so a run can
+    be told apart from one that simply predates the field.
+    """
+
     model_hashes: dict[str, str] = Field(default_factory=dict)
     library_versions: dict[str, str] = Field(default_factory=dict)
     hostname: str
@@ -216,6 +225,7 @@ class RunManifest(BaseModel):
         cls,
         config: IronConfig,
         model_paths: list[Path] | None = None,
+        preprocess_sha: str | None = None,
     ) -> "RunManifest":
         """Build a manifest describing the run that is about to start.
 
@@ -223,6 +233,9 @@ class RunManifest(BaseModel):
             config: The loaded configuration.
             model_paths: Model files the run will load. Defaults to the V-JEPA2
                 IR and the CoTracker3 checkpoint from ``config``.
+            preprocess_sha: Hash of the preprocessing spec in force. Every
+                artifact this run writes is only comparable with others sharing
+                it, so it belongs in the manifest alongside the model hashes.
         """
         import psutil
 
@@ -236,6 +249,7 @@ class RunManifest(BaseModel):
             started_at_utc=datetime.now(timezone.utc).isoformat(),
             git=git_state(config.paths.project_root),
             config_sha=config.config_sha(),
+            preprocess_sha=preprocess_sha,
             model_hashes=hash_model_files(model_paths),
             library_versions=library_versions(),
             hostname=socket.gethostname(),
@@ -323,6 +337,7 @@ class RunManifest(BaseModel):
         lines = [
             f"manifest_sha : {self.manifest_sha}",
             f"config_sha   : {self.config_sha}",
+            f"preprocess   : {self.preprocess_sha or _NO_PREPROCESS_SPEC}",
             f"git          : {git_line}",
             f"host         : {self.hostname} ({self.cpu_model}, "
             f"{self.cpu_count_logical} logical cores)",

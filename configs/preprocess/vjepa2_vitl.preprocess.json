@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "CANONICAL TEMPLATE for V-JEPA2 ViT-L. This is not the authoritative copy.",
+    "The authoritative spec lives beside the weights as <model>.preprocess.json,",
+    "because it describes those weights. Copy this file there, verify every",
+    "value against the model's shipped config, then set",
+    "verified_against_official_config to true.",
+    "",
+    "verified_against_official_config is FALSE and must stay false until someone",
+    "has checked these numbers against the actual checkpoint. The mean/std below",
+    "are the standard ImageNet statistics that V-JEPA2's published preprocessor",
+    "uses, but they were transcribed without the weights present to confirm.",
+    "",
+    "frames/stride/resolution below mirror what the pipeline currently sends,",
+    "NOT what the fetched checkpoint expects. scripts/fetch_weights.py pulls",
+    "facebook/vjepa2-vitl-fpc64-256, a 64-frame 256px model. Reconciling that is",
+    "a measured change and is on the tomorrow list, not applied here."
+  ],
+  "channel_order": "RGB",
+  "frames": 4,
+  "mean": [0.485, 0.456, 0.406],
+  "patch_size": 16,
+  "resize_policy": "stretch_to_square",
+  "resolution": [224, 224],
+  "source": "ImageNet statistics per the published V-JEPA2 preprocessor; transcribed without the checkpoint present",
+  "std": [0.229, 0.224, 0.225],
+  "stride": 1,
+  "tubelet": 2,
+  "verified_against_official_config": false
+}

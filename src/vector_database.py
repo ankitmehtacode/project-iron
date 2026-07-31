@@ -169,10 +169,45 @@ class VectorDatabase:
 
         print(f"[VectorDB] Saved to {self.db_path}")
 
-    def load(self) -> None:
-        """Load FAISS index from disk."""
-        if not (self.db_path / "index.faiss").exists():
+    def load(self, encoder_sha: str = "", preprocess_sha: str = "") -> None:
+        """Load FAISS index from disk, refusing one built by other producers.
+
+        Args:
+            encoder_sha: Hash of the encoder now in use.
+            preprocess_sha: Hash of the preprocessing spec now in use.
+
+        Raises:
+            FileNotFoundError: if there is no index at ``db_path``.
+            ArtifactMismatch: if the index was built under a different encoder
+                or preprocessing, or carries no provenance sidecar at all. The
+                check runs BEFORE the index is loaded, because once it is
+                loaded the first query already returns confidently-ranked
+                results computed in the wrong vector space.
+
+        Both sha arguments default to empty for backward compatibility with
+        callers written before provenance coupling existed. Those callers get a
+        loud warning rather than a silent pass — every index on disk today
+        predates the sidecar format and its vectors are void.
+        """
+        index_path = self.db_path / "index.faiss"
+        if not index_path.exists():
             raise FileNotFoundError(f"No index found at {self.db_path}")
+
+        if encoder_sha and preprocess_sha:
+            from src.artifacts import require_compatible
+
+            require_compatible(
+                index_path,
+                encoder_sha=encoder_sha,
+                preprocess_sha=preprocess_sha,
+            )
+        else:
+            print(
+                "[VectorDB] WARNING: loading without provenance verification. "
+                "Pass encoder_sha and preprocess_sha to check that this index "
+                "matches the encoder in use. Indexes written before the "
+                "sidecar format are void — see scripts/rebuild_index.py."
+            )
 
         # Load FAISS index
         self.vectorstore = FAISS.load_local(

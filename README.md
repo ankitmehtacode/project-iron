@@ -59,6 +59,7 @@ project-iron/
 │   ├── export_vjepa_onnx.py
 │   ├── fetch_weights.py
 │   ├── gen_tree.py
+│   ├── make_golden_vectors.py
 │   ├── mock_pipeline.py
 │   ├── quantize_cotracker3.py
 │   ├── quantize_depth_anything.py
@@ -145,11 +146,19 @@ project-iron/
 │   ├── rag_agent.py
 │   └── vector_database.py
 ├── tests/
+│   ├── golden/
+│   │   ├── clips/
+│   │   │   ├── real_test_video.npz
+│   │   │   ├── synthetic_seeded_noise.npz
+│   │   │   ├── synthetic_spatial_gradient.npz
+│   │   │   └── synthetic_tubelet_probe.npz
+│   │   └── manifest.json
 │   ├── test_cascade.py
 │   ├── test_config.py
 │   ├── test_contracts_properties.py
 │   ├── test_endurance_gates.py
 │   ├── test_events_schema.py
+│   ├── test_golden_vectors.py
 │   ├── test_known_bugs.py
 │   ├── test_provenance.py
 │   └── test_temporal_stitching.py
