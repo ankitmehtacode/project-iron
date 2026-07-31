@@ -10,11 +10,11 @@ Gated on the **1st percentile** of per-patch cosine, not the mean. A mean over
 the worst patches are where objects are. A quality floor expressed as a mean is
 not a floor.
 
-Today this test is expected RED. The OpenVINO path in
-``src/semantics/semantic_extractor.py`` applies no channel standardisation
-while the reference applies the official one, so the embeddings are computed
-from differently-scaled inputs. The measured cosine here is the "before" number
-for the normalization fix.
+This test was RED until 2026-07-31: the OpenVINO path applied no channel
+standardisation while the reference applied the official one, scoring a
+per-patch cosine p1 of 0.332. With ``_run_vjepa`` applying the model's
+PreprocessSpec it scores 0.999987, and the ``known_bug`` marker was removed in
+the same change that fixed it — so this now guards the behaviour permanently.
 """
 
 from __future__ import annotations
@@ -35,10 +35,13 @@ CLIP_DIR = GOLDEN_ROOT / "clips"
 REFERENCE_DIR = GOLDEN_ROOT / "reference"
 MANIFEST_PATH = GOLDEN_ROOT / "manifest.json"
 
-# Floor for FP32-reference vs INT8-OpenVINO agreement once preprocessing is
-# correct. Weight-only INT8 compression on a ViT-L should stay far above this;
-# anything below it is an export defect, not quantization noise.
-GOLDEN_COSINE_P1_MIN = 0.99
+# Floor for reference-vs-OpenVINO agreement once preprocessing is correct.
+#
+# Measured on the 2026-07-31 FP32 export: p1 = 0.999987 across all four clips.
+# The floor sits at 0.98 to leave room for the INT8 quantization that comes
+# later without being so loose that a real export defect passes — before the
+# normalization fix this same comparison scored 0.332.
+GOLDEN_COSINE_P1_MIN = 0.98
 
 
 def load_manifest() -> dict[str, Any]:
@@ -153,7 +156,7 @@ def _require_openvino_and_reference(name: str) -> tuple[Any, np.ndarray]:
 
     if importlib.util.find_spec("openvino") is None:
         unmet.append("module 'openvino' is not installed")
-    xml = config.paths.resolved_vjepa_xml
+    xml = config.paths.resolved_current_ir
     if not xml.exists():
         unmet.append(f"V-JEPA2 OpenVINO IR not found at {xml}")
     reference_path = REFERENCE_DIR / f"{name}.npz"
@@ -173,16 +176,7 @@ def _require_openvino_and_reference(name: str) -> tuple[Any, np.ndarray]:
     return ov, reference
 
 
-@pytest.mark.known_bug
 @pytest.mark.requires_weights
-@pytest.mark.xfail(
-    strict=False,
-    reason=(
-        "AUDIT FINDING 3: the OpenVINO path applies no channel standardisation, "
-        "so it cannot agree with the officially-preprocessed reference. This "
-        "test's measured cosine is the 'before' number for the fix."
-    ),
-)
 @pytest.mark.parametrize("name", clip_names())
 def test_openvino_matches_pytorch_reference(name: str) -> None:
     """Per-patch cosine between the production path and the official reference.
@@ -196,11 +190,18 @@ def test_openvino_matches_pytorch_reference(name: str) -> None:
     config = IronConfig.load()
     ov, reference = _require_openvino_and_reference(name)
 
-    clip = load_clip(name).astype(np.float32) / 255.0
+    # Exactly what production does: scale to [0, 1], then apply the model's own
+    # PreprocessSpec. Feeding raw [0, 1] here — which is what the pipeline did
+    # until audit finding 3 was fixed — scores a per-patch cosine p1 of 0.332
+    # against this same reference.
+    from src.models.preprocess import PreprocessSpec
+
+    spec = PreprocessSpec.load_for_model(config.paths.resolved_current_ir)
+    clip = spec.apply(load_clip(name).astype(np.float32) / 255.0)
 
     core = ov.Core()
     compiled = core.compile_model(
-        str(config.paths.resolved_vjepa_xml),
+        str(config.paths.resolved_current_ir),
         config.runtime.device,
         config.runtime.openvino_properties(),
     )

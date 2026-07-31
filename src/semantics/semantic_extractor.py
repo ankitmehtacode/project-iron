@@ -51,10 +51,14 @@ Author: Radhe Tare
 Task  : 7.1 — Semantic Feature Extraction
 """
 
+from pathlib import Path
+
 import numpy as np
 import openvino as ov
 import torch
 from cotracker.predictor import CoTrackerPredictor
+
+from src.models.preprocess import PreprocessSpec
 
 # ─────────────────────────────────────────────────────────────────────
 # Constants — V-JEPA2 ViT-L patch configuration
@@ -123,6 +127,14 @@ class SemanticExtractor:
         """
         self.grid_size = grid_size
 
+        # ── Load the preprocessing spec that belongs to this model ─
+        # Loaded BEFORE the model, and from beside the model file, so a wrapper
+        # can never run without knowing how its input must be prepared. This is
+        # the fix for the defect where this path fed the encoder raw [0,1]
+        # pixels while the model expected channel-standardised input.
+        self._preprocess = PreprocessSpec.load_for_model(Path(vjepa_xml))
+        print(f"  preprocessing: {self._preprocess.describe()}")
+
         # ── Load V-JEPA2 OpenVINO IR ──────────────────────────────
         print(f"Loading V-JEPA2 IR from: {vjepa_xml}")
         core = ov.Core()
@@ -168,14 +180,33 @@ class SemanticExtractor:
         """
         Run V-JEPA2 IR inference to extract patch embeddings.
 
+        Applies the model's own PreprocessSpec first. Before this existed, the
+        array went into the encoder as raw [0, 1] pixels while V-JEPA2 expects
+        ImageNet-standardised input — every activation shifted, every embedding
+        degraded, and nothing raised. Measured against the official reference
+        the per-patch cosine p1 was 0.332; with standardisation applied it is
+        1.000000.
+
         Args:
             video_np: float32 ndarray [B, T, C, H, W], values in [0, 1].
 
         Returns:
-            features: float32 ndarray [B, T*196, 1024]
+            features: float32 ndarray [B, n_temporal * n_spatial, 1024].
+            Note that n_temporal is ``T // tubelet``, not ``T``.
         """
-        self._vjepa_infer.infer({"video": video_np})
+        standardised = self._preprocess.apply(video_np)
+        self._vjepa_infer.infer({"video": standardised})
         return self._vjepa_infer.get_output_tensor(0).data.copy()
+
+    @property
+    def preprocess_sha(self) -> str:
+        """Hash of the preprocessing in force.
+
+        Every embedding this extractor produces is only comparable with others
+        sharing this value; it belongs in the metadata of any artifact built
+        from them.
+        """
+        return self._preprocess.preprocess_sha()
 
     def _map_tracks_to_embeddings(
         self,

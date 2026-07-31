@@ -92,7 +92,25 @@ class PathsConfig(BaseModel):
     log_dir: Path = Path("logs")
 
     vjepa_xml: Path = Path("int8/vjepa2_vitl_int8.xml")
-    """V-JEPA2 INT8 OpenVINO IR, relative to :attr:`models_dir`."""
+    """The PRODUCTION V-JEPA2 IR, relative to :attr:`models_dir`.
+
+    This path is reserved. Only the artifact that production actually ran may
+    ever occupy it, because it is the sole evidence of what the stored
+    embeddings were computed with. A freshly exported model placed here would
+    silently become "the production artifact" in every later forensic
+    comparison, and the real one can never be reconstructed.
+
+    Fresh exports go to :attr:`current_ir` under ``models/export/<utc-date>/``.
+    """
+
+    current_ir: Path | None = None
+    """The IR this process should actually load, when it differs from production.
+
+    ``None`` means "use the production artifact". Set it to point at a fresh
+    export while the production one is unavailable, or to run a replacement
+    candidate side by side with production. Keeping the two as separate keys is
+    what stops an export from being mistaken for the thing it replaces.
+    """
 
     cotracker_checkpoint: Path = Path("weights/cotracker3/scaled_offline.pth")
     """CoTracker3 checkpoint, relative to :attr:`models_dir`."""
@@ -128,6 +146,24 @@ class PathsConfig(BaseModel):
         if self.vjepa_xml.is_absolute():
             return self.vjepa_xml
         return self.resolved_models_dir / self.vjepa_xml
+
+    @property
+    def resolved_current_ir(self) -> Path:
+        """The IR to load: :attr:`current_ir` when set, else production."""
+        if self.current_ir is None:
+            return self.resolved_vjepa_xml
+        if self.current_ir.is_absolute():
+            return self.current_ir
+        return self.resolved_models_dir / self.current_ir
+
+    @property
+    def using_production_ir(self) -> bool:
+        """Whether the loaded IR is the production artifact.
+
+        Callers that report a forensic verdict must check this. A verdict on a
+        replacement export is not a verdict on production.
+        """
+        return self.current_ir is None
 
     @property
     def resolved_cotracker_checkpoint(self) -> Path:

@@ -88,12 +88,19 @@ def installed_version(candidates: tuple[str, ...]) -> tuple[str | None, str | No
 
 @dataclass
 class Row:
-    """One gate check."""
+    """One gate check.
+
+    ``blocks`` names what a failure actually stops. Not every row gates the
+    whole day: the production-artifact rows gate the forensic verdict alone,
+    because a fresh export can satisfy every other objective and must never
+    satisfy that one.
+    """
 
     name: str
     passed: bool
     detail: str
     remedy: str = ""
+    blocks: str = "all"
 
 
 @dataclass
@@ -102,11 +109,31 @@ class GateResult:
 
     @property
     def passed(self) -> bool:
+        """True when every row passes, including the production-artifact rows."""
         return all(row.passed for row in self.rows)
+
+    @property
+    def can_proceed(self) -> bool:
+        """True when everything except the production artifact is satisfied.
+
+        This is the gate that matters for most of the work. Export, golden
+        vectors and the normalization fix need a working runtime, not the
+        production IR — that artifact gates only the forensic verdict on
+        production, which nothing else can substitute for.
+        """
+        return all(row.passed for row in self.rows if row.blocks == "all")
 
     @property
     def failures(self) -> list[Row]:
         return [row for row in self.rows if not row.passed]
+
+    @property
+    def blocking_failures(self) -> list[Row]:
+        return [row for row in self.rows if not row.passed and row.blocks == "all"]
+
+    @property
+    def parked_failures(self) -> list[Row]:
+        return [row for row in self.rows if not row.passed and row.blocks != "all"]
 
 
 def pinned_versions() -> dict[str, str]:
@@ -224,28 +251,58 @@ def sha256_file(path: Path) -> str:
 
 def check_models(config: IronConfig) -> tuple[list[Row], dict[str, Any]]:
     """Row 2: every configured model artifact exists; record sha256 and size."""
-    targets: list[tuple[str, Path]] = [
-        ("vjepa_xml", config.paths.resolved_vjepa_xml),
-        ("vjepa_bin", config.paths.resolved_vjepa_xml.with_suffix(".bin")),
-        ("cotracker_checkpoint", config.paths.resolved_cotracker_checkpoint),
+    # (label, path, what a failure blocks). The production IR gates only the
+    # forensic verdict; everything else in the day runs without it.
+    # (fingerprint key, display label, path, what a failure blocks).
+    #
+    # The key and the label are separate on purpose: the label carries the
+    # PRODUCTION warning for humans reading the table, while the key stays
+    # stable so the fingerprint written into a manifest does not change meaning
+    # when the display text is reworded.
+    targets: list[tuple[str, str, Path, str]] = [
+        (
+            "vjepa_xml",
+            "PRODUCTION vjepa_xml",
+            config.paths.resolved_vjepa_xml,
+            "objective-1",
+        ),
+        (
+            "vjepa_bin",
+            "PRODUCTION vjepa_bin",
+            config.paths.resolved_vjepa_xml.with_suffix(".bin"),
+            "objective-1",
+        ),
+        (
+            "cotracker_checkpoint",
+            "cotracker_checkpoint",
+            config.paths.resolved_cotracker_checkpoint,
+            "all",
+        ),
     ]
 
     rows: list[Row] = []
     fingerprint: dict[str, Any] = {}
-    for label, path in targets:
+    for key, label, path, blocks in targets:
         if not path.exists():
+            remedy = (
+                "copy the artifact production actually ran from the machine "
+                "that ran it, with sha256sum taken before transfer. Do NOT "
+                "export a replacement into this path: a fresh export is a "
+                "different artifact, and putting it here destroys the only "
+                "evidence of what the stored embeddings were computed with."
+                if blocks == "objective-1"
+                else "python scripts/fetch_weights.py, then export per scripts/"
+            )
             rows.append(
                 Row(
                     name=f"model {label}",
                     passed=False,
                     detail=f"missing at {path}",
-                    remedy=(
-                        "python scripts/fetch_weights.py, then export and "
-                        "quantize per scripts/ — see the checklist below"
-                    ),
+                    remedy=remedy,
+                    blocks=blocks,
                 )
             )
-            fingerprint[label] = {"path": str(path), "present": False}
+            fingerprint[key] = {"path": str(path), "present": False}
             continue
 
         size = path.stat().st_size
@@ -255,9 +312,10 @@ def check_models(config: IronConfig) -> tuple[list[Row], dict[str, Any]]:
                 name=f"model {label}",
                 passed=True,
                 detail=f"{size / 1e6:.1f} MB  sha256 {digest[:16]}...",
+                blocks=blocks,
             )
         )
-        fingerprint[label] = {
+        fingerprint[key] = {
             "path": str(path),
             "present": True,
             "size_bytes": size,
@@ -389,6 +447,24 @@ def main(argv: list[str] | None = None) -> int:
 
     if result.passed:
         print("GATE PASSED. Measurements taken here are attributable.")
+        return 0
+
+    if result.can_proceed:
+        print("GATE: PROCEED (production artifact parked)")
+        print()
+        print(
+            "Every row that gates general work passes. The only failures are "
+            "the\nproduction-artifact rows, which gate the forensic verdict "
+            "alone:"
+        )
+        for row in result.parked_failures:
+            print(f"  - {row.name}: {row.detail}")
+        print()
+        print(
+            "Export, golden vectors and the normalization fix can proceed "
+            "against a\nfreshly exported IR. The forensic verdict on "
+            "production cannot, and no\nexport substitutes for it."
+        )
         return 0
 
     print(render_checklist(result))

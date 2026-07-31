@@ -90,7 +90,9 @@ def test_present_model_gets_a_sha_and_size(
     assert entry["present"] is True
     assert entry["sha256"] == hashlib.sha256(b"<net/>").hexdigest()
     assert entry["size_bytes"] == 6
-    assert any(row.name == "model vjepa_xml" and row.passed for row in rows)
+    # The row's display label carries the PRODUCTION warning; the fingerprint
+    # key stays "vjepa_xml" so a manifest is unaffected by wording changes.
+    assert any("vjepa_xml" in row.name and row.passed for row in rows)
 
 
 def test_result_passes_only_when_every_row_passes() -> None:

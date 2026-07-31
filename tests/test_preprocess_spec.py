@@ -404,3 +404,69 @@ def test_manifest_states_when_no_spec_is_wired_in() -> None:
     manifest = RunManifest.capture(IronConfig.load(), model_paths=[])
     assert manifest.preprocess_sha is None
     assert "NONE" in manifest.summary()
+
+
+# ---------------------------------------------------------------------------
+# The void-artifact refusal, against the real stale artifacts (day 3)
+# ---------------------------------------------------------------------------
+
+
+def test_refusal_fires_on_the_real_stale_artifacts() -> None:
+    """The 22 pre-fix artifacts under outputs/ must all be refused.
+
+    Negative test for the normalization fix's provenance consequence. Those
+    files were produced by the encoder path that applied no channel
+    standardisation — measured at per-patch cosine 0.332 against the official
+    reference — so every vector derived from them is void. None carries a
+    metadata sidecar, and the guard must refuse all of them rather than letting
+    an unlabelled artifact read as acceptable.
+
+    Skips when outputs/ has been cleaned, since the point is the guard's
+    behaviour on real files, not the presence of any particular file.
+    """
+    outputs = IronConfig.load().paths.resolved_output_dir
+    stale = [
+        path
+        for pattern in ("*.npy", "*.parquet", "*.faiss")
+        for path in outputs.rglob(pattern)
+        if not path.name.endswith(".meta.json")
+    ]
+    if not stale:
+        pytest.skip(f"no legacy artifacts under {outputs}; nothing to refuse")
+
+    current = make_spec().preprocess_sha()
+    refused = 0
+    for path in stale:
+        with pytest.raises(ArtifactMismatch) as excinfo:
+            require_compatible(path, encoder_sha=ENCODER, preprocess_sha=current)
+        assert "rebuild_index.py" in str(excinfo.value)
+        refused += 1
+
+    assert refused == len(stale), (
+        f"only {refused} of {len(stale)} stale artifacts were refused; every "
+        "artifact without provenance must be, because absence of a sidecar "
+        "means it predates the fix"
+    )
+
+
+def test_a_freshly_stamped_artifact_is_accepted(tmp_path: Path) -> None:
+    """The guard must not refuse everything — that would be equally useless.
+
+    An artifact written now, carrying the current preprocess_sha, has to load.
+    """
+    artifact = tmp_path / "rebuilt.parquet"
+    artifact.write_bytes(b"x")
+    spec = make_spec()
+    write_metadata(
+        artifact,
+        ArtifactMetadata(
+            kind="embedding_parquet",
+            encoder_sha=ENCODER,
+            preprocess_sha=spec.preprocess_sha(),
+            manifest_sha=MANIFEST,
+        ),
+    )
+    metadata = require_compatible(
+        artifact, encoder_sha=ENCODER, preprocess_sha=spec.preprocess_sha()
+    )
+    assert metadata.preprocess_sha == spec.preprocess_sha()

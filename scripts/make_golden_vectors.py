@@ -212,18 +212,48 @@ def missing_reference_prerequisites() -> list[str]:
 
     config = IronConfig.load()
     weights = config.paths.resolved_models_dir / "weights" / "vjepa2_vitl"
-    if not weights.exists():
-        unmet.append(f"official V-JEPA2 PyTorch weights not found at {weights}")
+    if not (weights / "config.json").exists():
+        unmet.append(
+            f"official V-JEPA2 checkpoint not found at {weights} "
+            "(needs model.safetensors and config.json)"
+        )
     return unmet
+
+
+def reference_spec() -> "Any":
+    """The preprocessing the reference applies, read from the checkpoint.
+
+    Not transcribed and not defaulted. This is the whole point of the exercise:
+    the reference must be produced by the preprocessing the model was trained
+    with, so that any gap against the production path is attributable to the
+    production path rather than to a second guess.
+    """
+    from src.config import IronConfig
+    from src.models.preprocess import PreprocessSpec
+
+    config = IronConfig.load()
+    checkpoint = config.paths.resolved_models_dir / "weights" / "vjepa2_vitl"
+
+    # Prefer the spec written beside the exported artifact, which was generated
+    # from this same checkpoint and pins the export geometry.
+    sidecar = PreprocessSpec.sidecar_path_for(config.paths.resolved_current_ir)
+    if sidecar.exists():
+        return PreprocessSpec.load(sidecar)
+
+    import sys as _sys
+
+    _sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    from export_vjepa_ov import spec_from_checkpoint
+
+    return spec_from_checkpoint(checkpoint, CLIP_FRAMES, CLIP_H)
 
 
 def generate_references(clips: dict[str, np.ndarray]) -> dict[str, Any]:
     """Run the official PyTorch V-JEPA2 path over each clip.
 
-    Uses ``src.models.vjepa_wrapper.VJEPAWrapper``, which loads the official
-    ``vjepa2_preprocessor``. That is the whole point: the reference must come
-    from the implementation that preprocesses correctly, so the OpenVINO path
-    can be measured against it.
+    The reference applies the checkpoint's own channel standardisation. The
+    production OpenVINO path applies none, which is the defect these vectors
+    exist to measure — so this function must not be "fixed" to match production.
 
     Raises:
         RuntimeError: if any embedding contains a non-finite value. One NaN
@@ -231,21 +261,30 @@ def generate_references(clips: dict[str, np.ndarray]) -> dict[str, Any]:
             one would enshrine the corruption.
     """
     import torch
+    from transformers import AutoModel
 
-    from src.models.vjepa_wrapper import VJEPAWrapper
+    from src.config import IronConfig
+
+    config = IronConfig.load()
+    checkpoint = config.paths.resolved_models_dir / "weights" / "vjepa2_vitl"
+    spec = reference_spec()
+    print(f"  preprocessing: {spec.describe()}")
 
     REFERENCE_DIR.mkdir(parents=True, exist_ok=True)
-    wrapper = VJEPAWrapper(model_size="vitl", device="CPU")
-    wrapper.load()
+    # eager attention to match the exported graph; see export_vjepa_ov.py.
+    model = AutoModel.from_pretrained(
+        checkpoint, dtype=torch.float32, attn_implementation="eager"
+    ).eval()
 
     references: dict[str, Any] = {}
     for name, clip in sorted(clips.items()):
-        # The official preprocessor expects [0, 1] float input and applies the
-        # channel standardisation itself.
-        as_float = clip.astype(np.float32) / 255.0
+        # uint8 [0,255] -> [0,1] -> standardised. Both steps, in that order.
+        scaled = clip.astype(np.float32) / 255.0
+        standardised = spec.apply(scaled)
+
         with torch.no_grad():
-            output = wrapper.predict({"video": as_float})
-        embeddings = np.asarray(output["embeddings"], dtype=np.float32)
+            output = model.get_vision_features(torch.from_numpy(standardised))
+        embeddings = np.asarray(output.numpy(), dtype=np.float32)
 
         if not np.all(np.isfinite(embeddings)):
             raise RuntimeError(
@@ -260,6 +299,7 @@ def generate_references(clips: dict[str, np.ndarray]) -> dict[str, Any]:
             "shape": list(embeddings.shape),
             "dtype": str(embeddings.dtype),
             "sha256": sha256_array(embeddings),
+            "preprocess_sha": spec.preprocess_sha(),
         }
         print(f"  {name:32} -> {embeddings.shape}")
     return references
