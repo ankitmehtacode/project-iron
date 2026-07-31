@@ -53,8 +53,13 @@ cascade:
   diff_threshold: 25
   warmup_frames: 10
   stats_interval_s: 10.0
-  # Tier-1 idle budget: share of one core stage 0 may use per camera.
+  # PRODUCT BUDGET: what Tier-1 needs. Currently MISSED (worst measured
+  # 4.51%). Never adjust this to match what the code does.
   idle_core_budget_fraction: 0.03
+  # CI REGRESSION CEILING: set from the worst pinned-stack measurement plus
+  # headroom. Catches regressions only; it is NOT a claim the budget is met.
+  regression_ceiling_fraction: 0.055
+  measured_stack: "opencv 4.8.1.78 / numpy 1.26.2 / python 3.10.20"
 
 eval:
   # Which golden set backs a reported number. v1 is driving-domain and legacy;

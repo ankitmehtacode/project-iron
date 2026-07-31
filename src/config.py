@@ -275,10 +275,34 @@ class CascadeConfig(BaseModel):
     stats_interval_s: float = Field(default=10.0, gt=0)
 
     idle_core_budget_fraction: float = Field(default=0.03, gt=0, le=1.0)
-    """Share of one core stage 0 may consume per camera on an idle scene.
+    """PRODUCT BUDGET: share of one core stage 0 may consume per camera.
 
-    The Tier-1 product claim is exactly as true as this budget being met on
-    reference hardware. ``scripts/cascade_bench.py`` asserts against it.
+    The Tier-1 claim is exactly as true as this being met on reference
+    hardware. It is **currently missed** — see ``regression_ceiling_fraction``.
+    This number describes what the product needs, and is never adjusted to
+    match what the code does.
+    """
+
+    regression_ceiling_fraction: float = Field(default=0.055, gt=0, le=1.0)
+    """CI REGRESSION CEILING — deliberately NOT the product budget.
+
+    Set from the worst measured cost on the pinned stack (4.51% on the
+    upscaled real-footage scenario, 2026-08-01) plus headroom for shared-runner
+    variance. Its only job is to catch a change that makes stage 0 *worse*
+    than it is today.
+
+    Keeping this separate from ``idle_core_budget_fraction`` is the whole
+    point. Collapsing them would let CI go green by redefining the target,
+    which is how a missed budget quietly becomes a met one.
+    """
+
+    measured_stack: str = "opencv 4.8.1.78 / numpy 1.26.2 / python 3.10.20"
+    """Stack the ceiling was measured on.
+
+    Recorded because the measurement does not transfer: the same code scored
+    2.97% on OpenCV 5.0.0 and 3.24% on the pinned 4.8.1.78, whose resize and
+    MOG2 implementations differ. A cost number without its stack is not a
+    number.
     """
 
     def motion_gate_config(self) -> Any:

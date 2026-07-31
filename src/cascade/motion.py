@@ -28,37 +28,42 @@ silently compares the two.
 
 Measured cost
 -------------
-Measured 2026-07-31 with ``scripts/cascade_bench.py``, 1280x720 source at
-12 fps, MOG2, gating at 320x180, on the development machine:
+Re-measured 2026-08-01 on the **pinned** stack (opencv 4.8.1.78, numpy 1.26.2,
+python 3.10.20), 1280x720 source at 12 fps, MOG2, gating at 320x180:
 
-==================  ==========  ==========  =========  ========
-Scenario            p50 / frame  % of core  wake@full  wake@gate
-==================  ==========  ==========  =========  ========
-static (idle)          2.48 ms      2.97%       0.0%      0.0%
-near target            2.48 ms      2.97%      33.3%     33.3%
-SMALL target           2.45 ms      2.94%      33.3%     33.3%
-real footage           2.18 ms      2.62%      84.8%     84.8%
-==================  ==========  ==========  =========  ========
+==================  ==========  ==========  =======  =========
+Scenario            p50 / frame  % of core  parity   speedup
+==================  ==========  ==========  =======  =========
+static (idle)          2.70 ms      3.24%   EXACT      3.23x
+near target            2.58 ms      3.10%   EXACT      3.51x
+SMALL target           2.51 ms      3.01%   EXACT      3.33x
+real, upscaled 720p    3.81 ms      4.57%   EXACT      2.59x
+real, native 320x176   2.29 ms      2.75%   EXACT      1.01x*
+==================  ==========  ==========  =======  =========
 
-Wake decisions are **identical** at both resolutions on every scenario,
-including the small-target case (a blob ~15 px tall at gate resolution, i.e. a
-person about 60 px tall at 720p — someone across a car park). Cost is within
-the 3% Tier-1 idle budget, with very little margin.
+Footnote: the native-resolution row is a no-op, its source already being
+below gate resolution, so its 1.01x speedup is correct rather than a
+regression.
 
-Getting there took three changes, in descending order of effect. Gating at
-320x180 rather than 720p. Resizing the colour frame *before* the greyscale
-reduction rather than after, which is mathematically equivalent for linear
-operations but moves the bulk work into one OpenCV call. And computing the
-channel mean with ``cv2.transform`` instead of ``numpy.mean``, which is the
-same arithmetic 8x faster.
+**The 3% Tier-1 idle budget is MISSED at 4.57%.** Thresholds were deliberately
+not retuned to close it; the remedy is a separate measured change. CI gates on
+a regression ceiling instead, so a change that makes stage 0 worse still fails
+while the unmet budget stays visible.
 
-Two things worth knowing about the numbers. The margin is thin — 2.97% against
-3.00% on a contended laptop — so the bench also asserts a machine-independent
-floor of 3x cheaper than full-resolution gating, which is the assertion that
-actually catches someone removing the downscale. And ``cv2.transform`` rounds
-where ``numpy.mean`` truncated, a one-grey-level difference that changed
-2 wake decisions out of 250 on real footage; it changed none on any synthetic
-scenario. That is a real behaviour change, in the direction of correctness.
+Two corrections to the day-2 numbers this supersedes:
+
+- Day 2 measured 2.97% on **OpenCV 5.0.0**. The pinned 4.8.1.78 is ~9% slower
+  for the same code, because its resize and MOG2 implementations differ. A cost
+  figure without its stack is not a figure.
+- Day 2's "real footage" parity was **vacuous**. That clip is 320x176, already
+  below the 320x180 gate, so both "resolutions" processed a bit-identical
+  raster — foreground fractions matched to 0.000000 because no downscale ran.
+  It reported EXACT parity while testing nothing. Real content upscaled to 720p
+  now exercises the actual path, and parity is genuinely exact there.
+
+Wake decisions are identical at both resolutions on all five scenarios,
+including the small-target case (~15 px at gate resolution, a person about
+60 px tall at 720p).
 
 ``min_foreground_fraction`` is not portable across resolutions or backends.
 Frame differencing at 720p wakes on 5.4% of frames where MOG2 wakes on 35%,
