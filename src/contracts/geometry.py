@@ -9,13 +9,60 @@ legacy path so that new code can be written against it.
 
 from __future__ import annotations
 
+import logging
+import os
+
 import numpy as np
 import numpy.typing as npt
 
+from src.contracts.errors import UncalibratedIntrinsics
 from src.contracts.fields import DepthField
 from src.contracts.frames import Intrinsics
 
 FloatArray = npt.NDArray[np.float64]
+
+logger = logging.getLogger(__name__)
+
+UNCALIBRATED_OVERRIDE_ENV = "IRON_ALLOW_UNCALIBRATED"
+
+
+def uncalibrated_allowed() -> bool:
+    """Whether guessed intrinsics may be used to produce 3D geometry.
+
+    Read from the environment on every call rather than cached at import, so a
+    test or a notebook can turn it on and off without reloading the module.
+    """
+    return os.environ.get(UNCALIBRATED_OVERRIDE_ENV, "") == "1"
+
+
+def _require_calibrated(K: Intrinsics) -> None:
+    """Reject placeholder intrinsics unless explicitly overridden.
+
+    Raises:
+        UncalibratedIntrinsics: unless ``IRON_ALLOW_UNCALIBRATED=1``.
+    """
+    if K.calibrated:
+        return
+    if not uncalibrated_allowed():
+        raise UncalibratedIntrinsics(
+            f"these intrinsics are placeholders (fx={K.fx:g}, fy={K.fy:g} for a "
+            f"{K.valid_for} frame), not a calibration. Unprojecting with a "
+            "guessed focal length produces 3D points whose scale is arbitrary "
+            "but which look entirely plausible, and nothing downstream can "
+            "detect it. Calibrate the camera, or set "
+            f"{UNCALIBRATED_OVERRIDE_ENV}=1 to accept unscaled output for "
+            "development only."
+        )
+    logger.warning(
+        "UNCALIBRATED GEOMETRY: unprojecting with placeholder intrinsics "
+        "(fx=%g, fy=%g for %s) because %s=1 is set. The resulting 3D points "
+        "have ARBITRARY SCALE and must not be treated as distances, used for "
+        "zone boundaries, or written to an event. Development only.",
+        K.fx,
+        K.fy,
+        K.valid_for,
+        UNCALIBRATED_OVERRIDE_ENV,
+    )
 
 
 def unproject(depth: DepthField, xy: FloatArray, K: Intrinsics) -> FloatArray:
@@ -57,10 +104,14 @@ def unproject(depth: DepthField, xy: FloatArray, K: Intrinsics) -> FloatArray:
         GeometryMismatch: if ``K.valid_for`` differs from ``depth.geometry``.
             Focal lengths are in pixels and only mean anything alongside the
             raster they were measured on.
+        UncalibratedIntrinsics: if ``K.calibrated`` is False and
+            ``IRON_ALLOW_UNCALIBRATED=1`` is not set. A guessed focal length
+            makes every output distance arbitrary while looking correct.
         ValueError: if ``xy`` is not ``[N, 2]``.
     """
     depth.require_metric()
     K.require_geometry(depth.geometry)
+    _require_calibrated(K)
 
     points = np.asarray(xy, dtype=np.float64)
     if points.ndim != 2 or points.shape[1] != 2:

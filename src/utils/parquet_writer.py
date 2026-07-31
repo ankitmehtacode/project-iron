@@ -1,3 +1,19 @@
+"""Parquet output for tracking results.
+
+The depth column is named ``disparity_rel``, not ``z``
+--------------------------------------------------------
+It used to be ``z``, documented as "Depth (meters)". The values reaching it
+come from Depth-Anything-V2, which emits relative inverse depth on an arbitrary
+per-frame scale — unknown scale AND unknown shift, so no constant converts it
+to metres. Every consumer that read that column as a distance was reading a
+number with no physical meaning.
+
+The column now carries what it actually contains, and every row carries a
+``depth_units`` value alongside. The redundancy is deliberate: a column name
+can be misread, a units column travelling with the data cannot be ignored by a
+reader that has to select it.
+"""
+
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pandas as pd
@@ -5,6 +21,9 @@ import numpy as np
 from pathlib import Path
 from typing import List, Dict
 
+# Matches src.contracts.fields.Units. Depth-Anything-V2 output is
+# "disparity_rel" until an anchoring step gives it metric scale.
+DEFAULT_DEPTH_UNITS = "disparity_rel"
 
 # Define strict schema
 TRACKING_SCHEMA = pa.schema(
@@ -13,7 +32,8 @@ TRACKING_SCHEMA = pa.schema(
         ("frame_idx", pa.int64()),
         ("x", pa.float32()),
         ("y", pa.float32()),
-        ("z", pa.float32()),
+        ("disparity_rel", pa.float32()),
+        ("depth_units", pa.string()),
         ("ocr_text", pa.string()),
         ("confidence", pa.float32()),
     ]
@@ -47,6 +67,7 @@ class ParquetWriter:
         z_coords: np.ndarray,
         ocr_texts: List[str],
         confidences: np.ndarray,
+        depth_units: str = DEFAULT_DEPTH_UNITS,
     ) -> None:
         """
         Write a batch of tracking data to Parquet.
@@ -56,7 +77,11 @@ class ParquetWriter:
             frame_indices: Array of frame indices (int64)
             x_coords: Array of x coordinates (float32)
             y_coords: Array of y coordinates (float32)
-            z_coords: Array of depth values (float32)
+            z_coords: Array of depth values (float32), in ``depth_units``.
+                These are NOT metres unless an anchoring step has produced
+                metric depth and depth_units says so.
+            depth_units: What the depth values mean. Defaults to
+                "disparity_rel", which is what Depth-Anything-V2 emits.
             ocr_texts: List of OCR text strings
             confidences: Array of confidence scores (float32)
         """
@@ -81,7 +106,8 @@ class ParquetWriter:
                 "frame_idx": pa.array(frame_indices, type=pa.int64()),
                 "x": pa.array(x_coords, type=pa.float32()),
                 "y": pa.array(y_coords, type=pa.float32()),
-                "z": pa.array(z_coords, type=pa.float32()),
+                "disparity_rel": pa.array(z_coords, type=pa.float32()),
+                "depth_units": pa.array([depth_units] * n, type=pa.string()),
                 "ocr_text": pa.array(ocr_texts, type=pa.string()),
                 "confidence": pa.array(confidences, type=pa.float32()),
             },
@@ -107,7 +133,7 @@ class ParquetWriter:
             frame_indices=data["frame_idx"],
             x_coords=data["x"],
             y_coords=data["y"],
-            z_coords=data["z"],
+            z_coords=data["disparity_rel"],
             ocr_texts=data["ocr_text"],
             confidences=data["confidence"],
         )

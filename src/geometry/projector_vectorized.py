@@ -1,7 +1,12 @@
 import time
+from typing import TYPE_CHECKING
+
 import numpy as np
 import pandas as pd
 from pathlib import Path
+
+if TYPE_CHECKING:
+    from src.contracts.frames import Intrinsics
 
 
 def load_data(tracks_path: str, depth_dir: str) -> tuple[np.ndarray, np.ndarray]:
@@ -19,10 +24,43 @@ def load_data(tracks_path: str, depth_dir: str) -> tuple[np.ndarray, np.ndarray]
 
 
 def compute_intrinsics(H: int, W: int) -> tuple[float, float, float, float]:
+    """Invent plausible intrinsics for an HxW frame.
+
+    .. warning::
+       These are a **guess**, not a calibration. ``fx = fy = max(H, W)`` is
+       roughly a 53-degree horizontal field of view, chosen because it is a
+       common lens rather than because it describes any camera this code will
+       see. Nothing measured it and nothing records it.
+
+       Every 3D point derived from these has arbitrary scale while looking
+       entirely plausible, which is why
+       :func:`src.contracts.geometry.unproject` refuses them unless
+       ``IRON_ALLOW_UNCALIBRATED=1`` is set.
+
+    Prefer :func:`src.contracts.frames.placeholder_intrinsics`, which returns
+    the same numbers inside an :class:`~src.contracts.frames.Intrinsics`
+    carrying ``calibrated=False`` so the guess travels with the values instead
+    of being forgotten one call later.
+
+    Returns:
+        ``(fx, fy, cx, cy)`` as bare floats, for the legacy projector path.
+    """
     fx = fy = float(max(H, W))
     cx = W / 2.0
     cy = H / 2.0
     return fx, fy, cx, cy
+
+
+def placeholder_intrinsics_for(H: int, W: int) -> "Intrinsics":
+    """Typed equivalent of :func:`compute_intrinsics`, marked uncalibrated.
+
+    The migration target for this module: it carries the same guessed values,
+    but downstream code can tell that they are guessed.
+    """
+    from src.contracts.frames import FrameGeometry
+    from src.contracts.frames import placeholder_intrinsics
+
+    return placeholder_intrinsics(FrameGeometry(width=W, height=H))
 
 
 # vectorized depth
@@ -128,9 +166,11 @@ def project_to_3d(tracks: np.ndarray, depth_maps: np.ndarray) -> pd.DataFrame:
         {
             "frame_id": frame_ids,
             "point_id": point_ids,
-            "X": all_X.ravel(),
-            "Y": all_Y.ravel(),
-            "Z": all_Z.ravel(),
+            # Named for what they are: products of relative disparity and
+            # guessed intrinsics. Not metres. See compute_intrinsics.
+            "X_uncalibrated": all_X.ravel(),
+            "Y_uncalibrated": all_Y.ravel(),
+            "disparity_rel": all_Z.ravel(),
             "valid": all_valid.ravel(),
         }
     )

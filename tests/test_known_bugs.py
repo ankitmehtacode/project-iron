@@ -360,7 +360,13 @@ def test_preprocess_normalization() -> None:
 @pytest.mark.known_bug
 @pytest.mark.xfail(
     strict=False,
-    reason="AUDIT FINDING 4: CONFIRMED — DA-V2 relative disparity published as metres",
+    reason=(
+        "AUDIT FINDING 4: PARTIALLY FIXED on day 2. The publication path is now "
+        "honest — the Parquet column is disparity_rel with a depth_units column, "
+        "the README no longer claims metres, and unproject() rejects the guessed "
+        "intrinsics. Still red because DAv2Wrapper.predict itself returns a bare "
+        "ndarray with no units; wrapping it in DepthField is a separate change."
+    ),
 )
 def test_depth_output_declares_units() -> None:
     """AUDIT FINDING 4: DA-V2 relative depth is published as "meters".

@@ -50,6 +50,8 @@ project-iron/
 │   └── workflows/
 │       └── ci.yaml
 ├── configs/
+│   ├── preprocess/
+│   │   └── vjepa2_vitl.preprocess.json
 │   └── default.yaml
 ├── scripts/
 │   ├── cascade_bench.py
@@ -64,6 +66,7 @@ project-iron/
 │   ├── quantize_cotracker3.py
 │   ├── quantize_depth_anything.py
 │   ├── quantize_vjepa.py
+│   ├── rebuild_index.py
 │   └── vjepa_wrapper.py
 ├── src/
 │   ├── cascade/
@@ -137,6 +140,7 @@ project-iron/
 │   │   ├── disk_cache.py
 │   │   └── parquet_writer.py
 │   ├── __init__.py
+│   ├── artifacts.py
 │   ├── config.py
 │   ├── integration.py
 │   ├── main.py
@@ -160,6 +164,7 @@ project-iron/
 │   ├── test_events_schema.py
 │   ├── test_golden_vectors.py
 │   ├── test_known_bugs.py
+│   ├── test_preprocess_spec.py
 │   ├── test_provenance.py
 │   └── test_temporal_stitching.py
 ├── .flake8
@@ -279,9 +284,17 @@ writer.close()
 | frame_idx | int64 | Frame number |
 | x | float32 | Pixel x-coordinate |
 | y | float32 | Pixel y-coordinate |
-| z | float32 | Depth (meters) |
+| disparity_rel | float32 | Relative inverse depth, arbitrary per-frame scale. **Not metres.** |
+| depth_units | string | What `disparity_rel` means; `"disparity_rel"` today |
 | ocr_text | string | Detected text |
 | confidence | float32 | Tracking confidence |
+
+> **This column used to be named `z` and documented as "Depth (meters)". It was
+> never metres.** Depth-Anything-V2 emits relative inverse depth with unknown
+> scale *and* unknown shift, so no constant converts it. Anything computed from
+> the old `z` as a distance was wrong. Converting to metric depth needs an
+> anchoring step and real camera calibration; until both exist, `depth_units`
+> stays `"disparity_rel"`.
 
 ---
 

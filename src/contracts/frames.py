@@ -196,6 +196,15 @@ class Intrinsics:
     cy: float
     distortion: tuple[float, ...]
     valid_for: FrameGeometry
+    calibrated: bool = True
+    """Whether these numbers came from a calibration, or were invented.
+
+    ``False`` marks a placeholder — see :func:`placeholder_intrinsics`.
+    Placeholder intrinsics are legitimate for experiments and visualisation,
+    and are rejected by :func:`src.contracts.geometry.unproject`, because a
+    guessed focal length turns "3D position in metres" into a number with no
+    physical meaning that still plots convincingly.
+    """
 
     def __post_init__(self) -> None:
         if self.fx <= 0 or self.fy <= 0:
@@ -259,3 +268,35 @@ class Intrinsics:
                 f"{geometry}. Call intrinsics.rescaled_to(...) at the point of "
                 "resize instead of reusing stale focal lengths."
             )
+
+
+def placeholder_intrinsics(geometry: FrameGeometry) -> Intrinsics:
+    """Invent plausible intrinsics for a frame, marked as uncalibrated.
+
+    Uses ``fx = fy = max(width, height)`` with the principal point at the frame
+    centre — roughly a 53-degree horizontal field of view. This is the guess
+    ``projector_vectorized.compute_intrinsics`` was making silently; the only
+    change is that the result now says so.
+
+    The values are not measured, not calibrated, and not recorded anywhere, so
+    any 3D point derived from them has arbitrary scale. That is fine for
+    checking that a pipeline runs, and never fine for a distance, a zone
+    boundary, or an event. :func:`src.contracts.geometry.unproject` rejects
+    these unless ``IRON_ALLOW_UNCALIBRATED=1`` is set.
+
+    Args:
+        geometry: The frame these intrinsics will describe.
+
+    Returns:
+        Intrinsics with ``calibrated=False``.
+    """
+    focal = float(max(geometry.width, geometry.height))
+    return Intrinsics(
+        fx=focal,
+        fy=focal,
+        cx=geometry.width / 2.0,
+        cy=geometry.height / 2.0,
+        distortion=(),
+        valid_for=geometry,
+        calibrated=False,
+    )

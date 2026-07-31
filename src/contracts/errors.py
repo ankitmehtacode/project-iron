@@ -34,3 +34,16 @@ class GeometryMismatch(ContractError):
     applied to a downscaled one. ``fx`` is in pixels, so it is only meaningful
     together with the frame size it was measured at.
     """
+
+
+class UncalibratedIntrinsics(ContractError):
+    """Raised when placeholder intrinsics are used to produce 3D geometry.
+
+    The motivating defect: ``compute_intrinsics`` returned
+    ``fx = fy = max(H, W)`` — a guess, never measured, never recorded — and
+    every downstream 3D coordinate inherited it. The points had arbitrary
+    scale, plotted convincingly, and were labelled metric.
+
+    Placeholder intrinsics are allowed to exist, because experiments need them.
+    They are not allowed to silently produce distances.
+    """
