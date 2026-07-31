@@ -1,0 +1,274 @@
+# Dataset registry — seeded from the data-strategy shortlist.
+#
+# EVERY license_snapshot below is null, deliberately. The lane and
+# hypothesis_class fields record what the strategy document *believes* from
+# memory; nothing here may be fetched until a human reads the actual license
+# text and records a snapshot via:
+#
+#     python scripts/fetch_dataset.py --verify-license <name>
+#
+# Lanes: S = synthetic (train/calibrate/eval), R = research (EVAL ONLY),
+#        C = consented self-collected (everything, incl. INT8 calibration).
+#
+# DukeMTMC, its derivatives, and MS-Celeb are on the PERMANENT blocklist in
+# src/data/registry.py itself. They appear here as blocked entries for
+# visibility, but deleting these lines does not unblock them — the in-code
+# list outranks this file by design.
+
+datasets:
+  # -- activity / verbs / scripting --------------------------------------
+  - name: MEVA
+    lane: R
+    subsystem: activity
+    hypothesis_class: >-
+      Historically released under unusually permissive terms for this
+      category (hired, consented actors). If verification confirms
+      permissive, MEVA may earn broader use — verify before assuming.
+    notes: >-
+      Best public match to the product: multi-camera facility footage,
+      surveillance-style activity annotations, overlapping cameras.
+      Verify FIRST — highest product impact.
+
+  - name: NTU-RGBD-120
+    lane: R
+    subsystem: activity
+    hypothesis_class: research-only
+    notes: 120 lab action classes with skeletons; POSE-verb benchmarking.
+
+  - name: Toyota-Smarthome
+    lane: R
+    subsystem: activity
+    hypothesis_class: research-only
+    notes: Untrimmed daily-living activity; hardest realistic pose-verb eval.
+
+  - name: InHARD
+    lane: R
+    subsystem: activity
+    hypothesis_class: research-only
+    notes: Industrial assembly actions; Tier-2 factory verb eval.
+
+  - name: MECCANO
+    lane: R
+    subsystem: activity
+    hypothesis_class: research-only
+    notes: Industrial assembly actions; Tier-2 factory verb eval.
+
+  - name: Charades
+    lane: R
+    subsystem: activity
+    hypothesis_class: research-ish — verify carefully
+    notes: Crowdsourced indoor daily activity; verb-generalization breadth.
+
+  - name: VIRAT
+    lane: R
+    subsystem: activity
+    hypothesis_class: research-only
+    notes: Older surveillance activity classic; secondary eval.
+
+  # -- multi-camera tracking / re-ID -------------------------------------
+  - name: MMPTRACK
+    lane: R
+    subsystem: tracking
+    hypothesis_class: research-only
+    notes: Indoor multi-camera multi-person tracking; cross-camera handoff eval.
+
+  - name: WILDTRACK
+    lane: R
+    subsystem: tracking
+    hypothesis_class: research non-commercial
+    notes: 7-camera overlapping plaza; global association eval.
+
+  - name: MEVID
+    lane: R
+    subsystem: reid
+    hypothesis_class: verify with MEVA (built on it)
+    notes: Multi-view extended re-ID; clothing-change eval.
+
+  - name: Market-1501
+    lane: R
+    subsystem: reid
+    hypothesis_class: research-only, consent debt
+    notes: >-
+      Model SELECTION only, reported internally. Never in demos: scraped
+      pedestrians who never consented.
+
+  - name: MSMT17
+    lane: R
+    subsystem: reid
+    hypothesis_class: research-only, consent debt
+    notes: Model selection only; never in demos.
+
+  - name: RandPerson
+    lane: S
+    subsystem: reid
+    hypothesis_class: verify — goal is lane S
+    notes: >-
+      Synthetic re-ID. Lane S is CONDITIONAL on verification confirming
+      every asset in its generation stack is commercially cleared
+      (see the SMPL trap); demote to R if not.
+
+  - name: UnrealPerson
+    lane: S
+    subsystem: reid
+    hypothesis_class: verify — goal is lane S
+    notes: Synthetic re-ID; same conditional-lane-S caveat as RandPerson.
+
+  - name: ClonedPerson
+    lane: S
+    subsystem: reid
+    hypothesis_class: verify — goal is lane S
+    notes: Synthetic re-ID; same conditional-lane-S caveat.
+
+  - name: PersonX
+    lane: S
+    subsystem: reid
+    hypothesis_class: verify — goal is lane S
+    notes: Synthetic re-ID; same conditional-lane-S caveat.
+
+  # -- gait ---------------------------------------------------------------
+  # All research-only, some application-gated. There is NO commercially
+  # usable public gait data; the trainable gait corpus is Site Zero, full
+  # stop. These exist to benchmark the module.
+  - name: CASIA-B
+    lane: R
+    subsystem: gait
+    hypothesis_class: research-only
+  - name: OU-MVLP
+    lane: R
+    subsystem: gait
+    hypothesis_class: research-only, application-gated
+  - name: GREW
+    lane: R
+    subsystem: gait
+    hypothesis_class: research-only, application-gated
+  - name: Gait3D
+    lane: R
+    subsystem: gait
+    hypothesis_class: research-only
+
+  # -- depth / geometry / twin -------------------------------------------
+  - name: Infinigen-Indoors
+    lane: S
+    subsystem: depth
+    hypothesis_class: BSD-3 generator; generated data ours
+    notes: >-
+      Procedural indoor scenes with exact depth/normals/segmentation.
+      Assets procedurally generated — clean of the SMPL trap. Generator
+      CODE license still needs its snapshot.
+
+  - name: Kubric
+    lane: S
+    subsystem: depth
+    hypothesis_class: Apache-2.0 generator; per-asset check (ShapeNet/GSO)
+    notes: Dynamic-scene GT (tracks, occlusion, depth). Verify per-asset terms.
+
+  - name: NYUv2
+    lane: R
+    subsystem: depth
+    hypothesis_class: research-only
+    notes: Classic real indoor depth; sanity eval.
+
+  - name: SUN-RGBD
+    lane: R
+    subsystem: depth
+    hypothesis_class: research-only
+    notes: Classic real indoor depth; sanity eval.
+
+  - name: Hypersim
+    lane: R
+    subsystem: depth
+    hypothesis_class: verify — likely non-commercial
+    notes: >-
+      Photoreal synthetic indoor. CAUTION for eval use: DA-V2's indoor
+      metric checkpoint was trained on it, so evaluating DA-V2 against it
+      double-counts. Prefer Infinigen-Indoors for depth eval.
+
+  - name: ScanNet
+    lane: R
+    subsystem: twin
+    hypothesis_class: research-only, application-gated
+  - name: Matterport3D
+    lane: R
+    subsystem: twin
+    hypothesis_class: research-only, application-gated
+  - name: HM3D
+    lane: R
+    subsystem: twin
+    hypothesis_class: research-only, application-gated
+
+  # -- detection / anomaly / HOI -----------------------------------------
+  - name: PeopleSansPeople
+    lane: S
+    subsystem: detection
+    hypothesis_class: verify Unity asset terms
+    notes: Synthetic person generator; conditional lane S pending asset check.
+
+  - name: COCO
+    lane: R
+    subsystem: detection
+    hypothesis_class: annotations CC-BY-4.0; images individually licensed
+    notes: Eval-only posture because of the per-image license patchwork.
+
+  - name: CrowdHuman
+    lane: R
+    subsystem: detection
+    hypothesis_class: research-only
+    notes: Eval only.
+
+  - name: UBnormal
+    lane: R
+    subsystem: anomaly
+    hypothesis_class: synthetic, open-set — verify, possibly usable more broadly
+    notes: Lane R until verification says otherwise, synthetic or not.
+
+  - name: ShanghaiTech-Campus
+    lane: R
+    subsystem: anomaly
+    hypothesis_class: research-only
+  - name: CUHK-Avenue
+    lane: R
+    subsystem: anomaly
+    hypothesis_class: research-only
+  - name: UCF-Crime
+    lane: R
+    subsystem: anomaly
+    hypothesis_class: research-only
+    notes: Mostly outdoor/street; off-domain for this product anyway.
+
+  - name: Something-Something-v2
+    lane: R
+    subsystem: hoi
+    hypothesis_class: research/NC
+    notes: Hand-object interaction benchmarking only.
+  - name: EPIC-KITCHENS
+    lane: R
+    subsystem: hoi
+    hypothesis_class: non-commercial
+    notes: Hand-object interaction benchmarking only.
+
+  # -- consented self-collected ------------------------------------------
+  - name: site-zero
+    lane: C
+    subsystem: everything
+    hypothesis_class: ours — consent records stored with the data
+    notes: >-
+      Our office as deployment #1 and dataset #1. The only lane admissible
+      for INT8 calibration. Does not exist yet; the capture protocol and
+      consent template are in the Day-5 report.
+
+  # -- blocked (visibility only; the in-code blocklist is authoritative) --
+  - name: DukeMTMC
+    lane: R
+    subsystem: reid
+    blocked: true
+    blocked_reason: RETRACTED 2019 — ethics investigation; see registry.py.
+  - name: DukeMTMC-reID
+    lane: R
+    subsystem: reid
+    blocked: true
+    blocked_reason: Derivative of DukeMTMC; inherits the retraction.
+  - name: MS-Celeb
+    lane: R
+    subsystem: reid
+    blocked: true
+    blocked_reason: Withdrawn by Microsoft 2019; scraped without consent.
