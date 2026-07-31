@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<annotations>
+  <version>1.1</version>
+  <meta>
+    <task>
+      <id>1</id>
+      <name>site-zero-session-003</name>
+      <mode>interpolation</mode>
+      <labels>
+        <label><name>entered</name></label>
+        <label><name>picked_up</name></label>
+        <label><name>sat</name></label>
+        <label><name>exited</name></label>
+      </labels>
+    </task>
+  </meta>
+
+  <!-- Valid: a geometric verb with a zone. -->
+  <track id="0" label="entered">
+    <box frame="0" xtl="100" ytl="50" xbr="200" ybr="400" outside="0" occluded="0">
+      <attribute name="subject_kind">session</attribute>
+      <attribute name="subject_id">sess-4f2a91</attribute>
+      <attribute name="zone_id">lobby</attribute>
+      <attribute name="observed">true</attribute>
+      <attribute name="confidence">1.0</attribute>
+    </box>
+    <box frame="1" xtl="105" ytl="50" xbr="205" ybr="400" outside="0" occluded="0"/>
+  </track>
+
+  <!-- Valid: an interaction verb WITH its required object. -->
+  <track id="1" label="picked_up">
+    <box frame="10" xtl="150" ytl="60" xbr="260" ybr="410" outside="0" occluded="0">
+      <attribute name="subject_kind">session</attribute>
+      <attribute name="subject_id">sess-4f2a91</attribute>
+      <attribute name="object_kind">asset</attribute>
+      <attribute name="object_id">laptop-114</attribute>
+      <attribute name="zone_id">lobby</attribute>
+      <attribute name="observed">true</attribute>
+      <attribute name="confidence">0.9</attribute>
+    </box>
+  </track>
+
+  <!-- Valid: inferred exit through the blind spot. observed=false. -->
+  <track id="2" label="exited">
+    <box frame="30" xtl="300" ytl="70" xbr="400" ybr="420" outside="0" occluded="1">
+      <attribute name="subject_kind">session</attribute>
+      <attribute name="subject_id">sess-4f2a91</attribute>
+      <attribute name="zone_id">lobby</attribute>
+      <attribute name="observed">false</attribute>
+      <attribute name="confidence">0.62</attribute>
+    </box>
+  </track>
+
+  <!-- INVALID: interaction verb with no object. Must be rejected. -->
+  <track id="3" label="picked_up">
+    <box frame="40" xtl="10" ytl="10" xbr="90" ybr="300" outside="0" occluded="0">
+      <attribute name="subject_kind">session</attribute>
+      <attribute name="subject_id">sess-77b012</attribute>
+    </box>
+  </track>
+
+  <!-- INVALID: pose verb carrying an object. Must be rejected. -->
+  <track id="4" label="sat">
+    <box frame="50" xtl="20" ytl="20" xbr="100" ybr="310" outside="0" occluded="0">
+      <attribute name="subject_kind">session</attribute>
+      <attribute name="subject_id">sess-77b012</attribute>
+      <attribute name="object_kind">asset</attribute>
+      <attribute name="object_id">laptop-114</attribute>
+    </box>
+  </track>
+
+  <!-- INVALID: label outside the closed v1 vocabulary. Must be rejected. -->
+  <track id="5" label="loitered_suspiciously">
+    <box frame="60" xtl="30" ytl="30" xbr="110" ybr="320" outside="0" occluded="0">
+      <attribute name="subject_kind">session</attribute>
+      <attribute name="subject_id">sess-77b012</attribute>
+    </box>
+  </track>
+</annotations>
