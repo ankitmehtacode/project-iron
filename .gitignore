@@ -16,6 +16,9 @@ logs/
 # Model weights and exported IR — fetched via scripts/fetch_weights.py
 models/
 
+# Downloaded datasets — content-addressed by scripts/fetch_dataset.py
+data/
+
 # Python build / cache
 __pycache__/
 *.py[cod]

@@ -87,6 +87,7 @@ class PathsConfig(BaseModel):
         ),
     )
     models_dir: Path = Path("models")
+    data_dir: Path = Path("data")
     cache_dir: Path = Path(".cache")
     output_dir: Path = Path("outputs")
     log_dir: Path = Path("logs")
@@ -122,6 +123,10 @@ class PathsConfig(BaseModel):
     @property
     def resolved_models_dir(self) -> Path:
         return self.resolve(self.models_dir)
+
+    @property
+    def resolved_data_dir(self) -> Path:
+        return self.resolve(self.data_dir)
 
     @property
     def resolved_cache_dir(self) -> Path:
