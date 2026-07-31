@@ -43,6 +43,15 @@ pipeline:
 
 endurance:
   num_clips: 200
-  leak_threshold_mb: 150.0
+  # The first inference allocates framework buffers; including it would fit a
+  # step change as though it were a trend.
+  warmup_clips: 1
+  # A leak is a rate, so the gate is a rate. Growth is fitted as a regression
+  # slope and converted to MB/hour using the run's measured throughput, then
+  # compared against the upper bound of its 95% confidence interval.
+  leak_mb_per_hour_max: 50.0
+  reinit_cycles: 20
+  tracemalloc_top: 10
+  tracemalloc_interval_clips: 25
   log_filename: endurance_run.log
   metrics_filename: endurance_metrics.jsonl

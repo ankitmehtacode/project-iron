@@ -222,7 +222,30 @@ class EnduranceConfig(BaseModel):
     model_config = ConfigDict(frozen=True)
 
     num_clips: int = Field(default=200, gt=0)
-    leak_threshold_mb: float = Field(default=150.0, gt=0)
+
+    warmup_clips: int = Field(default=1, ge=0)
+    """Leading clips excluded from the trend fit.
+
+    The first inference allocates framework buffers. Including it fits a step
+    change as though it were a slope, which reads as a leak.
+    """
+
+    leak_mb_per_hour_max: float = Field(default=50.0, gt=0)
+    """Maximum tolerated RSS growth rate, in MB per hour.
+
+    Replaces the previous pair of magic numbers (``total_growth > 150 MB`` AND
+    ``trend > 30 MB``). A leak is a rate, so the gate is a rate: growth is
+    measured as a regression slope and converted to MB/hour using the run's
+    measured throughput. One threshold, with units, comparable across runs of
+    different lengths.
+    """
+
+    reinit_cycles: int = Field(default=20, gt=0)
+    """Construct/destroy cycles for ``--mode reinit``. CI nightly uses 100."""
+
+    tracemalloc_top: int = Field(default=10, gt=0)
+    tracemalloc_interval_clips: int = Field(default=25, gt=0)
+
     log_filename: str = "endurance_run.log"
     metrics_filename: str = "endurance_metrics.jsonl"
 
@@ -280,7 +303,7 @@ class IronConfig(BaseSettings):
             ValueError: if the YAML file's top level is not a mapping.
         """
         explicit = config_path is not None
-        path = Path(config_path) if explicit else DEFAULT_CONFIG_PATH
+        path = DEFAULT_CONFIG_PATH if config_path is None else Path(config_path)
 
         values: dict[str, Any] = {}
         if path.exists():

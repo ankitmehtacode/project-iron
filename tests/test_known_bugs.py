@@ -382,9 +382,9 @@ def _legacy_error_policy(outcomes: list[bool]) -> int:
     counter is never reset on success, so it counts cumulative errors across
     the whole run.
 
-    This is a characterisation replica because the logic is still inline in a
-    200-clip loop that needs model weights to reach. Objective 5 extracts the
-    real policy into ``src/endurance``; this test then points at that instead.
+    Kept after the fix as documentation of what the defect actually was. The
+    live assertion below now runs against the real harness in
+    ``src/endurance``, not against this replica.
 
     Args:
         outcomes: One entry per clip. True means the clip raised.
@@ -403,36 +403,79 @@ def _legacy_error_policy(outcomes: list[bool]) -> int:
     return 0
 
 
-@pytest.mark.known_bug
-def test_endurance_error_counter_semantics() -> None:
-    """AUDIT FINDING 5: the abort counter says "consecutive", the code counts total.
+def test_legacy_error_counter_was_cumulative_not_consecutive() -> None:
+    """AUDIT FINDING 5, confirmed: the abort counter never reset on success.
 
-    ``endurance_run.py`` logs "Aborting: too many consecutive errors" but never
-    resets the counter after a successful clip. A 200-clip run with six
-    scattered transient failures, each recovered from immediately, aborts as if
-    it had failed six times in a row.
+    ``endurance_run.py`` logged "Aborting: too many consecutive errors" while
+    counting cumulatively. Six scattered transient failures, each immediately
+    recovered from, aborted the run at clip 16.
 
-    This test encodes the intended consecutive semantics, so it is red until
-    the counter is fixed. It is red for a second reason too: per iron-testing,
-    any exception should fail the run outright, so the tolerance should not
-    exist at all. Objective 5 removes it.
+    This records the defect against the replica above. The regression guard for
+    the fix is the test below.
     """
-    # Six isolated failures, each followed by a success. Nothing is consecutive.
-    scattered = []
+    scattered: list[bool] = []
     for _ in range(6):
         scattered.extend([True, False, False])
 
-    aborted_at = _legacy_error_policy(scattered)
-    assert aborted_at == 0, (
-        "Run aborted at clip "
-        f"{aborted_at} after six ISOLATED failures separated by successes. "
-        "The log calls these 'consecutive errors' but the counter is never "
-        "reset on success, so it is cumulative. Sequence was "
-        "(fail, ok, ok) repeated six times."
+    assert _legacy_error_policy(scattered) == 16, (
+        "the replica no longer reproduces the audited behaviour, so it is no "
+        "longer evidence of what the defect was"
     )
+    assert _legacy_error_policy([True] * 6) == 6
 
-    # And a genuinely consecutive burst must still abort.
-    burst = [True] * 6
-    assert (
-        _legacy_error_policy(burst) != 0
-    ), "Six consecutive failures did not abort the run"
+
+def test_endurance_error_counter_semantics(tmp_path: Path) -> None:
+    """AUDIT FINDING 5, fixed: the tolerance counter is gone entirely.
+
+    The ``known_bug`` marker is deliberately absent. Objective 5 fixed this by
+    deleting the tolerance rather than by making the counter consecutive, which
+    is stronger than the originally intended semantics: per iron-testing, any
+    exception fails the run. That skill also requires the marker to be removed
+    in the same change as the fix, so the test guards the behaviour forever.
+
+    Asserts against the real harness, not the replica.
+    """
+    import os
+
+    from src.endurance.runner import ExitCode, execute
+
+    class _FailsOnce:
+        """Raises on its second call, and would succeed on every call after."""
+
+        def __init__(self) -> None:
+            self.calls = 0
+
+        def extract(self, video: np.ndarray) -> dict[str, Any]:
+            self.calls += 1
+            if self.calls == 2:
+                raise RuntimeError("single transient failure")
+            return {"semantic_tracks": np.zeros((1, 2, 4, 8), dtype=np.float64)}
+
+    os.environ["IRON_PATHS__LOG_DIR"] = str(tmp_path / "logs")
+    os.environ["IRON_PIPELINE__CLIP_H"] = "16"
+    os.environ["IRON_PIPELINE__CLIP_W"] = "16"
+    try:
+        extractor = _FailsOnce()
+        code = execute(
+            IronConfig.load(),
+            mode="steady",
+            iterations=50,
+            factory=lambda: extractor,
+        )
+    finally:
+        for key in (
+            "IRON_PATHS__LOG_DIR",
+            "IRON_PIPELINE__CLIP_H",
+            "IRON_PIPELINE__CLIP_W",
+        ):
+            os.environ.pop(key, None)
+
+    assert code == ExitCode.PIPELINE_RAISED, (
+        "a single exception must fail the run; a surviving tolerance counter "
+        "means the harness reports memory stability for a pipeline that is not "
+        "producing output"
+    )
+    assert extractor.calls == 2, (
+        f"the run continued past the failing clip ({extractor.calls} calls); "
+        "no error tolerance may remain"
+    )

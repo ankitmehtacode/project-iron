@@ -27,14 +27,32 @@ pandas==2.1.4
 opencv-python-headless==4.8.1.78
 Pillow==10.1.0
 tqdm==4.66.1
-pydantic==2.5.3
 python-dotenv==1.0.0
+pyarrow==18.1.0
+scikit-learn>=1.3.0
 
-# Dev / Linting
+# Configuration (src/config.py)
+pydantic==2.5.3
+pydantic-settings>=2.2.0
+PyYAML>=6.0
+
+# Endurance harness (src/endurance/)
+# psutil was already imported by endurance_run.py but never declared — the
+# soak test could not be run from a clean install of this file.
+psutil>=5.9.0
+# scipy supplies the linear regression and Student's t used by the leak gate.
+scipy>=1.11.0
+
+# Dev / Linting / Testing
 black==23.12.1
 flake8==7.0.0
 pre-commit==3.6.0
 pytest==7.4.3
-
-pyarrow==18.1.0
-scikit-learn>=1.3.0
+pytest-cov>=4.1.0
+mypy>=1.8.0
+# Property-based tests for the contract layer.
+hypothesis>=6.98.0
+# Stubs, so mypy --strict has something to check these against.
+types-psutil
+types-PyYAML
+scipy-stubs

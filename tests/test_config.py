@@ -113,8 +113,14 @@ def test_preserved_legacy_values() -> None:
     assert config.pipeline.clip_w == 224
     assert config.pipeline.clip_channels == 3
     assert config.endurance.num_clips == 200
-    assert config.endurance.leak_threshold_mb == 150.0
     assert config.runtime.device == "CPU"
+
+    # leak_threshold_mb (150 MB of total growth) is deliberately gone. It was
+    # half of a two-magic-number rule joined by AND, which let a real leak pass
+    # on any run short enough. Replaced by a rate with units attached; see
+    # src/endurance/gates.py.
+    assert not hasattr(config.endurance, "leak_threshold_mb")
+    assert config.endurance.leak_mb_per_hour_max == 50.0
 
 
 def test_derived_pipeline_geometry() -> None:
