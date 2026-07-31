@@ -1213,3 +1213,379 @@ deployment.
 4. Then, unchanged from Day 3 and still first in the engineering queue: the
    production `vjepa2_vitl_int8.xml`/`.bin` from whoever ran production, for
    the parked Objective-1 forensic verdict.
+
+---
+
+# Day 6 — Measurement
+
+Seven objectives, all complete. Two authorized behaviour changes, both shipped
+with their measurement. One first: `make eval` now produces a scorecard.
+
+The theme, unplanned but unmistakable, is that **every significant finding came
+from checking the measuring apparatus rather than the code**. The mapper bug was
+found by disbelieving a token count; the cascade number was wrong because its
+parity test was vacuous; the scorecard's own fixture had two defects found by
+reading the scorecard; and the source tree turned out to be missing six files
+from git because an ignore pattern was checking more than anyone intended.
+
+## Objective 1 — Mapper vs 392 tokens (AUTHORIZED, measured)
+
+**None of the three hypothesised states held.** The audit's framing was wrong,
+and so was mine going in.
+
+| Hop | What was checked | Result |
+| --- | --- | --- |
+| 0 | Config arithmetic | 2 slots × 196 patches = **392** expected |
+| 1 | Encoder actual output | **`(1, 392, 1024)`** |
+| 2 | Mapper's assumption | `T_out = features.shape[1] // NUM_PATCHES` |
+
+The repo documents `T * 196 = 784`. That is **refuted**: V-JEPA2 applies a
+tubelet of 2, so a 4-frame clip yields 2 temporal slots, not 4.
+
+But the mapper never believed the 784. It read the token count dynamically and
+derived `T_out = 2` correctly. The defect was one line further on — the
+frame→slot rule was a **clamp**, `min(t, T_out - 1)`, where the encoder's layout
+calls for integer division by the tubelet:
+
+| frame | `min(t, T_out-1)` | `t // tubelet` |
+| --- | --- | --- |
+| 0 | 0 | 0 |
+| 1 | **1 ← wrong** | 0 |
+| 2 | 1 | 1 |
+| 3 | 1 | 1 |
+
+At 4 frames it misassigns frame 1 alone, which is why this survived as an
+apparent edge case. The damage grows with clip length, because a clamp
+saturates while integer division keeps advancing: **at 8 frames it misassigns 5
+of 8**, and the checkpoint this pipeline uses is natively 64-frame.
+
+Before/after on the real encoder, black frames 0–1 and white frames 2–3:
+
+```
+within black half   (f0 vs f1)   1.000000    was: frame 1 read the white slot
+within white half   (f2 vs f3)   1.000000
+across the boundary (f0 vs f2)   0.676467    correctly distinct
+```
+
+The consumer now takes `PatchTokens`, so `n_temporal == frames_covered //
+tubelet` guards this path permanently — a 784-token block for a 4-frame clip
+raises at the boundary instead of being reshaped into place.
+
+Two things fixed in passing. The arithmetic moved to
+`src/semantics/patch_mapping.py` and `src/semantics/__init__.py` no longer
+imports at module scope: token indexing has nothing to do with point tracking,
+but the coupling meant this code could not be run — let alone tested — without
+a CoTracker checkpoint. **That is how a one-line index bug survived.** The 13
+new tests need no weights. Patch sampling is also now bilinear rather than
+`floor(x/patch_size)`, which had quantised every track to a 16-pixel cell.
+
+## Objective 2 — Cascade cost on the pinned stack
+
+**The product budget is MISSED, at 4.57% against a 3.00% target — 1.52× over.**
+Reported, not closed. No threshold was retuned; the remedy is a separate
+measured change.
+
+| Scenario | p50/frame | % of one core | parity | speedup |
+| --- | --- | --- | --- | --- |
+| static (idle) | 2.70 ms | 3.24% | EXACT | 3.23× |
+| near target | 2.58 ms | 3.10% | EXACT | 3.51× |
+| SMALL target | 2.51 ms | 3.01% | EXACT | 3.33× |
+| **real, upscaled 720p** | **3.81 ms** | **4.57%** | EXACT | 2.59× |
+| real, native 320×176 | 2.29 ms | 2.75% | EXACT | 1.01× (no-op) |
+
+Two corrections to the Day-2 numbers this supersedes.
+
+**Day 2 measured 2.97% on OpenCV 5.0.0.** The pinned 4.8.1.78 is ~9% slower for
+identical code — its resize and MOG2 implementations differ. A cost figure
+without its stack is not a figure, so the stack now sits in config beside the
+number.
+
+**Day 2's real-footage parity was vacuous.** That clip is 320×176, already below
+the 320×180 gate, so the downscale never ran and both "resolutions" processed a
+bit-identical raster. Foreground fractions matched to 0.000000 across all 250
+frames — which reads like a strong result and tested nothing. This settles the
+ambiguity the brief asked about: **neither decisions nor intermediate values
+diverged, because no downscale occurred.** Real content upscaled to 720p now
+exercises the actual path, and parity there is genuinely EXACT on wake
+decisions.
+
+CI was re-based into two numbers, deliberately not collapsed into one:
+
+- `idle_core_budget_fraction` (3.00%) — what Tier-1 hardware needs. Reported
+  every run, **never** adjusted to match what the code does.
+- `regression_ceiling_fraction` (5.50%) — what CI gates on, set from the worst
+  pinned-stack measurement plus shared-runner headroom. Its only job is catching
+  a change that makes stage 0 worse than today.
+
+Collapsing them would let CI go green by moving the target, which is exactly how
+a missed budget quietly becomes a met one. The bench prints both verdicts and
+its success line reads "no regression is not budget met".
+
+## Objective 3 — DAv2Wrapper returns DepthField (AUTHORIZED, behaviour-neutral)
+
+Audit finding 4 closed at the source; its `known_bug` marker removed in the same
+commit so the test guards permanently.
+
+`predict()` returned a bare ndarray that anything could read as metres — and did.
+The value flowed through the projector into a Parquet column documented as
+"Depth (meters)". DA-V2 emits relative inverse depth with unknown scale *and*
+unknown shift, so no constant converts it. Nothing raised; every 3D coordinate
+downstream had arbitrary scale while claiming to be metric.
+
+It now returns `DepthField(units="disparity_rel")`, so `unproject()` refuses it
+and a caller wanting raw values must ask for `.data` — a visible act rather than
+an assumption.
+
+**Behaviour neutrality is asserted, not claimed.** A fixed-input test compares
+wrapped values against raw model output with `assert_array_equal` — exact
+equality, not a tolerance, since float32→float64 widening is exact and a
+tolerance would let a real change hide inside it. A units fix that also moved
+the numbers would be two changes wearing one commit.
+
+The one judgement added is the validity mask: non-finite entries are marked
+unusable rather than passed through. A NaN depth is not a far one, and one NaN
+vector corrupts an entire index.
+
+## Objective 4 — Version-stable fixtures
+
+`real_test_video`'s sha changed when the environment moved from OpenCV 5.0.0 to
+the pinned 4.8.1.78, because decode and resize differ between builds. **A
+fixture that changes with the decoder is not a fixture**: every reference
+embedding built against it silently stops corresponding to it, and nothing
+announces that.
+
+The committed `.npz` of *decoded frames* is now the source of truth.
+`--regenerate-decoded` is the only way to re-decode, off by default. The
+manifest records the decoding stack, which turns "why did this sha change?"
+from an investigation into a diff.
+
+The opt-in `@pytest.mark.decoder_dependent` test re-decodes and compares against
+committed bytes. It is excluded from CI: a failure means "this machine's OpenCV
+differs from the one that made the fixture" — real information, but not a defect
+in this repository. Its failure message says explicitly not to regenerate the
+fixture to make it pass, since that is the move that would destroy the reference
+correspondence.
+
+## Objective 5 — Synthetic indoor set, and the first scorecard
+
+### Why analytic primitives and not Kubric
+
+Kubric 0.1.1 pins the Blender 2.93/3.x-era `bpy` API; the available Blender is
+4.5, and the official path is a multi-gigabyte Docker image. Rather than stall
+or pretend, scenes are built from geometric primitives with closed-form depth.
+
+This is a genuine advantage for the ground truth — exact depth and analytic
+slab-test occlusion, with no z-buffer quantisation and no anti-aliasing
+ambiguity at object edges — at the total cost of appearance realism. There is no
+global illumination, no material response, no lens model.
+
+### Per-asset clearance record
+
+Synthetic does not mean free: BEDLAM and AGORA are built on SMPL body models
+whose commercial use needs a separate Meshcapade license. **The SMPL trap is
+avoided here by construction rather than by checking** — every asset is
+generated by `scripts/gen_synthetic_indoor.py`, so there is no third-party asset
+in the stack at all.
+
+| Asset | Origin | License | SMPL-derived |
+| --- | --- | --- | --- |
+| room shell (floor, ceiling, four walls) | axis-aligned planes generated by this file | ours — no third-party asset | no |
+| furniture (desks, cabinets, partitions) | axis-aligned boxes generated by this file | ours — no third-party asset | no |
+| agents (torso box, head sphere, two leg cylinders) | articulated primitives generated by this file | ours — no third-party asset | **NO** — the SMPL trap, avoided by construction. No body model, no scan, no likeness of any person. |
+| textures | seeded procedural noise generated by this file | ours — no third-party asset | no |
+
+Registered as `synthetic-indoor-v1`, lane S, and **not conditionally** — unlike
+RandPerson/UnrealPerson/ClonedPerson/PersonX, whose lane-S status still depends
+on someone verifying their generation stacks.
+
+### THE FIRST SCORECARD
+
+Golden set `v2-indoor`, `set_sha
+fa0632eae782d18a1e9b1e1f5e24b5f03601d9f469066cab3f46e7030792905b`, 9 clips.
+
+```
+metric                                        value  unit
+--------------------------------------------------------------------------
+motion_gate.recall                           0.9375  fraction (^ better)
+    105 of 112 moving frames woke the next stage.
+motion_gate.precision                        1.0000  fraction (^ better)
+    105 of 105 wakes were on genuinely moving frames.
+motion_gate.f1                               0.9677  fraction (^ better)
+motion_gate.false_negatives                  7.0000  frames   (v better)
+    The number that matters most: frames with real motion the gate slept through.
+motion_gate.false_positives                  0.0000  frames   (v better)
+gt.occluded_track_fraction                   0.7778  fraction (v better)
+    Difficulty of the set itself, not a model result.
+coverage.frames_scored                     126.0000  frames   (^ better)
+
+CAVEATS
+  - SYNTHETIC-ONLY. These are GEOMETRY and MOTION numbers, not appearance
+    numbers, and they must not be quoted externally. Site Zero footage
+    supersedes them.
+```
+
+Per clip, worst first:
+
+| clip | frames | tp | **fn** | recall | occluded |
+| --- | --- | --- | --- | --- | --- |
+| `coverage_gap_3agents__cam_c` | 14 | 8 | **6** | 0.571 | 0.94 |
+| `overlap_pair_2agents__cam_b` | 14 | 13 | **1** | 0.929 | 0.54 |
+| `blown_window__cam_a` | 14 | 14 | 0 | 1.000 | 0.92 |
+| `coverage_gap_3agents__cam_a` | 14 | 14 | 0 | 1.000 | 0.94 |
+| `crowded_6agents__cam_a` | 14 | 14 | 0 | 1.000 | 0.90 |
+| `far_field_1080p__cam_a_1080` | 14 | 14 | 0 | 1.000 | 0.92 |
+| `lights_off_transient__cam_a` | 14 | 14 | 0 | 1.000 | 0.92 |
+| `overlap_pair_2agents__cam_a` | 14 | 14 | 0 | 1.000 | 0.92 |
+| `near_static__cam_a` | 14 | 0 | 0 | n/a | 0.00 |
+
+**Six of the seven false negatives are in one clip** — the blind-spot-traversal
+camera, `coverage_gap_3agents__cam_c`, at recall 0.571. Recorded as measured. It
+is a real question whether that is a gate defect or a ground-truth definition
+issue: GT motion is defined in *world* space (any agent displaced > 1 cm), while
+the gate can only see its own frame. A camera is being scored on motion it may
+not be able to observe. **This is not resolved and is not tuned away** — it is
+the first item on the Day-7 list.
+
+`near_static__cam_a` scoring `n/a` is correct: no GT motion, no wakes, so recall
+is undefined rather than 0 or 1. Reporting `nan` instead of inventing a value is
+the honest arithmetic.
+
+### Two defects in the fixture, found by reading the scorecard
+
+Both were in the measuring apparatus, and both would have silently corrupted
+every number computed against this set.
+
+**1. The wall was shimmering.** Surface texture was drawn inside the frame loop,
+so it resampled every frame. A static scene emitted σ=3 grain on **83% of its
+pixels** — background pixels with no agent in either frame changed on 762,168 of
+801,206, by up to 20 levels. That turned a declared surface property into
+undeclared sensor noise which the motion gate was then scored against, while the
+manifest simultaneously claimed "no sensor noise". Texture is now fixed per
+camera.
+
+The gate's numbers **did not move** after the fix, which is itself the finding:
+its decisions were driven by agent motion, not by grain. Had they moved, the
+headline recall would have been measuring the renderer.
+
+**2. `content_sha` did not reproduce across processes.** Seeding used the
+builtin `hash()`, which is salted per process via `PYTHONHASHSEED`. Three
+interpreters gave `7387`, `954`, `3698` for the same input. Clip bytes — and
+therefore every content hash in the golden set — differed on every run,
+destroying the immutability guarantee a content-addressed golden set exists for.
+Now `blake2s`. A subprocess test runs two interpreters under different hash
+salts and requires identical hashes.
+
+My determinism test had passed because both runs shared one process. The
+property-based subprocess test replaced a source-scanning test that failed by
+matching the word `hash()` inside my own explanatory comment — the same
+brittleness class as the Day-1 false-passing normalization detector, so it was
+deleted rather than patched.
+
+The golden set was also being populated by hand. It is now minted from the
+manifest by `--write-golden`, because **a set of content hashes nobody can
+reproduce is not content-addressed**.
+
+### Coverage
+
+11 of 17 conditions. The 6 uncovered — `bag_carried`, `blinds_drawn`,
+`camera_bump`, `clothing_change`, `lens_smudge`, `similar_clothing` — are all
+appearance-driven and need real capture. A test asserts they are still reported
+missing, so synthetic clips cannot make the set read as done.
+
+## The gitignore defect — six files were never committed
+
+Found while checking why `src/data/scorecard.py` did not appear in `git status`.
+
+In gitignore syntax an unanchored `data/` matches a directory named `data` at
+**any** depth. The patterns `data/` and `models/` were therefore also matching
+`src/data/` and `src/models/`, silently excluding six source files across three
+days:
+
+| File | Day | What it is |
+| --- | --- | --- |
+| `src/models/preprocess.py` | 3 | `PreprocessSpec`, the preprocessing contract |
+| `src/data/golden.py` | 5 | golden sets, `set_sha`, `SiteZeroPlan` |
+| `src/data/cvat_ingest.py` | 5 | annotation ingest |
+| `src/data/converters/` (3 files) | 5 | dataset converters |
+
+Their tests **are** committed and pass here only because the files exist in this
+working tree. A fresh clone would have failed at import, and it would have
+surfaced as a broken test suite for whoever cloned first rather than as a
+missing-file error anyone could read.
+
+Every artifact pattern is now anchored with a leading slash, with a comment
+saying why the slash matters. Verified that `data/`, `models/`, `outputs/` and
+`logs/` at the repo root are still ignored.
+
+This is the strongest argument yet for configuring the git remote: six days of
+work exist in exactly one directory, and until this commit six of its files were
+not even in the local history.
+
+## Objective 6 — ADR 0001, deletable identity adapters
+
+`docs/adr/0001-identity-adapter-architecture.md`. **Status: Accepted.**
+
+Person-specific capability lives in a small adapter over a frozen backbone, and
+never in fine-tuned backbone weights.
+
+The argument is erasure. Under a monolithic fine-tune, honouring a withdrawal
+means re-running the entire training pipeline to produce a model provably free
+of one person's data — weeks, so in practice never, which is precisely why the
+consent template currently has to tell participants "we cannot reverse
+training". With a frozen backbone, the complete set of parameters derived from
+an individual **is** the adapter.
+
+| Tier | What is deleted | Cost |
+| --- | --- | --- |
+| 1. Gallery eviction | the person's enrolled embeddings | seconds, no retraining — recognition stops at once |
+| 2. Adapter retrain | residual influence on the learned metric | hours, CPU |
+| 3. Backbone retrain | — | **not applicable by design** |
+
+Tier 3 is the column the decision exists to keep empty.
+
+A second constraint made this easy to decide: all four public gait datasets are
+lane R, and the usable re-ID sets carry consent debt or an unverified SMPL
+dependency. The trainable identity corpus is Site Zero — people we know by name
+who can withdraw in person. An architecture assuming a large anonymous corpus is
+mismatched with the only data we may lawfully use.
+
+Costs are recorded, not hidden: an adapter will underperform a full fine-tune,
+and the ADR requires that gap to be **measured and put on a scorecard** before
+Phase 3 commits. Rejected alternatives include machine unlearning — telling a
+participant their data was "approximately removed" is worse than telling them it
+was not.
+
+Cross-referenced from the consent template's erasure section with an explicit
+instruction **not** to soften the §7 limitation until the architecture exists
+and a withdrawal drill has actually been run. `tests/test_identity_adr.py` pins
+that. The ADR describes a better position; it does not license claiming it yet.
+The counsel question stays open in both documents.
+
+## State
+
+- Full suite: **415 passed, 6 skipped**. Skips are `requires_weights` and the
+  excluded `decoder_dependent` marker, each with a stated reason.
+- Lint clean (black 23.12.1, flake8 7.0.0); mypy clean on touched modules.
+- All work on `foundation/day-6`, seven commits.
+
+## Day 7, in order
+
+1. **Resolve the blind-spot false negatives.** Decide whether GT motion should
+   be conditioned on camera visibility, or whether the gate genuinely misses
+   observable motion. Six of seven FNs ride on this and the headline recall is
+   uninterpretable until it is settled. Do not tune the gate before deciding.
+2. **Close the cascade budget, or move it deliberately.** 4.57% against 3.00%.
+   Either optimise stage 0 with a measured before/after, or change the target
+   with a stated hardware justification. Not both, and not silently.
+3. **Configure the git remote and push all seven days.** Escalating every day it
+   is deferred, and the gitignore finding shows the working directory is not
+   even a faithful copy of the history.
+4. **Widen the scorecard beyond the motion gate.** Depth and occlusion GT are
+   exact and currently unused by any metric. Cheapest large increase in what
+   `make eval` actually covers.
+5. **MEVA license verification** — still the highest product impact of any
+   pending item, and still blocked on a human reading the actual terms.
+6. **Counsel review** of the consent template, now with ADR 0001 as the proposed
+   architectural answer to its sharpest open question.
+7. **Production `vjepa2_vitl_int8.xml`/`.bin`** from whoever ran production, for
+   the parked Objective-1 forensic verdict. Unchanged since Day 3.
