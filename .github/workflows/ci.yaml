@@ -96,7 +96,7 @@ jobs:
       # silently starts passing shows up as xpassed rather than disappearing.
       - name: pytest
         run: |
-          pytest -m "not requires_weights" \
+          pytest -m "not requires_weights and not decoder_dependent" \
             --cov --cov-report=term-missing --cov-report=xml \
             --cov-fail-under=85 \
             -ra

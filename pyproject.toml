@@ -21,6 +21,7 @@ testpaths = ["tests"]
 addopts = "--strict-markers"
 markers = [
     "requires_weights: needs model checkpoints or heavy runtime libraries. Skips with an explicit reason when they are absent — never fails on missing weights, never fake-passes. CI runs -m 'not requires_weights'.",
+    "decoder_dependent: re-derives a fixture by decoding video. Decoding differs between OpenCV builds, so the result is NOT reproducible across environments; the committed decoded-frame .npz is the source of truth. Excluded from the default run.",
     "known_bug: encodes a defect found in the audit. Paired with xfail(strict=False) so CI reports it without failing. When the fix lands, both the marker and the xfail are removed in the same change, and the test becomes a permanent regression guard.",
 ]
 

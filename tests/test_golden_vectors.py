@@ -233,3 +233,96 @@ def test_openvino_matches_pytorch_reference(name: str) -> None:
         f"\n  a few catastrophic patches indicate token layout or pos-embeds."
     )
     assert p1 >= GOLDEN_COSINE_P1_MIN, report
+
+
+# ---------------------------------------------------------------------------
+# Fixture determinism across environments (day 6)
+# ---------------------------------------------------------------------------
+
+
+def test_synthetic_clips_regenerate_bit_identically() -> None:
+    """Pure-arithmetic fixtures must be reproducible anywhere.
+
+    These were verified identical across numpy 2.5 and 1.26. If this ever
+    fails, a numpy change altered the generator's output and every reference
+    embedding built against these clips is stale.
+    """
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    import make_golden_vectors as generator
+
+    regenerated = {
+        "synthetic_spatial_gradient": generator.clip_spatial_gradient(),
+        "synthetic_tubelet_probe": generator.clip_tubelet_probe(),
+        "synthetic_seeded_noise": generator.clip_seeded_noise(),
+    }
+    for name, produced in regenerated.items():
+        np.testing.assert_array_equal(
+            produced,
+            load_clip(name),
+            err_msg=f"{name} no longer regenerates to its committed bytes",
+        )
+
+
+def test_the_real_clip_is_not_re_decoded_by_default() -> None:
+    """The decoded frames on disk are the fixture, not the video.
+
+    ``real_test_video``'s sha changed when the environment moved from OpenCV
+    5.0.0 to the pinned 4.8.1.78, because decoding and resizing differ between
+    builds. A fixture that changes with the decoder is not a fixture. The
+    generator now reads the committed .npz unless explicitly told otherwise.
+    """
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    import make_golden_vectors as generator
+
+    built = generator.build_clips()
+    np.testing.assert_array_equal(
+        built["real_test_video"],
+        load_clip("real_test_video"),
+        err_msg="build_clips() re-derived the real clip instead of loading it",
+    )
+
+
+def test_manifest_records_the_decoding_stack() -> None:
+    """A decoded fixture is only reproducible on the build that decoded it.
+
+    Recording the stack turns "why did this sha change?" from an investigation
+    into a diff.
+    """
+    manifest = load_manifest()
+    stack = manifest.get("decoded_with", {})
+    assert {"python", "opencv", "numpy"} <= set(stack)
+    assert stack["opencv"], "no OpenCV version recorded for a decoded fixture"
+
+
+@pytest.mark.decoder_dependent
+def test_re_decoding_matches_on_this_stack() -> None:
+    """Opt-in: does re-decoding reproduce the committed fixture *here*?
+
+    Marked ``decoder_dependent`` and excluded from the default run, because a
+    failure means "this machine's OpenCV differs from the one that produced the
+    fixture" — real information, but not a defect in this repository, and not
+    something a PR should be blocked on.
+    """
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    import make_golden_vectors as generator
+
+    redecoded = generator.clip_from_real_video()
+    if redecoded is None:
+        pytest.skip("source video or OpenCV unavailable")
+
+    committed = load_clip("real_test_video")
+    if not np.array_equal(redecoded, committed):
+        differing = int(np.count_nonzero(redecoded != committed))
+        pytest.fail(
+            f"re-decoding produced different pixels ({differing} of "
+            f"{committed.size} differ). This stack decodes differently from "
+            f"the one recorded in the manifest "
+            f"({load_manifest().get('decoded_with')}). The committed .npz "
+            "remains authoritative; do not regenerate it to make this pass."
+        )

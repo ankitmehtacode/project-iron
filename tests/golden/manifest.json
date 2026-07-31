@@ -14,14 +14,21 @@
     "synthetic_spatial_gradient": "079f69121b63cabdfcdc522cf8814c0979e0ba9d924594e999c7b76f0a99d197",
     "synthetic_tubelet_probe": "1e9b791072a246e40112848b40f59ba8cfb3393beef169288522ab7580a948f7"
   },
-  "generated_at_utc": "2026-07-31T17:08:14.306621+00:00",
+  "decoded_with": {
+    "numpy": "1.26.2",
+    "opencv": "4.8.1",
+    "python": "3.10.20"
+  },
+  "generated_at_utc": "2026-07-31T22:48:34.957307+00:00",
   "generator": "scripts/make_golden_vectors.py",
   "real_clip_source": {
     "channel_order": "RGB (converted from OpenCV BGR at read time)",
     "path": "src/interface/ui/data/raw/test_video.mp4",
     "resize_policy": "cv2.INTER_AREA stretch to 224x224 (aspect NOT preserved)"
   },
-  "reference_blockers": [],
+  "reference_blockers": [
+    "--clips-only requested"
+  ],
   "references": {
     "real_test_video": {
       "dtype": "float32",
