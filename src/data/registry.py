@@ -49,7 +49,7 @@ from types import FrameType
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
 
 Lane = Literal["S", "R", "C"]
 
@@ -158,6 +158,13 @@ class DatasetEntry(BaseModel):
     blocked: bool = False
     blocked_reason: str = ""
     notes: str = ""
+    asset_clearance: list[dict[str, str]] = Field(default_factory=list)
+    """Per-asset provenance for lane-S generators.
+
+    Required in practice for synthetic data because "synthetic" is not a
+    license: SMPL-derived human assets carry a commercial-use requirement
+    that survives being rendered.
+    """
 
     @property
     def verified(self) -> bool:

@@ -79,10 +79,35 @@ def test_config_selects_the_indoor_set() -> None:
     assert config.eval.allow_legacy_golden_set is False
 
 
-def test_indoor_set_is_empty_and_that_is_honest() -> None:
-    """Empty until Site Zero lands. An empty set measuring nothing is the
-    correct state; a populated-looking one would be worse."""
-    assert load_golden_set(SEEDED, "v2-indoor").clips == ()
+def test_indoor_set_is_populated_from_synthetic_clips_only() -> None:
+    """Day 5 asserted this set was empty, and that was honest then.
+
+    It is now populated by ``scripts/gen_synthetic_indoor.py`` so that ``make
+    eval`` produces a scorecard at all. The honesty requirement did not go
+    away, it moved: every clip must be traceable to the synthetic dataset, so
+    that no captured footage can arrive here without the source label
+    changing. Site Zero clips still supersede these.
+    """
+    indoor = load_golden_set(SEEDED, "v2-indoor")
+    assert indoor.clips, "set is empty; run gen_synthetic_indoor.py --write-golden"
+    assert all(c.source_dataset == "synthetic-indoor-v1" for c in indoor.clips)
+    assert "SYNTHETIC-ONLY" in indoor.description
+
+
+def test_indoor_set_still_declares_its_capture_gap() -> None:
+    """Populating with synthetic clips must not read as "done".
+
+    The conditions that need real capture are precisely the appearance-driven
+    ones an analytic renderer cannot produce, so they must still be reported
+    missing rather than being quietly satisfied by a synthetic stand-in.
+    """
+    missing = load_golden_set(SEEDED, "v2-indoor").missing_conditions()
+    for appearance_only in (
+        Condition.LENS_SMUDGE,
+        Condition.CLOTHING_CHANGE,
+        Condition.SIMILAR_CLOTHING,
+    ):
+        assert appearance_only in missing
 
 
 # ---------------------------------------------------------------------------
@@ -168,12 +193,20 @@ def test_missing_conditions_lists_the_gap() -> None:
 
 
 def test_site_zero_plan_reports_the_capture_gap() -> None:
-    """The plan is data so the gap is computed, not re-estimated from prose."""
-    empty = load_golden_set(SEEDED, "v2-indoor")
-    gap = SiteZeroPlan().gap(empty)
+    """The plan is data so the gap is computed, not re-estimated from prose.
+
+    Synthetic clips shrink the gap without closing it. The assertion is on the
+    arithmetic rather than on a frozen constant, so populating the set further
+    updates the expectation instead of breaking the test.
+    """
+    golden = load_golden_set(SEEDED, "v2-indoor")
+    plan = SiteZeroPlan()
+    gap = plan.gap(golden)
+
     assert gap["complete"] is False
-    assert gap["clips_short"] == 30
-    assert len(gap["conditions_short"]) == len(Condition)
+    assert gap["clips_short"] == plan.target_clips - len(golden.clips)
+    assert 0 < gap["clips_short"] < plan.target_clips, "synthetic clips must count"
+    assert gap["conditions_short"], "no renderer covers every condition"
 
 
 def test_a_complete_set_reports_complete() -> None:
@@ -190,14 +223,35 @@ def test_a_complete_set_reports_complete() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_eval_report_refuses_an_empty_set() -> None:
-    """An empty set reporting no failures is not a passing grade."""
+def test_eval_report_refuses_an_empty_set(tmp_path: Path) -> None:
+    """An empty set reporting no failures is not a passing grade.
+
+    Until Objective 5 this ran against v2-indoor, which was empty at the time.
+    Now that the set is populated, the invariant has to be tested against a set
+    that is genuinely empty — otherwise the test would have been "fixed" by
+    deleting the very refusal it exists to guard.
+    """
     import sys
 
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
     import eval_report
 
-    assert eval_report.main([]) == 1
+    write_golden_set(tmp_path, a_set(version="v9-empty"))
+    assert eval_report.main(["--version", "v9-empty", "--root", str(tmp_path)]) == 1
+
+
+def test_eval_report_scores_the_populated_indoor_set() -> None:
+    """The other half: a populated set must actually produce a scorecard.
+
+    Guards the opposite failure — a refusal path broad enough to swallow a
+    real run would make ``make eval`` permanently green-by-abstention.
+    """
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    import eval_report
+
+    assert eval_report.main([]) == 0
 
 
 def test_eval_report_names_the_legacy_domain() -> None:

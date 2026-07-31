@@ -1,22 +1,28 @@
 """Report which golden set ``make eval`` would measure against, and its gaps.
 
-The metric computation itself does not exist yet — there is nothing to measure
-until Site Zero produces annotated clips. What exists now is the part that
-decides *what* gets measured, and that is worth having first: it is the piece
-that determines whether a number means anything.
+Selection comes first, deliberately: the part that decides *what* gets measured
+determines whether a number means anything, so it was built before any metric.
+Scoring now runs on top of it against the synthetic indoor set, whose ground
+truth is analytic and therefore exact.
+
+Those scores are GEOMETRY and MOTION numbers on a renderer with no appearance
+model. They are a real baseline for regression, and they are not a product
+claim; Site Zero footage supersedes them.
 
     make eval
     python scripts/eval_report.py --version v1-driving
+    python scripts/eval_report.py --root /tmp/candidate --version v3-indoor
 
 Exit codes:
-    0  the selected set is active and may back a product metric
-    1  the set is empty, or legacy and selected without an explicit opt-in
+    0  the set was scored and a scorecard written
+    1  the set is empty, unscorable, or legacy without an explicit opt-in
 """
 
 from __future__ import annotations
 
 import argparse
 import sys
+from pathlib import Path
 
 from src.config import IronConfig
 from src.data.golden import (
@@ -33,10 +39,22 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--version", default=None, help="golden-set version; defaults to config"
     )
+    parser.add_argument(
+        "--root",
+        default=None,
+        help=(
+            "directory of golden-set manifests; defaults to config. Lets a "
+            "candidate set be scored before it is promoted into the repo."
+        ),
+    )
     args = parser.parse_args(argv)
 
     config = IronConfig.load()
-    root = config.paths.resolve(config.eval.golden_sets_dir)
+    root = (
+        Path(args.root)
+        if args.root
+        else config.paths.resolve(config.eval.golden_sets_dir)
+    )
     version = args.version or config.eval.golden_set_version
 
     try:
@@ -93,8 +111,31 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
+    from src.data import scorecard as scoring
+
+    clip_root = config.paths.resolved_data_dir / "synthetic" / "synthetic-indoor-v1"
     print()
-    print("Ready to evaluate.")
+    card = scoring.compute(golden, clip_root, config.cascade.motion_gate_config())
+    if not card.clips_scored:
+        print("No clips could be scored; see caveats above.", file=sys.stderr)
+        return 1
+
+    card.caveats.insert(
+        0,
+        "SYNTHETIC-ONLY. Scored against analytic primitives with no global "
+        "illumination, material response or lens model. These are GEOMETRY and "
+        "MOTION numbers, not appearance numbers, and they must not be quoted "
+        "externally. Site Zero footage supersedes them.",
+    )
+    print(card.render())
+
+    out = scoring.write(
+        card,
+        config.paths.resolved_output_dir
+        / "scorecards"
+        / f"{golden.version}_{golden.set_sha[:12]}.json",
+    )
+    print(f"\nScorecard written to {out}")
     return 0
 
 
