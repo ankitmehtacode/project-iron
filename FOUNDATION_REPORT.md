@@ -369,3 +369,287 @@ if n_temporal != expected_temporal:
 
 That assertion makes the temporal off-by-2 bug class structurally
 unrepresentable rather than merely fixed.
+
+---
+
+# Day 2
+
+Branch `foundation/day-2`, five commits on top of `1134a38`. 27 files changed,
++2,638 / −180.
+
+Final state: **261 passed, 6 deselected, 2 xfailed**, 88.51% coverage against an
+85% floor, `mypy --strict` clean, every CI command verified locally.
+
+**The model weights did not arrive.** There is no `models/` directory, no
+checkpoint anywhere on the machine, and neither `torch`, `openvino`,
+`transformers` nor `cotracker` is installed. Nothing was faked or stubbed. That
+determined the shape of the day: Objectives 1 and 2 skip as specified,
+Objective 3's authorized behavior change is transitively blocked, and
+Objectives 4 and 5 were completed in full.
+
+| # | Objective | Status | Commit |
+|---|---|---|---|
+| 1 | Resolve blocked verdicts `[W]` | **Blocked** — no weights | `351fe92` |
+| 2 | Golden-vector reference `[W]` | Harness + fixtures shipped; references blocked | `81db1be` |
+| 3 | Normalization fix | **Partial** — machinery shipped, fix deferred (see §D2.3) | `b3b94be` |
+| 4 | Depth honesty | Complete | `afd09b0` |
+| 5 | Cascade gate budget | Complete, measured, **passes** | `58e9d73` |
+| 6 | This report | Complete | (final) |
+
+## D2.1 — The two blocked verdicts: still blocked
+
+Both tests ran and both **SKIPPED**. No tensor shapes were observed, so no
+verdict is claimed. Recording what a test did not measure as though it had is
+the failure mode this whole exercise exists to avoid.
+
+```
+test_vjepa_token_count_matches_tubelet   SKIPPED
+  2 unmet prerequisite(s): module 'openvino' is not installed;
+  V-JEPA2 OpenVINO IR not found at models/int8/vjepa2_vitl_int8.xml
+
+test_patch_mapper_temporal_alignment     SKIPPED
+  5 unmet prerequisite(s): module 'openvino' is not installed; module 'torch'
+  is not installed; module 'cotracker' is not installed; V-JEPA2 OpenVINO IR
+  not found at models/int8/vjepa2_vitl_int8.xml; CoTracker3 checkpoint not
+  found at models/weights/cotracker3/scaled_offline.pth
+```
+
+**Verdict on tubelet: UNRESOLVED.** Hypotheses A (tubelet=2 → 392 tokens) and B
+(tubelet=1 → 784 tokens) remain untested against the export. The documentary
+conflict is unchanged and unambiguous — `semantic_extractor.py` claims
+`[B, T*196, 1024]` for T=4 while V-JEPA2 is a tubelet-2 encoder — but a
+docstring is not a measurement.
+
+**Verdict on the patch-mapper off-by-2: UNRESOLVED by execution.** Per the
+brief, the finer-granularity red test was NOT written, because that instruction
+was conditional on the off-by-2 being *confirmed*, and it was not. Writing a
+test pinning an exact wrong index mapping that nobody has observed would invent
+the finding it claims to document.
+
+What did improve: the skip helpers now report every unmet prerequisite in one
+pass instead of the first one found, so bringing an environment up is a single
+read rather than a rerun-and-discover cycle. Objective 1's real deliverable
+today is that these two tests are ready to answer the question the moment
+weights land.
+
+## D2.2 — Golden vectors: fixtures shipped, references blocked
+
+Four input clips are committed (1.1 MB, uint8, compressed) with a sha manifest:
+
+| clip | purpose |
+|---|---|
+| `synthetic_spatial_gradient` | static; both temporal slots see identical content, so a reference where they differ indicts temporal handling rather than spatial encoding |
+| `synthetic_tubelet_probe` | black frames 0–1, white 2–3, straddling the tubelet boundary exactly |
+| `synthetic_seeded_noise` | unstructured control |
+| `real_test_video` | first 4 frames of the repo's own test video — an export defect can be invisible on noise and obvious on a scene |
+
+**Golden cosine: NOT MEASURED.** The 4 comparisons SKIP. No reference
+embeddings exist because producing them requires the official PyTorch
+checkpoint and `torch`, neither present. `tests/golden/manifest.json` records
+the three blockers explicitly rather than leaving an empty `references` block
+ambiguous.
+
+**This is the "before" number Objective 3 needed, and it does not exist.**
+
+7 fixture-integrity tests *do* run and pass today: every clip is verified
+against its recorded sha, the committed geometry is asserted against the live
+pipeline config, and the tubelet probe is checked to actually be
+black-then-white. A fixture that drifts without its sha changing invalidates
+every reference later built from it, so that is guarded now rather than
+discovered later.
+
+The comparison, when it runs, gates on the **1st percentile** of per-patch
+cosine rather than the mean. A mean over 196 patches stays comfortable while
+the worst 2% are unusable, and the worst patches are where the objects are.
+
+## D2.3 — The normalization fix: why it is not in this diff
+
+Everything the fix needs is built, tested and committed. The fix itself is not,
+and that was a deliberate call against a literal reading of the objective.
+
+Objective 3 was authorized as a measured behavior change that "ships WITH its
+measurement". Its measurement is Objective 2's golden cosine. That measurement
+could not be taken. Wiring preprocessing into `semantic_extractor._run_vjepa`
+would therefore have been an **unmeasured change to numerical output**, which
+the global rules forbid — and it would have been unverifiable in exactly the
+way that let this defect exist for months.
+
+What did ship, all of it behavior-neutral and unit-tested:
+
+- **`PreprocessSpec`** carrying `frames, stride, resolution, mean, std,
+  channel_order, resize_policy, tubelet, patch_size`, serialized as
+  `<model>.preprocess.json` beside the weights. `apply()` is verified to
+  standardise, to reject unscaled 0–255 input (which would make activations
+  ~255× too large, silently), and to reject non-finite values.
+- **No hardcoded constants.** `test_no_hardcoded_normalization_constants_in_source`
+  greps every `.py` for the ImageNet literals and fails if they appear outside
+  the JSON.
+- **`load_for_model` refuses to fall back** to the canonical template when the
+  sidecar is missing. A silent fallback applies another model's preprocessing
+  and produces embeddings wrong in a way no shape or finiteness check detects.
+- **The template is marked `verified_against_official_config: false`**, and
+  `assert_ready_for_production()` refuses on it. The values were transcribed
+  without the checkpoint present; a spec asserting numbers nobody checked is a
+  guess wearing a manifest.
+- **`preprocess_sha` in the run manifest**, schema 1.0 → 1.1. When no spec is
+  loaded the manifest prints `NONE — encoder path has no spec wired in`, so the
+  current state is visible rather than blank.
+
+### VOID EMBEDDINGS DECLARATION
+
+**Every embedding and derived artifact produced before commit `b3b94be` is
+void.** They were produced by the encoder path that applies no channel
+standardisation, and there is no way to detect that from the vectors
+themselves.
+
+This is enforced in code, not documented as a convention. Every derived
+artifact now requires a `<name>.meta.json` naming `encoder_sha`,
+`preprocess_sha`, `pca_sha` and `manifest_sha`; `require_compatible()` refuses
+on any mismatch **and on a missing sidecar**, because absence means the artifact
+predates the mechanism. `VectorDatabase.load()` checks before
+`FAISS.load_local`, not after — once an index is loaded the first query has
+already returned confidently-ranked results computed in the wrong space.
+
+`scripts/rebuild_index.py --audit` currently reports:
+
+```
+0 artifact(s) carry provenance, 22 are void or unverifiable.
+```
+
+(20 depth maps, `tracks.npy`, `visibility.npy`, all under `outputs/`.) The
+rebuild path itself deliberately exits 2 rather than running: regenerating
+today would write a *second* generation of void vectors, because the encoder
+still applies no standardisation.
+
+## D2.4 — Depth honesty
+
+Audit finding 4 was two independent silent lies feeding each other. Both are
+now closed at the publication boundary.
+
+| | before | after |
+|---|---|---|
+| Parquet column | `z`, documented "Depth (meters)" | `disparity_rel` + a `depth_units` column on every row |
+| README:230 | `\| z \| float32 \| Depth (meters) \|` | corrected, with the old claim recorded above it |
+| Projector output | `X`, `Y`, `Z` | `X_uncalibrated`, `Y_uncalibrated`, `disparity_rel` |
+| Intrinsics | `fx = fy = max(H,W)`, silent | `calibrated: bool`; `placeholder_intrinsics()` sets it False |
+| `unproject` with a guess | produced confident 3D | raises `UncalibratedIntrinsics` |
+
+Writing metric depth is still possible and now requires saying so:
+`depth_units="meters"` is a claim someone makes, not the default reading of an
+unlabelled column. The `IRON_ALLOW_UNCALIBRATED=1` escape hatch exists for
+experiments and logs `UNCALIBRATED GEOMETRY … ARBITRARY SCALE` at WARNING on
+every call. It matches exactly `"1"` — a test pins that `"true"`, `"yes"` and
+`"TRUE"` do **not** enable it, because an override accepting any non-empty
+string would be switched on by someone setting it to `"false"`.
+
+`rescaled_to` preserves the flag, so a resize cannot launder a guess into a
+calibration.
+
+Finding 4's known-bug test remains **red, correctly**: `DAv2Wrapper.predict`
+still returns a bare ndarray with no units. Its xfail reason now states
+precisely what was fixed and what remains, rather than continuing to read as
+wholly unaddressed. Wrapping that return in a `DepthField` is an API change to
+a legacy module with three call sites and belongs in its own commit.
+
+## D2.5 — Cascade gate: small-target parity and final cost
+
+**PASS.** Wake decisions identical at both resolutions on all four scenarios,
+and stage-0 cost inside the Tier-1 idle budget.
+
+```
+scenario          frames  wake@full  wake@gate   parity   p50 ms   % core
+static               120       0.0%       0.0%    EXACT    2.478    2.97%
+near_target          360      33.3%      33.3%    EXACT    2.476    2.97%
+SMALL_TARGET         360      33.3%      33.3%    EXACT    2.449    2.94%
+real_test_video      250      84.8%      84.8%    EXACT    2.181    2.62%
+
+Worst stage-0 cost : 2.97% of one core per camera
+Product budget     : 3.00%
+Speedup vs full-res: 3.1x median (floor 3.0x)
+```
+
+**Small-target parity: EXACT, no divergence, no threshold retuned.** The
+scenario is a blob ~15 px tall at gate resolution — a person about 60 px tall at
+720p, someone across a car park. This was the case that would have stopped the
+objective, and it did not diverge.
+
+The real-footage scenario provides an additional unlabelled parity check: 250
+frames at 320×176, also EXACT. No expected wake share is claimed for it, because
+nobody has labelled that footage and inventing ground truth would be worse than
+having none.
+
+Cost went 29.5% → 22.5% → 4.4% → 2.97% of one core, via: gating at 320×180;
+resizing the colour frame *before* the greyscale reduction (linear operations
+commute, so identical results, but it moves the bulk work into one OpenCV call);
+and computing the channel mean with `cv2.transform` rather than `numpy.mean`
+(1.01 ms → 0.13 ms, same arithmetic).
+
+**Two things measured rather than assumed.** My first bench ran every frame
+through the gate twice — once directly, once via `CascadeRunner` — inflating
+cost and feeding the MOG2 background model a sequence the scenario never
+contained. And the `cv2.transform` switch rounds where numpy truncated: a
+one-grey-level difference that changed **no** wake decision on any synthetic
+scenario and **2 of 250** on real footage. That is a real behaviour change,
+small and toward correctness, and it is recorded rather than glossed.
+
+Measured and rejected: pinning OpenCV threads (1/2/4/12 all within 2% of each
+other) and disabling MOG2 shadow detection (2% faster, but flipped a decision).
+
+**The margin is thin — 2.97% against 3.00%.** So CI enforces two things: the
+absolute budget, with a `--budget-scale 2.0` for shared runners that does not
+change the product budget and always prints the unscaled number; and a
+machine-independent floor of 3× cheaper than full-resolution gating, which is
+the assertion that actually catches someone removing the downscale on any
+hardware.
+
+## D2.6 — Deviations from the brief
+
+- **Objective 3's fix deferred.** Its authorization was conditional on shipping
+  with a measurement that no weights made impossible. Reasoning in §D2.3.
+- **Objective 1's additional red test not written.** Conditional on the off-by-2
+  being confirmed; it was not confirmed.
+- **`compute_intrinsics` kept rather than replaced.** Three legacy call sites
+  still use it. It is now loudly documented and points at the typed replacement;
+  migrating the call sites is a separate change.
+- **Gate greyscale changed rounding behaviour** (§D2.5). Measured, 2/250 frames
+  on real footage, reported rather than hidden.
+- **`CascadeConfig` added** to `src/config.py` for config-driven gate
+  resolution, mirroring the day-1 `EnduranceConfig` precedent.
+
+## D2.7 — Tomorrow, ordered
+
+1. **Install weights and run three things, in this order:** the two blocked
+   known-bug tests, then `scripts/make_golden_vectors.py` for the reference
+   embeddings, then `pytest tests/test_golden_vectors.py` for the "before"
+   cosine. Nothing else on this list can be done honestly first, and all three
+   are already written and waiting.
+2. **Land the normalization fix with its before/after cosine.** One call site in
+   `semantic_extractor._run_vjepa`, plus flipping the golden test green and
+   removing its `known_bug` marker in the same commit. Then verify the canonical
+   `PreprocessSpec` against the model's own config and set
+   `verified_against_official_config: true`.
+3. **Implement the rebuild path** in `scripts/rebuild_index.py`, and delete or
+   regenerate the 22 void artifacts. Only meaningful after step 2.
+4. **Resolve the temporal off-by-2** by routing the mapper through
+   `PatchTokens`, which already rejects the wrong shape. Blocked on step 1's
+   verdict.
+5. **Wrap `DAv2Wrapper.predict` in a `DepthField`** to close finding 4 at the
+   source rather than only at publication.
+6. **Reconcile clip geometry with the checkpoint** — the fetched model is
+   64-frame/256px, the pipeline sends 4 frames at 224px. `PreprocessSpec` will
+   now refuse the mismatch once a real spec sits beside the weights, so this
+   becomes a hard failure rather than silent degradation.
+7. Lower priority: migrate the three `compute_intrinsics` call sites; get real
+   camera calibration so metric depth is achievable at all; move legacy modules
+   into the `mypy --strict` and coverage scopes one at a time.
+
+## D2.8 — What contradicted the brief
+
+- **The weights were not placed.** The brief opened by stating they had been.
+  No `models/` directory exists, no checkpoint file exists anywhere on the
+  machine, and the four runtime libraries needed to use them are absent.
+- **`torch` being absent also blocks the golden generator**, which was implicitly
+  assumed available for Objective 2 even in the weights-present case.
+- **Objective 3 is not marked `[W]`** but is transitively weights-dependent: it
+  requires flipping a weights-gated test green and reporting a weights-gated
+  cosine.
