@@ -1,0 +1,48 @@
+# project-iron default configuration
+#
+# Every value here is also a field default in src/config.py, so deleting this
+# file changes nothing. It exists to make the tunable surface visible in one
+# place and to give operators a file to edit instead of source code.
+#
+# Precedence: IRON_* environment variables > this file > field defaults.
+# Nested sections use a double underscore, e.g. IRON_RUNTIME__SEED=7.
+#
+# Relative paths resolve against the repository root, which is derived from
+# src/config.py's location on disk — never from the current working directory.
+
+paths:
+  models_dir: models
+  cache_dir: .cache
+  output_dir: outputs
+  log_dir: logs
+  # Relative to models_dir.
+  vjepa_xml: int8/vjepa2_vitl_int8.xml
+  cotracker_checkpoint: weights/cotracker3/scaled_offline.pth
+
+runtime:
+  device: CPU
+  # 0 means "leave the runtime's own default alone", which is what the code did
+  # before configuration existed. Pinning these changes throughput.
+  ov_num_threads: 0
+  torch_num_threads: 0
+  seed: 0
+
+pipeline:
+  # These mirror the values previously hardcoded in endurance_run.py and
+  # semantic_extractor.py. They are preserved exactly: the published V-JEPA2
+  # checkpoint this repo fetches is 256px / 64-frame, so 224/4 is suspect, but
+  # correcting it changes numerical output and needs a measured, gated change.
+  grid_size: 10
+  clip_frames: 4
+  clip_channels: 3
+  clip_h: 224
+  clip_w: 224
+  # V-JEPA2 consumes 2 frames per temporal token: 4 frames -> 2 temporal slots.
+  tubelet: 2
+  patch_size: 16
+
+endurance:
+  num_clips: 200
+  leak_threshold_mb: 150.0
+  log_filename: endurance_run.log
+  metrics_filename: endurance_metrics.jsonl

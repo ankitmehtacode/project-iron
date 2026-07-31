@@ -43,32 +43,7 @@ import traceback
 import numpy as np
 import psutil
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-
-# Model paths relative to project root
-VJEPA_XML = "../models/int8/vjepa2_vitl_int8.xml"
-COTRACKER_PTH = "../models/weights/cotracker3/scaled_offline.pth"
-
-# Number of clips to process
-NUM_CLIPS = 200
-
-# Synthetic clip dimensions  (matches model input specification)
-CLIP_FRAMES = 4
-CLIP_CHANNELS = 3
-CLIP_H = 224
-CLIP_W = 224
-
-# Memory stability threshold.
-# If RAM grows more than this after the warm-up clip, the run fails.
-LEAK_THRESHOLD_MB = 150
-
-# Log file
-LOG_DIR = "logs"
-LOG_FILE = os.path.join(LOG_DIR, "endurance_run.log")
-os.makedirs(LOG_DIR, exist_ok=True)
-
+from src.config import IronConfig, apply_runtime_settings
 
 # ---------------------------------------------------------------------------
 # Utility functions
@@ -85,20 +60,20 @@ def get_system_available_ram_mb():
     return psutil.virtual_memory().available / (1024 * 1024)
 
 
-def make_synthetic_clip():
+def make_synthetic_clip(config):
     """
-    Generate a random video clip that approximates IDD-Lite input format.
+    Generate a random video clip matching the configured input format.
 
     The clip is created in memory and discarded after each inference pass.
     No disk I/O is performed.
 
+    Args:
+        config: Loaded IronConfig; supplies the clip shape.
+
     Returns:
-        np.ndarray: float32 array of shape [1, CLIP_FRAMES, CLIP_CHANNELS,
-                    CLIP_H, CLIP_W] with values in [0, 1].
+        np.ndarray: float32 array of shape [1, T, C, H, W] with values in [0, 1].
     """
-    return np.random.rand(1, CLIP_FRAMES, CLIP_CHANNELS, CLIP_H, CLIP_W).astype(
-        np.float32
-    )
+    return np.random.rand(*config.pipeline.clip_shape).astype(np.float32)
 
 
 def log(message, filehandle=None):
@@ -122,39 +97,51 @@ def log(message, filehandle=None):
 
 
 def main():
-    with open(LOG_FILE, "w") as logfile:
+    config = IronConfig.load()
+    applied = apply_runtime_settings(config)
+
+    num_clips = config.endurance.num_clips
+    leak_threshold_mb = config.endurance.leak_threshold_mb
+    vjepa_xml = config.paths.resolved_vjepa_xml
+    cotracker_pth = config.paths.resolved_cotracker_checkpoint
+
+    log_dir = config.paths.resolved_log_dir
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_file = log_dir / config.endurance.log_filename
+
+    with open(log_file, "w") as logfile:
         # Header
         log("=" * 65, logfile)
         log("Endurance Run - Continuous Pipeline Memory Stability Test", logfile)
         log("=" * 65, logfile)
-        log(f"Clips          : {NUM_CLIPS}", logfile)
+        log(f"Config sha     : {config.config_sha()}", logfile)
+        log(f"Clips          : {num_clips}", logfile)
+        log(f"Clip shape     : {list(config.pipeline.clip_shape)}", logfile)
         log(
-            f"Clip shape     : [1, {CLIP_FRAMES}, {CLIP_CHANNELS}, "
-            f"{CLIP_H}, {CLIP_W}]",
-            logfile,
-        )
-        log(
-            f"Leak threshold : {LEAK_THRESHOLD_MB} MB steady growth "
+            f"Leak threshold : {leak_threshold_mb} MB steady growth "
             f"after warm-up clip",
             logfile,
         )
-        log(f"V-JEPA2 model  : {VJEPA_XML}", logfile)
-        log(f"CoTracker3     : {COTRACKER_PTH}", logfile)
+        log(f"Seed           : {applied.seed}", logfile)
+        for skip in applied.skipped:
+            log(f"  NOT APPLIED  : {skip}", logfile)
+        log(f"V-JEPA2 model  : {vjepa_xml}", logfile)
+        log(f"CoTracker3     : {cotracker_pth}", logfile)
         log("", logfile)
 
         # Verify model files are accessible before starting
-        for path in [VJEPA_XML, COTRACKER_PTH]:
-            if not os.path.exists(path):
+        for path in [vjepa_xml, cotracker_pth]:
+            if not path.exists():
                 log(f"ERROR: Model file not found: {path}", logfile)
                 log(
-                    "Ensure you are running from the project-iron root " "directory.",
+                    "Fetch weights with: python scripts/fetch_weights.py",
                     logfile,
                 )
                 sys.exit(1)
 
         # -------------------------------------------------------------------
         # Load pipeline
-        # Models are loaded once and reused across all 200 clips.
+        # Models are loaded once and reused across every clip.
         # This reflects real deployment behaviour where inference is
         # continuous rather than loading models per clip.
         # -------------------------------------------------------------------
@@ -164,10 +151,10 @@ def main():
         from src.semantics.semantic_extractor import SemanticExtractor
 
         extractor = SemanticExtractor(
-            vjepa_xml=VJEPA_XML,
-            cotracker_checkpoint=COTRACKER_PTH,
-            grid_size=10,  # 10x10 grid = 100 tracked points per clip
-            device="CPU",
+            vjepa_xml=str(vjepa_xml),
+            cotracker_checkpoint=str(cotracker_pth),
+            grid_size=config.pipeline.grid_size,
+            device=config.runtime.device,
         )
 
         load_time = time.time() - load_start
@@ -201,12 +188,12 @@ def main():
         total_start = time.time()
         clip_idx = 0
 
-        for clip_idx in range(1, NUM_CLIPS + 1):
+        for clip_idx in range(1, num_clips + 1):
             clip_start = time.time()
 
             try:
                 # Create synthetic clip in memory
-                video = make_synthetic_clip()
+                video = make_synthetic_clip(config)
 
                 # Run full inference pipeline
                 result = extractor.extract(video)
@@ -236,9 +223,9 @@ def main():
             else:
                 delta = ram_now - ram_baseline
                 ram_readings.append(ram_now)
-                if delta > LEAK_THRESHOLD_MB:
+                if delta > leak_threshold_mb:
                     status = "FAIL"
-                elif delta > LEAK_THRESHOLD_MB * 0.5:
+                elif delta > leak_threshold_mb * 0.5:
                     status = "WARN"
                 else:
                     status = "OK"
@@ -260,7 +247,7 @@ def main():
         log("=" * 65, logfile)
         log("SUMMARY", logfile)
         log("=" * 65, logfile)
-        log(f"Clips processed        : {clip_idx} / {NUM_CLIPS}", logfile)
+        log(f"Clips processed        : {clip_idx} / {num_clips}", logfile)
         log(f"Errors                 : {errors}", logfile)
         log(
             f"Total time             : {total_elapsed:.1f}s  "
@@ -270,7 +257,7 @@ def main():
         log(f"RAM after warm-up clip : {ram_baseline:.1f} MB  (baseline)", logfile)
         log(f"RAM at end of run      : {ram_end:.1f} MB", logfile)
         log(f"Total growth           : {total_growth:+.1f} MB", logfile)
-        log(f"Leak threshold         : {LEAK_THRESHOLD_MB} MB", logfile)
+        log(f"Leak threshold         : {leak_threshold_mb} MB", logfile)
         log("", logfile)
 
         # Trend analysis: compare last 10 vs first 10 post-warmup clips
@@ -286,7 +273,7 @@ def main():
 
         log("", logfile)
 
-        if total_growth > LEAK_THRESHOLD_MB and trend > 30:
+        if total_growth > leak_threshold_mb and trend > 30:
             log("RESULT: FAILED", logfile)
             log(f"  RAM grew by {total_growth:.1f} MB after warm-up.", logfile)
             log("  Investigate object retention in SemanticExtractor.", logfile)
@@ -295,13 +282,13 @@ def main():
             log("  RAM remained stable after warm-up.", logfile)
             log(
                 f"  Growth of {total_growth:+.1f} MB is within the "
-                f"{LEAK_THRESHOLD_MB} MB threshold.",
+                f"{leak_threshold_mb} MB threshold.",
                 logfile,
             )
             log("  No memory leak detected across 200 inference passes.", logfile)
 
         log("=" * 65, logfile)
-        log(f"Full log: {LOG_FILE}", logfile)
+        log(f"Full log: {log_file}", logfile)
 
 
 if __name__ == "__main__":
