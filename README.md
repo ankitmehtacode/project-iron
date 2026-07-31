@@ -50,17 +50,25 @@ project-iron/
 │   └── workflows/
 │       └── ci.yaml
 ├── configs/
+│   ├── golden/
+│   │   ├── v1-driving.golden.json
+│   │   └── v2-indoor.golden.json
 │   ├── preprocess/
 │   │   └── vjepa2_vitl.preprocess.json
+│   ├── datasets.yaml
 │   └── default.yaml
 ├── scripts/
+│   ├── build_calibration_set.py
 │   ├── cascade_bench.py
+│   ├── cvat_project.py
 │   ├── demo_events.py
 │   ├── env_gate.py
+│   ├── eval_report.py
 │   ├── export_cotracker3_onnx.py
 │   ├── export_depth_anything_onnx.py
 │   ├── export_vjepa_onnx.py
 │   ├── export_vjepa_ov.py
+│   ├── fetch_dataset.py
 │   ├── fetch_weights.py
 │   ├── gen_tree.py
 │   ├── make_golden_vectors.py
@@ -84,6 +92,9 @@ project-iron/
 │   │   ├── frames.py
 │   │   ├── geometry.py
 │   │   └── tokens.py
+│   ├── data/
+│   │   ├── __init__.py
+│   │   └── registry.py
 │   ├── endurance/
 │   │   ├── __init__.py
 │   │   ├── gates.py
@@ -152,6 +163,8 @@ project-iron/
 │   ├── rag_agent.py
 │   └── vector_database.py
 ├── tests/
+│   ├── fixtures/
+│   │   └── cvat_miniature.xml
 │   ├── golden/
 │   │   ├── clips/
 │   │   │   ├── real_test_video.npz
@@ -164,13 +177,19 @@ project-iron/
 │   │   │   ├── synthetic_spatial_gradient.npz
 │   │   │   └── synthetic_tubelet_probe.npz
 │   │   └── manifest.json
+│   ├── test_calibration_set.py
 │   ├── test_cascade.py
 │   ├── test_config.py
 │   ├── test_contracts_properties.py
+│   ├── test_converters.py
+│   ├── test_cvat_roundtrip.py
+│   ├── test_data_registry.py
 │   ├── test_depth_honesty.py
 │   ├── test_endurance_gates.py
 │   ├── test_env_gate.py
 │   ├── test_events_schema.py
+│   ├── test_fetch_dataset.py
+│   ├── test_golden_sets.py
 │   ├── test_golden_vectors.py
 │   ├── test_known_bugs.py
 │   ├── test_preprocess_spec.py
@@ -185,6 +204,7 @@ project-iron/
 ├── endurance_run.py
 ├── FOUNDATION_REPORT.md
 ├── locking-requirements.txt
+├── Makefile
 ├── mypy.ini
 ├── pyproject.toml
 ├── README.md

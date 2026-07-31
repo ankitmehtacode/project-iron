@@ -1028,3 +1028,188 @@ Those 22 were produced by the path that scored cosine 0.332. They are not
 7. Pin `transformers` (unpinned; resolved to 4.57.6 and is now part of the
    reference provenance) and add `onnx` to the requirements — it is an
    undeclared build dependency of the export path.
+
+---
+
+# Day 5 — Data infrastructure
+
+Branch `foundation/day-5`, seven objectives. Nothing downloaded, nothing
+trained — by design: every fetch path requires a human license snapshot that
+does not exist yet.
+
+**361 passed, 6 skipped, 1 xfailed.** `mypy --strict` clean over 26 source
+files (scope extended to `src/data`). Lint clean at the pinned versions.
+
+## D5.0 — The finding this day implements
+
+Every eval and calibration story in this repository was built on driving
+footage while the product is indoor offices, shops and industrial floors. The
+harness transfers; the footage does not. Two consequences are now enforced in
+code rather than noted:
+
+- The golden set is rebuilt for indoor (`v2-indoor`), and the driving set is
+  demoted to `legacy` — retained for pipeline regression, refused for product
+  metrics.
+- Any INT8 calibration performed on driving frames is void. The calibration
+  builder refuses anything that is not lane C.
+
+## D5.1 — Registry contents
+
+41 entries. **Zero verified.** Every `license_snapshot` is `null`, and every
+stated class is recorded as `hypothesis_class` — a starting hypothesis from a
+document written from memory, not a clearance.
+
+| lane | count | meaning |
+|---|---|---|
+| R — research | 30 | eval and model selection only; never trained on, never in demos |
+| S — synthetic | 7 | conditional: lane S pending per-asset commercial clearance |
+| C — consented | 1 | `site-zero`, which does not exist yet |
+| blocked | 3 | DukeMTMC, DukeMTMC-reID, MS-Celeb |
+
+By subsystem: activity 7, re-ID 7, depth 5, anomaly 4, gait 4, detection 3,
+twin 3, tracking 2, HOI 2.
+
+The blocklist lives **in code**, not only in the YAML: deleting a blocked entry
+from `configs/datasets.yaml` does not unblock it, and re-registering a blocked
+name as `blocked: false` raises at load. Matching is fuzzy across case, dashes
+and underscores, so `dukemtmc_reid` and `DukeMTMC-reID` both hit.
+
+The gait row is worth stating plainly: **all four public gait datasets are lane
+R, so there is no commercially usable public gait data at all.** The trainable
+gait corpus is Site Zero or nothing. That is an independent confirmation of the
+"gait as auxiliary, never sole identifier" posture — the data reality would not
+support more even if the accuracy did.
+
+## D5.2 — Human license verification required, by product impact
+
+Nothing can be fetched until someone reads the actual text and records it with
+`scripts/fetch_dataset.py --verify-license`. Ordered by what it unblocks:
+
+1. **MEVA** — the single best public match to this product (multi-camera
+   facility, hired consented actors, surveillance-style activity annotations).
+   Its terms were historically unusual for this category; if verification
+   confirms permissive, it may earn use beyond lane R, and it is the only
+   public dataset that might. **Verify first.**
+2. **MEVID** — built on MEVA, so its answer probably follows MEVA's. Clothing-
+   change re-ID eval.
+3. **The four synthetic re-ID sets** (RandPerson, UnrealPerson, ClonedPerson,
+   PersonX) — currently lane S *conditionally*. They are the only re-ID data we
+   could legitimately fine-tune on before Site Zero matures, so their status is
+   what decides whether re-ID work can start at all. Watch for the SMPL trap:
+   synthetic means no consent debt, not no license.
+4. **Infinigen-Indoors and Kubric** — the depth/geometry eval story. Generator
+   code is permissive; the per-asset terms are what need checking.
+5. **NTU-RGB+D 120** — the POSE-verb benchmark the first converter targets.
+6. Everything else, as it becomes relevant.
+
+## D5.3 — Converter, golden set, CVAT
+
+**Converter interface + first converter.** `src/data/converters/`: a `Converter`
+protocol producing `CanonicalClips` — clips plus GT typed as
+`src.events.Event`. The NTU-skeleton converter is implemented end to end
+against a format-correct fixture synthesized in the test.
+
+The action→verb mapping covers four classes whose NTU definitions match a verb
+exactly. Everything else lands in `CanonicalClips.skipped` **with its reason**,
+as part of the return type. Wrong GT is worse than missing GT: missing shrinks
+the eval, wrong corrupts it while inflating the score. GT event ids are `uuid5`
+over `(site, clip, verb)`, so re-conversion is idempotent and joins survive it.
+
+**Golden sets.** `v1-driving` is `legacy` and `require_product_usable()` raises
+for it; `v2-indoor` is `active` and **empty**. `make eval` exits 1 on an empty
+set, because an empty set reporting no failures is not a passing grade.
+Immutability is enforced: frozen dataclass, `with_clips()` mints a new version,
+`write_golden_set` refuses to overwrite, and the `set_sha` is re-checked at
+load so a hand-edited manifest is caught instead of silently invalidating every
+number ever reported against it.
+
+The repository had no `Makefile`; one now exists as a thin wrapper over scripts
+that all work standalone.
+
+**CVAT round trip.** The label config is *generated* from the `Verb` enum, so
+the annotation spec and the production schema cannot drift. Verb/object
+coherence is encoded into the CVAT form itself — INTERACTION labels carry a
+required object attribute, POSE labels carry none — so an incoherent annotation
+cannot be entered, not merely rejected later. Ingest reuses the schema's own
+rules; the committed fixture contains three deliberate violations and each is
+rejected with its CVAT track id so an annotator can find it.
+
+**Calibration builder.** Refuses lane R with the specified message verbatim,
+and refuses lane S with the *same headline but a different reason* — synthetic
+frames have no sensor noise, rolling shutter, compression artefacts or real
+lighting, so ranges fitted to clean renders clip on real footage. Someone told
+only "wrong lane" would reasonably reach for the synthetic set, which is
+precisely the wrong fix. Sampling is round-robin across declared conditions,
+not proportional; a test seeds 995 daylight frames against 5 glare frames and
+asserts all 5 rare frames are selected.
+
+## D5.4 — Site Zero shopping list
+
+**Cameras and mounts**
+
+| item | qty | notes |
+|---|---|---|
+| IP cameras, 1080p, PoE, RTSP | 3 | the product claims both resolutions, so both must be measured |
+| IP cameras, 720p, PoE, RTSP | 3 | the harder case, and the one the budget is quoted against |
+| PoE switch, ≥8 ports | 1 | also the time-sync path |
+| Wall/ceiling mounts, adjustable | 6 | realistic CCTV heights and angles, not desk height |
+| Cat6 runs | 6 | length per site survey |
+| NVR or a recording host with ≥4 TB | 1 | ~50 h raw across 6 cameras |
+| Tripod + phone gimbal | 1 | twin walkthrough capture |
+
+**Placement, which is a measurement decision rather than a convenience one**
+
+- One **overlapping pair** — the only source of cross-camera association GT.
+- One deliberate **blind-spot gap** between coverage zones — handoff eval, and
+  the source of the `observed=false` inferred events the schema is built for.
+- One **long-corridor** view at the far edge of the capability envelope, to
+  populate the `far_field` condition.
+
+**Volume targets (v1)**: 8–12 participants, 30–40 scripted sessions plus 2
+weeks passive consented ambient, ~50 h raw, **5 h densely annotated**, a 30-clip
+indoor golden set frozen out of it, and the calibration set extracted per §D5.3.
+
+**Consent**: `docs/site_zero_consent_TEMPLATE.md`, marked **DRAFT — requires
+counsel**. It covers purpose limitation, biometric handling, retention,
+withdrawal, and per-purpose opt-in (demos are separately tickable and
+refusable). It states one limitation plainly rather than eliding it: deleting
+someone's footage does not remove what a trained model already learned from it,
+and whether that satisfies the erasure obligation is flagged as the sharpest
+open question for counsel.
+
+Recruit beyond the team. Consent from eight colleagues who all know each other
+is weak evidence of freely-given consent, and a poor sample of a real
+deployment.
+
+## D5.5 — Deviations
+
+- **`make eval` had no Makefile to wire into**; one was created. Every target
+  is a wrapper over a script that works standalone, so the Makefile is never
+  the only way in.
+- **`scripts/eval_report.py` reports the instrument, it does not compute
+  metrics.** There is nothing to measure until Site Zero produces annotated
+  clips. Building the part that decides *what* gets measured first is
+  deliberate: it is the part that determines whether a number means anything.
+- **`src/data/converters/base.py` defines `CanonicalClip` without media
+  decoding.** NTU ships skeletons, not pixels, so the first converter needed no
+  decoder. The ffmpeg-pinned mp4 path is specified in the dataclass and unbuilt
+  until a converter needs it.
+- **`Condition` lives in `src/data/golden.py`**, and the calibration builder
+  imports it from there rather than duplicating the taxonomy.
+- **`deterministic_event_id` added to the event schema.** GT needs stable ids
+  across re-conversion; production events keep random `uuid4` because each
+  detection is a new fact.
+
+## D5.6 — Day 6, ordered
+
+1. **Verify MEVA's license** (§D5.2). It gates the most product-relevant public
+   data and may be the one dataset that earns broader use.
+2. **Order cameras and run the site survey** — placement decides what GT is
+   obtainable at all, and the overlapping pair plus blind-spot gap cannot be
+   retrofitted by annotation.
+3. **Counsel review of the consent template**, specifically the erasure
+   limitation in §7 and whether employee consent is freely given for DPDP
+   purposes.
+4. Then, unchanged from Day 3 and still first in the engineering queue: the
+   production `vjepa2_vitl_int8.xml`/`.bin` from whoever ran production, for
+   the parked Objective-1 forensic verdict.
