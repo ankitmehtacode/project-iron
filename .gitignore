@@ -9,25 +9,31 @@ venv/
 # Generated pipeline artifacts. These are run outputs, not source: they are
 # reproducible from the code plus a run manifest, and committing them makes
 # diffs unreviewable and the clone large.
-outputs/
-output/
-logs/
+#
+# Every pattern below is ANCHORED with a leading slash. Unanchored, "data/"
+# matches a directory named data at ANY depth, so it silently swallowed the
+# src/data and src/models source packages: golden.py, scorecard.py,
+# cvat_ingest.py and preprocess.py were all excluded from their commits and a
+# fresh clone could not import them. Keep the leading slash.
+/outputs/
+/output/
+/logs/
 
 # Model weights and exported IR — fetched via scripts/fetch_weights.py
-models/
+/models/
 
 # Downloaded datasets — content-addressed by scripts/fetch_dataset.py
-data/
+/data/
 
 # Python build / cache
 __pycache__/
 *.py[cod]
 *.egg-info/
-build/
-dist/
+/build/
+/dist/
 .pytest_cache/
 .mypy_cache/
 .hypothesis/
 .coverage
 coverage.xml
-htmlcov/
+/htmlcov/
