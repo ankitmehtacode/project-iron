@@ -1,6 +1,9 @@
 import os
 import hashlib
+
 from huggingface_hub import snapshot_download
+
+from src.config import IronConfig
 
 # ----------------------------
 # Configuration
@@ -13,11 +16,20 @@ MODELS = {
     "depth_anything_v2_small": "depth-anything/Depth-Anything-V2-Small-hf",
 }
 
-# Directory where model weights will be stored
-SAVE_DIR = "../models/weights"
+# Directory where model weights will be stored.
+#
+# Resolved against the repository root, not the current working directory. The
+# previous value was the literal "../models/weights", which lands inside the
+# repo only when the script is run from scripts/ and writes to a SIBLING of the
+# repository when run from the root — the documented location. Weights would
+# appear to download successfully and then be invisible to everything that
+# looks them up through the config.
+_CONFIG = IronConfig.load()
+SAVE_DIR = str(_CONFIG.paths.resolved_models_dir / "weights")
 
-# File to store SHA256 hashes for downloaded weights
-HASH_FILE = "../models/weights/hashes.txt"
+# File to store SHA256 hashes for downloaded weights. These are the
+# source-checkpoint provenance an export manifest records.
+HASH_FILE = os.path.join(SAVE_DIR, "hashes.txt")
 
 os.makedirs(SAVE_DIR, exist_ok=True)
 
@@ -69,7 +81,11 @@ def main():
                 local_dir=os.path.join(SAVE_DIR, name),
                 allow_patterns=["*.bin", "*.pt", "*.pth", "*.safetensors"],
                 ignore_patterns=["*.msgpack", "*.h5"],
-                token=True,
+                # token=True FORCED authentication and failed on a machine with
+                # no cached Hugging Face login, even though every repository
+                # here is public. None uses a cached token when one exists and
+                # falls back to anonymous access when it does not.
+                token=None,
             )
 
             print(f"Saved to: {local_path}")

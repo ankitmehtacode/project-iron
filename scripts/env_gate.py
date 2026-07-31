@@ -50,8 +50,40 @@ IMPORT_NAMES = {
     "pyyaml": "yaml",
 }
 
-# The four the brief names, plus the two that silently change numerics.
-REQUIRED_MODULES = ("torch", "openvino", "cv2", "numpy")
+# (import name, candidate distribution names) for each required runtime.
+#
+# The two are not the same thing, and the difference is load-bearing. A module's
+# ``__version__`` attribute is whatever its authors chose to put there:
+# ``cv2.__version__`` is "4.8.1" where the distribution is 4.8.1.78, and
+# ``openvino.__version__`` is
+# "2024.6.0-17404-4c0f47d2335-releases/2024/6" where the distribution is
+# 2024.6.0. Comparing pins against those strings reports a correctly pinned
+# environment as wrong. Distribution metadata is what pip actually resolved and
+# recorded, so that is what gets compared.
+#
+# cv2 lists two candidates because either OpenCV distribution provides it.
+REQUIRED_MODULES: tuple[tuple[str, tuple[str, ...]], ...] = (
+    ("torch", ("torch",)),
+    ("openvino", ("openvino",)),
+    ("cv2", ("opencv-python-headless", "opencv-python")),
+    ("numpy", ("numpy",)),
+)
+
+
+def installed_version(candidates: tuple[str, ...]) -> tuple[str | None, str | None]:
+    """Return ``(distribution, version)`` from installed package metadata.
+
+    Returns ``(None, None)`` when no candidate distribution is installed, which
+    the caller reports rather than silently falling back to a module attribute.
+    """
+    from importlib.metadata import PackageNotFoundError, version
+
+    for distribution in candidates:
+        try:
+            return distribution, version(distribution)
+        except PackageNotFoundError:
+            continue
+    return None, None
 
 
 @dataclass
@@ -95,22 +127,34 @@ def module_for(distribution: str) -> str:
 
 
 def check_imports(pins: dict[str, str]) -> list[Row]:
-    """Row 1: required modules importable, at the pinned version where pinned."""
-    expected = {module_for(dist): version for dist, version in pins.items()}
+    """Row 1: required modules import, at the pinned version where pinned.
+
+    Two separate questions, both of which matter. Does the module import — a
+    package that is installed but broken fails at inference time, which is
+    worse than one that is absent. And does the *distribution* match the pin —
+    compared against installed metadata rather than the module's own
+    ``__version__`` string, for the reasons in :data:`REQUIRED_MODULES`.
+    """
     rows: list[Row] = []
 
-    for module in REQUIRED_MODULES:
+    for module, candidates in REQUIRED_MODULES:
+        distribution, found = installed_version(candidates)
+        wanted = next(
+            (pins[name] for name in candidates if name in pins),
+            None,
+        )
+        primary = candidates[0]
+
         if importlib.util.find_spec(module) is None:
-            wanted = expected.get(module)
             rows.append(
                 Row(
                     name=f"import {module}",
                     passed=False,
                     detail="not installed",
                     remedy=(
-                        f"pip install {module}=={wanted}"
+                        f"pip install {primary}=={wanted}"
                         if wanted
-                        else f"pip install {module}"
+                        else f"pip install {primary}"
                     )
                     + "  (or: pip install -r locking-requirements.txt)",
                 )
@@ -118,8 +162,7 @@ def check_imports(pins: dict[str, str]) -> list[Row]:
             continue
 
         try:
-            imported = __import__(module)
-            found = str(getattr(imported, "__version__", "unknown"))
+            __import__(module)
         except Exception as exc:  # noqa: BLE001 - report, never crash the gate
             rows.append(
                 Row(
@@ -132,22 +175,39 @@ def check_imports(pins: dict[str, str]) -> list[Row]:
             )
             continue
 
-        wanted = expected.get(module)
-        if wanted is None:
-            rows.append(Row(f"import {module}", True, f"{found} (unpinned)"))
-        elif found.split("+")[0] == wanted:
-            rows.append(Row(f"import {module}", True, f"{found} (pinned)"))
+        if found is None:
+            rows.append(
+                Row(
+                    name=f"import {module}",
+                    passed=False,
+                    detail=(
+                        f"imports, but no distribution metadata found for any of "
+                        f"{', '.join(candidates)} — the version cannot be verified"
+                    ),
+                    remedy=f"pip install {primary}"
+                    + (f"=={wanted}" if wanted else "")
+                    + " so the installed version is recorded and checkable",
+                )
+            )
+        elif wanted is None:
+            rows.append(
+                Row(f"import {module}", True, f"{distribution} {found} (unpinned)")
+            )
+        elif found == wanted:
+            rows.append(
+                Row(f"import {module}", True, f"{distribution} {found} (pinned)")
+            )
         else:
             rows.append(
                 Row(
                     name=f"import {module}",
                     passed=False,
-                    detail=f"version {found}, pinned {wanted}",
+                    detail=f"{distribution} {found}, pinned {wanted}",
                     remedy=(
-                        f"pip install {module}=={wanted} — INT8 kernel selection "
-                        "and reduction order differ between releases, so golden "
-                        "vectors recorded under one version are not a reference "
-                        "for another"
+                        f"pip install {distribution}=={wanted} — INT8 kernel "
+                        "selection and reduction order differ between releases, "
+                        "so golden vectors recorded under one version are not a "
+                        "reference for another"
                     ),
                 )
             )

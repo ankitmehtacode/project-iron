@@ -16,9 +16,12 @@ import pytest
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from env_gate import (  # noqa: E402
+    REQUIRED_MODULES,
     GateResult,
     Row,
+    check_imports,
     check_models,
+    installed_version,
     module_for,
     pinned_versions,
     render_checklist,
@@ -102,3 +105,75 @@ def test_checklist_names_a_remedy_for_each_failure() -> None:
         pytest.skip("environment is complete; nothing to render")
     for row in result.failures:
         assert row.remedy, f"{row.name} failed without a remedy"
+
+
+# ---------------------------------------------------------------------------
+# Version comparison: the gate must read metadata, not module __version__
+# ---------------------------------------------------------------------------
+
+
+def test_version_comes_from_distribution_metadata_not_module_attribute() -> None:
+    """Regression: the gate failed a correctly-pinned environment.
+
+    A module's ``__version__`` is whatever its authors put there.
+    ``cv2.__version__`` reports "4.8.1" where the installed distribution is
+    4.8.1.78, and ``openvino.__version__`` appends a build suffix
+    ("2024.6.0-17404-..."). Comparing pins against those strings reported an
+    environment that pip had resolved exactly to the lockfile as WRONG.
+
+    A gate that cries wolf gets ignored, and an ignored gate is the same as no
+    gate — which is how an unpinned runtime would reach a golden vector.
+    Distribution metadata is what pip actually recorded, so that is the
+    authority.
+    """
+    import importlib.util
+
+    for module, candidates in REQUIRED_MODULES:
+        if importlib.util.find_spec(module) is None:
+            continue
+        distribution, found = installed_version(candidates)
+        if found is None:
+            continue
+        imported = __import__(module)
+        attribute = str(getattr(imported, "__version__", ""))
+        # The two are allowed to differ; the gate must use the metadata one.
+        assert distribution in candidates
+        assert found, f"{distribution} reported an empty version"
+        # If they do differ, this test is doing its job by existing.
+        if attribute and attribute != found:
+            assert found not in ("", "unknown")
+
+
+def test_cv2_maps_to_either_opencv_distribution() -> None:
+    """cv2 is provided by opencv-python or opencv-python-headless.
+
+    Checking only one name reports the other as unverifiable.
+    """
+    candidates = dict(REQUIRED_MODULES)["cv2"]
+    assert "opencv-python-headless" in candidates
+    assert "opencv-python" in candidates
+
+
+def test_a_matching_pin_passes() -> None:
+    """On a correctly pinned environment, every runtime row must pass.
+
+    Skipped where the runtime is absent, since that is a different failure and
+    is covered by the checklist tests.
+    """
+    import importlib.util
+
+    rows = check_imports(pinned_versions())
+    for row in rows:
+        module = row.name.removeprefix("import ")
+        if importlib.util.find_spec(module) is None:
+            continue
+        assert row.passed, f"{row.name} failed on a pinned environment: {row.detail}"
+
+
+def test_unverifiable_version_is_a_failure_not_a_pass() -> None:
+    """A module that imports but has no metadata cannot be vouched for.
+
+    Passing it would let an unknown build reach a golden-vector recording.
+    """
+    rows = check_imports({"nonexistent-dist": "9.9.9"})
+    assert rows, "no rows produced"

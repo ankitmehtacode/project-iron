@@ -17,6 +17,7 @@ extend-ignore = E203, W503
 exclude =
     .git,
     .venv,
+    .venv-pinned,
     venv,
     __pycache__,
     .pytest_cache,

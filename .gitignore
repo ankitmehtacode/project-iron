@@ -1,6 +1,7 @@
 # Virtual environments
 venv/
 .venv/
+.venv-pinned/
 
 # Editor / IDE state — machine-local, not shared engineering config
 .vscode/

@@ -83,17 +83,26 @@ def test_no_hardcoded_normalization_constants_in_source() -> None:
     unused wrapper applied the right one. The values belong beside the weights
     they describe, where they can be checked against the model.
     """
+    # Scan only the directories this repository owns, rather than blacklisting
+    # the ones it does not. A blacklist has to be updated every time a new
+    # virtualenv name or vendored directory appears — and when it is missed the
+    # scan either crashes on a non-UTF-8 file inside a dependency or reports a
+    # third party's constants as ours.
     offenders: list[str] = []
-    for path in sorted(REPO_ROOT.rglob("*.py")):
+    candidates = sorted(REPO_ROOT.glob("*.py"))
+    for directory in ("src", "scripts", "tests"):
+        candidates.extend(sorted((REPO_ROOT / directory).rglob("*.py")))
+
+    for path in candidates:
         relative = path.relative_to(REPO_ROOT).as_posix()
-        if relative.startswith((".venv/", "build/", "dist/")):
-            continue
         if relative in _ALLOWED:
             continue
-        text = path.read_text()
+        text = path.read_text(encoding="utf-8", errors="replace")
         for number, line in enumerate(text.splitlines(), start=1):
             if any(re.search(pattern, line) for pattern in _FORBIDDEN_LITERALS):
                 offenders.append(f"{relative}:{number}: {line.strip()}")
+
+    assert candidates, "scan found no Python files; the whitelist is wrong"
 
     assert not offenders, (
         "normalization constants found in Python source; they belong in a "

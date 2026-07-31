@@ -750,6 +750,88 @@ This matters beyond today, and it is a caveat on Day 2:
 reassurance: it verifies that installed distributions satisfy each other's
 constraints, not that they match this project's pins. Only the gate checks that.
 
+## D3.0b — Environment rebuilt: gate now 7 of 9
+
+After the checklist above was acted on, the gate stands at **7 PASS / 2 FAIL**.
+Still failing, so Day 3 remains stopped — but the remaining two rows are a
+different kind of blocker from the eight that started the day.
+
+```
+CHECK                        STATUS  DETAIL
+----------------------------------------------------------------------------
+import torch                 PASS    torch 2.2.0 (pinned)
+import openvino              PASS    openvino 2024.6.0 (pinned)
+import cv2                   PASS    opencv-python-headless 4.8.1.78 (pinned)
+import numpy                 PASS    numpy 1.26.2 (pinned)
+model vjepa_xml              FAIL    missing — production INT8 IR
+model vjepa_bin              FAIL    missing — production INT8 IR
+model cotracker_checkpoint   PASS    101.9 MB  sha256 2670d4562ed69326...
+pip check                    PASS    No broken requirements found.
+seeds / threads              PASS    seed=0 numpy=yes torch=yes torch_threads=6
+```
+
+Environment: a fresh `.venv-pinned` on **Python 3.10.20**, every runtime at its
+pinned version. The full suite passes on it: **272 passed, 6 skipped,
+2 xfailed**. That is a real result — all prior work was developed against
+numpy 2.5 and OpenCV 5, and it holds on numpy 1.26.2 and OpenCV 4.8.1.78.
+
+Checkpoint provenance recorded at download, for Objective 4's export manifest:
+
+| artifact | size | sha256 |
+|---|---|---|
+| `cotracker3/scaled_offline.pth` | 101.9 MB | `2670d4562ed69326dda775a26e54883925cd11b6fc9b24cb7aa9f8078bce7834` |
+| `vjepa2_vitl/model.safetensors` | 1.2 GB | see `models/weights/hashes.txt` |
+
+### Three defects fixed to get here
+
+**1. The lockfile had never been installable.** `mlflow==2.9.2` pins
+`pyarrow<15` while the same file pins `pyarrow==18.1.0`. Unsatisfiable, on
+every machine and every Python version — `pip install -r
+locking-requirements.txt` has failed with `ResolutionImpossible` since the file
+was written. Removing that one line resolves the whole file with every other
+pin untouched. Safe because `grep -rn mlflow --include=*.py` matches zero
+files: it was an intention recorded in a requirements file, and it was blocking
+the entire install.
+
+**2. The gate itself was wrong.** It compared pins against each module's
+`__version__` attribute, and reported a correctly-pinned environment as
+failing — `cv2.__version__` is `"4.8.1"` where the distribution is `4.8.1.78`,
+and `openvino.__version__` is `"2024.6.0-17404-4c0f47d2335-releases/2024/6"`
+where the distribution is `2024.6.0`. It now reads `importlib.metadata`, which
+is what pip actually resolved and recorded. This is the third instance of the
+same pattern in three days: the instrument was broken, not the code, and a gate
+that cries wolf gets ignored — which is indistinguishable from having no gate.
+Pinned by `test_version_comes_from_distribution_metadata_not_module_attribute`.
+
+**3. `fetch_weights.py` wrote outside the repository.** `SAVE_DIR =
+"../models/weights"`, resolved against the working directory. Run from
+`scripts/` it lands correctly; run from the repository root — the documented
+location — it writes to a *sibling* of the repo, where nothing that reads paths
+through the config would ever find it. Same CWD-dependence class fixed
+repo-wide on Day 1; this file was missed because it had no `sys.path` hack to
+grep for. It also passed `token=True`, forcing Hugging Face authentication for
+repositories that are all public, which fails outright on a machine with no
+cached login.
+
+### Why the last two rows are not being cleared
+
+The remaining failures are the **production INT8 artifact**, and it is
+deliberately not being generated.
+
+Exporting and quantizing a fresh IR would turn both rows green in about ten
+minutes. It would also destroy Objective 1. That objective is a forensic
+verdict on *the artifact production actually used* — the only evidence of what
+the stored embeddings were computed with. An artifact built today is Objective
+4's replacement, a different thing entirely, and running the tubelet and
+temporal-alignment tests against it while calling the result "the production
+verdict" would fabricate exactly the kind of confident-wrong answer this gate
+exists to prevent.
+
+So the production `vjepa2_vitl_int8.xml` and `.bin` must be copied from
+whichever machine ran production, with `sha256sum` taken before transfer so
+corruption cannot be mistaken for an export defect. That is a human action with
+latency outside this repository, and it is now the single blocker for Day 3.
+
 ## D3.1 — What was delivered
 
 `scripts/env_gate.py`, run as `python scripts/env_gate.py` (add `--json` for a
