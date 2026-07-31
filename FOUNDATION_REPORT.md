@@ -653,3 +653,151 @@ hardware.
 - **Objective 3 is not marked `[W]`** but is transitively weights-dependent: it
   requires flipping a weights-gated test green and reporting a weights-gated
   cosine.
+
+---
+
+# Day 3
+
+Branch `foundation/day-3`. **STOPPED AT OBJECTIVE 0 — the environment gate
+failed.**
+
+Per the brief's hard stop, no other objective was attempted. Nothing was
+stubbed, no verdict was improvised, and no measurement is reported that was not
+taken. Objectives 1–4 remain exactly where Day 2 left them: written, waiting,
+and blocked on the same thing.
+
+## D3.0 — Environment gate: FAILED, 8 of 9 checks
+
+`python scripts/env_gate.py` → exit 1.
+
+```
+CHECK                        STATUS  DETAIL
+----------------------------------------------------------------------------
+import torch                 FAIL    not installed
+import openvino              FAIL    not installed
+import cv2                   FAIL    version 5.0.0, pinned 4.8.1.78
+import numpy                 FAIL    version 2.5.1, pinned 1.26.2
+model vjepa_xml              FAIL    missing at models/int8/vjepa2_vitl_int8.xml
+model vjepa_bin              FAIL    missing at models/int8/vjepa2_vitl_int8.bin
+model cotracker_checkpoint   FAIL    missing at models/weights/cotracker3/scaled_offline.pth
+pip check                    PASS    No broken requirements found.
+seeds / threads              FAIL    torch not importable
+```
+
+### The exact missing-item checklist
+
+**A. Runtime — install the pinned stack**
+
+```bash
+pip install -r locking-requirements.txt
+```
+
+| item | required | found |
+|---|---|---|
+| `torch` | 2.2.0 (CPU index) | not installed |
+| `openvino` | 2024.6.0 | not installed |
+| `numpy` | 1.26.2 | **2.5.1** |
+| `opencv-python-headless` | 4.8.1.78 | **5.0.0** |
+
+Also needed but not gate rows: `transformers` (4.36.0) and CoTracker3 from
+`github.com/facebookresearch/co-tracker`, both required by the golden-vector
+generator and the temporal-alignment test.
+
+**B. Model artifacts — none of the three exist; `models/` itself is absent**
+
+```bash
+python scripts/fetch_weights.py                 # official checkpoints
+python scripts/export_vjepa_onnx.py             # -> models/onnx/
+python scripts/quantize_vjepa.py                # -> models/int8/*.xml + *.bin
+```
+
+| path | status |
+|---|---|
+| `models/int8/vjepa2_vitl_int8.xml` | missing |
+| `models/int8/vjepa2_vitl_int8.bin` | missing |
+| `models/weights/cotracker3/scaled_offline.pth` | missing |
+| `models/weights/vjepa2_vitl/` (official PyTorch, for golden references) | missing |
+
+A filesystem search across the home directory for any file over 1 MB matching
+`*.pth`, `*.safetensors`, `*vjepa*` or `*cotracker*` returned nothing outside
+the virtualenv. The weights are not merely at a different path — they are not
+on this machine.
+
+**C. Determinism** — follows from A. Seeds and thread caps cannot be applied
+while torch is absent, and INT8 determinism holds only at a fixed thread count.
+
+### A new finding: the dev environment was never on the pinned versions
+
+Rows 3 and 4 are not simply "absent" — they are **present at the wrong
+versions**. numpy 2.5.1 against a pinned 1.26.2, and OpenCV 5.0.0 against a
+pinned 4.8.1.78. Those are major-version gaps.
+
+This matters beyond today, and it is a caveat on Day 2:
+
+- **The Day-2 cascade timings are not reference numbers.** The 2.97%-of-a-core
+  figure was measured on OpenCV 5.0.0. OpenCV's resize and MOG2 implementations
+  changed between 4.x and 5.x, so that number does not transfer to a machine
+  running the pinned stack. The *parity* result is unaffected — it compares two
+  gate resolutions within one environment — but the absolute cost must be
+  re-measured once the pinned versions are installed.
+- **Any golden vector recorded here would have been non-reproducible.** A
+  reference embedding is only a reference for the runtime that produced it, and
+  recording one under unpinned numpy would have quietly poisoned every later
+  comparison. The gate catching this before Objective 2 ran is the gate doing
+  its job.
+
+`pip check` passes, which is worth noting as a limitation rather than
+reassurance: it verifies that installed distributions satisfy each other's
+constraints, not that they match this project's pins. Only the gate checks that.
+
+## D3.1 — What was delivered
+
+`scripts/env_gate.py`, run as `python scripts/env_gate.py` (add `--json` for a
+machine-readable fingerprint). It checks all four rows the brief specifies,
+reports **every** failure with a specific remedy rather than stopping at the
+first, and exits nonzero. When the models are present it records size and
+sha256 for each, which is the environment fingerprint Objective 0 asks to be
+folded into the manifest — that step is deliberately not taken today, because
+writing a fingerprint of an environment that has no models would record an
+absence as though it were a provenance record.
+
+`tests/test_env_gate.py` — 7 tests, passing. They pin the two ways the gate
+could fail open: accepting a wrong version (it must compare, not merely
+import), and reporting only the first problem (it must list all of them). One
+test constructs a real artifact in a tmp dir and asserts the sha256 matches an
+independent hash, so the fingerprint path is exercised even with no weights on
+the machine.
+
+## D3.2 — Unchanged from Day 2
+
+Every deferred item stands exactly where it was, for exactly the same reason:
+
+1. Tubelet verdict — **UNRESOLVED**, never executed.
+2. Patch-mapper off-by-2 verdict — **UNRESOLVED**, never executed.
+3. Golden before-cosine — **NOT MEASURED**, no reference embeddings exist.
+4. Normalization fix — **NOT LANDED**; its authorization requires a measurement
+   that requires this gate.
+5. 22 void artifacts — still void, still refused by the artifact guard.
+
+## D3.3 — Day 4, when the gate passes
+
+The order is fixed by dependency, not preference. Nothing below can be honestly
+done before the thing above it.
+
+1. `python scripts/env_gate.py` until it exits 0. Everything else is blocked on
+   this, and a partial pass is not a pass.
+2. Re-measure the cascade bench on the pinned stack and correct the Day-2
+   absolute figures in `src/cascade/motion.py`. The parity conclusion should
+   hold; the cost number may not.
+3. Objective 1 — run the two forensic tests, record actual tensor shapes,
+   settle the tubelet verdict as Outcome A or B.
+4. Objective 2 — generate reference embeddings, record the before-cosine
+   (mean and p1 per patch).
+5. Objective 3 — the one call site, with its before/after table, and the
+   negative test proving the void-artifact refusal fires.
+6. Objective 4 — scripted manifested FP32 export, then re-run Objective 1
+   against the new artifact for the side-by-side table.
+
+Still queued behind those, from Day 2: the mapper fix (Day 4 at the earliest,
+and only after the tubelet verdict, one variable at a time); real-footage
+wake-parity as a CI addition; and `DAv2Wrapper.predict` returning a `DepthField`.
