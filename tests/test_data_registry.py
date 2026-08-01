@@ -82,11 +82,26 @@ def test_seed_contains_the_three_lanes() -> None:
     assert lanes == {"S", "R", "C"}
 
 
-def test_site_zero_is_the_only_lane_c_seed() -> None:
-    """Lane C means consented and ours. Nothing downloadable qualifies."""
+def test_lane_c_is_only_ever_our_own_consented_captures() -> None:
+    """Lane C means consented and ours. Nothing downloadable qualifies.
+
+    Pinned as a set rather than a single name: lane C grows as we capture, and
+    the invariant that matters is not "there is exactly one" but "every one of
+    them is ours". A public dataset appearing here would mean footage of people
+    who never consented had been admitted to the only lane permitted for
+    calibration.
+    """
     registry = DatasetRegistry.load(SEED_PATH)
-    lane_c = [e.name for e in registry.entries() if not e.blocked and e.lane == "C"]
-    assert lane_c == ["site-zero"]
+    lane_c = {e.name for e in registry.entries() if not e.blocked and e.lane == "C"}
+    assert lane_c == {"site-zero", "office-capture-v1"}
+
+    for entry in registry.entries():
+        if entry.blocked or entry.lane != "C":
+            continue
+        assert "consent" in (entry.hypothesis_class + entry.notes).lower(), (
+            f"{entry.name} is lane C but its record never mentions consent; "
+            "lane C is defined by the consent record, not by the label"
+        )
 
 
 # ---------------------------------------------------------------------------
