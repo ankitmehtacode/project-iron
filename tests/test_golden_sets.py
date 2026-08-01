@@ -240,17 +240,30 @@ def test_eval_report_refuses_an_empty_set(tmp_path: Path) -> None:
     assert eval_report.main(["--version", "v9-empty", "--root", str(tmp_path)]) == 1
 
 
-def test_eval_report_scores_the_populated_indoor_set() -> None:
+@pytest.mark.slow
+def test_eval_report_scores_the_populated_indoor_set(
+    synthetic_indoor_clips: Path,
+) -> None:
     """The other half: a populated set must actually produce a scorecard.
 
     Guards the opposite failure — a refusal path broad enough to swallow a
     real run would make ``make eval`` permanently green-by-abstention.
+
+    Takes ``synthetic_indoor_clips`` because it used to depend on those clips
+    happening to be on disk from a previous ``make eval``. That made it pass on
+    a development machine and fail in a fresh clone, so it was testing the
+    developer's working directory rather than the repository. The fixture
+    renders them when absent.
     """
     import sys
 
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
     import eval_report
 
+    assert sorted(synthetic_indoor_clips.glob("*.npz")), (
+        "the fixture must have materialised clips; scoring an empty directory "
+        "would make this test pass by abstention, which is what it guards"
+    )
     assert eval_report.main([]) == 0
 
 
