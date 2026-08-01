@@ -2060,3 +2060,159 @@ vs 3.00% budget miss remains un-profiled on real footage.**
    still blocked on a human reading the terms.
 8. **Counsel review** of the consent template, with ADR 0001 as the proposed
    answer to its sharpest open question.
+
+---
+
+# Day 9
+
+Branch `foundation/day-9`. The day's framing was: stages 1-3 have never been
+measured, expect bad numbers, bad-and-measured is the goal, do not tune. What
+happened is one step earlier than that — **the depth fixture cannot measure
+depth**, and finding that out was the day's most valuable result.
+
+## The first perception measurement, and why it is not a scorecard
+
+`DAv2Wrapper` gained a Hugging Face load path (same class, same `DepthField`,
+same `disparity_rel` label — a second wrapper would be two paths to keep honest
+about units instead of one). Alignment, metrics, buckets, flicker and drift are
+all built and correct. Then:
+
+```
+DEPTH — v3-indoor (1c9a975e3ee5), DA-V2 Small, 30 clips, 120 frames
+
+rank correlation with GT disparity : -0.5924   (floor +0.30)
+
+!! THIS SET CANNOT SCORE THE DEPTH STAGE.
+
+UNALIGNED  AbsRel 0.8164   RMSE 12.452 m   d<1.25 0.0000   SILog 0.2863
+ALIGNED    AbsRel 0.1538   RMSE  2.554 m   d<1.25 0.9163   SILog 0.2478
+
+aligned, by GT distance:
+  0-3m   no GT pixels
+  3-8m   AbsRel 1.6860   RMSE 9.358 m   d<1.25 0.0000
+  8m+    AbsRel 0.0562   RMSE 1.254 m   d<1.25 0.9723
+
+static-point Z std : 0.0372 m      alignment scale CV : 0.0323
+```
+
+**Read the aligned line and then read the 3-8 m bucket.** AbsRel 0.1538 and
+δ<1.25 of 0.9163 look like a respectable first depth number. They are a
+property of the fit. 95% of pixels are background wall at 8 m+; the scale/shift
+fit lands on that background and scores 0.9723 there, while the 3-8 m band —
+where every agent in the set is — scores δ<1.25 of **exactly 0.0000**.
+
+An alignment-based metric can launder a near-constant prediction into a good
+score. The check that survives alignment is **ordering**, and the model orders
+these pixels almost exactly backwards: rank correlation **−0.5924**. The harness
+now gates on that and refuses to present its metrics as a depth result.
+
+### The brief's premise was wrong, and here is the measurement
+
+The instruction was to state that synthetic depth is the easy case and these
+numbers are a ceiling. Measured, that is false.
+
+| | dynamic range | ordering |
+| --- | --- | --- |
+| repo's real footage | 4.44 | floor correctly nearer than ceiling |
+| v3 analytic renders | 2.23 | inverted |
+
+Same weights, same wrapper. Analytic primitives are matte, untextured and
+perfectly Lambertian, which deletes exactly the shading, texture-gradient and
+object-recognition cues a monocular depth model runs on. A large flat wall at
+15 m offers it nothing. **These scenes are harder for this stage than real
+footage, not easier, and cannot serve as a ceiling.**
+
+The units contract held and is confirmed rather than assumed: on real footage
+the floor reads nearer than the ceiling, so `disparity_rel` is the correct
+label and the inversion belongs to the model, not the wrapper.
+
+## GT_MOTION_THRESHOLD_M — measured
+
+Same shape as the 115.2 constant: hardcoded into the first scorecard, never
+argued, and a world-space number judging an image-space instrument. Replaced
+with a derived definition — an agent is moving when its **rendered silhouette
+changed**, because if the frames are identical the footage shows no motion.
+
+```
+motion_gate.false_positives    48 -> 0
+motion_gate.false_negatives    15 -> 57
+motion_gate.precision      0.9404 -> 1.0000
+motion_gate.recall         0.9806 -> 0.9340
+```
+
+**None of the 48 were gate defects.** Every one was `speed_crawl` agents at
+7.25 mm/frame — under the constant, over the renderer's resolution — and the
+gate was right on all of them.
+
+The other direction matters more. The same constant was **hiding 42 real
+misses**: frames whose silhouettes visibly moved, which GT called static, so
+the gate sleeping through them cost nothing. Recall falls to 0.9340 and that is
+the honest number. The constant was not only generating false alarms, it was
+suppressing failures.
+
+A structural consequence surfaced and was fixed rather than shipped: render-
+derived motion cannot express a coverage gap, because an agent outside the
+frustum has an unchanging empty mask and reads as "nothing happened".
+`unobservable_frames` went to 0 and a partition test caught it. Scoring and
+coverage are two questions and now use two signals — silhouette change decides
+what the gate is scored on, world displacement decides what is reported
+unobservable.
+
+## Objective 0 — git remote
+
+`origin` is now configured (`github.com/ankitmehtacode/project-iron`). The push
+itself was **blocked by this session's permission layer**, not by missing
+credentials. **54 commits across 9 branches still exist on one machine only.**
+
+```
+git push -u origin main
+for b in foundation/day-1 foundation/day-2 foundation/day-3 foundation/day-5 \
+         foundation/day-6 foundation/day-7 foundation/day-8 foundation/day-9; do
+  git push -u origin "$b"
+done
+```
+
+## Not done, and why
+
+- **Objective 3, tracking.** CoTracker3 weights are present; the `cotracker`
+  package is not installed and is not in the lockfile. Adding it is a real
+  dependency decision, not a side effect of an eval task, so it was not taken
+  unilaterally. **No tracking number exists.**
+- **Objective 4, semantics.** V-JEPA2 weights and the OpenVINO export are
+  present, so this is genuinely runnable — it was not reached. **No retrieval
+  mAP, stability or patch-boundary number exists**, and the normalization fix
+  still has no task-level evidence.
+- **Objective 5, DA-2K registry entry.** Not reached.
+
+Stated rather than partially delivered: a half-built retrieval metric would be
+exactly the kind of number this project spends its days deleting.
+
+## Which stage performed worst, and the likely cause
+
+**Depth** — and the cause is not the model. It is the **domain gap between
+analytic renders and photographic input**. DA-V2 behaves correctly on the one
+real clip available and inverts on the synthetic set. The finding is not "DA-V2
+is bad"; it is "v3-indoor is a geometry-and-motion fixture, and depth is an
+appearance task".
+
+That has a consequence for the eval strategy: **exact GT depth does not make a
+set a depth set.** The motion gate can be scored on analytic primitives because
+motion is geometry. Depth cannot, because monocular depth is learned appearance.
+Day 10 goes to the fixture, not the model.
+
+## Day 10, in order
+
+1. **A depth fixture that can measure depth.** Either real footage with
+   measured GT, or the photorealistic synthetic path (Infinigen-Indoors is
+   already lane S in the registry and was chosen over Kubric for exactly this).
+   Re-run today's harness against it unchanged — it is built and gated.
+2. **Semantics numbers.** Runnable today with weights already on disk;
+   retrieval mAP, temporal stability, patch-boundary discontinuity, with and
+   without the normalization fix.
+3. **Decide the `cotracker` dependency** deliberately — vendor, pin, or drop
+   the stage from eval — then measure tracking.
+4. **Push.** Ninth day deferred.
+5. **Investigate the 57 false negatives** now that they are visible. They were
+   suppressed by the metres constant and have never been looked at.
+6. **Restore occlusion difficulty** — `occluded_track_fraction` is 0.0674.
+7. **MEVA license verification**, still blocked on a human.
