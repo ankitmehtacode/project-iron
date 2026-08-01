@@ -1866,3 +1866,197 @@ mildest configuration is the worst place to audit.
    answer to its sharpest open question.
 8. **Production `vjepa2_vitl_int8.xml`/`.bin`** for the parked forensic verdict.
    Unchanged since Day 3.
+
+---
+
+# Day 8
+
+Branch `foundation/day-8`. Six commits.
+
+## Objective 1 — v3-indoor
+
+Both day-7 pathologies were traced to specific causes and fixed rather than
+tuned around.
+
+**Agents walked off the bottom edge** because `CameraSpec` supported *yaw only*.
+A camera 2.6 m up looking dead level puts a 1.72 m agent below the principal
+point, and further below it the closer they get — off-frame entirely from about
+2 m. Cameras now pitch; every v3 camera tilts 16° down, which centres an agent
+at 6 m and keeps 3.5–11 m fully in frame.
+
+**A partition slab sat on the primary sightline** — 2.4 m across the middle of
+the room at z=7.0, the 4.00 m depth in the day-7 trace. v3 furniture occludes
+from the side, so occlusion is partial and recoverable.
+
+Scene sets are **versioned, not edited**: `build_scenes` is untouched and
+`pitch_degrees` defaults to 0, so v2 still renders byte-identically. Its content
+hashes are cited by a frozen manifest. v2 is retained, not deleted.
+
+### The v3 scorecard
+
+`set_sha 1c9a975e`, `envelope_sha` from the corrected measurement below.
+
+```
+motion_gate.recall                      0.9806   758 of 773
+motion_gate.precision                   0.9404   758 of 806
+motion_gate.f1                          0.9601
+motion_gate.false_negatives                 15
+motion_gate.false_positives                 48
+envelope.limited_misses                     10
+envelope.unobservable_frames                17
+envelope.wakes_outside_envelope             10
+gt.occluded_track_fraction              0.0674
+coverage.frames_scored                     863
+coverage.observable_fraction            0.9589
+```
+
+30 clips, 863 scorable frames — no bucket in single digits. Floor is 0.80; the
+non-`hard_coverage` aggregate is **0.8988** at mint time.
+
+**hard_coverage, on its own line** (excluded from the floor, kept on purpose):
+
+| clip | observable_fraction |
+| --- | --- |
+| `coverage_gap_3agents__cam_gap` | 0.700 |
+| `coverage_gap_handoff__cam_gap` | 0.633 |
+
+**Speed distribution** — a set requirement now, because day 7 showed the
+envelope is speed-aware and a set walking at one speed exercises one point on a
+curve. Median image-plane speed, gate px/frame:
+
+| band | median | note |
+| --- | --- | --- |
+| crawl | 0.04–0.29 | under the GT motion threshold entirely |
+| slow | 0.61–0.65 | the steep part of the envelope |
+| walk | 1.11–1.44 | |
+| brisk | 1.60–2.19 | |
+| fast | 1.95–2.66 | |
+| sprint | 2.99–3.02 | max instantaneous 10.09 |
+
+**v2 and v3 numbers are not comparable.** Three independent reasons, any one
+sufficient: different clips, a recall denominator redefined on day 6, and a
+different `envelope_sha`. The Inspector refuses to diff them.
+
+### Two findings the set produced, reported rather than tuned
+
+**All 48 false positives are `speed_crawl`**, 24 per camera, and they are not
+gate defects. Those agents travel 7.25 mm/frame — below `GT_MOTION_THRESHOLD_M`
+(10 mm), so ground truth calls them static — while moving 0.27 gate px/frame,
+which the gate detects. This is the same shape as the 115.2 constant: **an
+unargued threshold defining truth, disagreeing with the instrument**, and now the
+dominant error term. Not changed here; it needs its own measurement.
+
+**`gt.occluded_track_fraction` fell 0.7778 → 0.0674.** Moving furniture off the
+sightline bought observability and sold occlusion difficulty. The set is now
+weak exactly where v2 was strong, and says so on its own line.
+
+## The Inspector earned its keep in one screen
+
+Day 7 concluded that a slow mover is "absorbed into the background model at any
+size" and recorded null wake thresholds for 2 and 3 native px/frame.
+
+**That conclusion was wrong**, for the oldest reason in this repository: the
+measurement, not the thing measured. The sweep tested silhouette areas 40–320
+gate px. At the slowest speeds the wake rate never crossed 50% *inside that
+window*, the model wrote null, and the scorecard read null as physically
+unreachable.
+
+The Inspector put the contradiction on one screen. Clip
+`speed_slow_2agents__cam_a`, frame 12: silhouette **761.75 gate px**, envelope
+verdict **"unreachable at this speed"**, gate state **AWAKE**. A viewer showing
+the model and the behaviour side by side made a two-day-old mistake obvious at a
+glance — which is the entire argument for building it.
+
+Re-measured to 1660 gate px. Every speed crosses:
+
+| native px/frame | silhouette to wake | vs derived |
+| ---: | ---: | ---: |
+| 2 | 535.0 | 4.64× |
+| 3 | 410.0 | 3.56× |
+| 4 | 243.3 | 2.11× |
+| 6, 8, 12, 20, 30 | 110.0 | 0.95× |
+
+There is no absorption floor. The threshold rises steeply as speed falls and
+flattens at 110 px — a 4.9× range. This **strengthens** the day-7 conclusion that
+no scalar threshold exists; it removes only a cliff that was an artifact of where
+I stopped looking. The artifact now records `swept_area_gate_px`, and the model
+distinguishes "did not cross within the range swept" from "cannot wake".
+
+Effect on v3, same `set_sha`:
+
+```
+motion_gate.recall             0.9787 -> 0.9806
+coverage.frames_scored            795 -> 863
+coverage.observable_fraction   0.8833 -> 0.9589
+envelope.wakes_outside_envelope    78 -> 10
+```
+
+**68 frames of correctly-detected motion had been sitting outside the
+denominator**, counted as neither hit nor miss.
+
+### A second defect, found the same way
+
+Minting v3 with the wrong `source_dataset` made the eval resolve to v1's clip
+directory and score five v1 clips that shared a name with v3 clips. The scorecard
+cited v3's `set_sha` while measuring v2's bytes, and **nothing complained** —
+the hash was recorded and never verified. Scoring now hashes each clip and
+refuses on mismatch. A content-addressed set has to actually check its content.
+
+## Objective 3 — Iron Inspector
+
+`make inspect` → `http://127.0.0.1:8899`. Five views: Scorecard, Clip inspector,
+Envelope, Events, Provenance.
+
+- **No mock data anywhere.** A test greps the serving code for fixture-shaped
+  literals and fails if one appears. A viewer that can invent data cannot verify
+  a claim: a green screen would stop distinguishing "the artifact says so" from
+  "the fallback fired".
+- **Absence is rendered.** Missing artifacts return the path looked for and the
+  command that produces it. The event log genuinely does not exist and the Events
+  view says so, because "no events happened" and "nothing has run" are different
+  statements.
+- **Refusal, not a delta.** Cross-`set_sha` or cross-`envelope_sha` comparison
+  renders a refusal with reasons — the same rule `require_comparable` enforces.
+- **Greyscale-legible.** Observability bands differ in *height* as well as
+  lightness; `observed=false` rows are dashed, italic and glyph-marked. Neither
+  distinction rests on colour.
+- **Stdlib only** — no FastAPI, no CDN, no build step beyond `pip install -e .`,
+  so it runs on an air-gapped Tier-3 rack. Localhost-bound.
+
+13 tests, including the no-mock-data grep, the cross-sha refusal, and an
+empty-state snapshot.
+
+## Objective 2 — ingest path built, parity BLOCKED
+
+`scripts/ingest_capture.py`: video → decode-once → content-addressed store →
+lane-C manifest → condition tags. **Consent is required and ingest refuses
+without it**; five of ten tests cover refusal paths. Each clip records
+`exercises_downscale`, so the day-2 defect is caught at ingest instead of in a
+report.
+
+**`data/raw/office_capture_v1/` does not exist.** The only real video in the
+repository is 320×176 — below the gate raster, so it cannot produce a valid
+parity number. Tests run against a synthesized stand-in, which proves the path
+and cannot produce a measurement. **No parity number is reported, and the 4.57%
+vs 3.00% budget miss remains un-profiled on real footage.**
+
+## Day 9, in order
+
+1. **Measure `GT_MOTION_THRESHOLD_M`.** 10 mm/frame in world space is the last
+   unargued constant defining truth, and it now produces all 48 false positives.
+   Same treatment as the envelope: derive it, measure against the instrument,
+   make it config-driven with provenance.
+2. **Capture the office footage.** Blocks cascade parity and the budget profile.
+   Nothing in Objective 2's measurement half can proceed without it.
+3. **Restore occlusion difficulty in a v4 set.** `occluded_track_fraction` 0.0674
+   means v3 barely tests occlusion. Needs occluders that bite without swallowing.
+4. **Configure the git remote and push.** Eighth day deferred; 48 commits across
+   eight branches exist on one machine.
+5. **Re-measure the envelope on OpenCV 5.0.** MOG2 differs between builds, so
+   which misses count as defects may not transfer.
+6. **Widen the scorecard beyond the motion gate.** Depth and occlusion GT are
+   exact and still unused by any metric.
+7. **MEVA license verification** — highest product impact of any pending item,
+   still blocked on a human reading the terms.
+8. **Counsel review** of the consent template, with ADR 0001 as the proposed
+   answer to its sharpest open question.
