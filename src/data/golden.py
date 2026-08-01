@@ -107,6 +107,11 @@ class GoldenClip:
         source_dataset: Registry name, so the lane travels with the clip and a
             product metric can be checked for lane-R contamination.
         notes: Free text.
+        hard_coverage: This clip is deliberately hard to observe — a coverage
+            gap, a blind spot, a camera pointed away from the action. Excluded
+            from the mint-time observability floor and reported on its own
+            line, so the hard case stays represented instead of being authored
+            away to make the aggregate look good.
     """
 
     clip_id: str
@@ -114,6 +119,7 @@ class GoldenClip:
     conditions: tuple[Condition, ...] = ()
     source_dataset: str = ""
     notes: str = ""
+    hard_coverage: bool = False
 
     def __post_init__(self) -> None:
         if not self.clip_id:
@@ -131,6 +137,7 @@ class GoldenClip:
             "conditions": [c.value for c in self.conditions],
             "source_dataset": self.source_dataset,
             "notes": self.notes,
+            "hard_coverage": self.hard_coverage,
         }
 
 
@@ -265,6 +272,7 @@ class GoldenSet:
                     conditions=tuple(Condition(x) for x in c.get("conditions", [])),
                     source_dataset=c.get("source_dataset", ""),
                     notes=c.get("notes", ""),
+                    hard_coverage=c.get("hard_coverage", False),
                 )
                 for c in payload.get("clips", [])
             ),
@@ -306,6 +314,81 @@ def write_golden_set(root: Path, golden: GoldenSet, overwrite: bool = False) -> 
     root.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(golden.as_dict(), indent=2, sort_keys=True) + "\n")
     return path
+
+
+MIN_OBSERVABLE_FRACTION = 0.80
+"""Share of a set's motion frames that must be observable to its own cameras.
+
+v2-indoor scored 0.4444: agents spent most of their frames behind a furniture
+slab or off the bottom edge, so a recall of 1.0 rode on 41 moving frames and
+described the set rather than the gate. A set below this floor cannot support
+the numbers it will be asked to produce, and the cheapest moment to find that
+out is before it is minted — after minting, its sha is quoted and every metric
+computed against it inherits the problem.
+
+Clips tagged ``hard_coverage`` are excluded from the aggregate, so keeping a
+genuine blind-spot scenario does not push a set below the floor. That
+exclusion is the reason the floor can be strict.
+"""
+
+
+def mint_golden_set(
+    root: Path,
+    golden: GoldenSet,
+    observable_fractions: dict[str, float],
+    overwrite: bool = False,
+) -> Path:
+    """Write a golden set, refusing one whose ground truth is not observable.
+
+    Args:
+        root: Directory of manifests.
+        golden: The set to mint.
+        observable_fractions: Per ``clip_id``, the share of that clip's GT
+            motion frames its camera could act on — from
+            ``scorecard.observability_partition``. Measured, never estimated:
+            this is the number the floor exists to enforce.
+        overwrite: Passed through to :func:`write_golden_set`.
+
+    Raises:
+        GoldenSetError: if a clip has no measurement, or if the aggregate over
+            the non-``hard_coverage`` clips falls below
+            :data:`MIN_OBSERVABLE_FRACTION`.
+    """
+    missing = sorted(
+        c.clip_id for c in golden.clips if c.clip_id not in observable_fractions
+    )
+    if missing:
+        raise GoldenSetError(
+            f"{len(missing)} clip(s) have no measured observable fraction: "
+            f"{', '.join(missing[:5])}. A set cannot be accepted on clips "
+            "whose observability was never measured — that is how v2-indoor "
+            "reached 0.4444 without anyone noticing."
+        )
+
+    scored = [c for c in golden.clips if not c.hard_coverage]
+    if not scored:
+        raise GoldenSetError(
+            "every clip is tagged hard_coverage, so the observability floor "
+            "has nothing to check. A set of nothing but blind spots measures "
+            "nothing."
+        )
+
+    aggregate = sum(observable_fractions[c.clip_id] for c in scored) / len(scored)
+    if aggregate < MIN_OBSERVABLE_FRACTION:
+        worst = sorted(scored, key=lambda c: observable_fractions[c.clip_id])[:5]
+        detail = ", ".join(
+            f"{c.clip_id}={observable_fractions[c.clip_id]:.2f}" for c in worst
+        )
+        raise GoldenSetError(
+            f"{golden.version} has observable_fraction {aggregate:.4f}, below "
+            f"the {MIN_OBSERVABLE_FRACTION:.2f} floor over {len(scored)} "
+            f"non-hard_coverage clips. Worst: {detail}. Re-author the scenes "
+            "so agents stay in frustum; do not lower the floor, and do not tag "
+            "clips hard_coverage to get under it — that tag is for scenarios "
+            "that are deliberately hard, not for ones that came out badly."
+        )
+
+    return write_golden_set(root, golden, overwrite)
 
 
 def available_versions(root: Path) -> list[str]:
