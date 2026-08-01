@@ -1,3 +1,4 @@
+from pathlib import Path
 from typing import Dict
 import numpy as np
 import torch
@@ -72,15 +73,39 @@ class DAv2Wrapper(ModelWrapper):
         }
 
     def load(self) -> None:
-        from depth_anything_v2.dpt import DepthAnythingV2
+        """Load the checkpoint, from either the upstream or the HF layout.
 
-        self.model = DepthAnythingV2(**self.model_configs[self.encoder])
-        self.model.load_state_dict(torch.load(str(self.model_path), map_location="cpu"))
+        Two layouts exist because two things are true: the upstream release is
+        a bare ``.pth`` that needs the ``depth_anything_v2`` package to define
+        the module, and that package is not vendored here — while the
+        Hugging Face conversion is fetchable with the dependencies already
+        pinned. Both produce the same relative inverse depth, so both go
+        through this one class and return the same
+        :class:`~src.contracts.DepthField`. Adding a second wrapper would mean
+        two paths that must be kept honest about units instead of one.
+        """
+        path = Path(self.model_path)
+        if path.is_dir() and (path / "config.json").exists():
+            self._load_huggingface(path)
+        else:
+            self._load_upstream(path)
 
         if torch.cuda.is_available() and self.device == "GPU":
             self.model = self.model.cuda()
-
         self.model.eval()
+
+    def _load_upstream(self, path: Path) -> None:
+        from depth_anything_v2.dpt import DepthAnythingV2
+
+        self.model = DepthAnythingV2(**self.model_configs[self.encoder])
+        self.model.load_state_dict(torch.load(str(path), map_location="cpu"))
+        self._hf_processor = None
+
+    def _load_huggingface(self, path: Path) -> None:
+        from transformers import AutoImageProcessor, AutoModelForDepthEstimation
+
+        self._hf_processor = AutoImageProcessor.from_pretrained(str(path))
+        self.model = AutoModelForDepthEstimation.from_pretrained(str(path))
 
     def predict(self, inputs: Dict[str, np.ndarray]) -> Dict[str, DepthField]:
         """
@@ -111,8 +136,28 @@ class DAv2Wrapper(ModelWrapper):
 
         raw_img = inputs["image"]
 
-        # Model returns HxW depth map directly
         with torch.no_grad():
-            depth = self.model.infer_image(raw_img)
+            if getattr(self, "_hf_processor", None) is not None:
+                # The HF processor resizes internally, so the raw output is in
+                # the model's own frame. It is interpolated straight back to
+                # the source raster here, in the same statement that produced
+                # it, so no caller ever sees a depth map whose geometry
+                # disagrees with the image it came from.
+                height, width = raw_img.shape[:2]
+                batch = self._hf_processor(images=raw_img, return_tensors="pt")
+                predicted = self.model(**batch).predicted_depth
+                depth = (
+                    torch.nn.functional.interpolate(
+                        predicted.unsqueeze(1),
+                        size=(height, width),
+                        mode="bicubic",
+                        align_corners=False,
+                    )
+                    .squeeze()
+                    .cpu()
+                    .numpy()
+                )
+            else:
+                depth = self.model.infer_image(raw_img)
 
         return {"depth": as_depth_field(depth)}

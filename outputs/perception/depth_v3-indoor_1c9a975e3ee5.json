@@ -1,0 +1,1609 @@
+{
+  "clips": 30,
+  "frames_scored": 120,
+  "aligned": {
+    "absrel": 0.15378886458220997,
+    "rmse_m": 2.5542102649082934,
+    "delta_1_25": 0.9162959607285237,
+    "silog": 0.24781862509958588
+  },
+  "unaligned": {
+    "absrel": 0.8163688443594971,
+    "rmse_m": 12.452473215333875,
+    "delta_1_25": 1.4729817708333334e-05,
+    "silog": 0.28625902821087623
+  },
+  "by_bucket": {
+    "0-3m": {
+      "absrel": NaN,
+      "rmse_m": NaN,
+      "delta_1_25": NaN,
+      "silog": NaN
+    },
+    "3-8m": {
+      "absrel": 1.6859728912488612,
+      "rmse_m": 9.358174954054755,
+      "delta_1_25": 0.0,
+      "silog": 0.111616875207115
+    },
+    "8m+": {
+      "absrel": 0.056178065812932935,
+      "rmse_m": 1.2537359660241876,
+      "delta_1_25": 0.9722881984776444,
+      "silog": 0.0987376248616807
+    }
+  },
+  "static_point_z_std_m": 0.03723208415263298,
+  "rank_correlation": -0.5924099062152156,
+  "valid_for_depth_scoring": false,
+  "min_rank_correlation": 0.3,
+  "alignment_scale_cv": 0.03229331058181298,
+  "golden_set_version": "v3-indoor",
+  "golden_set_sha": "1c9a975e3ee54591f29f29840dfef079455f294f934d097946a25ed48ab72454",
+  "weights": "models/weights/depth_anything_v2_small",
+  "encoder": "vits",
+  "frame_stride": 10,
+  "caveat": "MEASURED, NOT ASSUMED: analytic primitives are NOT the easy case for monocular depth. They are matte, untextured and perfectly Lambertian, which removes exactly the shading, texture-gradient and object-recognition cues a monocular model depends on. On the repo's one piece of real footage the same weights produce a 4.44 dynamic range with the floor correctly nearer than the ceiling; on these renders the range halves and the ordering inverts. The synthetic set is HARDER here, not easier, and cannot be used as a ceiling.",
+  "per_clip": [
+    {
+      "clip_id": "speed_crawl_2agents__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.18277665834579637,
+        "rmse_m": 2.857376672300626,
+        "delta_1_25": 0.9020396592881944,
+        "silog": 0.2847175056839795,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8144549970465887,
+        "rmse_m": 12.411901654488814,
+        "delta_1_25": 0.0,
+        "silog": 0.31530412744282926,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.9191785573785285,
+          "rmse_m": 9.90647925331248,
+          "delta_1_25": 0.0,
+          "silog": 0.05296665633378713,
+          "pixels": 246521
+        },
+        "8m+": {
+          "absrel": 0.05833637060560313,
+          "rmse_m": 1.310183164126608,
+          "delta_1_25": 0.9666848746714637,
+          "silog": 0.10469035525929571,
+          "pixels": 3439879
+        }
+      },
+      "flicker": {
+        "points": 882716,
+        "z_std_m": 0.025927588553986223,
+        "z_std_p95_m": 0.05586814817405579
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005746136140011644,
+        "scale_cv": 0.006632843231143193,
+        "shift_mean": 0.08004435961127135,
+        "shift_std": 9.915558436939533e-05
+      }
+    },
+    {
+      "clip_id": "speed_crawl_2agents__cam_b",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.1308992289663315,
+        "rmse_m": 2.36084321087141,
+        "delta_1_25": 0.9295076497395833,
+        "silog": 0.22819330092478193,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8203034130712172,
+        "rmse_m": 12.522751050861752,
+        "delta_1_25": 0.0,
+        "silog": 0.25847346108058383,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.6043279900203555,
+          "rmse_m": 9.167562565535379,
+          "delta_1_25": 0.0,
+          "silog": 0.14302670640519305,
+          "pixels": 187143
+        },
+        "8m+": {
+          "absrel": 0.05209910693187298,
+          "rmse_m": 1.1734182614634179,
+          "delta_1_25": 0.9792184455157195,
+          "silog": 0.09166411816052704,
+          "pixels": 3499257
+        }
+      },
+      "flicker": {
+        "points": 879839,
+        "z_std_m": 0.032583682156013954,
+        "z_std_p95_m": 0.06124131144736076
+      },
+      "alignment_drift": {
+        "scale_mean": -0.0060170431923646,
+        "scale_cv": 0.018131497876361972,
+        "shift_mean": 0.08090200799982128,
+        "shift_std": 0.0002883756722991965
+      }
+    },
+    {
+      "clip_id": "speed_slow_2agents__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.17989403676488472,
+        "rmse_m": 2.8317770809193363,
+        "delta_1_25": 0.9028952365451389,
+        "silog": 0.28149506562031335,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8117955467450362,
+        "rmse_m": 12.37823500927883,
+        "delta_1_25": 0.0,
+        "silog": 0.30653982076936026,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.8993196387362707,
+          "rmse_m": 9.863191195243292,
+          "delta_1_25": 0.0,
+          "silog": 0.058685238256366984,
+          "pixels": 243367
+        },
+        "8m+": {
+          "absrel": 0.058358329591886325,
+          "rmse_m": 1.3074645475018611,
+          "delta_1_25": 0.9667153930851083,
+          "silog": 0.1045231136147046,
+          "pixels": 3443033
+        }
+      },
+      "flicker": {
+        "points": 867374,
+        "z_std_m": 0.02897645745360117,
+        "z_std_p95_m": 0.057425700447460454
+      },
+      "alignment_drift": {
+        "scale_mean": -0.006011695100493153,
+        "scale_cv": 0.012626658728049626,
+        "shift_mean": 0.08093113285602577,
+        "shift_std": 0.00031677224714544646
+      }
+    },
+    {
+      "clip_id": "speed_slow_2agents__cam_b",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.12788517753509387,
+        "rmse_m": 2.330875791075928,
+        "delta_1_25": 0.9304538302951388,
+        "silog": 0.22383388886975905,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8211046142096244,
+        "rmse_m": 12.535952565377741,
+        "delta_1_25": 0.0,
+        "silog": 0.2544146122904798,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.5671870981487177,
+          "rmse_m": 9.086858013727484,
+          "delta_1_25": 0.0,
+          "silog": 0.13022820501476462,
+          "pixels": 183595
+        },
+        "8m+": {
+          "absrel": 0.0524460263077038,
+          "rmse_m": 1.1789372185343387,
+          "delta_1_25": 0.9792223660751883,
+          "silog": 0.09186824002989717,
+          "pixels": 3502805
+        }
+      },
+      "flicker": {
+        "points": 862870,
+        "z_std_m": 0.03404526314074067,
+        "z_std_p95_m": 0.079884304404754
+      },
+      "alignment_drift": {
+        "scale_mean": -0.006038932647427648,
+        "scale_cv": 0.020929642174990586,
+        "shift_mean": 0.08098390144683067,
+        "shift_std": 0.00049243687760318
+      }
+    },
+    {
+      "clip_id": "speed_walk_2agents__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.17368096943741618,
+        "rmse_m": 2.775700003797201,
+        "delta_1_25": 0.9056686740451388,
+        "silog": 0.2751505970028838,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8142590961458883,
+        "rmse_m": 12.41312431801371,
+        "delta_1_25": 0.0,
+        "silog": 0.30398381797158763,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.8787133011510466,
+          "rmse_m": 9.817565686076307,
+          "delta_1_25": 0.0,
+          "silog": 0.06651268262261678,
+          "pixels": 233143
+        },
+        "8m+": {
+          "absrel": 0.05856751193549524,
+          "rmse_m": 1.3104839480641617,
+          "delta_1_25": 0.9668139382617628,
+          "silog": 0.10471126167238119,
+          "pixels": 3453257
+        }
+      },
+      "flicker": {
+        "points": 857238,
+        "z_std_m": 0.03313984225237458,
+        "z_std_p95_m": 0.07186046039497124
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005833144998455038,
+        "scale_cv": 0.01591157332199579,
+        "shift_mean": 0.08036476414266235,
+        "shift_std": 0.0003002099376917279
+      }
+    },
+    {
+      "clip_id": "speed_walk_2agents__cam_b",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.12186557991839957,
+        "rmse_m": 2.2592190073816334,
+        "delta_1_25": 0.9320597330729167,
+        "silog": 0.21522136323707702,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.819353670649395,
+        "rmse_m": 12.508297285703929,
+        "delta_1_25": 0.0,
+        "silog": 0.24148771493017737,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.4968448538274568,
+          "rmse_m": 8.878814707061105,
+          "delta_1_25": 0.0,
+          "silog": 0.12239049831750097,
+          "pixels": 177675
+        },
+        "8m+": {
+          "absrel": 0.05223930755684603,
+          "rmse_m": 1.1707106319734155,
+          "delta_1_25": 0.9792574225680268,
+          "silog": 0.09140035999951507,
+          "pixels": 3508725
+        }
+      },
+      "flicker": {
+        "points": 844682,
+        "z_std_m": 0.047891100655189124,
+        "z_std_p95_m": 0.10943323075357514
+      },
+      "alignment_drift": {
+        "scale_mean": -0.006235951289787413,
+        "scale_cv": 0.03683874414880452,
+        "shift_mean": 0.08170284414001738,
+        "shift_std": 0.000730596340491993
+      }
+    },
+    {
+      "clip_id": "speed_brisk_2agents__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.17009070137324778,
+        "rmse_m": 2.7466376791581406,
+        "delta_1_25": 0.9063069661458333,
+        "silog": 0.27120211152507717,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8138456910489779,
+        "rmse_m": 12.406189942270359,
+        "delta_1_25": 0.0,
+        "silog": 0.30023683507417703,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.8432911100970104,
+          "rmse_m": 9.744802723525861,
+          "delta_1_25": 0.0,
+          "silog": 0.0943238062981693,
+          "pixels": 230790
+        },
+        "8m+": {
+          "absrel": 0.058342580975009196,
+          "rmse_m": 1.3060184320683843,
+          "delta_1_25": 0.9668365353729154,
+          "silog": 0.10437771749021842,
+          "pixels": 3455610
+        }
+      },
+      "flicker": {
+        "points": 862205,
+        "z_std_m": 0.03733964828632989,
+        "z_std_p95_m": 0.0723216024156304
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005841407984080714,
+        "scale_cv": 0.0070615100690340875,
+        "shift_mean": 0.08046114147882094,
+        "shift_std": 0.00014487404821863768
+      }
+    },
+    {
+      "clip_id": "speed_brisk_2agents__cam_b",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.11483501574588587,
+        "rmse_m": 2.1792078860565938,
+        "delta_1_25": 0.9351860894097223,
+        "silog": 0.20553222373622163,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8199637381105628,
+        "rmse_m": 12.521187891258897,
+        "delta_1_25": 0.0,
+        "silog": 0.2348427044378794,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.4436737380632476,
+          "rmse_m": 8.748928597271329,
+          "delta_1_25": 0.0,
+          "silog": 0.11711882814158966,
+          "pixels": 166150
+        },
+        "8m+": {
+          "absrel": 0.05211601746081241,
+          "rmse_m": 1.166340655161733,
+          "delta_1_25": 0.9793253320076699,
+          "silog": 0.0911004467341737,
+          "pixels": 3520250
+        }
+      },
+      "flicker": {
+        "points": 857761,
+        "z_std_m": 0.039883578185912295,
+        "z_std_p95_m": 0.08812882172772915
+      },
+      "alignment_drift": {
+        "scale_mean": -0.006104552373488836,
+        "scale_cv": 0.041082728887041176,
+        "shift_mean": 0.0813959270632876,
+        "shift_std": 0.000604066285949496
+      }
+    },
+    {
+      "clip_id": "speed_fast_2agents__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.1621199804015458,
+        "rmse_m": 2.6692389613145155,
+        "delta_1_25": 0.9096158854166667,
+        "silog": 0.26330455647442913,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8128140302042384,
+        "rmse_m": 12.393466933784525,
+        "delta_1_25": 0.0,
+        "silog": 0.2940576707624005,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.841642377317074,
+          "rmse_m": 9.735108240006728,
+          "delta_1_25": 0.0,
+          "silog": 0.10195498369355294,
+          "pixels": 214115
+        },
+        "8m+": {
+          "absrel": 0.05855390272774649,
+          "rmse_m": 1.311541460475796,
+          "delta_1_25": 0.965706444027492,
+          "silog": 0.10532774529656519,
+          "pixels": 3472285
+        }
+      },
+      "flicker": {
+        "points": 863090,
+        "z_std_m": 0.043465896393195896,
+        "z_std_p95_m": 0.0883984877973541
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005726456466426544,
+        "scale_cv": 0.025051672848971886,
+        "shift_mean": 0.08034395153804315,
+        "shift_std": 0.0004574853436854795
+      }
+    },
+    {
+      "clip_id": "speed_fast_2agents__cam_b",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.11058606603326257,
+        "rmse_m": 2.139923323540484,
+        "delta_1_25": 0.9365879991319445,
+        "silog": 0.1989772518134783,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8251287215689369,
+        "rmse_m": 12.599902047432021,
+        "delta_1_25": 0.0,
+        "silog": 0.23728078121808877,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.386219627211324,
+          "rmse_m": 8.642784591034681,
+          "delta_1_25": 0.0,
+          "silog": 0.12456960545136593,
+          "pixels": 160982
+        },
+        "8m+": {
+          "absrel": 0.0523365075566319,
+          "rmse_m": 1.17364228650277,
+          "delta_1_25": 0.9793556395298373,
+          "silog": 0.09156633755116779,
+          "pixels": 3525418
+        }
+      },
+      "flicker": {
+        "points": 863783,
+        "z_std_m": 0.039995902267565484,
+        "z_std_p95_m": 0.10098803416044846
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005898820033498222,
+        "scale_cv": 0.042953549315678484,
+        "shift_mean": 0.08045525103633712,
+        "shift_std": 0.0007315388148096901
+      }
+    },
+    {
+      "clip_id": "speed_sprint_2agents__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.15687859461505796,
+        "rmse_m": 2.6169116375269468,
+        "delta_1_25": 0.9120987955729166,
+        "silog": 0.2580714871477015,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8151523520797972,
+        "rmse_m": 12.431510737991832,
+        "delta_1_25": 0.0,
+        "silog": 0.2891954538288904,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.8595976696015173,
+          "rmse_m": 9.773716131429854,
+          "delta_1_25": 0.0,
+          "silog": 0.09760825695313997,
+          "pixels": 200361
+        },
+        "8m+": {
+          "absrel": 0.05901437204515488,
+          "rmse_m": 1.3234332483333637,
+          "delta_1_25": 0.9645219115448794,
+          "silog": 0.10641492547667455,
+          "pixels": 3486039
+        }
+      },
+      "flicker": {
+        "points": 871444,
+        "z_std_m": 0.041547647756715295,
+        "z_std_p95_m": 0.0900032785900648
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005828830920285481,
+        "scale_cv": 0.013809899150595122,
+        "shift_mean": 0.08046673125993867,
+        "shift_std": 0.0003710512099659506
+      }
+    },
+    {
+      "clip_id": "speed_sprint_2agents__cam_b",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.10431756085193832,
+        "rmse_m": 2.0598473707828577,
+        "delta_1_25": 0.9395811631944444,
+        "silog": 0.19038449433177834,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8246637271483997,
+        "rmse_m": 12.5976495527179,
+        "delta_1_25": 0.0,
+        "silog": 0.22912431926569943,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.3725091262900273,
+          "rmse_m": 8.60780518060528,
+          "delta_1_25": 0.0,
+          "silog": 0.1318882178018832,
+          "pixels": 144103
+        },
+        "8m+": {
+          "absrel": 0.052726683758819066,
+          "rmse_m": 1.1837956869097526,
+          "delta_1_25": 0.9778039503745733,
+          "silog": 0.09271671841157289,
+          "pixels": 3542297
+        }
+      },
+      "flicker": {
+        "points": 865993,
+        "z_std_m": 0.06680069116447687,
+        "z_std_p95_m": 0.13030855589568033
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005979862070331959,
+        "scale_cv": 0.023888099283118306,
+        "shift_mean": 0.08078773831028588,
+        "shift_std": 0.0004509565334258821
+      }
+    },
+    {
+      "clip_id": "crowded_6agents__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.21193124695906881,
+        "rmse_m": 3.1226078837434104,
+        "delta_1_25": 0.8796731228298611,
+        "silog": 0.3061371104858619,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8197655284157599,
+        "rmse_m": 12.417065513399072,
+        "delta_1_25": 0.0,
+        "silog": 0.32781625007704396,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.7624479227233403,
+          "rmse_m": 9.53842443628617,
+          "delta_1_25": 0.0,
+          "silog": 0.13326638997220014,
+          "pixels": 329526
+        },
+        "8m+": {
+          "absrel": 0.059725487047348,
+          "rmse_m": 1.3329252513607879,
+          "delta_1_25": 0.9660258323666602,
+          "silog": 0.10645394787358237,
+          "pixels": 3356874
+        }
+      },
+      "flicker": {
+        "points": 811092,
+        "z_std_m": 0.04773730115707613,
+        "z_std_p95_m": 0.07905356090980971
+      },
+      "alignment_drift": {
+        "scale_mean": -0.006410804333193035,
+        "scale_cv": 0.03307814999426391,
+        "shift_mean": 0.08091755585998754,
+        "shift_std": 0.0005338482062266082
+      }
+    },
+    {
+      "clip_id": "crowded_6agents__cam_b",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.16277185015235615,
+        "rmse_m": 2.6993834567160273,
+        "delta_1_25": 0.9025100368923611,
+        "silog": 0.2589288090913655,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8199789219197635,
+        "rmse_m": 12.424172730590296,
+        "delta_1_25": 0.0,
+        "silog": 0.2794942697191256,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.4694626374246555,
+          "rmse_m": 8.748437190335391,
+          "delta_1_25": 0.0,
+          "silog": 0.13370055190850874,
+          "pixels": 286607
+        },
+        "8m+": {
+          "absrel": 0.05261610641508984,
+          "rmse_m": 1.2037164753672303,
+          "delta_1_25": 0.9785928143272252,
+          "silog": 0.09388242860209399,
+          "pixels": 3399793
+        }
+      },
+      "flicker": {
+        "points": 803401,
+        "z_std_m": 0.04330369591235855,
+        "z_std_p95_m": 0.13767360794250622
+      },
+      "alignment_drift": {
+        "scale_mean": -0.006275707841776833,
+        "scale_cv": 0.035502724226040644,
+        "shift_mean": 0.0813941173755841,
+        "shift_std": 0.0008066180914396456
+      }
+    },
+    {
+      "clip_id": "furniture_occlusion_3agents__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.17845212743533911,
+        "rmse_m": 2.8261665722517524,
+        "delta_1_25": 0.8999959309895833,
+        "silog": 0.27828516458725516,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8144400429794949,
+        "rmse_m": 12.395597362043505,
+        "delta_1_25": 0.0,
+        "silog": 0.30631518087736737,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.7955373664731922,
+          "rmse_m": 9.61821904004655,
+          "delta_1_25": 0.0,
+          "silog": 0.12103723706382248,
+          "pixels": 254055
+        },
+        "8m+": {
+          "absrel": 0.058758859304145546,
+          "rmse_m": 1.3156776540045922,
+          "delta_1_25": 0.9666117479449181,
+          "silog": 0.10506105731177785,
+          "pixels": 3432345
+        }
+      },
+      "flicker": {
+        "points": 849462,
+        "z_std_m": 0.02772181980754931,
+        "z_std_p95_m": 0.06528753193970985
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005880105357730094,
+        "scale_cv": 0.01935085231708328,
+        "shift_mean": 0.08046228810781109,
+        "shift_std": 0.000275126340184168
+      }
+    },
+    {
+      "clip_id": "furniture_occlusion_3agents__cam_d",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.1989467729134774,
+        "rmse_m": 2.9887731010314504,
+        "delta_1_25": 0.8933843315972222,
+        "silog": 0.30007135815873787,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.803835603421543,
+        "rmse_m": 12.177281365934883,
+        "delta_1_25": 0.0,
+        "silog": 0.336204915588784,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.7402836739211407,
+          "rmse_m": 9.387497538957337,
+          "delta_1_25": 0.0,
+          "silog": 0.2332102903695596,
+          "pixels": 329160
+        },
+        "8m+": {
+          "absrel": 0.04782666999093315,
+          "rmse_m": 1.0809094315859564,
+          "delta_1_25": 0.9809760398422513,
+          "silog": 0.08380106832778204,
+          "pixels": 3357240
+        }
+      },
+      "flicker": {
+        "points": 863856,
+        "z_std_m": 0.019147068079180464,
+        "z_std_p95_m": 0.03747939922316463
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005436588584506858,
+        "scale_cv": 0.002548889866464037,
+        "shift_mean": 0.08017356747503987,
+        "shift_std": 6.184981055935352e-05
+      }
+    },
+    {
+      "clip_id": "receding_2agents__cam_d",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.18504586641994875,
+        "rmse_m": 2.868848037431964,
+        "delta_1_25": 0.903369140625,
+        "silog": 0.28997014433148743,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8030003267472154,
+        "rmse_m": 12.200083934979563,
+        "delta_1_25": 0.0,
+        "silog": 0.32593400791402466,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.84765312681165,
+          "rmse_m": 9.674169529269115,
+          "delta_1_25": 0.0,
+          "silog": 0.22455809457507367,
+          "pixels": 279004
+        },
+        "8m+": {
+          "absrel": 0.048908453545622926,
+          "rmse_m": 1.1139621008123277,
+          "delta_1_25": 0.9773387067426269,
+          "silog": 0.08740928979582782,
+          "pixels": 3407396
+        }
+      },
+      "flicker": {
+        "points": 896300,
+        "z_std_m": 0.01672985510918422,
+        "z_std_p95_m": 0.029348765764666173
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005670759901114094,
+        "scale_cv": 0.01565270421602764,
+        "shift_mean": 0.08094335777788589,
+        "shift_std": 0.00023023803967124677
+      }
+    },
+    {
+      "clip_id": "receding_2agents__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.205778107427642,
+        "rmse_m": 3.0333656048587176,
+        "delta_1_25": 0.8972737630208333,
+        "silog": 0.30813443423882336,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8103423856977922,
+        "rmse_m": 12.378886005639997,
+        "delta_1_25": 0.00044189453125,
+        "silog": 0.3394443982360085,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 2.109071778440812,
+          "rmse_m": 10.286734861551237,
+          "delta_1_25": 0.0,
+          "silog": 0.09476200303396394,
+          "pixels": 264101
+        },
+        "8m+": {
+          "absrel": 0.058899719008556166,
+          "rmse_m": 1.3211429769099865,
+          "delta_1_25": 0.9665169524930464,
+          "silog": 0.10546347068502532,
+          "pixels": 3422299
+        }
+      },
+      "flicker": {
+        "points": 832678,
+        "z_std_m": 0.054146827913658914,
+        "z_std_p95_m": 0.10235341414469372
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005895208111442566,
+        "scale_cv": 0.034986404157164266,
+        "shift_mean": 0.08040163381676477,
+        "shift_std": 0.0008311266788035747
+      }
+    },
+    {
+      "clip_id": "hd_walk_2agents__cam_a_1080",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.1810004472190439,
+        "rmse_m": 2.8962946301374006,
+        "delta_1_25": 0.9058967496141975,
+        "silog": 0.28261394734742384,
+        "pixels": 8294400
+      },
+      "unaligned": {
+        "absrel": 0.8236126801595135,
+        "rmse_m": 12.593935954466962,
+        "delta_1_25": 0.0,
+        "silog": 0.3334630532837497,
+        "pixels": 8294400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.9629556860134847,
+          "rmse_m": 10.257018530865642,
+          "delta_1_25": 0.0,
+          "silog": 0.06301790269989117,
+          "pixels": 523526
+        },
+        "8m+": {
+          "absrel": 0.060949614025107186,
+          "rmse_m": 1.3659694644459646,
+          "delta_1_25": 0.9669272722733633,
+          "silog": 0.10840434391319127,
+          "pixels": 7770874
+        }
+      },
+      "flicker": {
+        "points": 1928793,
+        "z_std_m": 0.029784139309356396,
+        "z_std_p95_m": 0.061591321013779975
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005605052739519664,
+        "scale_cv": 0.030449850734192454,
+        "shift_mean": 0.07868932826288334,
+        "shift_std": 0.0004069662095025545
+      }
+    },
+    {
+      "clip_id": "hd_walk_2agents__cam_b_1080",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.12813851551376457,
+        "rmse_m": 2.3963386194105034,
+        "delta_1_25": 0.9321246865354939,
+        "silog": 0.2239765835419574,
+        "pixels": 8294400
+      },
+      "unaligned": {
+        "absrel": 0.8305516428085863,
+        "rmse_m": 12.714360138737732,
+        "delta_1_25": 0.0,
+        "silog": 0.27743863641095456,
+        "pixels": 8294400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.5965010911889486,
+          "rmse_m": 9.468903350851686,
+          "delta_1_25": 0.0,
+          "silog": 0.12572279312147183,
+          "pixels": 398209
+        },
+        "8m+": {
+          "absrel": 0.05408823064894289,
+          "rmse_m": 1.228993951411336,
+          "delta_1_25": 0.979132217039836,
+          "silog": 0.09559120054264882,
+          "pixels": 7896191
+        }
+      },
+      "flicker": {
+        "points": 1901015,
+        "z_std_m": 0.03344347912352396,
+        "z_std_p95_m": 0.09643593496129906
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005807153425821093,
+        "scale_cv": 0.03626710348742554,
+        "shift_mean": 0.07930396455964876,
+        "shift_std": 0.000619792380448286
+      }
+    },
+    {
+      "clip_id": "hd_far_field_3agents__cam_a_1080",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.17996287442354514,
+        "rmse_m": 2.881850821881228,
+        "delta_1_25": 0.9014416956018518,
+        "silog": 0.2797668952289436,
+        "pixels": 8294400
+      },
+      "unaligned": {
+        "absrel": 0.8256453634848823,
+        "rmse_m": 12.583392113411426,
+        "delta_1_25": 0.0,
+        "silog": 0.32547480706881693,
+        "pixels": 8294400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.818374760163398,
+          "rmse_m": 9.846110816140634,
+          "delta_1_25": 0.0,
+          "silog": 0.13297819182658666,
+          "pixels": 567625
+        },
+        "8m+": {
+          "absrel": 0.05960172159547851,
+          "rmse_m": 1.3391503632908321,
+          "delta_1_25": 0.9676634818536841,
+          "silog": 0.10636577404206099,
+          "pixels": 7726775
+        }
+      },
+      "flicker": {
+        "points": 1892455,
+        "z_std_m": 0.032496484880185646,
+        "z_std_p95_m": 0.07024216552428997
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005719558601039638,
+        "scale_cv": 0.02393934993770882,
+        "shift_mean": 0.07891397030173453,
+        "shift_std": 0.00040487592012133537
+      }
+    },
+    {
+      "clip_id": "lights_off_transient__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.17266013322991045,
+        "rmse_m": 2.7529021616436453,
+        "delta_1_25": 0.9058184136284723,
+        "silog": 0.2728880968800925,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8055946199358366,
+        "rmse_m": 12.281806530901974,
+        "delta_1_25": 0.0,
+        "silog": 0.3070924981346608,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.8495903758304826,
+          "rmse_m": 9.706504370419587,
+          "delta_1_25": 0.0,
+          "silog": 0.07715620759593542,
+          "pixels": 232591
+        },
+        "8m+": {
+          "absrel": 0.059730066148404246,
+          "rmse_m": 1.3206041220700582,
+          "delta_1_25": 0.9668192421758123,
+          "silog": 0.10520109146736484,
+          "pixels": 3453809
+        }
+      },
+      "flicker": {
+        "points": 858225,
+        "z_std_m": 0.07548540968169584,
+        "z_std_p95_m": 0.14902577642493403
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005242499247440055,
+        "scale_cv": 0.12866785671567557,
+        "shift_mean": 0.07950637676095808,
+        "shift_std": 0.0010238723534398582
+      }
+    },
+    {
+      "clip_id": "lights_off_transient__cam_b",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.11984970054804175,
+        "rmse_m": 2.258442210690297,
+        "delta_1_25": 0.9342792426215277,
+        "silog": 0.2129715617154746,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.82645438913533,
+        "rmse_m": 12.62566137784688,
+        "delta_1_25": 0.0,
+        "silog": 0.25896169365553945,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.5104093574095112,
+          "rmse_m": 9.019829337023081,
+          "delta_1_25": 0.0,
+          "silog": 0.11309412269782818,
+          "pixels": 169493
+        },
+        "8m+": {
+          "absrel": 0.05283339106916708,
+          "rmse_m": 1.1939265544906725,
+          "delta_1_25": 0.9793056796781945,
+          "silog": 0.09304561794828024,
+          "pixels": 3516907
+        }
+      },
+      "flicker": {
+        "points": 851233,
+        "z_std_m": 0.061209826087003955,
+        "z_std_p95_m": 0.12975102047886633
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005726049187005582,
+        "scale_cv": 0.0947571181464162,
+        "shift_mean": 0.07977468754732159,
+        "shift_std": 0.0015945950347634394
+      }
+    },
+    {
+      "clip_id": "blown_window__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.1841763964161201,
+        "rmse_m": 2.870218675499497,
+        "delta_1_25": 0.90581787109375,
+        "silog": 0.2804567089197113,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8004259583238047,
+        "rmse_m": 12.277119062471927,
+        "delta_1_25": 0.0,
+        "silog": 0.3564719192804796,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.8916562441551454,
+          "rmse_m": 9.926079681355722,
+          "delta_1_25": 0.0,
+          "silog": 0.07492390661990048,
+          "pixels": 232591
+        },
+        "8m+": {
+          "absrel": 0.069189017187718,
+          "rmse_m": 1.4689451530263864,
+          "delta_1_25": 0.9668186631049951,
+          "silog": 0.1136319672399335,
+          "pixels": 3453809
+        }
+      },
+      "flicker": {
+        "points": 858225,
+        "z_std_m": 0.03735282568284033,
+        "z_std_p95_m": 0.08551728796875982
+      },
+      "alignment_drift": {
+        "scale_mean": -0.0034397787230293557,
+        "scale_cv": 0.11013574957818674,
+        "shift_mean": 0.07508976022296382,
+        "shift_std": 0.0008334329870842824
+      }
+    },
+    {
+      "clip_id": "blown_window__cam_b",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.13203944603210968,
+        "rmse_m": 2.3746111268189587,
+        "delta_1_25": 0.9342792426215277,
+        "silog": 0.21984657521645815,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8176595227058236,
+        "rmse_m": 12.552210884492945,
+        "delta_1_25": 0.0,
+        "silog": 0.26829032308523143,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.5526149168642973,
+          "rmse_m": 9.255488564660277,
+          "delta_1_25": 0.0,
+          "silog": 0.12202497537506969,
+          "pixels": 169493
+        },
+        "8m+": {
+          "absrel": 0.06357656137870257,
+          "rmse_m": 1.3349373456106457,
+          "delta_1_25": 0.9793056796781945,
+          "silog": 0.10084880262674897,
+          "pixels": 3516907
+        }
+      },
+      "flicker": {
+        "points": 851233,
+        "z_std_m": 0.03140229546509467,
+        "z_std_p95_m": 0.057878166291437216
+      },
+      "alignment_drift": {
+        "scale_mean": -0.003326435210803301,
+        "scale_cv": 0.07559070607514001,
+        "shift_mean": 0.074160177367695,
+        "shift_std": 0.0007548709501600374
+      }
+    },
+    {
+      "clip_id": "near_static__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.1536211348874786,
+        "rmse_m": 2.582313003197705,
+        "delta_1_25": 0.9160660807291666,
+        "silog": 0.2550085682166894,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.812313662250924,
+        "rmse_m": 12.40547635497011,
+        "delta_1_25": 0.0,
+        "silog": 0.28517920680073705,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.868962022161754,
+          "rmse_m": 9.80350709522045,
+          "delta_1_25": 0.0,
+          "silog": 0.05533666236234059,
+          "pixels": 194814
+        },
+        "8m+": {
+          "absrel": 0.05791321888213014,
+          "rmse_m": 1.295371819273817,
+          "delta_1_25": 0.9671782393445271,
+          "silog": 0.10358157386026752,
+          "pixels": 3491586
+        }
+      },
+      "flicker": {
+        "points": 910714,
+        "z_std_m": 0.013895033912727605,
+        "z_std_p95_m": 0.026489476210717344
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005774224031172562,
+        "scale_cv": 0.01143199991957947,
+        "shift_mean": 0.0805927061359128,
+        "shift_std": 8.220417121293047e-05
+      }
+    },
+    {
+      "clip_id": "coverage_gap_3agents__cam_gap",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.05663691521072371,
+        "rmse_m": 1.2465656894606567,
+        "delta_1_25": 0.9675027126736111,
+        "silog": 0.09853639540240478,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8237360068840971,
+        "rmse_m": 12.623907191172357,
+        "delta_1_25": 0.0,
+        "silog": 0.17498032798552576,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.0198548051627652,
+          "rmse_m": 7.437114916889939,
+          "delta_1_25": 0.0,
+          "silog": 0.024582825736778696,
+          "pixels": 8937
+        },
+        "8m+": {
+          "absrel": 0.05429609538942258,
+          "rmse_m": 1.193015477165463,
+          "delta_1_25": 0.9698539455053661,
+          "silog": 0.09251303992566408,
+          "pixels": 3677463
+        }
+      },
+      "flicker": {
+        "points": 912663,
+        "z_std_m": 0.03907534273096947,
+        "z_std_p95_m": 0.12742128809752284
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005544658680940618,
+        "scale_cv": 0.018400981584742376,
+        "shift_mean": 0.08034117033524164,
+        "shift_std": 9.905128180023726e-05
+      }
+    },
+    {
+      "clip_id": "coverage_gap_3agents__cam_a",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.17690911500966255,
+        "rmse_m": 2.81407422124071,
+        "delta_1_25": 0.9005929904513889,
+        "silog": 0.27668104686356043,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8169340074886494,
+        "rmse_m": 12.429747461980993,
+        "delta_1_25": 0.0,
+        "silog": 0.3061684620230586,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.7890443028454488,
+          "rmse_m": 9.610892436102773,
+          "delta_1_25": 0.0,
+          "silog": 0.12545544679973306,
+          "pixels": 251854
+        },
+        "8m+": {
+          "absrel": 0.05869183226044502,
+          "rmse_m": 1.3138906280551383,
+          "delta_1_25": 0.9666331445262343,
+          "silog": 0.10494419174518563,
+          "pixels": 3434546
+        }
+      },
+      "flicker": {
+        "points": 843475,
+        "z_std_m": 0.027666979013041104,
+        "z_std_p95_m": 0.061057134073934635
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005895157439103735,
+        "scale_cv": 0.010301564589683468,
+        "shift_mean": 0.0802951758383525,
+        "shift_std": 0.0002770479923288642
+      }
+    },
+    {
+      "clip_id": "coverage_gap_handoff__cam_gap",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.05761593313897524,
+        "rmse_m": 1.2526759482921086,
+        "delta_1_25": 0.9677115885416666,
+        "silog": 0.09875544842146969,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8226980296097763,
+        "rmse_m": 12.608267221423453,
+        "delta_1_25": 0.0,
+        "silog": 0.18502564884198028,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.1117998768281154,
+          "rmse_m": 7.713945879973463,
+          "delta_1_25": 0.0,
+          "silog": 0.0199534097250237,
+          "pixels": 7032
+        },
+        "8m+": {
+          "absrel": 0.055601179112734274,
+          "rmse_m": 1.2076714483424837,
+          "delta_1_25": 0.9695610767936232,
+          "silog": 0.09340647763223184,
+          "pixels": 3679368
+        }
+      },
+      "flicker": {
+        "points": 914568,
+        "z_std_m": 0.036894457150306925,
+        "z_std_p95_m": 0.11639728631399407
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005103093044293304,
+        "scale_cv": 0.018948661140202997,
+        "shift_mean": 0.07926659079853532,
+        "shift_std": 4.7238044475686715e-05
+      }
+    },
+    {
+      "clip_id": "coverage_gap_handoff__cam_d",
+      "frames_scored": 4,
+      "aligned": {
+        "absrel": 0.19229978454023172,
+        "rmse_m": 2.9333175582170776,
+        "delta_1_25": 0.8991395399305555,
+        "silog": 0.295446057972378,
+        "pixels": 3686400
+      },
+      "unaligned": {
+        "absrel": 0.8012370407874582,
+        "rmse_m": 12.165056266371934,
+        "delta_1_25": 0.0,
+        "silog": 0.3290739282710438,
+        "pixels": 3686400
+      },
+      "by_bucket": {
+        "0-3m": {
+          "absrel": NaN,
+          "rmse_m": NaN,
+          "delta_1_25": NaN,
+          "silog": NaN,
+          "pixels": 0
+        },
+        "3-8m": {
+          "absrel": 1.7704617052051141,
+          "rmse_m": 9.47275416086388,
+          "delta_1_25": 0.0,
+          "silog": 0.2324515594398316,
+          "pixels": 310791
+        },
+        "8m+": {
+          "absrel": 0.04699903392445882,
+          "rmse_m": 1.0652992223863518,
+          "delta_1_25": 0.9819229656041325,
+          "silog": 0.08216206261406066,
+          "pixels": 3375609
+        }
+      },
+      "flicker": {
+        "points": 887995,
+        "z_std_m": 0.017872385297134287,
+        "z_std_p95_m": 0.0394726284871065
+      },
+      "alignment_drift": {
+        "scale_mean": -0.005587727255010027,
+        "scale_cv": 0.0038702317326073194,
+        "shift_mean": 0.08079294435320322,
+        "shift_std": 0.00014234479558694428
+      }
+    }
+  ]
+}
