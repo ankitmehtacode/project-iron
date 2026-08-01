@@ -1,10 +1,24 @@
-# Virtual environments
-venv/
-.venv/
-.venv-pinned/
+# ANCHORING POLICY — read before adding a pattern.
+#
+# A trailing-slash pattern with no leading slash matches a directory of that
+# name at ANY depth. That is correct for caches, which appear throughout the
+# tree, and catastrophic for anything that shares a name with a source package:
+# "data/" and "models/" silently swallowed src/data and src/models, so
+# golden.py, scorecard.py, cvat_ingest.py and preprocess.py were excluded from
+# their own commits and a fresh clone could not import them.
+#
+# Rule: if the directory exists at exactly one known place, ANCHOR it with a
+# leading slash. Only patterns that must match at every depth are left
+# unanchored, and each is marked below. Anchoring those would be a regression —
+# it would stop ignoring caches inside src/ and fill git status with them.
 
-# Editor / IDE state — machine-local, not shared engineering config
-.vscode/
+# Virtual environments — root only.
+/venv/
+/.venv/
+/.venv-pinned/
+
+# Editor / IDE state — machine-local, not shared engineering config. Root only.
+/.vscode/
 
 # Generated pipeline artifacts. These are run outputs, not source: they are
 # reproducible from the code plus a run manifest, and committing them makes
@@ -25,15 +39,20 @@ venv/
 # Downloaded datasets — content-addressed by scripts/fetch_dataset.py
 /data/
 
-# Python build / cache
+# Python build / cache.
+# UNANCHORED DELIBERATELY — these occur at every depth of the tree and must be
+# ignored wherever they appear. None of them can collide with a source package
+# name, which is what makes leaving them unanchored safe.
 __pycache__/
 *.py[cod]
 *.egg-info/
-/build/
-/dist/
 .pytest_cache/
 .mypy_cache/
 .hypothesis/
-.coverage
-coverage.xml
+
+# Root-only build and coverage artifacts.
+/build/
+/dist/
+/.coverage
+/coverage.xml
 /htmlcov/
