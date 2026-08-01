@@ -59,7 +59,23 @@ class MeasuredEnvelope:
     """Displacements, gate px/frame, ascending."""
 
     thresholds_px: tuple[float | None, ...]
-    """Silhouette area waking the gate at each speed; ``None`` means never."""
+    """Silhouette area waking the gate at each speed.
+
+    ``None`` means the sweep never crossed 50% **within the area range it
+    tested** — which is not the same as "cannot wake". The first version of
+    this model conflated the two: it swept only to 320 gate px, recorded
+    ``None`` for the two slowest speeds, and the scorecard read that as
+    physically unreachable. The Inspector then showed a 761 gate px agent
+    labelled "unreachable at this speed" while the real gate was awake on that
+    very frame. Re-measured to 1660 px, those speeds wake at 567 and 325.
+    """
+
+    swept_max_px: float | None = None
+    """Largest silhouette area the sweep tested, if the artifact records it.
+
+    Consumers use it to distinguish "unreachable" from "never measured". An
+    envelope without it cannot make that distinction and says so rather than
+    guessing."""
 
     @classmethod
     def load(cls, path: Path) -> "MeasuredEnvelope":
@@ -93,15 +109,31 @@ class MeasuredEnvelope:
                 else float(s["wake_threshold_silhouette_gate_px"])
                 for s in samples
             ),
+            swept_max_px=(data.get("swept_area_gate_px") or {}).get("stop"),
+        )
+
+    def uncrossed_speeds(self) -> tuple[float, ...]:
+        """Speeds whose sweep never crossed 50% within the tested area range.
+
+        These are the entries a caller must not treat as unreachable. If the
+        artifact records how far the sweep went, they mean "needs more than
+        ``swept_max_px``"; if it does not, they mean nothing trustworthy at all.
+        """
+        return tuple(
+            speed
+            for speed, threshold in zip(self.speeds_gate_px, self.thresholds_px)
+            if threshold is None
         )
 
     def wake_threshold_px(self, speed_gate_px: float) -> float:
         """Silhouette area, in gate px, a mover at this speed needs to wake it.
 
-        Returns ``inf`` where the gate cannot wake at any size — below the
-        slowest measured speed that ever woke it, the background model absorbs
-        the mover. Callers must treat ``inf`` as "nothing here is resolvable",
-        not as a very large threshold.
+        Returns ``inf`` only where the measurement genuinely has nothing to
+        say: a speed whose sweep never crossed within the tested range, on an
+        artifact that does not record how far it swept. Where the range *is*
+        recorded, an uncrossed speed returns just past it — the honest reading
+        is "more than we tested", and treating that as unreachable is the bug
+        the Inspector caught.
 
         Between measured speeds the value is linearly interpolated. Outside the
         measured range it is clamped to the nearest measurement rather than
@@ -117,32 +149,46 @@ class MeasuredEnvelope:
         # away the very value that was observed at that speed.
         for sample_speed, sample_threshold in zip(speeds, thresholds):
             if speed_gate_px == sample_speed:
-                return float("inf") if sample_threshold is None else sample_threshold
+                return (
+                    self._uncrossed() if sample_threshold is None else sample_threshold
+                )
 
         if speed_gate_px <= speeds[0]:
             first = thresholds[0]
-            return float("inf") if first is None else first
+            return self._uncrossed() if first is None else first
         if speed_gate_px >= speeds[-1]:
             last = thresholds[-1]
-            return float("inf") if last is None else last
+            return self._uncrossed() if last is None else last
 
         for index in range(len(speeds) - 1):
             low, high = speeds[index], speeds[index + 1]
             if not low <= speed_gate_px <= high:
                 continue
             low_t, high_t = thresholds[index], thresholds[index + 1]
-            # A None neighbour means the gate never woke at that speed. There
-            # is no meaningful interpolation across that boundary, so the
-            # unresolvable side wins: it is the conservative reading, and it
-            # keeps a real defect from being excused.
+            # A None neighbour is a speed the sweep did not resolve, so there is
+            # nothing to interpolate towards. The unresolved side wins: it is
+            # the conservative reading and keeps a real defect from being
+            # excused by a fabricated midpoint.
             if low_t is None or high_t is None:
-                return float("inf")
+                return self._uncrossed()
             if high == low:
                 return high_t
             span = (speed_gate_px - low) / (high - low)
             return low_t + span * (high_t - low_t)
 
         raise EnvelopeError(f"speed {speed_gate_px} fell outside the sample grid")
+
+    def _uncrossed(self) -> float:
+        """Threshold to report for a speed the sweep never resolved.
+
+        If the artifact records how wide it swept, the honest answer is "more
+        than that" — a mover larger than the sweep may well wake the gate, and
+        v3's ``speed_slow`` clips proved it does. Only when the range is
+        unrecorded is there truly nothing to say, and then this is infinite.
+        """
+        if self.swept_max_px is None:
+            return float("inf")
+        return float(self.swept_max_px)
 
     def provenance(self) -> dict[str, object]:
         """What a scorecard records so its verdicts can be reproduced."""

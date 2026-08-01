@@ -46,8 +46,14 @@ def a_set(*clips: GoldenClip, version: str = "vtest") -> GoldenSet:
 # ---------------------------------------------------------------------------
 
 
-def test_both_versions_are_seeded() -> None:
-    assert set(available_versions(SEEDED)) == {"v1-driving", "v2-indoor"}
+def test_every_minted_version_is_retained() -> None:
+    """Superseded sets are kept, never deleted.
+
+    v2 is retained even though v3 replaced it: it is the record of what was
+    measured before, and deleting it would erase the instrument that produced
+    every number reported against it. v1 is retained on the same grounds.
+    """
+    assert set(available_versions(SEEDED)) == {"v1-driving", "v2-indoor", "v3-indoor"}
 
 
 def test_driving_set_is_legacy_and_refuses_product_use() -> None:
@@ -73,10 +79,22 @@ def test_indoor_set_is_active_and_supersedes_driving() -> None:
     indoor.require_product_usable()
 
 
-def test_config_selects_the_indoor_set() -> None:
+def test_config_selects_the_active_indoor_set() -> None:
+    """The configured set must be indoor, active, and the current one.
+
+    Pinned to v3-indoor deliberately. v2 is still on disk and still loadable,
+    so a config left pointing at it would keep scoring against a set whose
+    ground truth is only 44% observable while looking entirely normal.
+    """
     config = IronConfig.load()
-    assert config.eval.golden_set_version == "v2-indoor"
+    assert config.eval.golden_set_version == "v3-indoor"
     assert config.eval.allow_legacy_golden_set is False
+
+    active = load_golden_set(SEEDED, config.eval.golden_set_version)
+    assert active.domain is Domain.INDOOR
+    assert active.status is Status.ACTIVE
+    assert active.usable_for_product_metrics is True
+    assert active.supersedes == "v2-indoor"
 
 
 def test_indoor_set_is_populated_from_synthetic_clips_only() -> None:

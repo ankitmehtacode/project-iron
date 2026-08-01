@@ -82,23 +82,72 @@ def test_measured_envelope_contradicts_the_derivation_at_low_speed(
 ) -> None:
     """The derivation is about foreground area and is not a silhouette rule.
 
-    This is the finding that made the envelope config-driven: a slow mover is
-    absorbed into the background model at any size, so no silhouette threshold
-    derived from the gate's arithmetic can predict its behaviour.
+    A slow mover needs a far larger silhouette than the gate's arithmetic
+    suggests — several times the derived value — so no scalar threshold
+    predicts the gate's behaviour.
+
+    This assertion used to say the gate *never* wakes at the slowest speeds.
+    That was an artifact of a sweep that stopped at 320 gate px, not a property
+    of the gate. The Inspector showed a 761 px agent labelled "unreachable at
+    this speed" while the real gate was awake on that frame; re-measured to
+    1660 px, the slowest speed wakes at 535.
     """
     slow = envelope.speeds_gate_px[0]
-    assert envelope.wake_threshold_px(slow) == float("inf"), (
-        "at the slowest measured speed the gate never woke at any size; the "
-        "derived 115.2 would have called those misses gate defects"
-    )
-
     fast = envelope.speeds_gate_px[-1]
     derived = MotionGateConfig().envelope_threshold_px()
+
+    slow_threshold = envelope.wake_threshold_px(slow)
+    assert slow_threshold > derived * 2, (
+        "the slowest measured speed must need several times the derived "
+        f"threshold, got {slow_threshold} against a derived {derived}"
+    )
     assert envelope.wake_threshold_px(fast) < derived, (
         "at high speed the gate wakes on movers smaller than the derived "
         "threshold, because a displaced object marks both the pixels it "
         "arrived at and the ones it left"
     )
+    assert slow_threshold / envelope.wake_threshold_px(fast) > 3, (
+        "the whole point: the threshold varies several-fold across speed, so "
+        "no single number can stand in for it"
+    )
+
+
+def test_an_uncrossed_speed_is_not_reported_as_unreachable() -> None:
+    """ "Did not cross within the range swept" is not "cannot wake".
+
+    Conflating the two is exactly how the first envelope came to claim a slow
+    agent was unresolvable while the gate was demonstrably waking on it. When
+    the artifact records how far it swept, an uncrossed speed must report that
+    bound, not infinity.
+    """
+    bounded = MeasuredEnvelope(
+        gate_width=320,
+        gate_height=180,
+        min_foreground_fraction=0.002,
+        derived_foreground_threshold_px=115.2,
+        measured_stack="test",
+        sha="test",
+        speeds_gate_px=(0.5, 5.0),
+        thresholds_px=(None, 110.0),
+        swept_max_px=1660.0,
+    )
+    assert bounded.wake_threshold_px(0.5) == 1660.0
+    assert bounded.uncrossed_speeds() == (0.5,)
+
+    unbounded = MeasuredEnvelope(
+        gate_width=320,
+        gate_height=180,
+        min_foreground_fraction=0.002,
+        derived_foreground_threshold_px=115.2,
+        measured_stack="test",
+        sha="test",
+        speeds_gate_px=(0.5, 5.0),
+        thresholds_px=(None, 110.0),
+        swept_max_px=None,
+    )
+    assert unbounded.wake_threshold_px(0.5) == float(
+        "inf"
+    ), "with no recorded sweep range there is genuinely nothing to say"
 
 
 def test_envelope_is_monotone_in_speed(envelope: MeasuredEnvelope) -> None:
@@ -205,9 +254,25 @@ def test_committed_envelope_matches_the_configured_gate(
 def test_envelope_artifact_is_valid_json_with_samples() -> None:
     data = json.loads((REPO_ROOT / DEFAULT_ENVELOPE_PATH).read_text())
     assert data["samples"], "an envelope with no samples cannot classify anything"
-    assert any(
-        s["wake_threshold_silhouette_gate_px"] is None for s in data["samples"]
-    ), "the sweep must include a speed at which the gate never wakes"
-    assert any(
+    assert all(
         s["wake_threshold_silhouette_gate_px"] is not None for s in data["samples"]
-    ), "and one at which it does, or the curve has no crossing to interpolate"
+    ), (
+        "every sampled speed must have resolved a crossing. An uncrossed speed "
+        "means the sweep was too narrow, and reading it as 'unreachable' is "
+        "the defect that mislabelled v3's slow clips"
+    )
+
+
+def test_envelope_artifact_records_the_range_it_swept() -> None:
+    """Without this, 'did not cross' cannot be told from 'cannot wake'."""
+    data = json.loads((REPO_ROOT / DEFAULT_ENVELOPE_PATH).read_text())
+    swept = data.get("swept_area_gate_px")
+    assert swept and swept.get("stop"), (
+        "the artifact must record how far it swept; the first envelope did not "
+        "and its uncrossed speeds were misread as physical limits"
+    )
+    thresholds = [s["wake_threshold_silhouette_gate_px"] for s in data["samples"]]
+    assert max(t for t in thresholds if t is not None) < swept["stop"], (
+        "every crossing must sit inside the swept range, or the sweep stopped "
+        "too early to have found it"
+    )

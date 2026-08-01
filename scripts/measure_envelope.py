@@ -187,6 +187,17 @@ def _measure_model(args: Any) -> int:
         "measured_stack": config.cascade.measured_stack,
         "trials_per_size": args.trials,
         "native_shape": [NATIVE_HEIGHT, NATIVE_WIDTH],
+        # The area range actually swept. Without it, a speed whose curve never
+        # crossed 50% is indistinguishable from one that cannot wake at all —
+        # and the first envelope made exactly that mistake, sweeping only to
+        # 320 gate px and recording "never wakes" for speeds that in fact wake
+        # at 567. A consumer must be able to tell "unreachable" from "outside
+        # what was measured".
+        "swept_area_gate_px": {
+            "start": args.start,
+            "stop": args.stop,
+            "step": args.step,
+        },
         "samples": samples,
         "note": (
             "Silhouette area needed to wake the gate, per mover speed. The "
