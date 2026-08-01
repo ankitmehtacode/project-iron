@@ -1,0 +1,551 @@
+{
+  "derived_foreground_threshold_px": 115.2,
+  "gate_height": 180,
+  "gate_width": 320,
+  "measured_stack": "opencv 4.8.1.78 / numpy 1.26.2 / python 3.10.20",
+  "min_foreground_fraction": 0.002,
+  "native_shape": [
+    720,
+    1280
+  ],
+  "note": "Silhouette area needed to wake the gate, per mover speed. The derived foreground threshold is exact arithmetic about FOREGROUND area; it is not a silhouette predictor, because a slow mover is absorbed into the background model at any size. Measured, not assumed.",
+  "samples": [
+    {
+      "curve": [
+        {
+          "silhouette_gate_px": 40.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 60.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 80.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 100.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 120.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 140.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 160.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 180.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 200.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 220.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 240.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 260.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 280.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 300.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 320.0,
+          "wake_rate": 0.0
+        }
+      ],
+      "displacement_gate_px_per_frame": 0.5,
+      "displacement_native_px_per_frame": 2,
+      "wake_threshold_silhouette_gate_px": null
+    },
+    {
+      "curve": [
+        {
+          "silhouette_gate_px": 40.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 60.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 80.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 100.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 120.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 140.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 160.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 180.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 200.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 220.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 240.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 260.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 280.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 300.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 320.0,
+          "wake_rate": 0.0
+        }
+      ],
+      "displacement_gate_px_per_frame": 0.75,
+      "displacement_native_px_per_frame": 3,
+      "wake_threshold_silhouette_gate_px": null
+    },
+    {
+      "curve": [
+        {
+          "silhouette_gate_px": 40.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 60.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 80.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 100.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 120.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 140.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 160.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 180.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 200.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 220.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 240.0,
+          "wake_rate": 0.3333333333333333
+        },
+        {
+          "silhouette_gate_px": 260.0,
+          "wake_rate": 0.6666666666666666
+        },
+        {
+          "silhouette_gate_px": 280.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 300.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 320.0,
+          "wake_rate": 1.0
+        }
+      ],
+      "displacement_gate_px_per_frame": 1.0,
+      "displacement_native_px_per_frame": 4,
+      "wake_threshold_silhouette_gate_px": 250.0
+    },
+    {
+      "curve": [
+        {
+          "silhouette_gate_px": 40.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 60.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 80.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 100.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 120.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 140.0,
+          "wake_rate": 0.8333333333333334
+        },
+        {
+          "silhouette_gate_px": 160.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 180.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 200.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 220.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 240.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 260.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 280.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 300.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 320.0,
+          "wake_rate": 1.0
+        }
+      ],
+      "displacement_gate_px_per_frame": 1.5,
+      "displacement_native_px_per_frame": 6,
+      "wake_threshold_silhouette_gate_px": 132.0
+    },
+    {
+      "curve": [
+        {
+          "silhouette_gate_px": 40.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 60.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 80.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 100.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 120.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 140.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 160.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 180.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 200.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 220.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 240.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 260.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 280.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 300.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 320.0,
+          "wake_rate": 1.0
+        }
+      ],
+      "displacement_gate_px_per_frame": 2.0,
+      "displacement_native_px_per_frame": 8,
+      "wake_threshold_silhouette_gate_px": 110.0
+    },
+    {
+      "curve": [
+        {
+          "silhouette_gate_px": 40.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 60.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 80.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 100.0,
+          "wake_rate": 0.16666666666666666
+        },
+        {
+          "silhouette_gate_px": 120.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 140.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 160.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 180.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 200.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 220.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 240.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 260.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 280.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 300.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 320.0,
+          "wake_rate": 1.0
+        }
+      ],
+      "displacement_gate_px_per_frame": 3.0,
+      "displacement_native_px_per_frame": 12,
+      "wake_threshold_silhouette_gate_px": 108.0
+    },
+    {
+      "curve": [
+        {
+          "silhouette_gate_px": 40.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 60.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 80.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 100.0,
+          "wake_rate": 0.16666666666666666
+        },
+        {
+          "silhouette_gate_px": 120.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 140.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 160.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 180.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 200.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 220.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 240.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 260.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 280.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 300.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 320.0,
+          "wake_rate": 1.0
+        }
+      ],
+      "displacement_gate_px_per_frame": 5.0,
+      "displacement_native_px_per_frame": 20,
+      "wake_threshold_silhouette_gate_px": 108.0
+    },
+    {
+      "curve": [
+        {
+          "silhouette_gate_px": 40.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 60.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 80.0,
+          "wake_rate": 0.0
+        },
+        {
+          "silhouette_gate_px": 100.0,
+          "wake_rate": 0.8333333333333334
+        },
+        {
+          "silhouette_gate_px": 120.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 140.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 160.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 180.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 200.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 220.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 240.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 260.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 280.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 300.0,
+          "wake_rate": 1.0
+        },
+        {
+          "silhouette_gate_px": 320.0,
+          "wake_rate": 1.0
+        }
+      ],
+      "displacement_gate_px_per_frame": 7.5,
+      "displacement_native_px_per_frame": 30,
+      "wake_threshold_silhouette_gate_px": 92.0
+    }
+  ],
+  "trials_per_size": 6
+}

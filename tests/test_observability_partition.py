@@ -12,15 +12,21 @@ partitioned into three buckets per camera, not two:
 * **not observable** — no pixels of the mover reach this sensor (outside the
   frustum, or occluded by static geometry). Excluded from every denominator.
 * **observable, below the capability envelope** — the mover is visible and
-  unoccluded but subtends fewer gate pixels than ``min_foreground_fraction``
-  can resolve. Excluded from the recall denominator and reported on its own
-  line as ``envelope.limited_misses``. These are not gate defects; they are the
+  unoccluded but too small, or too slow, for the gate to resolve. Excluded
+  from the recall denominator and reported on its own line as
+  ``envelope.limited_misses``. These are not gate defects; they are the
   camera's capability envelope becoming measurable for the first time.
 * **observable, above the envelope** — the only honest recall denominator.
 
 Suppressing the middle bucket into recall would hide the envelope. Counting it
 as failure would send someone tuning ``min_foreground_fraction`` down until the
 gate wakes on sensor noise. It gets its own number so it can do neither.
+
+Where that boundary sits is **measured**, not derived — see
+:mod:`src.cascade.envelope`. The arithmetic value, ``min_foreground_fraction``
+of the gate raster, is exact about *foreground* area and is not a silhouette
+rule: a slow mover is absorbed into the background model at any size. Using it
+here excused one real gate defect on v2-indoor.
 
 Bucket logic is tested on hand-built arrays, where each bucket can be placed
 exactly. One test renders the real blind-spot camera, because the regression
@@ -66,12 +72,19 @@ def _write_clip(
     agent_areas_px: list[list[int]],
     moves: list[list[bool]],
     size: tuple[int, int] = (720, 1280),
+    uv_step_px: float = 30.0,
 ) -> Path:
     """Build a clip whose observability is exactly what the test intends.
 
     ``agent_areas_px`` is per frame, per agent: how many native pixels that
     agent occupies. ``moves`` is per frame, per agent: whether it displaced
     since the previous frame. Everything else is the minimum the scorer reads.
+
+    ``uv_step_px`` is the image-plane displacement given to a moving agent.
+    It matters: the capability envelope is a function of speed, so a mover
+    written with a static track would be classified as unresolvable no matter
+    how large it is. The default is comfortably inside the measured
+    resolvable range; tests that care about slow movers pass their own.
     """
     height, width = size
     frames = len(agent_areas_px)
@@ -86,14 +99,20 @@ def _write_clip(
             cursor += area
 
     # Positions are only read through their frame-to-frame delta, so a moving
-    # agent is given a 1 m step and a still one none.
+    # agent is given a 1 m step and a still one none. The projected track moves
+    # in step, because world motion and image-plane motion must agree or the
+    # clip describes an agent that moves without moving on screen.
     xyz = np.zeros((frames, agents, 3), dtype=np.float32)
+    uv = np.zeros((frames, agents, 2), dtype=np.float32)
     for agent in range(agents):
         travelled = 0.0
+        on_screen = 0.0
         for frame in range(frames):
             if frame and moves[frame][agent]:
                 travelled += 1.0
+                on_screen += uv_step_px
             xyz[frame, agent, 0] = travelled
+            uv[frame, agent, 0] = on_screen
 
     np.savez_compressed(
         path,
@@ -101,7 +120,7 @@ def _write_clip(
         depth_m=np.ones((frames, height, width), dtype=np.float32),
         instances=instances,
         agent_xyz=xyz,
-        track_uv=np.zeros((frames, agents, 2), dtype=np.float32),
+        track_uv=uv,
         track_occluded=np.zeros((frames, agents), dtype=bool),
         intrinsics=np.array([600.0, 600.0, width / 2, height / 2]),
         extrinsics=np.eye(4),
@@ -184,37 +203,52 @@ def test_above_envelope_motion_is_the_recall_denominator(
     assert counts["envelope_limited_misses"] == 0
 
 
-def test_envelope_boundary_tracks_the_gate_config(tmp_path: Path, gate_config) -> None:
-    """The boundary is the gate's resolving power, not a constant.
+def test_envelope_boundary_comes_from_the_measured_model(
+    tmp_path: Path, gate_config
+) -> None:
+    """The boundary is measured, not derived from the gate's arithmetic.
 
-    A hardcoded pixel count would drift the moment the gate's resolution or
-    foreground threshold changed, and the scorecard would silently start
-    excluding the wrong frames.
+    It used to be ``min_foreground_fraction * gate_px`` — 115.2 px — which is
+    exact about *foreground* area and wrong as a *silhouette* rule, because a
+    slow mover is absorbed into the background model at any size. Swapping the
+    measured envelope must move the verdict; swapping ``min_foreground_fraction``
+    alone must not, or the scorecard is still keyed to the old constant.
     """
-    boundary = _envelope_native_px(gate_config)
+    from src.cascade.envelope import MeasuredEnvelope
+
+    area = int(_envelope_native_px(gate_config) * 1.2)
     clip = _write_clip(
         tmp_path / "marginal.npz",
-        agent_areas_px=[[int(boundary * 0.5)]] * 12,
+        agent_areas_px=[[area]] * 12,
         moves=[[False]] + [[True]] * 11,
     )
 
-    assert np.all(
-        observability_partition(clip, gate_config).after_warmup()
-        == Observability.BELOW_ENVELOPE
-    )
+    def envelope_with(threshold: float | None) -> MeasuredEnvelope:
+        return MeasuredEnvelope(
+            gate_width=gate_config.gate_width,
+            gate_height=gate_config.gate_height,
+            min_foreground_fraction=gate_config.min_foreground_fraction,
+            derived_foreground_threshold_px=115.2,
+            measured_stack="test",
+            sha="test-envelope",
+            speeds_gate_px=(0.1, 1000.0),
+            thresholds_px=(threshold, threshold),
+        )
 
-    widened = gate_config.__class__(
-        min_foreground_fraction=gate_config.min_foreground_fraction / 4,
-        stay_awake_frames=gate_config.stay_awake_frames,
-        diff_threshold=gate_config.diff_threshold,
-        warmup_frames=gate_config.warmup_frames,
-        gate_width=gate_config.gate_width,
-        gate_height=gate_config.gate_height,
-    )
+    generous = observability_partition(clip, gate_config, envelope_with(1.0))
+    assert np.all(generous.after_warmup() == Observability.ABOVE_ENVELOPE)
+
+    strict = observability_partition(clip, gate_config, envelope_with(1e9))
     assert np.all(
-        observability_partition(clip, widened).after_warmup()
-        == Observability.ABOVE_ENVELOPE
-    ), "lowering the foreground threshold must widen the envelope"
+        strict.after_warmup() == Observability.BELOW_ENVELOPE
+    ), "the measured envelope must be what decides the bucket"
+
+    unresolvable = observability_partition(clip, gate_config, envelope_with(None))
+    assert np.all(unresolvable.after_warmup() == Observability.BELOW_ENVELOPE), (
+        "a speed the gate never woke at means nothing is resolvable, but the "
+        "mover is still visible, so it is below the envelope and not "
+        "unobservable"
+    )
 
 
 def test_envelope_is_resolution_independent(tmp_path: Path, gate_config) -> None:

@@ -34,6 +34,10 @@ GT_MOTION_THRESHOLD_M = 0.01
 FIRST_AGENT_INSTANCE_ID = 100
 
 
+class ScorecardError(RuntimeError):
+    """Raised when two scorecards are compared that must not be."""
+
+
 @dataclass(frozen=True)
 class Metric:
     """One measured number, with enough context to interpret it."""
@@ -65,6 +69,13 @@ class Scorecard:
     metrics: list[Metric] = field(default_factory=list)
     caveats: list[str] = field(default_factory=list)
     per_clip: dict[str, dict[str, float]] = field(default_factory=dict)
+    envelope: dict[str, Any] = field(default_factory=dict)
+    """Capability-envelope provenance.
+
+    Recorded on every run because the envelope decides which misses count as
+    gate defects. Two scorecards produced under different envelopes describe
+    different questions, and the difference would read as a change in the gate.
+    """
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -75,7 +86,32 @@ class Scorecard:
             "metrics": [m.as_dict() for m in self.metrics],
             "caveats": self.caveats,
             "per_clip": self.per_clip,
+            "envelope": self.envelope,
         }
+
+    def require_comparable(self, other: "Scorecard") -> None:
+        """Raise unless two scorecards may be compared to each other.
+
+        Guards the two ways a delta becomes meaningless: a different golden set
+        (different instrument) and a different capability envelope (different
+        definition of defect). Both produce a number that looks like a
+        regression or an improvement and is neither.
+        """
+        if self.golden_set_sha != other.golden_set_sha:
+            raise ScorecardError(
+                "these scorecards measured different golden sets "
+                f"({self.golden_set_sha[:12]} vs {other.golden_set_sha[:12]}); "
+                "a delta across them is not a delta"
+            )
+        mine = self.envelope.get("envelope_sha")
+        theirs = other.envelope.get("envelope_sha")
+        if mine != theirs:
+            raise ScorecardError(
+                "these scorecards were produced under different capability "
+                f"envelopes ({str(mine)[:12]} vs {str(theirs)[:12]}). The "
+                "envelope decides which misses are gate defects, so the "
+                "numbers are not comparable. Re-score both under one envelope."
+            )
 
     def render(self) -> str:
         lines = [
@@ -137,13 +173,19 @@ class Partition:
     """Warmup frames the gate is not scored on; slice with ``labels[warm:]``."""
 
     envelope_gate_px: float
-    """Foreground area, in gate pixels, the envelope boundary sits at."""
+    """Derived FOREGROUND threshold, kept for reference only.
+
+    Verdicts use the measured, speed-aware envelope. This is the arithmetic
+    value it was validated against and disagreed with.
+    """
 
     def after_warmup(self) -> np.ndarray:
         return self.labels[self.warm :]
 
 
-def observability_partition(clip_path: Path, gate_config: Any) -> Partition:
+def observability_partition(
+    clip_path: Path, gate_config: Any, envelope: Any | None = None
+) -> Partition:
     """Partition GT motion into what this camera could actually have seen.
 
     Scoring a camera against world-space motion asks it to detect things
@@ -153,21 +195,34 @@ def observability_partition(clip_path: Path, gate_config: Any) -> Partition:
     exact, it already accounts for partial occlusion and frame-edge clipping,
     and it does not require this module to re-derive a projection convention.
 
-    The envelope boundary is the gate's own resolving power. An agent occupying
-    fewer than ``min_foreground_fraction`` of the gate's pixels cannot trip the
-    gate no matter how it is tuned, short of tuning it onto sensor noise, so
-    such a frame measures the camera's reach and not the gate's quality.
+    The envelope boundary between "below the camera's physical limit" and "a
+    gate defect" is **measured**, not derived. The arithmetic threshold —
+    ``min_foreground_fraction`` of the gate raster — is exact about *foreground*
+    area and is not a silhouette predictor: a slow mover is absorbed into the
+    background model at any size, so the silhouette area needed to wake the
+    gate ranges from 92 px at 30 native px/frame to never at 3. Using the
+    arithmetic value here would call a large slow mover a gate defect the gate
+    physically cannot catch. See :mod:`src.cascade.envelope`.
 
     Args:
-        clip_path: ``.npz`` clip carrying ``agent_xyz`` and ``instances``.
-        gate_config: the gate being scored; supplies the envelope boundary.
+        clip_path: ``.npz`` clip carrying ``agent_xyz``, ``instances`` and
+            ``track_uv``.
+        gate_config: the gate being scored.
+        envelope: measured :class:`~src.cascade.envelope.MeasuredEnvelope`.
+            Loaded from the default path when omitted.
 
     Returns:
         A :class:`Partition` labelling every frame in the clip.
     """
+    from src.cascade.envelope import DEFAULT_ENVELOPE_PATH, MeasuredEnvelope
+
+    if envelope is None:
+        envelope = MeasuredEnvelope.load(DEFAULT_ENVELOPE_PATH)
+
     with np.load(clip_path) as data:
         agent_xyz = np.asarray(data["agent_xyz"])
         instances = np.asarray(data["instances"])
+        track_uv = np.asarray(data["track_uv"])
 
     frames, agents = agent_xyz.shape[0], agent_xyz.shape[1]
     native_px = instances.shape[1] * instances.shape[2]
@@ -185,14 +240,28 @@ def observability_partition(clip_path: Path, gate_config: Any) -> Partition:
         deltas = np.linalg.norm(np.diff(agent_xyz, axis=0), axis=2)
         moved[1:] = deltas > GT_MOTION_THRESHOLD_M
 
+    # Image-plane speed decides where the envelope sits, so it comes from the
+    # projected track rather than from world displacement: an agent walking
+    # toward a camera moves fast in world space and barely at all in pixels.
+    uv_to_gate = gate_config.gate_width / instances.shape[2]
+    speed_gate_px = np.zeros((frames, agents))
+    if agents and track_uv.size:
+        steps = np.linalg.norm(np.diff(track_uv, axis=0), axis=2) * uv_to_gate
+        speed_gate_px[1:] = np.nan_to_num(steps, nan=0.0, posinf=0.0)
+
     labels = np.full(frames, Observability.NO_MOTION, dtype=np.int8)
     for agent in range(agents):
         moving = moved[:, agent]
         if not moving.any():
             continue
         area = (instances == FIRST_AGENT_INSTANCE_ID + agent).sum(axis=(1, 2)) * to_gate
+        # Per frame, because a mover's image-plane speed changes within a clip
+        # and the threshold moves with it.
+        thresholds = np.array(
+            [envelope.wake_threshold_px(s) for s in speed_gate_px[:, agent]]
+        )
         rank = np.where(
-            area >= envelope_gate_px,
+            area >= thresholds,
             Observability.ABOVE_ENVELOPE,
             np.where(
                 area > 0, Observability.BELOW_ENVELOPE, Observability.NOT_OBSERVABLE
@@ -208,7 +277,7 @@ def observability_partition(clip_path: Path, gate_config: Any) -> Partition:
 
 
 def motion_gate_metrics(
-    clip_path: Path, gate_config: Any
+    clip_path: Path, gate_config: Any, envelope: Any | None = None
 ) -> tuple[dict[str, int], dict[str, float]]:
     """Score the motion gate against motion this camera could have seen.
 
@@ -229,7 +298,7 @@ def motion_gate_metrics(
     with np.load(clip_path) as data:
         rgb = np.asarray(data["rgb"])
 
-    partition = observability_partition(clip_path, gate_config)
+    partition = observability_partition(clip_path, gate_config, envelope)
 
     frames = rgb.shape[0]
     gate = MotionGate(gate_config)
@@ -303,13 +372,21 @@ def occlusion_metrics(clip_path: Path) -> dict[str, float]:
     }
 
 
-def compute(golden: Any, clip_root: Path, gate_config: Any) -> Scorecard:
+def compute(
+    golden: Any, clip_root: Path, gate_config: Any, envelope: Any | None = None
+) -> Scorecard:
     """Score every clip in a golden set."""
+    from src.cascade.envelope import DEFAULT_ENVELOPE_PATH, MeasuredEnvelope
+
+    if envelope is None:
+        envelope = MeasuredEnvelope.load(DEFAULT_ENVELOPE_PATH)
+
     card = Scorecard(
         golden_set_version=golden.version,
         golden_set_sha=golden.set_sha,
         domain=golden.domain.value,
         clips_scored=0,
+        envelope=envelope.provenance(),
     )
 
     totals = {
@@ -331,7 +408,7 @@ def compute(golden: Any, clip_root: Path, gate_config: Any) -> Scorecard:
             card.caveats.append(f"{clip.clip_id}: clip file missing at {path}")
             continue
 
-        counts, rates = motion_gate_metrics(path, gate_config)
+        counts, rates = motion_gate_metrics(path, gate_config, envelope)
         occlusion = occlusion_metrics(path)
         for key in totals:
             totals[key] += counts[key]

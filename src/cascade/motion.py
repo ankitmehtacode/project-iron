@@ -146,6 +146,74 @@ class MotionGateConfig:
     def downscaling_enabled(self) -> bool:
         return self.gate_width > 0 and self.gate_height > 0
 
+    def gate_pixels(self, source_shape: tuple[int, int] | None = None) -> int:
+        """Pixel count of the raster the gate actually processes.
+
+        Args:
+            source_shape: ``(height, width)`` of the incoming frame. Needed
+                because a source already at or below the gate size is left
+                alone rather than upscaled, so the gate's raster is the
+                *smaller* of the two. Omit only when the source is known to be
+                larger than the gate.
+        """
+        if not self.downscaling_enabled:
+            if source_shape is None:
+                raise ValueError(
+                    "downscaling is disabled, so the gate raster is the source "
+                    "raster and source_shape is required to size it"
+                )
+            return source_shape[0] * source_shape[1]
+
+        if source_shape is None:
+            return self.gate_width * self.gate_height
+
+        height = min(self.gate_height, source_shape[0])
+        width = min(self.gate_width, source_shape[1])
+        return height * width
+
+    def envelope_threshold_px(
+        self, source_shape: tuple[int, int] | None = None
+    ) -> float:
+        """Foreground area, in gate pixels, at which this gate can wake.
+
+        This is the boundary between "the gate missed something it could have
+        seen" and "the mover is below this camera's physical resolving power".
+        It decides which side of a scorecard a miss lands on, so it is derived
+        here rather than written down as a number.
+
+        The algebra. :meth:`MotionGate.process` wakes when::
+
+            foreground_fraction >= min_foreground_fraction
+
+        and ``foreground_fraction`` is, by construction in the backend, the
+        count of foreground pixels divided by the gate raster::
+
+            foreground_px / gate_px >= min_foreground_fraction
+
+        so the smallest foreground region that can wake the gate is::
+
+            foreground_px >= min_foreground_fraction * gate_px
+
+        With the defaults — 0.002 of a 320x180 raster — that is 115.2 gate
+        pixels. Note what the left-hand side is: **foreground** area as the
+        background model scores it, which is not the same as the mover's
+        *silhouette* area. A displaced object marks both the pixels it arrived
+        at and the ones it left, so its foreground area can approach twice its
+        silhouette. Anything converting a silhouette into a wake prediction
+        must account for that ratio, which is why
+        ``scripts/measure_envelope.py`` measures the real 50% wake point
+        instead of assuming the two are equal.
+
+        Args:
+            source_shape: ``(height, width)`` of the incoming frame; see
+                :meth:`gate_pixels`.
+
+        Returns:
+            Threshold in gate pixels. Fractional because it is a fraction of a
+            raster, not a count of anything.
+        """
+        return self.min_foreground_fraction * self.gate_pixels(source_shape)
+
 
 class MotionBackend(Protocol):
     """A foreground estimator."""
