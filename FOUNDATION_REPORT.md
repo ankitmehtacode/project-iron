@@ -1446,6 +1446,10 @@ the gate can only see its own frame. A camera is being scored on motion it may
 not be able to observe. **This is not resolved and is not tuned away** — it is
 the first item on the Day-7 list.
 
+> **Superseded — see "The scorecard above was measuring the wrong thing" below.**
+> It was a ground-truth definition issue. Every number in this section is the
+> pre-fix measurement and is kept only as the before-half of the delta.
+
 `near_static__cam_a` scoring `n/a` is correct: no GT motion, no wakes, so recall
 is undefined rather than 0 or 1. Reporting `nan` instead of inventing a value is
 the honest arithmetic.
@@ -1484,6 +1488,79 @@ deleted rather than patched.
 The golden set was also being populated by hand. It is now minted from the
 manifest by `--write-golden`, because **a set of content hashes nobody can
 reproduce is not content-addressed**.
+
+### The scorecard above was measuring the wrong thing
+
+The blind-spot question resolved as an eval defect, not a gate defect. GT motion
+was `agent_xyz` displacement maximised over *every agent in the scene* — world
+space — compared against *one camera's* wake decisions. The camera was charged a
+false negative for sleeping through motion outside its frustum, which is the
+definition of a frustum rather than a defect.
+
+Projecting motion into each camera and checking visibility fixes that and
+produces a second false verdict, so GT motion is now partitioned into three
+buckets per camera, not two:
+
+| bucket | meaning | treatment |
+| --- | --- | --- |
+| not observable | no pixels reach this sensor — outside frustum, or fully occluded by static geometry | excluded from every denominator |
+| below envelope | visible and unoccluded, but subtends fewer gate pixels than `min_foreground_fraction` can resolve | excluded from recall, reported as `envelope.limited_misses` |
+| above envelope | visible, unoccluded, resolvable | the only honest recall denominator |
+
+The middle bucket is the one that matters. Those are not gate defects; they are
+the **capability envelope becoming measurable for the first time**. Folding them
+into recall would hide the envelope. Counting them as failures would send
+someone tuning `min_foreground_fraction` down until the gate wakes on sensor
+noise. On its own line it can do neither, and it becomes a coverage-advisor and
+mount-position input instead of a bug.
+
+Observability is resolved from the renderer's own instance masks rather than by
+reprojecting agent centroids. The mask is exact, it already accounts for partial
+occlusion and frame-edge clipping, and it keeps this module from re-deriving a
+projection convention. Silhouette area is scaled into *gate* pixels, so the
+1080p rendition and its 720p twin land on the same side of the envelope.
+
+Same set, same `set_sha`, same gate — only the denominator changed:
+
+```
+metric                          before      after
+motion_gate.recall              0.9375     1.0000
+motion_gate.false_negatives          7          0
+envelope.limited_misses              —          2
+envelope.unobservable_frames         —         58
+coverage.frames_scored             126         55
+coverage.observable_fraction         —     0.4365
+```
+
+**The 1.0 is not the finding. The 0.4365 is.** All seven "false negatives" were
+frustum or envelope artefacts — five unobservable, two below envelope, one of
+those at 104.0 gate pixels against a 115.2 threshold, which is the envelope
+boundary showing up as a single frame. But the corrected denominator also says
+**55 of 126 frames carried ground truth this camera could act on**. The set is
+far thinner than it looked, and a recall of 1.0 over 41 moving frames is a
+statement about the set rather than about the gate. `coverage.observable_fraction`
+exists so that cannot be read any other way.
+
+Why so much is unobservable: agents walk behind a furniture slab at 4.00 m and
+out through the bottom frame edge. Both are correct rendering — verified frame
+by frame, the trajectories are smooth and the projection rejects points behind
+the camera — but a set whose agents spend half their frames off-sensor is not
+exercising what it claims to. **Re-authoring the scenes so agents stay in
+frustum is now the top eval task**, and it is a new versioned set, not an edit
+to `v2-indoor`.
+
+Two smaller consequences, both recorded rather than smoothed over:
+
+- `envelope.wakes_outside_envelope` is 64. Excluded frames must not become a
+  hiding place for wakes, so they are counted. The stay-awake latch
+  (`stay_awake_frames=12`) accounts for all of them — checked per clip.
+- The buckets close: 55 scoreable + 13 below envelope + 58 unobservable = 126.
+  An accounting that does not close is one where an excluded frame can go
+  missing without anyone noticing.
+
+`motion_gate.recall` before and after are **not comparable** — the metric
+definition changed, not the system. The pre-fix numbers are kept above as the
+before-half of this delta and for no other purpose.
 
 ### Coverage
 
@@ -1570,10 +1647,14 @@ The counsel question stays open in both documents.
 
 ## Day 7, in order
 
-1. **Resolve the blind-spot false negatives.** Decide whether GT motion should
-   be conditioned on camera visibility, or whether the gate genuinely misses
-   observable motion. Six of seven FNs ride on this and the headline recall is
-   uninterpretable until it is settled. Do not tune the gate before deciding.
+1. **Re-author the synthetic scenes so agents stay in frustum.** The blind-spot
+   false negatives are resolved — they were an eval defect, and GT motion is now
+   partitioned into observable / below-envelope / above-envelope per camera. But
+   the corrected denominator exposed the real problem:
+   `coverage.observable_fraction` is **0.4365**. Agents spend half their frames
+   behind a 4.00 m furniture slab or off the bottom edge, so recall 1.0 rides on
+   41 moving frames. This is a new versioned set (`v3-indoor`), never an edit to
+   `v2-indoor`, and it is the highest-value eval work available.
 2. **Close the cascade budget, or move it deliberately.** 4.57% against 3.00%.
    Either optimise stage 0 with a measured before/after, or change the target
    with a stated hardware justification. Not both, and not silently.
