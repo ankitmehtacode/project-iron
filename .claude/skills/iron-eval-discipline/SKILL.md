@@ -76,6 +76,35 @@ are about to measure the defect.
 Corollary: **the mildest configuration is the worst place to audit.** Reproduce a suspected
 bug at the setting the product will actually use, not the one that is fastest to run.
 
+## Bounded Nulls — a search result carries its bounds
+
+**"Not found within the measurement window" and "does not exist" are distinct
+results and must be distinct types.** A search that returns null carries the range it
+searched. Any consumer that treats an unbounded null as a physical limit is a defect.
+
+Worked example (day 7 → day 8). The capability-envelope sweep tested silhouette areas
+40–320 gate px. At the two slowest speeds the wake rate never crossed 50% inside that window,
+so the model recorded `null` — and the scorecard read `null` as *physically unreachable*, then
+labelled real, resolvable motion as beyond the camera's capability. Re-measured to 1660 px, the
+slow-speed crossing sat at 535. **There was no absorption floor; there was an edge of the
+search.** 68 frames of correctly-detected motion had been excluded from the denominator.
+
+The rule in practice:
+
+- A sweep artifact records `searched_range` alongside every result. No range, no conclusion.
+- An uncrossed search returns the bound (`"> 320 px"`), never a bare `None`.
+- Interpolating *across* an uncrossed sample fabricates a value that was never observed —
+  propagate the unresolved state instead.
+- Before concluding "X cannot happen", check whether X was inside the window at all. The
+  cheapest version: does the extreme of the searched range still fail? If the sweep never
+  reached failure, it never established a limit.
+
+Related trap, same family: **a metric that can be rescued by fitting is not evidence on its
+own.** Depth alignment (day 9) fits scale and shift before scoring, and a near-constant
+prediction on a scene that is 95% background fits that background and posts AbsRel 0.15 while
+ordering pixels backwards. Pair any fitted metric with an alignment-invariant one — rank
+correlation, here — and gate on that.
+
 ## Honesty Clauses
 
 - Report the metric that looks bad. Omitting an unfavorable bucket is falsification.
