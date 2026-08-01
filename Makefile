@@ -41,3 +41,6 @@ types:
 
 bench:
 	$(PYTHON) scripts/cascade_bench.py
+
+inspect:
+	$(PYTHON) -m src.inspector.server

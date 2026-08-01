@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iron Inspector</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="mark" aria-hidden="true"></span>
+    <h1>Iron Inspector</h1>
+    <p class="sub">read-only instrument over artifacts on disk</p>
+  </div>
+  <div id="provenance-strip" class="prov-strip" aria-live="polite"></div>
+</header>
+
+<nav class="tabs" aria-label="Views">
+  <button class="tab" data-view="scorecard" aria-current="page">Scorecard</button>
+  <button class="tab" data-view="clip">Clip inspector</button>
+  <button class="tab" data-view="envelope">Envelope</button>
+  <button class="tab" data-view="events">Events</button>
+  <button class="tab" data-view="provenance">Provenance</button>
+</nav>
+
+<main id="main">
+  <section id="view-scorecard" class="view"></section>
+  <section id="view-clip" class="view" hidden></section>
+  <section id="view-envelope" class="view" hidden></section>
+  <section id="view-events" class="view" hidden></section>
+  <section id="view-provenance" class="view" hidden></section>
+</main>
+
+<div id="tooltip" class="tooltip" role="status" aria-live="polite" hidden></div>
+
+<script src="/app.js"></script>
+</body>
+</html>

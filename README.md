@@ -400,6 +400,52 @@ git commit -m "feat: add new feature"
 
 ## Citation
 
+## Iron Inspector
+
+Everything this project measures is otherwise a number in a terminal. The
+Inspector is the local, read-only viewer that makes those numbers checkable by
+a human.
+
+```
+make inspect          # http://127.0.0.1:8899
+```
+
+It is a **verification instrument, not a demo**, and that drives every decision
+in it:
+
+- **It reads real artifacts, only.** There is no mock data path and no sample
+  payload anywhere in the serving code — a test greps for fixture-shaped
+  literals and fails the build if one appears. A viewer that can invent data
+  cannot be used to verify a claim, because a green screen would no longer
+  distinguish "the artifact says so" from "the fallback fired".
+- **Absence is rendered, not elided.** A missing artifact shows the path it was
+  looked for and the command that produces it. An empty state is an
+  instruction. An unmeasured metric reads `unmeasured`, never `0`.
+- **Every number names its source.** Hovering a metric shows the file it was
+  read from and the `set_sha` / `envelope_sha` that identify the run.
+- **Incomparable runs are refused, not diffed.** Two scorecards built on
+  different golden sets or different capability envelopes render a refusal with
+  the reason. This is the same rule `Scorecard.require_comparable` enforces in
+  Python; the UI must not draw a chart the library would refuse to compute.
+- **Standard library only.** No FastAPI, no CDN, no build step beyond
+  `pip install -e .`, so it still runs on an air-gapped Tier-3 rack. Binds to
+  localhost, because the artifacts include footage-derived ground truth.
+
+### The five views
+
+| View | What it answers |
+| --- | --- |
+| **Scorecard** | Every metric for the active golden set, with `observable_fraction` given the same visual weight as recall and `hard_coverage` clips broken out rather than averaged in. |
+| **Clip inspector** | Per frame: the three observability buckets, the gate's wake decisions, and the mover's silhouette area against the speed-aware envelope. This is where "is this miss a defect or a physical limit?" is answered by looking. |
+| **Envelope** | The measured wake curve, with the refuted single-threshold line struck through. The chart *is* the argument that no scalar threshold exists. |
+| **Events** | The event log as a filterable table. `observed=false` rows are dashed, italic and marked — the distinction is legible in greyscale, never colour alone. |
+| **Provenance** | Git sha and dirty flag, config sha, golden-set and envelope shas. Any view showing numbers without a resolvable manifest gets a warning band. |
+
+Colour is never load-bearing. The observability bands differ in **height** as
+well as lightness, so the three buckets stay distinguishable in a greyscale
+screenshot or to a colour-blind reviewer.
+
+
 If you use this project, please cite:
 - [CoTracker3](https://co-tracker.github.io/)
 - [Depth Anything V2](https://github.com/DepthAnything/Depth-Anything-V2)
