@@ -1670,3 +1670,199 @@ The counsel question stays open in both documents.
    architectural answer to its sharpest open question.
 7. **Production `vjepa2_vitl_int8.xml`/`.bin`** from whoever ran production, for
    the parked Objective-1 forensic verdict. Unchanged since Day 3.
+
+---
+
+# Day 7
+
+Branch `foundation/day-7`, cut after Objective 0 landed on `foundation/day-6`.
+
+## Objective 0 — Commit and push everything
+
+**The premise was stale, and saying so first.** The six files that "were never
+committed" were already recovered on Day 6 by `33cb345`;
+`src/models/preprocess.py` is tracked and in history. The real backlog was the
+five working-tree files from the Day-6 eval fix. **Files recovered this day: 0.**
+Nothing was missing that was not already found.
+
+### Ignore-pattern audit
+
+Every pattern was checked against what it actually matches, not read:
+
+| pattern | anchored | matches |
+| --- | --- | --- |
+| `/outputs/` `/logs/` `/models/` `/data/` | yes | the artifact dirs only |
+| `venv/` `.venv/` `.venv-pinned/` `.vscode/` `.coverage` `coverage.xml` | **was NO** | now anchored |
+| `__pycache__/` `*.py[cod]` `*.egg-info/` `.pytest_cache/` `.mypy_cache/` `.hypothesis/` | NO | **deliberately** |
+
+The second group must stay unanchored — those directories occur at every depth,
+and anchoring them would stop ignoring caches inside `src/` and fill
+`git status` with them. Anchoring "everything unanchored" would have been a
+regression, so the file now carries the rule that distinguishes the two cases,
+which `33cb345` fixed without writing down.
+
+Confirmed explicitly: **none of the 131 tracked source files is ignored**;
+`outputs/`, `data/`, `models/`, `logs/` each remain ignored, checked against the
+specific rule that ignores them.
+
+### Fresh-clone verification — and it failed the first time
+
+Clone to a temp dir, venv from `locking-requirements.txt`, `pip install -e .`,
+full suite. **Run 1: 1 failed, 422 passed.**
+
+`test_eval_report_scores_the_populated_indoor_set` scores the configured golden
+set and never materialised the clips it scores. On this machine they are already
+under `data/synthetic/` from the last `make eval`, so it passed; in a fresh clone
+`data/` is empty, `eval_report` refuses, and it fails. **It was testing the
+developer's working directory rather than the repository** — the same class as
+Day 2's vacuous parity claim, and invisible to every run here.
+
+Skipping when the clips are absent would have been worse: that test exists to
+catch `make eval` going green-by-abstention, so a version of it that abstains in
+CI is the defect it guards against. A session fixture materialises the dataset
+instead, with the generator defaults pinned to the ones v2-indoor was minted
+from so content hashes still match the manifest. `data/` stays ignored —
+committing the clips to make a test pass would be fixing the measurement by
+moving the artifact.
+
+Verified this was the only such test: nothing else in `tests/` touches
+`resolved_data_dir`, `data/synthetic`, or `eval_report.main([])`.
+
+**Run 2: 423 passed, 1 skipped, 6 deselected.** The skip is
+`test_preprocess_spec.py:435`, "no legacy artifacts under outputs; nothing to
+refuse" — an explicit reason, not a fake pass.
+
+### Push
+
+**No git remote is configured. All 41 commits across seven branches exist on one
+machine and nowhere else.** This is now the seventh day it has been deferred, and
+Objective 0 just demonstrated that the working directory is not a faithful copy
+of what a clone gets. Exact commands for the human:
+
+```
+git remote add origin <url>
+git push -u origin main
+for b in foundation/day-1 foundation/day-2 foundation/day-3 \
+         foundation/day-5 foundation/day-6 foundation/day-7; do
+  git push -u origin "$b"
+done
+```
+
+## Objective 1 — The envelope threshold was excusing a real defect
+
+115.2 gate px decided which misses were gate defects and which were the camera's
+physical limit. It appeared nowhere as a literal — it fell out of
+`min_foreground_fraction * gate_px` inside the partition — and a Day-6 miss sat
+at 104.0 against it.
+
+**The derivation** is now explicit in `MotionGateConfig.envelope_threshold_px`
+with the algebra in the docstring. The gate wakes when
+`foreground_px / gate_px >= min_foreground_fraction`, so 115.2 is correct
+arithmetic about **foreground** area. `gate_pixels()` also takes the source
+shape, because a source already below the gate size is not upscaled — the fact
+that made Day 2's parity claim vacuous.
+
+**The measurement** (`scripts/measure_envelope.py`) shows it does not predict the
+gate's behaviour, because a scorecard knows **silhouette** area:
+
+| displacement (native px/frame) | silhouette area that wakes the gate | vs derived |
+| ---: | ---: | ---: |
+| 2, 3 | never — absorbed into the background model | — |
+| 4 | 250.0 gate px | 2.17× |
+| 6 | 132.0 | 1.15× |
+| 8 | 110.0 | 0.95× |
+| 12, 20 | 108.0 | 0.94× |
+| 30 | 92.0 | 0.80× |
+
+**There is no single threshold.** A slow mover is learned as background at any
+size, so the envelope is a function of speed and the disagreement runs from 6%
+to unbounded. Per the rule, the measurement wins: the envelope is a committed
+artifact (`configs/envelope/`), interpolated between samples and clamped outside
+them, never extrapolated. Interpolating across a speed that never woke returns
+`inf` rather than averaging into a threshold the gate was never observed to
+reach.
+
+Result — same golden set, same gate, measured envelope replacing the constant:
+
+```
+motion_gate.recall             1.0000 -> 0.9762
+motion_gate.false_negatives         0 -> 1
+envelope.limited_misses             2 -> 1
+coverage.observable_fraction   0.4365 -> 0.4444
+```
+
+The 104.0 px miss in `overlap_pair_2agents__cam_b` moved from "below the
+envelope" to a **genuine false negative**: at that agent's real image-plane speed
+the gate could have woken and did not. **The unargued constant was excusing a
+real gate defect** — the failure direction that matters.
+
+Every scorecard now records `envelope_sha` and the measured stack, and
+`Scorecard.require_comparable` refuses a delta across differing envelopes or
+golden sets. A test caught a real bug in the interpolator: an exact sample whose
+slower neighbour never woke returned `inf`, discarding the value measured at that
+very speed.
+
+## Objective 2 — Acceptance criterion landed; v3-indoor NOT authored
+
+`mint_golden_set()` refuses a set whose aggregate `observable_fraction` is below
+**0.80**, before it can be registered or produce a scorecard. Acceptance runs on
+measurements — a clip with no measured fraction is refused outright, because
+unmeasured clips are exactly how 0.4444 went unnoticed. The `hard_coverage` tag
+keeps a genuine blind-spot scenario out of the aggregate and on its own line, and
+two tests hold it honest: it cannot rescue a set whose untagged clips are weak,
+and a set of nothing but blind spots is refused.
+
+`v2-indoor`'s `set_sha` is unchanged (`fa0632ea`) — the frozen set stays exactly
+as measured.
+
+**Not done: the v3-indoor set itself.** Re-authoring camera placements and agent
+paths, ≥20 clips, ≥400 scorable frames, both renditions, mint, register, and
+`make eval` remain. The gate that makes that work verifiable is in place; the
+authoring is not, and no v3 scorecard exists to report.
+
+## Objective 3 — BLOCKED on real footage
+
+The prerequisite does not exist in this repository. The only real video is
+`src/interface/ui/data/raw/test_video.mp4` at **320×176** — the same clip whose
+size made Day 2's parity claim vacuous, because it is below the 320×180 gate and
+the downscale never runs. A valid parity fixture needs real 720p/1080p footage
+that nobody has provided.
+
+**There is still no valid real-footage parity evidence, and none can be produced
+from what is in the repo.** The 4.57% vs 3.00% budget miss stands open and
+un-profiled. Both are now blocked on a human supplying footage — added to the
+blocked list rather than worked around, because synthesising "real" footage to
+close this would reproduce the exact defect Day 6 found.
+
+## Objective 4 — Skill rule
+
+`iron-eval-discipline` gained **parameter-scaling bugs**: a bug whose severity
+scales with a parameter must be fixed before that parameter is tuned, or the
+sweep measures the bug's gradient and it gets read as a property of the system.
+Carries the clamp table (25% / 62% / 81% / 95% at T=4/8/16/64), the detection
+heuristic — evaluate the defect at the low, middle and high end of the intended
+range; if those differ, the sweep is measuring it — and the corollary that the
+mildest configuration is the worst place to audit.
+
+## Day 8, in order
+
+1. **Author v3-indoor.** The acceptance floor is in and will refuse anything
+   below 0.80. Fix the two traced pathologies: agents exiting the bottom frame
+   edge, and the 4.00 m furniture slab occluding the primary sightline. ≥20
+   clips, ≥400 scorable frames, both renditions, degenerates retained, at least
+   one clip tagged `hard_coverage`.
+2. **Configure the git remote and push.** Seventh day deferred. Objective 0
+   proved the working directory is not a faithful copy of the history.
+3. **Real 720p/1080p footage** for cascade parity and the budget profile.
+   Blocked on a human; nothing in Objective 3 can proceed without it.
+4. **Widen the scorecard beyond the motion gate.** Depth and occlusion GT are
+   exact and still unused by any metric.
+5. **Re-measure the envelope on OpenCV 5.0.** The committed model records
+   `opencv 4.8.1.78`; MOG2 differs between builds, so the envelope — and
+   therefore which misses count as defects — may not transfer.
+6. **MEVA license verification** — highest product impact of any pending item,
+   still blocked on a human reading the terms.
+7. **Counsel review** of the consent template, with ADR 0001 as the proposed
+   answer to its sharpest open question.
+8. **Production `vjepa2_vitl_int8.xml`/`.bin`** for the parked forensic verdict.
+   Unchanged since Day 3.
