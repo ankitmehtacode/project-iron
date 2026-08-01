@@ -40,6 +40,42 @@ far-field failure. Semantics: same-object retrieval mAP, temporal embedding stab
 patch-boundary discontinuity, FP32↔INT8 per-patch cosine reporting mean **and p1** (mean is
 always ~0.99 and always meaningless). Latency: p50/p95/p99/max — pilots fail on p99, not mean.
 
+## Parameter-Scaling Bugs — fix before you tune
+
+**A bug whose severity scales with a parameter must be fixed before that parameter is
+tuned.** Tune first and the sweep measures the bug's gradient, and the result gets read as a
+property of the system. The best-looking setting is then whichever one the defect happens to
+hurt least, and it ships with a number attached.
+
+Worked example (ADR 0002). The V-JEPA2 frame→temporal-slot rule was a clamp,
+`min(t, T_out - 1)`, where the encoder's layout calls for `t // tubelet`. They agree only at
+the bottom of the range, so the damage scales almost linearly with clip length:
+
+| `T` | misassigned frames | share |
+| ---: | ---: | ---: |
+| 4 | 1 of 4 | 25% |
+| 8 | 5 of 8 | 62% |
+| 16 | 13 of 16 | **81%** |
+| 64 | 61 of 64 | **95%** |
+
+The audit ran at `T=4` — the mildest configuration the bug has, and the reason it stayed
+hidden. A clip-length sweep on the pre-fix mapper would have found 4 frames "best" and
+concluded short clips beat long ones, which is a real, reproducible measurement of the clamp
+rather than of clip length.
+
+Same shape elsewhere: an envelope threshold validated at one mover speed (day 7), a parity
+claim measured on a clip below the downscale trigger (day 2), a determinism check whose two
+runs shared one process (day 6).
+
+**Detection heuristic — run before any parameter sweep.** List the known-open defects touching
+that code path and ask, for each: *does its severity depend on the parameter I am about to
+sweep?* If yes, the sweep is blocked until it is closed. Cheap version: compute the defect's
+effect at the low, middle, and high end of the sweep range. If those three numbers differ, you
+are about to measure the defect.
+
+Corollary: **the mildest configuration is the worst place to audit.** Reproduce a suspected
+bug at the setting the product will actually use, not the one that is fastest to run.
+
 ## Honesty Clauses
 
 - Report the metric that looks bad. Omitting an unfavorable bucket is falsification.
