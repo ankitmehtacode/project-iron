@@ -30,6 +30,57 @@ import numpy as np
 
 # World displacement above which an agent counts as having moved this frame.
 GT_MOTION_THRESHOLD_M = 0.01
+"""SUPERSEDED. World displacement, metres, that used to define "moving".
+
+Arrived hardcoded with the first scorecard and was never argued. It is a
+world-space quantity used to judge an image-space instrument, so it is blind to
+the two things that decide whether motion is visible at all: how far away the
+mover is, and what raster the camera has. A 1 cm step at 2 m and the same step
+at 15 m are the same number here and nothing alike on a sensor.
+
+It produced all 48 of v3's false positives: ``speed_crawl`` agents travel
+7.25 mm/frame, so ground truth called them static, while their rendered
+silhouettes moved and the gate correctly woke. Retained only as the
+before-half of that measurement — see :func:`gt_moved_from_render`.
+"""
+
+
+def gt_moved_from_render(instances: np.ndarray, agents: int) -> np.ndarray:
+    """Per frame, per agent: did this agent's rendered silhouette change?
+
+    The replacement for :data:`GT_MOTION_THRESHOLD_M`, and derived rather than
+    chosen. Ground truth for "did something move" can only honestly mean "the
+    frames the camera produced differ" — if an agent's rendered mask is
+    identical between two frames, then nothing in the footage shows motion, and
+    calling that frame *moving* asks the gate to detect something the fixture
+    never rendered.
+
+    Two properties fall out of the definition rather than being tuned in:
+
+    * **Resolution-dependent, correctly.** The same world motion resolves at
+      1080p and does not at 720p. Observable motion is a property of the
+      sensor, and a threshold in metres cannot express that.
+    * **Distance-dependent, correctly.** A step 15 m away moves fewer pixels
+      than the same step at 3 m, and the far one may move none.
+
+    Args:
+        instances: ``[T, H, W]`` instance masks; agents are
+            ``FIRST_AGENT_INSTANCE_ID + index``.
+        agents: number of agents in the clip.
+
+    Returns:
+        ``[T, agents]`` bool. Frame 0 is False — there is no previous frame to
+        have differed from, which is a statement about the clip's edge and not
+        about the agent.
+    """
+    frames = instances.shape[0]
+    moved = np.zeros((frames, agents), dtype=bool)
+    for agent in range(agents):
+        mask = instances == FIRST_AGENT_INSTANCE_ID + agent
+        changed = np.any(mask[1:] != mask[:-1], axis=(1, 2))
+        moved[1:, agent] = changed
+    return moved
+
 
 # ``instances`` labels agents as ``100 + agent_id``; lower ids are furniture.
 FIRST_AGENT_INSTANCE_ID = 100
@@ -257,10 +308,28 @@ def observability_partition(
     # of the envelope, and they only do so in gate space.
     to_gate = gate_px / native_px
 
-    moved = np.zeros((frames, agents), dtype=bool)
+    # Two different questions, deliberately kept apart.
+    #
+    # SCORING asks: did the frames this camera produced show motion the gate
+    # should have caught? That can only mean the rendered silhouette changed.
+    # A metres threshold answers a different question and answers it blind to
+    # distance and raster.
+    moved = (
+        gt_moved_from_render(instances, agents)
+        if agents
+        else np.zeros((frames, agents), dtype=bool)
+    )
+
+    # COVERAGE asks: did something move in the world that this camera could not
+    # see? Render-derived motion cannot express that — an agent outside the
+    # frustum has an unchanging empty mask, so it reads as "nothing happened"
+    # and the blind spot disappears from the report. Keeping the world-space
+    # signal for this one purpose preserves the coverage-gap line without
+    # letting a metres threshold back into the scoring denominator.
+    world_moved = np.zeros((frames, agents), dtype=bool)
     if agents:
         deltas = np.linalg.norm(np.diff(agent_xyz, axis=0), axis=2)
-        moved[1:] = deltas > GT_MOTION_THRESHOLD_M
+        world_moved[1:] = deltas > GT_MOTION_THRESHOLD_M
 
     # Image-plane speed decides where the envelope sits, so it comes from the
     # projected track rather than from world displacement: an agent walking
@@ -274,9 +343,22 @@ def observability_partition(
     labels = np.full(frames, Observability.NO_MOTION, dtype=np.int8)
     for agent in range(agents):
         moving = moved[:, agent]
+        area = (instances == FIRST_AGENT_INSTANCE_ID + agent).sum(axis=(1, 2)) * to_gate
+
+        # World motion this sensor received no pixels from. Excluded from every
+        # denominator exactly as before, but now reported on the strength of
+        # the world signal rather than inferred from a silhouette that, being
+        # empty in both frames, could never have changed.
+        blind = world_moved[:, agent] & (area <= 0)
+        if blind.any():
+            labels = np.where(
+                blind,
+                np.maximum(labels, int(Observability.NOT_OBSERVABLE)),
+                labels,
+            ).astype(np.int8)
+
         if not moving.any():
             continue
-        area = (instances == FIRST_AGENT_INSTANCE_ID + agent).sum(axis=(1, 2)) * to_gate
         # Per frame, because a mover's image-plane speed changes within a clip
         # and the threshold moves with it.
         thresholds = np.array(

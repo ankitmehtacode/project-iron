@@ -90,13 +90,22 @@ def _write_clip(
     frames = len(agent_areas_px)
     agents = len(agent_areas_px[0]) if frames else 0
 
+    # The mask is shifted for a moving agent, because ground truth for "moving"
+    # is now that the rendered silhouette changed between frames. A clip whose
+    # masks never move describes an agent that never moved, whatever its world
+    # coordinates claim — writing one and calling it moving would test a
+    # situation the renderer cannot produce.
     instances = np.zeros((frames, height, width), dtype=np.int32)
+    travelled_px = [0] * agents
     for frame, areas in enumerate(agent_areas_px):
         cursor = 0
         for agent, area in enumerate(areas):
+            if frame and moves[frame][agent]:
+                travelled_px[agent] += max(1, int(uv_step_px))
+            start = cursor + travelled_px[agent]
             flat = instances[frame].reshape(-1)
-            flat[cursor : cursor + area] = FIRST_AGENT_INSTANCE_ID + agent
-            cursor += area
+            flat[start : start + area] = FIRST_AGENT_INSTANCE_ID + agent
+            cursor += area + int(uv_step_px) * frames
 
     # Positions are only read through their frame-to-frame delta, so a moving
     # agent is given a 1 m step and a still one none. The projected track moves
