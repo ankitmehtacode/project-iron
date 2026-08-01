@@ -333,9 +333,18 @@ class EvalConfig(BaseModel):
 
     model_config = ConfigDict(frozen=True)
 
-    golden_set_version: str = "v2-indoor"
-    """Active set. v1 is driving-domain and legacy: it catches pipeline
-    regressions but must never back a product metric."""
+    golden_set_version: str = "v3-indoor"
+    """Active set.
+
+    v1 is driving-domain and legacy: it catches pipeline regressions but must
+    never back a product metric.
+
+    v2 is retained and NOT deleted. It is the record of what was measured
+    before, and it scored ``observable_fraction`` 0.4444 — its agents spent
+    most of their frames off-sensor, so its recall described the set rather
+    than the gate. v3 is the re-authored replacement. Numbers from the two are
+    not comparable: different clips, a different recall denominator, and a
+    different capability envelope."""
 
     golden_sets_dir: Path = Path("configs/golden")
     allow_legacy_golden_set: bool = False

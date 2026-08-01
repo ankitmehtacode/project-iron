@@ -63,8 +63,15 @@ cascade:
 
 eval:
   # Which golden set backs a reported number. v1 is driving-domain and legacy;
-  # the product is indoor, so v2 is the only set a product metric may cite.
-  golden_set_version: v2-indoor
+  # the product is indoor, so an indoor set is the only one a product metric
+  # may cite.
+  #
+  # v3 replaces v2 as the active instrument. v2 is retained, not deleted: it is
+  # the record of what was measured before, and it scored observable_fraction
+  # 0.4444 — its agents spent most of their frames off-sensor, so its recall
+  # described the set rather than the gate. The two are NOT comparable:
+  # different clips, a different recall denominator, and a different envelope.
+  golden_set_version: v3-indoor
   golden_sets_dir: configs/golden
   allow_legacy_golden_set: false
 

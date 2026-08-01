@@ -51,6 +51,13 @@ from src.config import IronConfig
 from src.data.golden import Condition
 
 DATASET_NAME = "synthetic-indoor-v1"
+
+DATASET_NAMES = {"v2": "synthetic-indoor-v1", "v3": "synthetic-indoor-v3"}
+"""Scene set -> dataset directory and registry name.
+
+Separate directories because the sets are separate instruments. v2's bytes are
+cited by a frozen manifest, so rendering v3 over the top of them would leave
+the v2 golden set pointing at clips that no longer hash to what it records."""
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
 # Every asset in the generation stack, and where its rights come from. This is
@@ -97,6 +104,18 @@ class CameraSpec:
     position: tuple[float, float, float]
     yaw_degrees: float
     covers: str
+    pitch_degrees: float = 0.0
+    """Downward tilt. Positive points the camera at the floor.
+
+    Defaults to zero so that v2-indoor, authored before this existed, still
+    renders byte-identically — its content hashes are cited by a frozen
+    manifest.
+
+    v2 had no pitch, which is why its agents walked off the bottom edge: a
+    camera 2.6 m up looking dead level puts a 1.7 m person below the principal
+    point, and further below it the closer they get. A real mounted camera
+    tilts down; without that the set was measuring a mount nobody would build.
+    """
 
     @property
     def cx(self) -> float:
@@ -107,7 +126,7 @@ class CameraSpec:
         return self.height / 2.0
 
     def extrinsics(self) -> np.ndarray:
-        """World->camera 4x4. Yaw about the vertical axis only."""
+        """World->camera 4x4. Yaw about the vertical axis, then pitch down."""
         yaw = np.radians(self.yaw_degrees)
         rotation = np.array(
             [
@@ -116,6 +135,16 @@ class CameraSpec:
                 [-np.sin(yaw), 0.0, np.cos(yaw)],
             ]
         )
+        if self.pitch_degrees:
+            pitch = np.radians(self.pitch_degrees)
+            tilt = np.array(
+                [
+                    [1.0, 0.0, 0.0],
+                    [0.0, np.cos(pitch), np.sin(pitch)],
+                    [0.0, -np.sin(pitch), np.cos(pitch)],
+                ]
+            )
+            rotation = tilt @ rotation
         matrix = np.eye(4)
         matrix[:3, :3] = rotation
         matrix[:3, 3] = -rotation @ np.array(self.position)
@@ -306,6 +335,295 @@ def render_frame(
     }
 
 
+def build_scenes_v3(frames: int, fps: float) -> list[Scene]:
+    """The v3 scene set: authored so its ground truth is actually observable.
+
+    v2 scored ``observable_fraction`` 0.4444 for two traced reasons, both fixed
+    here rather than tuned around.
+
+    **Agents walked off the bottom edge.** Its cameras sat 2.6 m up with
+    yaw-only extrinsics, so a 1.72 m agent fell further below the principal
+    point the closer it came, and left the frame entirely from about 2 m. Every
+    camera here is pitched down, and every path is kept inside a 3.5-11 m depth
+    band. At 16 degrees of tilt an agent at 6 m lands on the principal point and
+    one at 3 m still has its feet in frame.
+
+    **A partition slab sat on the primary sightline.** ``partition`` at z=7.0
+    spanned 2.4 m across the middle of the room, so the far camera watched
+    agents disappear behind it for a third of the clip — the 4.00 m depth in the
+    day-7 trace. Furniture here occludes from the *side*: partial, recoverable
+    occlusion is the case worth testing, and total occlusion of every agent at
+    once is not.
+
+    **Speed is a set requirement now, not an accident.** Day 7 showed the
+    envelope is speed-aware — 250 gate px of silhouette needed at 4 native
+    px/frame against 92 px at 30 — so a set whose agents all walk at one speed
+    exercises a single point on a curve. Path lengths here are chosen to spread
+    image-plane speed from roughly 2 px/frame (below the background-absorption
+    floor, where the gate cannot wake at any size) to roughly 26.
+    """
+    room = (10.0, 3.0, 14.0)
+
+    def cam(
+        name: str,
+        position: tuple[float, float, float],
+        yaw: float,
+        covers: str,
+        *,
+        hd: bool = False,
+        pitch: float = 16.0,
+    ) -> CameraSpec:
+        if hd:
+            return CameraSpec(
+                name, 1920, 1080, 1350.0, 1350.0, position, yaw, covers, pitch
+            )
+        return CameraSpec(name, 1280, 720, 900.0, 900.0, position, yaw, covers, pitch)
+
+    # Primary pair, overlapping down the length of the room.
+    cam_a = cam("cam_a", (-1.6, 2.6, 0.4), 6.0, "left half, looking down-room")
+    cam_b = cam("cam_b", (1.6, 2.6, 0.4), -6.0, "right half, overlaps cam_a")
+    cam_a_hd = cam(
+        "cam_a_1080", (-1.6, 2.6, 0.4), 6.0, "1080p rendition of cam_a", hd=True
+    )
+    cam_b_hd = cam(
+        "cam_b_1080", (1.6, 2.6, 0.4), -6.0, "1080p rendition of cam_b", hd=True
+    )
+    # Long view from the far end; agents recede rather than approach.
+    cam_d = cam("cam_d", (0.0, 2.6, 13.6), 180.0, "far end, facing back down-room")
+
+    # The coverage gap, kept deliberately. Pointed into a corner the walking
+    # lane never enters, so its agents are genuinely unobservable rather than
+    # merely small. Tagged hard_coverage at mint time.
+    cam_gap = cam(
+        "cam_gap",
+        (4.6, 2.6, 13.4),
+        105.0,
+        "GAP: faces the side wall; the walking lane is outside its frustum",
+    )
+
+    # Occluders sit off-centre so they take a bite out of a sightline instead
+    # of swallowing it. Partial occlusion is the testable case.
+    furniture = [
+        Furniture("desk_left", (-3.1, 0.4, 5.0), (1.6, 0.8, 0.9)),
+        Furniture("desk_right", (3.1, 0.4, 6.5), (1.6, 0.8, 0.9)),
+        Furniture("cabinet", (-3.4, 0.9, 9.0), (1.0, 1.8, 0.6)),
+        Furniture("planter", (3.3, 0.6, 9.5), (0.8, 1.2, 0.8)),
+    ]
+
+    def lane(
+        index: int, metres: float, count: int = 1, *, reverse: bool = False
+    ) -> Agent:
+        """One walker in the observable band, travelling ``metres`` in-clip.
+
+        Path length is the speed control: the clip is a fixed number of frames,
+        so a longer path is a faster agent. Roughly 0.5 m lands below the
+        background-absorption floor and 14 m at the fast end of the measured
+        envelope.
+
+        Lateral spread is deliberately tight. The stereo pair sits 3.2 m apart,
+        and at the near end of the band the horizontal half-FOV is only about
+        3.5 m, so agents spread wide enough to look natural fall outside the
+        *other* camera's frustum and get scored as coverage gaps that were
+        never intended. Depth does the separating instead.
+        """
+        spread = 0.0 if count == 1 else (index / max(1, count - 1) - 0.5) * 1.8
+        z_start = 5.0 + (index % 3) * 1.0
+        z_end = z_start + (-metres if reverse else metres) * 0.4
+        z_end = float(np.clip(z_end, 4.0, 11.0))
+        x_start = spread
+        # Lateral travel carries most of the image-plane speed, since a metre
+        # across the view moves more pixels than a metre along it.
+        x_end = spread + metres * 0.42 * (-1 if index % 2 else 1)
+        return Agent(
+            index, (x_start, z_start), (float(np.clip(x_end, -4.0, 4.0)), z_end)
+        )
+
+    def walkers(count: int, metres: float) -> list[Agent]:
+        return [lane(i, metres, count) for i in range(count)]
+
+    daylight = Condition.DAYLIGHT
+    scenes: list[Scene] = []
+
+    # --- Speed ladder: the same geometry at five speeds, so the envelope
+    # curve is exercised end to end rather than at one point.
+    for label, metres, note in (
+        ("crawl", 0.5, "below the background-absorption floor; ~2 px/frame"),
+        ("slow", 1.2, "near the 4 px/frame knee where 250 px is needed"),
+        ("walk", 2.6, "mid-range, ~8 px/frame"),
+        ("brisk", 4.5, "~15 px/frame"),
+        ("fast", 8.0, "fast, past the envelope's flat region"),
+        ("sprint", 14.0, "fast end of the measured curve, ~30 native px/frame"),
+    ):
+        scenes.append(
+            Scene(
+                f"speed_{label}_2agents",
+                room,
+                [cam_a, cam_b],
+                walkers(2, metres),
+                furniture,
+                (daylight, Condition.SINGLE_PERSON),
+                frames,
+                fps,
+                f"speed ladder: {note}",
+                extra={"speed_band": label, "path_metres": metres},
+            )
+        )
+
+    # --- Occupancy and occlusion.
+    scenes.append(
+        Scene(
+            "crowded_6agents",
+            room,
+            [cam_a, cam_b],
+            walkers(6, 3.4),
+            furniture,
+            (daylight, Condition.CROWDED, Condition.OCCLUSION_CROSSING),
+            frames,
+            fps,
+            "6 agents, mutual occlusion, all inside the observable band",
+            extra={"speed_band": "walk", "path_metres": 3.4},
+        )
+    )
+    scenes.append(
+        Scene(
+            "furniture_occlusion_3agents",
+            room,
+            [cam_a, cam_d],
+            walkers(3, 3.0),
+            furniture,
+            (daylight, Condition.OCCLUSION_FURNITURE),
+            frames,
+            fps,
+            "paths clip the side furniture: partial, recoverable occlusion",
+            extra={"speed_band": "walk", "path_metres": 3.0},
+        )
+    )
+    scenes.append(
+        Scene(
+            "receding_2agents",
+            room,
+            [cam_d, cam_a],
+            [lane(i, 4.0, 2, reverse=True) for i in range(2)],
+            furniture,
+            (daylight, Condition.FAR_FIELD),
+            frames,
+            fps,
+            "agents recede from cam_d: shrinking silhouette across the envelope",
+            extra={"speed_band": "brisk", "path_metres": 4.0},
+        )
+    )
+
+    # --- 1080p renditions. Same scenes at a different raster: the envelope is
+    # defined in gate pixels, so both must bucket identically.
+    scenes.append(
+        Scene(
+            "hd_walk_2agents",
+            room,
+            [cam_a_hd, cam_b_hd],
+            walkers(2, 2.6),
+            furniture,
+            (daylight, Condition.SINGLE_PERSON),
+            frames,
+            fps,
+            "1080p rendition of the mid-speed case",
+            extra={"speed_band": "walk", "path_metres": 2.6},
+        )
+    )
+    scenes.append(
+        Scene(
+            "hd_far_field_3agents",
+            room,
+            [cam_a_hd],
+            walkers(3, 5.0),
+            furniture,
+            (daylight, Condition.FAR_FIELD),
+            frames,
+            fps,
+            "1080p, agents worked out to the far end of the band",
+            extra={"speed_band": "brisk", "path_metres": 5.0},
+        )
+    )
+
+    # --- Day-6 degenerates, retained.
+    scenes.append(
+        Scene(
+            "lights_off_transient",
+            room,
+            [cam_a, cam_b],
+            walkers(2, 3.2),
+            furniture,
+            (Condition.LIGHTS_TRANSIENT, Condition.EVENING_ARTIFICIAL),
+            frames,
+            fps,
+            "lights cut mid-clip",
+            lights_off_from=frames // 2,
+            extra={"speed_band": "walk", "path_metres": 3.2},
+        )
+    )
+    scenes.append(
+        Scene(
+            "blown_window",
+            room,
+            [cam_a, cam_b],
+            walkers(2, 3.2),
+            furniture,
+            (Condition.GLARE, daylight),
+            frames,
+            fps,
+            "blown-out window in frame",
+            blown_window=True,
+            extra={"speed_band": "walk", "path_metres": 3.2},
+        )
+    )
+    scenes.append(
+        Scene(
+            "near_static",
+            room,
+            [cam_a],
+            [Agent(0, (0.0, 6.0), (0.04, 6.0))],
+            furniture,
+            (Condition.EMPTY, daylight),
+            frames,
+            fps,
+            "near-static: one agent barely moving, well under the floor",
+            extra={"speed_band": "crawl", "path_metres": 0.04},
+        )
+    )
+
+    # --- The coverage gap, kept on purpose. Tagged hard_coverage so it does
+    # not drag the aggregate under the floor and does not get authored away.
+    scenes.append(
+        Scene(
+            "coverage_gap_3agents",
+            room,
+            [cam_gap, cam_a],
+            walkers(3, 3.6),
+            furniture,
+            (daylight, Condition.BLIND_SPOT_TRAVERSAL),
+            frames,
+            fps,
+            "cam_gap faces the side wall; the lane is outside its frustum",
+            extra={"speed_band": "walk", "path_metres": 3.6, "hard_camera": "cam_gap"},
+        )
+    )
+    scenes.append(
+        Scene(
+            "coverage_gap_handoff",
+            room,
+            [cam_gap, cam_d],
+            walkers(2, 5.5),
+            furniture,
+            (daylight, Condition.BLIND_SPOT_TRAVERSAL, Condition.OCCLUSION_CROSSING),
+            frames,
+            fps,
+            "handoff across the gap: unobservable on cam_gap, observable on cam_d",
+            extra={"speed_band": "fast", "path_metres": 5.5, "hard_camera": "cam_gap"},
+        )
+    )
+
+    return scenes
+
+
 def build_scenes(frames: int, fps: float) -> list[Scene]:
     """The scene set: coverage, overlap, a gap, and degenerates."""
     room = (8.0, 3.0, 12.0)
@@ -458,6 +776,27 @@ def build_scenes(frames: int, fps: float) -> list[Scene]:
     ]
 
 
+def _speed_summary(track_uv: np.ndarray, native_width: int) -> dict[str, float]:
+    """Per-clip image-plane speed, in gate pixels per frame.
+
+    Recorded in the manifest because the capability envelope is a function of
+    speed. Reported in *gate* pixels so a 1080p clip and its 720p twin are
+    directly comparable, which is the space the envelope is defined in.
+    """
+    if track_uv.size == 0 or track_uv.shape[0] < 2:
+        return {"median": 0.0, "min": 0.0, "max": 0.0}
+    to_gate = 320.0 / native_width
+    steps = np.linalg.norm(np.diff(track_uv, axis=0), axis=2) * to_gate
+    finite = steps[np.isfinite(steps)]
+    if finite.size == 0:
+        return {"median": 0.0, "min": 0.0, "max": 0.0}
+    return {
+        "median": round(float(np.median(finite)), 3),
+        "min": round(float(np.min(finite)), 3),
+        "max": round(float(np.max(finite)), 3),
+    }
+
+
 def sha256_array(array: np.ndarray) -> str:
     digest = hashlib.sha256()
     digest.update(str(array.shape).encode())
@@ -466,9 +805,29 @@ def sha256_array(array: np.ndarray) -> str:
     return digest.hexdigest()
 
 
-def generate(output_root: Path, frames: int, fps: float, seed: int) -> dict[str, Any]:
-    """Render every scene and write clips plus exact GT."""
-    scenes = build_scenes(frames, fps)
+def generate(
+    output_root: Path,
+    frames: int,
+    fps: float,
+    seed: int,
+    scene_set: str = "v2",
+) -> dict[str, Any]:
+    """Render every scene and write clips plus exact GT.
+
+    Args:
+        scene_set: which authored scene set to render. ``v2`` is frozen — its
+            content hashes are cited by ``configs/golden/v2-indoor.golden.json``
+            and must keep reproducing byte-for-byte, so it is never edited.
+            ``v3`` is the re-authored set whose GT is actually observable.
+    """
+    builders = {"v2": build_scenes, "v3": build_scenes_v3}
+    if scene_set not in builders:
+        raise ValueError(
+            f"unknown scene_set {scene_set!r}; expected one of "
+            f"{sorted(builders)}. Scene sets are versioned rather than edited "
+            "because a frozen golden set cites the bytes this produces."
+        )
+    scenes = builders[scene_set](frames, fps)
     output_root.mkdir(parents=True, exist_ok=True)
 
     records: list[dict[str, Any]] = []
@@ -550,6 +909,16 @@ def generate(output_root: Path, frames: int, fps: float, seed: int) -> dict[str,
                     "depth_sha": sha256_array(payload["depth_m"]),
                     "moving_frames": int(scene.frames),
                     "size_bytes": clip_path.stat().st_size,
+                    # Image-plane speed decides where the capability envelope
+                    # sits (day 7), so a set that does not record its speed
+                    # distribution cannot say which part of the curve it
+                    # exercised.
+                    "speed_band": scene.extra.get("speed_band", "unspecified"),
+                    "path_metres": scene.extra.get("path_metres"),
+                    "track_speed_gate_px": _speed_summary(
+                        np.asarray(payload["track_uv"]), camera.width
+                    ),
+                    "hard_coverage": scene.extra.get("hard_camera") == camera.name,
                 }
             )
             print(
@@ -559,7 +928,8 @@ def generate(output_root: Path, frames: int, fps: float, seed: int) -> dict[str,
 
     manifest = {
         "schema_version": "1.0",
-        "dataset": DATASET_NAME,
+        "dataset": DATASET_NAMES[scene_set],
+        "scene_set": scene_set,
         "lane": "S",
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "generator": "scripts/gen_synthetic_indoor.py",
@@ -607,7 +977,7 @@ def generate(output_root: Path, frames: int, fps: float, seed: int) -> dict[str,
 
 
 def write_golden_from_manifest(
-    manifest: dict[str, Any], version: str, config: Any
+    manifest: dict[str, Any], version: str, config: Any, clip_root: Path
 ) -> Path:
     """Mint a golden set from a freshly generated manifest.
 
@@ -623,18 +993,22 @@ def write_golden_from_manifest(
         GoldenClip,
         GoldenSet,
         Status,
-        write_golden_set,
+        mint_golden_set,
     )
 
+    dataset_name = manifest.get("dataset", DATASET_NAME)
     clips = tuple(
         GoldenClip(
             clip_id=record["clip_id"],
             content_sha=record["content_sha"],
             conditions=tuple(Condition(c) for c in record["conditions"]),
-            source_dataset=DATASET_NAME,
+            source_dataset=dataset_name,
             notes=f"{record['camera']} {record['resolution'][0]}x"
-            f"{record['resolution'][1]}, {record['agents']} agents — "
-            f"{record['covers']}",
+            f"{record['resolution'][1]}, {record['agents']} agents, "
+            f"speed {record.get('speed_band', 'unspecified')} "
+            f"(median {record.get('track_speed_gate_px', {}).get('median', 0):.2f} "
+            f"gate px/frame) — {record['covers']}",
+            hard_coverage=bool(record.get("hard_coverage", False)),
         )
         for record in manifest["clips"]
     )
@@ -643,16 +1017,61 @@ def write_golden_from_manifest(
         domain=Domain.INDOOR,
         status=Status.ACTIVE,
         clips=clips,
-        supersedes="v1-driving",
+        # What this set replaces as the active instrument. Wrong here is not
+        # cosmetic: it is the only record of which set a reader should stop
+        # quoting.
+        supersedes={"v2-indoor": "v1-driving"}.get(version, "v2-indoor"),
         description=(
             "SYNTHETIC-ONLY. Generated by scripts/gen_synthetic_indoor.py "
             "--write-golden. Superseded by Site Zero footage for any product "
             "claim; scores from it must not be quoted externally."
         ),
     )
-    return write_golden_set(
-        config.paths.project_root / "configs" / "golden", golden, True
+    # Acceptance is measured here, not asserted. Every clip's observable
+    # fraction is computed from the bytes just written, and mint_golden_set
+    # refuses the set if the aggregate over non-hard_coverage clips falls below
+    # the floor. v2 reached 0.4444 precisely because nothing measured this
+    # before the manifest was written.
+    observable = measure_observable_fractions(clip_root, manifest)
+    for record in manifest["clips"]:
+        record["observable_fraction"] = round(observable[record["clip_id"]], 4)
+
+    return mint_golden_set(
+        config.paths.project_root / "configs" / "golden", golden, observable, True
     )
+
+
+def measure_observable_fractions(
+    clip_root: Path, manifest: dict[str, Any]
+) -> dict[str, float]:
+    """Share of each clip's presented frames whose GT motion is observable.
+
+    Uses the same partition the scorecard uses, so the number the acceptance
+    floor checks is the number the scorecard will later report — not a
+    parallel estimate that could drift away from it.
+    """
+    from src.data.scorecard import Observability, observability_partition
+
+    config = IronConfig.load()
+    gate_config = config.cascade.motion_gate_config()
+
+    fractions: dict[str, float] = {}
+    for record in manifest["clips"]:
+        clip_id = record["clip_id"]
+        partition = observability_partition(clip_root / f"{clip_id}.npz", gate_config)
+        labels = partition.after_warmup()
+        presented = int(labels.size)
+        if not presented:
+            fractions[clip_id] = 0.0
+            continue
+        scoreable = int(
+            np.sum(
+                (labels == Observability.NO_MOTION)
+                | (labels == Observability.ABOVE_ENVELOPE)
+            )
+        )
+        fractions[clip_id] = scoreable / presented
+    return fractions
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -661,6 +1080,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--fps", type=float, default=12.0)
     parser.add_argument("--seed", type=int, default=20260801)
     parser.add_argument("--output", default=None)
+    parser.add_argument(
+        "--scene-set",
+        default="v2",
+        choices=["v2", "v3"],
+        help=(
+            "which authored scene set to render. v2 is frozen — its bytes are "
+            "cited by a golden manifest — so re-authoring means a new set."
+        ),
+    )
     parser.add_argument(
         "--write-golden",
         metavar="VERSION",
@@ -682,13 +1110,15 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"Generating {DATASET_NAME} -> {output}")
     print("Renderer: analytic primitives (see manifest for why not Kubric)\n")
-    manifest = generate(output, args.frames, args.fps, args.seed)
+    manifest = generate(
+        output, args.frames, args.fps, args.seed, scene_set=args.scene_set
+    )
 
     print(f"\n{len(manifest['clips'])} clips written.")
     print(f"Manifest: {output / 'dataset_manifest.json'}")
 
     if args.write_golden:
-        path = write_golden_from_manifest(manifest, args.write_golden, config)
+        path = write_golden_from_manifest(manifest, args.write_golden, config, output)
         print(f"Golden set {args.write_golden}: {path}")
     print(
         "\nSYNTHETIC-ONLY BASELINE. Real Site Zero footage supersedes this for "

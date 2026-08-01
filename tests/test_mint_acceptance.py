@@ -123,3 +123,46 @@ def test_hard_coverage_survives_a_manifest_round_trip(tmp_path: Path) -> None:
     reloaded = load_golden_set(tmp_path, "v3-test")
     tagged = {c.clip_id: c.hard_coverage for c in reloaded.clips}
     assert tagged == {"plain": False, "blindspot": True}
+
+
+def test_scoring_refuses_a_clip_whose_bytes_do_not_match_the_manifest(
+    tmp_path: Path,
+) -> None:
+    """A content-addressed set must actually check its content.
+
+    This is not hypothetical. When v3-indoor was first minted with the wrong
+    ``source_dataset``, the eval resolved to v1's clip directory and scored
+    five v1 clips that happened to share a name with v3 clips. The scorecard
+    cited v3's ``set_sha`` while measuring v2's bytes, and nothing complained,
+    because the sha was recorded and never verified.
+    """
+    import numpy as np
+
+    from src.config import IronConfig
+    from src.data.scorecard import clip_content_sha, compute
+
+    frames = np.zeros((4, 8, 8, 3), dtype=np.uint8)
+    frames[2:] = 40
+    clip_path = tmp_path / "impostor.npz"
+    np.savez_compressed(
+        clip_path,
+        rgb=frames,
+        depth_m=np.ones((4, 8, 8), dtype=np.float32),
+        instances=np.zeros((4, 8, 8), dtype=np.int32),
+        agent_xyz=np.zeros((4, 1, 3), dtype=np.float32),
+        track_uv=np.zeros((4, 1, 2), dtype=np.float32),
+        track_occluded=np.zeros((4, 1), dtype=bool),
+        intrinsics=np.array([1.0, 1.0, 4.0, 4.0]),
+        extrinsics=np.eye(4),
+    )
+
+    honest = clip_content_sha(clip_path)
+    assert honest != "b" * 64
+
+    golden = _set(GoldenClip(clip_id="impostor", content_sha="b" * 64))
+    card = compute(golden, tmp_path, IronConfig.load().cascade.motion_gate_config())
+
+    assert card.clips_scored == 0, "a clip whose bytes differ must not be scored"
+    assert any(
+        "content_sha mismatch" in c for c in card.caveats
+    ), "and the refusal must be stated, not silent"

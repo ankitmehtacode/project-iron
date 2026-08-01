@@ -19,6 +19,7 @@ from not having been curated.
 
 from __future__ import annotations
 
+import hashlib
 import json
 from dataclasses import dataclass, field
 from enum import IntEnum
@@ -36,6 +37,27 @@ FIRST_AGENT_INSTANCE_ID = 100
 
 class ScorecardError(RuntimeError):
     """Raised when two scorecards are compared that must not be."""
+
+
+def clip_content_sha(clip_path: Path) -> str:
+    """Hash of a clip's frames, matching what the generator recorded.
+
+    Scoring used to trust the filename. When ``v3-indoor`` was first minted
+    with the wrong ``source_dataset``, the run resolved to v1's directory and
+    happily scored five v1 clips that shared a name with v3 clips — producing a
+    scorecard that cited v3's ``set_sha`` while measuring v2's bytes. Nothing
+    complained, because nothing checked.
+
+    A golden set is content-addressed precisely so that cannot happen; the
+    check just has to actually run.
+    """
+    with np.load(clip_path) as data:
+        frames = np.asarray(data["rgb"])
+    digest = hashlib.sha256()
+    digest.update(str(frames.shape).encode())
+    digest.update(str(frames.dtype).encode())
+    digest.update(np.ascontiguousarray(frames).tobytes())
+    return digest.hexdigest()
 
 
 @dataclass(frozen=True)
@@ -406,6 +428,17 @@ def compute(
         path = clip_root / f"{clip.clip_id}.npz"
         if not path.exists():
             card.caveats.append(f"{clip.clip_id}: clip file missing at {path}")
+            continue
+
+        actual_sha = clip_content_sha(path)
+        if clip.content_sha and actual_sha != clip.content_sha:
+            card.caveats.append(
+                f"{clip.clip_id}: REFUSED — content_sha mismatch. The manifest "
+                f"records {clip.content_sha[:12]} and the file on disk hashes "
+                f"to {actual_sha[:12]}. These are different bytes under the "
+                "same name, so scoring them would report a number about one "
+                "clip while citing another."
+            )
             continue
 
         counts, rates = motion_gate_metrics(path, gate_config, envelope)

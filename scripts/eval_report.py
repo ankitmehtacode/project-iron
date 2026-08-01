@@ -113,7 +113,20 @@ def main(argv: list[str] | None = None) -> int:
 
     from src.data import scorecard as scoring
 
-    clip_root = config.paths.resolved_data_dir / "synthetic" / "synthetic-indoor-v1"
+    # The clip root follows the set, not a hardcoded name. A golden set records
+    # which dataset its clips came from, so scoring v3 against v1's directory —
+    # which the hardcoded path did the moment a second set existed — would
+    # silently measure the wrong bytes under the right sha.
+    datasets = {c.source_dataset for c in golden.clips if c.source_dataset}
+    if len(datasets) > 1:
+        print(
+            f"{golden.version} draws clips from {len(datasets)} datasets "
+            f"({', '.join(sorted(datasets))}); scoring needs one clip root.",
+            file=sys.stderr,
+        )
+        return 1
+    dataset = datasets.pop() if datasets else "synthetic-indoor-v1"
+    clip_root = config.paths.resolved_data_dir / "synthetic" / dataset
     print()
     card = scoring.compute(golden, clip_root, config.cascade.motion_gate_config())
     if not card.clips_scored:

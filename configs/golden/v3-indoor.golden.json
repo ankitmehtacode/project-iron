@@ -1,0 +1,346 @@
+{
+  "clip_count": 30,
+  "clips": [
+    {
+      "clip_id": "speed_crawl_2agents__cam_a",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "41c85ae6b20d61a3219428fac8196bf47903b7607fcac715758e673801d87700",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 2 agents, speed crawl (median 0.27 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "speed_crawl_2agents__cam_b",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "59c68eb0d4b9b5480f464d7f14815c4ac27e3df0f5b715f2264f55af38815b6c",
+      "hard_coverage": false,
+      "notes": "cam_b 1280x720, 2 agents, speed crawl (median 0.29 gate px/frame) \u2014 right half, overlaps cam_a",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "speed_slow_2agents__cam_a",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "1cb542faebaecf60af1fe6870cc144fc346ae98eb06ea3f3c647a4260caed552",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 2 agents, speed slow (median 0.61 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "speed_slow_2agents__cam_b",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "9414a0b45bddb74d2886ab55b35c6a3fa0d9f29cda9c5cb1217b489709111d70",
+      "hard_coverage": false,
+      "notes": "cam_b 1280x720, 2 agents, speed slow (median 0.65 gate px/frame) \u2014 right half, overlaps cam_a",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "speed_walk_2agents__cam_a",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "7d8d2105eabfd5d1e124c2e7b45f2b9dafe2b569b7c42d4500aed634c264da6a",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 2 agents, speed walk (median 1.20 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "speed_walk_2agents__cam_b",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "e0201a32cef550a1ab6fa84b7361d1480687060b8c14174a34be44a83aef5587",
+      "hard_coverage": false,
+      "notes": "cam_b 1280x720, 2 agents, speed walk (median 1.23 gate px/frame) \u2014 right half, overlaps cam_a",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "speed_brisk_2agents__cam_a",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "8ad21a51340446f4086a426519abbc1b3c3ba42ebd64445fc76b4b5ca9d6b18b",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 2 agents, speed brisk (median 1.84 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "speed_brisk_2agents__cam_b",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "7a432094075e6bd0dbfc1bf07346f780a3d6b3cb84f4ac24f108b9a7c8a2e0af",
+      "hard_coverage": false,
+      "notes": "cam_b 1280x720, 2 agents, speed brisk (median 1.84 gate px/frame) \u2014 right half, overlaps cam_a",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "speed_fast_2agents__cam_a",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "93a403f86fdde4c0740ebbcd62c3e0418f3f287e937d8c65419f20742aab8268",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 2 agents, speed fast (median 2.66 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "speed_fast_2agents__cam_b",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "134d55f7c4ba6eabe7cb39a32155074086101592ec6eaef1eed8d8ff443319b6",
+      "hard_coverage": false,
+      "notes": "cam_b 1280x720, 2 agents, speed fast (median 2.66 gate px/frame) \u2014 right half, overlaps cam_a",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "speed_sprint_2agents__cam_a",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "481a2b3cdfd9ca9181afe9548d784b55d638a9aef8dd6a66c44ee66399b3de63",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 2 agents, speed sprint (median 2.99 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "speed_sprint_2agents__cam_b",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "e190fc52f2b511509b90a008cc349979aeb2250f03a388626ab15bc873cae8eb",
+      "hard_coverage": false,
+      "notes": "cam_b 1280x720, 2 agents, speed sprint (median 3.02 gate px/frame) \u2014 right half, overlaps cam_a",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "crowded_6agents__cam_a",
+      "conditions": [
+        "daylight",
+        "crowded",
+        "occlusion_crossing"
+      ],
+      "content_sha": "27b4623274b8e349a1a08fbda38574ebdb91c23382d52388aadb3fbbb8807866",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 6 agents, speed walk (median 1.28 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "crowded_6agents__cam_b",
+      "conditions": [
+        "daylight",
+        "crowded",
+        "occlusion_crossing"
+      ],
+      "content_sha": "d17b2135ad4feac6ccbd72e247f40fda7206a79e1d6cb60bc3b4f2407bd71b89",
+      "hard_coverage": false,
+      "notes": "cam_b 1280x720, 6 agents, speed walk (median 1.20 gate px/frame) \u2014 right half, overlaps cam_a",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "furniture_occlusion_3agents__cam_a",
+      "conditions": [
+        "daylight",
+        "occlusion_furniture"
+      ],
+      "content_sha": "2b33358c449202096bf2981962d75c64312dc5f827ed9984a4e2955b30fa3c32",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 3 agents, speed walk (median 1.15 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "furniture_occlusion_3agents__cam_d",
+      "conditions": [
+        "daylight",
+        "occlusion_furniture"
+      ],
+      "content_sha": "50d6bca6235c3503f53d1d5e23ae78f2dbf1f43c83fc73a2ba033290c412d64f",
+      "hard_coverage": false,
+      "notes": "cam_d 1280x720, 3 agents, speed walk (median 1.11 gate px/frame) \u2014 far end, facing back down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "receding_2agents__cam_d",
+      "conditions": [
+        "daylight",
+        "far_field"
+      ],
+      "content_sha": "7e06082a8c3dcea02d85ef204b8911b877cba0f3ae056e4b600a4fb82ab882ef",
+      "hard_coverage": false,
+      "notes": "cam_d 1280x720, 2 agents, speed brisk (median 1.10 gate px/frame) \u2014 far end, facing back down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "receding_2agents__cam_a",
+      "conditions": [
+        "daylight",
+        "far_field"
+      ],
+      "content_sha": "7f53163524083e5baf0f048300cbd381945ecbb6ce89fe8fc79510310d5eaddb",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 2 agents, speed brisk (median 2.19 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "hd_walk_2agents__cam_a_1080",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "855282fb400435abc40efaadf7b228d1f312726ea1b4a51b5786255de8d164bb",
+      "hard_coverage": false,
+      "notes": "cam_a_1080 1920x1080, 2 agents, speed walk (median 1.20 gate px/frame) \u2014 1080p rendition of cam_a",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "hd_walk_2agents__cam_b_1080",
+      "conditions": [
+        "daylight",
+        "single_person"
+      ],
+      "content_sha": "dc7a92babe2f849c1053822171480d171fc353cbfc06bdcb153f853c0695e5ab",
+      "hard_coverage": false,
+      "notes": "cam_b_1080 1920x1080, 2 agents, speed walk (median 1.23 gate px/frame) \u2014 1080p rendition of cam_b",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "hd_far_field_3agents__cam_a_1080",
+      "conditions": [
+        "daylight",
+        "far_field"
+      ],
+      "content_sha": "a2e358a0af18abe1ceeb67264f2c3b7361d2eb5a7a86299e350e85ff3a3ee5e5",
+      "hard_coverage": false,
+      "notes": "cam_a_1080 1920x1080, 3 agents, speed brisk (median 1.60 gate px/frame) \u2014 1080p rendition of cam_a",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "lights_off_transient__cam_a",
+      "conditions": [
+        "lights_transient",
+        "evening_artificial"
+      ],
+      "content_sha": "6bca46bb1cda9539203899616ad4f137b939e759705a802528c75180fee467ad",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 2 agents, speed walk (median 1.42 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "lights_off_transient__cam_b",
+      "conditions": [
+        "lights_transient",
+        "evening_artificial"
+      ],
+      "content_sha": "328ad7144a7236dd42193ac84467ae6dc135181157ec14dff3c005e2223c1336",
+      "hard_coverage": false,
+      "notes": "cam_b 1280x720, 2 agents, speed walk (median 1.44 gate px/frame) \u2014 right half, overlaps cam_a",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "blown_window__cam_a",
+      "conditions": [
+        "glare",
+        "daylight"
+      ],
+      "content_sha": "d3de10da5ad3aeaaff8f5361dcedc29c179caee32032ee9dfc883ea2bf73ce22",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 2 agents, speed walk (median 1.42 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "blown_window__cam_b",
+      "conditions": [
+        "glare",
+        "daylight"
+      ],
+      "content_sha": "15c6a9e97b775f519de76c9a499a22ad39e322359eb90a1fb758dc709a3ec43e",
+      "hard_coverage": false,
+      "notes": "cam_b 1280x720, 2 agents, speed walk (median 1.44 gate px/frame) \u2014 right half, overlaps cam_a",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "near_static__cam_a",
+      "conditions": [
+        "empty",
+        "daylight"
+      ],
+      "content_sha": "c7da06e73986b051e600ceea17a5f8b945b7fd269f32a3b9b2da651adcf7170f",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 1 agents, speed crawl (median 0.04 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "coverage_gap_3agents__cam_gap",
+      "conditions": [
+        "daylight",
+        "blind_spot_traversal"
+      ],
+      "content_sha": "225d0660d038b67aaf6aa74b2b50da52e539ab2326f201df61c02c5304cc82de",
+      "hard_coverage": true,
+      "notes": "cam_gap 1280x720, 3 agents, speed walk (median 1.32 gate px/frame) \u2014 GAP: faces the side wall; the walking lane is outside its frustum",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "coverage_gap_3agents__cam_a",
+      "conditions": [
+        "daylight",
+        "blind_spot_traversal"
+      ],
+      "content_sha": "3893185d84f30a5df7d3b85ef9a1328bab0f39bf18a88462d365d394dbf4813a",
+      "hard_coverage": false,
+      "notes": "cam_a 1280x720, 3 agents, speed walk (median 1.30 gate px/frame) \u2014 left half, looking down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "coverage_gap_handoff__cam_gap",
+      "conditions": [
+        "daylight",
+        "blind_spot_traversal",
+        "occlusion_crossing"
+      ],
+      "content_sha": "67e361de4111c12c8a0cdef46116b0df8770d6d90715c09992989133f5425582",
+      "hard_coverage": true,
+      "notes": "cam_gap 1280x720, 2 agents, speed fast (median 2.29 gate px/frame) \u2014 GAP: faces the side wall; the walking lane is outside its frustum",
+      "source_dataset": "synthetic-indoor-v3"
+    },
+    {
+      "clip_id": "coverage_gap_handoff__cam_d",
+      "conditions": [
+        "daylight",
+        "blind_spot_traversal",
+        "occlusion_crossing"
+      ],
+      "content_sha": "d955df2791e97b7d9a16a34b4ad09e1304dd5dd6db5cb367202c5beedb69f9f3",
+      "hard_coverage": false,
+      "notes": "cam_d 1280x720, 2 agents, speed fast (median 1.95 gate px/frame) \u2014 far end, facing back down-room",
+      "source_dataset": "synthetic-indoor-v3"
+    }
+  ],
+  "description": "SYNTHETIC-ONLY. Generated by scripts/gen_synthetic_indoor.py --write-golden. Superseded by Site Zero footage for any product claim; scores from it must not be quoted externally.",
+  "domain": "indoor",
+  "schema_version": "1.0",
+  "set_sha": "1c9a975e3ee54591f29f29840dfef079455f294f934d097946a25ed48ab72454",
+  "status": "active",
+  "supersedes": "v2-indoor",
+  "version": "v3-indoor"
+}
