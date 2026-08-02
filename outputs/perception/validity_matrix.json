@@ -1,0 +1,113 @@
+{
+  "capabilities": [
+    "motion_geometry",
+    "depth",
+    "appearance_semantics"
+  ],
+  "datasets": [
+    "v1-driving",
+    "v2-indoor",
+    "v3-indoor"
+  ],
+  "results": [
+    {
+      "capability": "motion_geometry",
+      "dataset": "v1-driving",
+      "passed": false,
+      "reason": "no clip from this set is materialised locally, so nothing could be measured. Not a verdict on the set \u2014 a statement that it was not present.",
+      "evidence": {}
+    },
+    {
+      "capability": "depth",
+      "dataset": "v1-driving",
+      "passed": false,
+      "reason": "no clip from this set is materialised locally, so nothing could be measured. Not a verdict on the set \u2014 a statement that it was not present.",
+      "evidence": {}
+    },
+    {
+      "capability": "appearance_semantics",
+      "dataset": "v1-driving",
+      "passed": false,
+      "reason": "no clip from this set is materialised locally, so nothing could be measured. Not a verdict on the set \u2014 a statement that it was not present.",
+      "evidence": {}
+    },
+    {
+      "capability": "motion_geometry",
+      "dataset": "v2-indoor",
+      "passed": true,
+      "reason": "motion is derived from scene geometry, which an analytic renderer knows exactly; no appearance cue is required",
+      "evidence": {
+        "frames": 4
+      }
+    },
+    {
+      "capability": "depth",
+      "dataset": "v2-indoor",
+      "passed": false,
+      "reason": "rank correlation -0.3789 is below +0.30 \u2014 the model does not order these pixels by depth, so any aligned metric describes the fit; predicted spread 2.33 is below 3.0 \u2014 the prediction is near-constant and will fit whatever depth dominates the frame; 93% of pixels sit in one distance band, so a pooled score reports that band and hides the others",
+      "evidence": {
+        "rank_correlation": -0.3789,
+        "rank_correlation_floor": 0.3,
+        "dynamic_range": 2.3348,
+        "dynamic_range_floor": 3.0,
+        "band_populations": {
+          "0-3m": 0.0002,
+          "3-8m": 0.0728,
+          "8m+": 0.9269
+        },
+        "max_band_concentration": 0.9269
+      }
+    },
+    {
+      "capability": "appearance_semantics",
+      "dataset": "v2-indoor",
+      "passed": false,
+      "reason": "texture energy 3.05 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 15.18 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval",
+      "evidence": {
+        "texture_energy": 3.049,
+        "texture_energy_floor": 12.0,
+        "material_diversity": 15.183,
+        "material_diversity_floor": 24.0
+      }
+    },
+    {
+      "capability": "motion_geometry",
+      "dataset": "v3-indoor",
+      "passed": true,
+      "reason": "motion is derived from scene geometry, which an analytic renderer knows exactly; no appearance cue is required",
+      "evidence": {
+        "frames": 4
+      }
+    },
+    {
+      "capability": "depth",
+      "dataset": "v3-indoor",
+      "passed": false,
+      "reason": "rank correlation -0.6309 is below +0.30 \u2014 the model does not order these pixels by depth, so any aligned metric describes the fit; predicted spread 2.54 is below 3.0 \u2014 the prediction is near-constant and will fit whatever depth dominates the frame; 93% of pixels sit in one distance band, so a pooled score reports that band and hides the others",
+      "evidence": {
+        "rank_correlation": -0.6309,
+        "rank_correlation_floor": 0.3,
+        "dynamic_range": 2.5351,
+        "dynamic_range_floor": 3.0,
+        "band_populations": {
+          "0-3m": 0.0,
+          "3-8m": 0.0672,
+          "8m+": 0.9328
+        },
+        "max_band_concentration": 0.9328
+      }
+    },
+    {
+      "capability": "appearance_semantics",
+      "dataset": "v3-indoor",
+      "passed": false,
+      "reason": "texture energy 3.03 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 15.17 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval",
+      "evidence": {
+        "texture_energy": 3.031,
+        "texture_energy_floor": 12.0,
+        "material_diversity": 15.168,
+        "material_diversity_floor": 24.0
+      }
+    }
+  ]
+}

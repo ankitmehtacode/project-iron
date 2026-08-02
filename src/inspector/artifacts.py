@@ -306,7 +306,7 @@ def clip_analysis(artifacts: Artifacts, clip_id: str) -> dict[str, Any] | Absent
     from src.config import IronConfig
     from src.data.scorecard import (
         FIRST_AGENT_INSTANCE_ID,
-        GT_MOTION_THRESHOLD_M,
+        world_motion,
         Observability,
         observability_partition,
     )
@@ -322,6 +322,8 @@ def clip_analysis(artifacts: Artifacts, clip_id: str) -> dict[str, Any] | Absent
         instances = np.asarray(data["instances"])
         agent_xyz = np.asarray(data["agent_xyz"])
         track_uv = np.asarray(data["track_uv"])
+        intrinsics = np.asarray(data["intrinsics"], dtype=np.float64)
+        extrinsics = np.asarray(data["extrinsics"], dtype=np.float64)
 
     frames, agents = agent_xyz.shape[0], agent_xyz.shape[1]
     native_px = instances.shape[1] * instances.shape[2]
@@ -338,9 +340,7 @@ def clip_analysis(artifacts: Artifacts, clip_id: str) -> dict[str, Any] | Absent
     moved = np.zeros((frames, agents), dtype=bool)
     speed = np.zeros((frames, agents))
     if agents:
-        moved[1:] = (
-            np.linalg.norm(np.diff(agent_xyz, axis=0), axis=2) > GT_MOTION_THRESHOLD_M
-        )
+        moved = world_motion(agent_xyz, intrinsics, extrinsics)
         steps = np.linalg.norm(np.diff(track_uv, axis=0), axis=2) * uv_to_gate
         speed[1:] = np.nan_to_num(steps, nan=0.0, posinf=0.0)
 

@@ -127,8 +127,35 @@ def main(argv: list[str] | None = None) -> int:
         return 1
     dataset = datasets.pop() if datasets else "synthetic-indoor-v1"
     clip_root = config.paths.resolved_data_dir / "synthetic" / dataset
+    # The gate runs BEFORE the metric. Day 9's depth number existed, was
+    # reproducible, and described its alignment fit; the only thing that would
+    # have stopped it being quoted is a refusal computed first.
+    from src.data import validity
+
+    import numpy as _np
+
+    gate_frames = None
+    for clip in golden.clips:
+        candidate = clip_root / f"{clip.clip_id}.npz"
+        if candidate.exists():
+            with _np.load(candidate) as sample:
+                gate_frames = _np.asarray(sample["rgb"][:4])
+            break
+
+    verdicts = []
+    if gate_frames is not None:
+        verdict = validity.evaluate("motion_geometry", version, frames=gate_frames)
+        verdicts.append(verdict.as_dict())
+        if not verdict.passed:
+            print()
+            print(f"REFUSED: {version} cannot score motion_geometry.")
+            print(f"  {verdict.reason}")
+            print("  No motion metric is emitted. The refusal IS the result.")
+            return 1
+
     print()
     card = scoring.compute(golden, clip_root, config.cascade.motion_gate_config())
+    card.capability_gates = verdicts
     if not card.clips_scored:
         print("No clips could be scored; see caveats above.", file=sys.stderr)
         return 1

@@ -28,21 +28,78 @@ from typing import Any
 
 import numpy as np
 
-# World displacement above which an agent counts as having moved this frame.
 GT_MOTION_THRESHOLD_M = 0.01
-"""SUPERSEDED. World displacement, metres, that used to define "moving".
+"""RETIRED. The original definition of "moving": 1 cm of world displacement.
 
-Arrived hardcoded with the first scorecard and was never argued. It is a
-world-space quantity used to judge an image-space instrument, so it is blind to
-the two things that decide whether motion is visible at all: how far away the
-mover is, and what raster the camera has. A 1 cm step at 2 m and the same step
-at 15 m are the same number here and nothing alike on a sensor.
+Hardcoded into the first scorecard and never argued. Two separate defects:
+the threshold was arbitrary, and it was blind to distance and raster, so a
+1 cm step at 2 m and at 20 m were the same event to it despite subtending
+4.5 px and 0.45 px.
 
-It produced all 48 of v3's false positives: ``speed_crawl`` agents travel
-7.25 mm/frame, so ground truth called them static, while their rendered
-silhouettes moved and the gate correctly woke. Retained only as the
-before-half of that measurement — see :func:`gt_moved_from_render`.
+Kept only as the before-half of two measurements: it generated all 48 of v3's
+false positives, and it suppressed 42 real misses. Nothing reads it. The live
+definitions are :func:`world_motion` (does the agent move) and
+:func:`gt_moved_from_render` (can this camera see it move).
 """
+
+
+MIN_RESOLVABLE_PIXELS = 1.0
+"""Image-plane displacement, native pixels, below which motion is not motion.
+
+Derived, not chosen. Below one pixel the renderer cannot show the displacement
+at all, so calling such a frame *moving* asks the gate to detect something no
+camera in the scene rendered. This is the day-9 derivation, kept — only the
+quantity it bounds has changed.
+"""
+
+
+def world_motion(
+    agent_xyz: np.ndarray, intrinsics: np.ndarray, extrinsics: np.ndarray
+) -> np.ndarray:
+    """Did each agent move, in the world, by more than a sensor could resolve?
+
+    **The quantity is world displacement**, so it means the same thing from
+    every camera: an agent walking across a blind spot is moving, and a
+    scorecard that says otherwise cannot tell a coverage gap from an empty
+    room. Day 9 defined motion by silhouette change, which is a property of
+    the view, and the coverage-gap clips promptly became inexpressible.
+
+    **The threshold is what the sensor resolves**, which is why it is not a
+    constant in metres. One pixel subtends ``z / fx`` metres at distance ``z``:
+    about 2 mm at 2 m and 22 mm at 20 m for this camera. A fixed 1 cm treats
+    those as the same event, calling a clearly visible near step static and a
+    sub-pixel far step moving. The bound therefore scales with the agent's
+    distance from the observing camera while the thing being bounded stays a
+    world quantity.
+
+    Args:
+        agent_xyz: ``[T, A, 3]`` world positions, metres.
+        intrinsics: ``[fx, fy, cx, cy]`` of the observing camera.
+        extrinsics: ``[4, 4]`` world-to-camera transform.
+
+    Returns:
+        ``[T, A]`` bool. Frame 0 is False: there is no previous frame to have
+        moved from, which is a fact about the clip's edge and not the agent.
+    """
+    frames, agents = agent_xyz.shape[0], agent_xyz.shape[1]
+    moved = np.zeros((frames, agents), dtype=bool)
+    if agents == 0 or frames < 2:
+        return moved
+
+    focal = float(intrinsics[0])
+    homogeneous = np.concatenate(
+        [agent_xyz, np.ones((frames, agents, 1), dtype=agent_xyz.dtype)], axis=2
+    )
+    # Depth along the optical axis, per agent per frame.
+    camera_z = np.einsum("ij,taj->tai", extrinsics, homogeneous)[..., 2]
+
+    displacement = np.linalg.norm(np.diff(agent_xyz, axis=0), axis=2)
+    # Distance at the later frame — the one whose visibility is in question.
+    depth = np.abs(camera_z[1:])
+    resolvable_m = MIN_RESOLVABLE_PIXELS * np.maximum(depth, 1e-6) / max(focal, 1e-6)
+
+    moved[1:] = displacement > resolvable_m
+    return moved
 
 
 def gt_moved_from_render(instances: np.ndarray, agents: int) -> np.ndarray:
@@ -142,6 +199,14 @@ class Scorecard:
     metrics: list[Metric] = field(default_factory=list)
     caveats: list[str] = field(default_factory=list)
     per_clip: dict[str, dict[str, float]] = field(default_factory=dict)
+    capability_gates: list[dict[str, Any]] = field(default_factory=list)
+    """Validity verdicts for every capability this run considered.
+
+    A capability whose gate failed is recorded here as ``unmeasurable_here``
+    with its evidence, and no metric is emitted for it. Never a blank, never a
+    zero, never silently omitted — day 9 showed that an unmeasurable capability
+    left to produce a number produces a plausible one."""
+
     envelope: dict[str, Any] = field(default_factory=dict)
     """Capability-envelope provenance.
 
@@ -159,6 +224,7 @@ class Scorecard:
             "metrics": [m.as_dict() for m in self.metrics],
             "caveats": self.caveats,
             "per_clip": self.per_clip,
+            "capability_gates": self.capability_gates,
             "envelope": self.envelope,
         }
 
@@ -296,6 +362,8 @@ def observability_partition(
         agent_xyz = np.asarray(data["agent_xyz"])
         instances = np.asarray(data["instances"])
         track_uv = np.asarray(data["track_uv"])
+        intrinsics = np.asarray(data["intrinsics"], dtype=np.float64)
+        extrinsics = np.asarray(data["extrinsics"], dtype=np.float64)
 
     frames, agents = agent_xyz.shape[0], agent_xyz.shape[1]
     native_px = instances.shape[1] * instances.shape[2]
@@ -323,13 +391,9 @@ def observability_partition(
     # COVERAGE asks: did something move in the world that this camera could not
     # see? Render-derived motion cannot express that — an agent outside the
     # frustum has an unchanging empty mask, so it reads as "nothing happened"
-    # and the blind spot disappears from the report. Keeping the world-space
-    # signal for this one purpose preserves the coverage-gap line without
-    # letting a metres threshold back into the scoring denominator.
-    world_moved = np.zeros((frames, agents), dtype=bool)
-    if agents:
-        deltas = np.linalg.norm(np.diff(agent_xyz, axis=0), axis=2)
-        world_moved[1:] = deltas > GT_MOTION_THRESHOLD_M
+    # and the blind spot disappears from the report. This is world motion, so
+    # it means the same thing from every camera.
+    world_moved = world_motion(agent_xyz, intrinsics, extrinsics)
 
     # Image-plane speed decides where the envelope sits, so it comes from the
     # projected track rather than from world displacement: an agent walking
