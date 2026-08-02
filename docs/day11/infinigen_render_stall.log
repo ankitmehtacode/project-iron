@@ -1,0 +1,847 @@
+[15:12:06.305] [init] [INFO] | Addon antlandscape already in blender local addons, attempt to enable it.
+[15:12:06.982] [init] [INFO] | Addon extra_mesh_objects already in blender local addons, attempt to enable it.
+[15:12:07.219] [smb_client] [WARNING] | SMB_AUTH envvar is not set, smb_client upload will not work. Ignore this message if not using upload
+[15:12:07.367] [init] [INFO] | Addon real_snow already in blender local addons, attempt to enable it.
+[15:12:07.373] [init] [INFO] | Converted seed='0' to scene_seed=0, parsed as hexadecimal
+[15:12:07.397] [execute_tasks] [INFO] | infinigen version 1.12.2
+[15:12:07.397] [execute_tasks] [INFO] | CUDA_VISIBLE_DEVICES=None
+[15:12:07.397] [logging] [INFO] | [MAIN TOTAL]
+[15:12:07.397] [execute_tasks] [INFO] | Processing frames 1 through 4 inclusive
+[15:12:07.822] [init] [INFO] | Available devices have types=['METAL', 'CPU']
+[15:12:07.822] [init] [INFO] | Cycles will use use_device_type='METAL', len(use_devices)=1
+[15:12:07.827] [logging] [INFO] | [sky_lighting]
+[15:12:07.828] [logging] [INFO] | [sky_lighting] finished in 0:00:00.001220
+
+Checking greedy stages coverage:   0%|          | 0/63 [00:00<?, ?it/s]
+Checking greedy stages coverage:  48%|████▊     | 30/63 [00:00<00:00, 297.50it/s]
+Checking greedy stages coverage:  95%|█████████▌| 60/63 [00:00<00:00, 211.04it/s]
+Checking greedy stages coverage: 100%|██████████| 63/63 [00:00<00:00, 192.79it/s]
+[15:12:08.384] [logging] [INFO] | [solve_rooms]
+
+Computing typical areas:   0%|          | 0/11 [00:00<?, ?it/s]
+Computing typical areas:  18%|█▊        | 2/11 [00:00<00:00, 16.45it/s]
+Computing typical areas:  45%|████▌     | 5/11 [00:00<00:00, 17.87it/s]
+Computing typical areas:  64%|██████▎   | 7/11 [00:00<00:00, 17.50it/s]
+Computing typical areas:  82%|████████▏ | 9/11 [00:00<00:00, 17.35it/s]
+Computing typical areas: 100%|██████████| 11/11 [00:00<00:00, 16.74it/s]
+Computing typical areas: 100%|██████████| 11/11 [00:00<00:00, 17.04it/s]
+
+Generating graphs for 0:   0%|          | 0/40 [00:00<?, ?it/s]
+Generating graphs for 0:  12%|█▎        | 5/40 [00:00<00:00, 38.23it/s]
+Generating graphs for 0:  18%|█▊        | 7/40 [00:00<00:00, 34.48it/s]
+
+Dividing segments for 0:   0%|          | 0/25 [00:00<?, ?it/s]
+Dividing segments for 0:   8%|▊         | 2/25 [00:00<00:01, 13.82it/s]
+
+Sampling solutions:   0%|          | 0/125 [00:00<?, ?it/s]
+Sampling solutions:   1%|          | 1/125 [00:00<00:03, 37.25it/s, score=2.85e+4]
+Sampling solutions:   2%|▏         | 2/125 [00:00<00:02, 44.27it/s, score=2.85e+4]
+Sampling solutions:   2%|▏         | 3/125 [00:00<00:02, 44.85it/s, score=2.85e+4]
+Sampling solutions:   3%|▎         | 4/125 [00:00<00:02, 46.06it/s, score=2.85e+4]
+Sampling solutions:   4%|▍         | 5/125 [00:00<00:02, 49.33it/s, score=2.85e+4]
+Sampling solutions:   4%|▍         | 5/125 [00:00<00:02, 49.33it/s, score=2.85e+4]
+Sampling solutions:   5%|▍         | 6/125 [00:00<00:02, 49.33it/s, score=2.85e+4]
+Sampling solutions:   6%|▌         | 7/125 [00:00<00:02, 49.33it/s, score=2.85e+4]
+Sampling solutions:   6%|▋         | 8/125 [00:00<00:02, 49.33it/s, score=2.85e+4]
+Sampling solutions:   7%|▋         | 9/125 [00:00<00:02, 49.33it/s, score=2.85e+4]
+Sampling solutions:   8%|▊         | 10/125 [00:00<00:02, 49.33it/s, score=2.85e+4]
+Sampling solutions:   9%|▉         | 11/125 [00:00<00:02, 53.97it/s, score=2.85e+4]
+Sampling solutions:   9%|▉         | 11/125 [00:00<00:02, 53.97it/s, score=4.4e+3] 
+Sampling solutions:  10%|▉         | 12/125 [00:00<00:02, 53.97it/s, score=4.4e+3]
+Sampling solutions:  10%|█         | 13/125 [00:00<00:02, 53.97it/s, score=4.4e+3]
+Sampling solutions:  11%|█         | 14/125 [00:00<00:02, 53.97it/s, score=4.4e+3]
+Sampling solutions:  12%|█▏        | 15/125 [00:00<00:02, 53.97it/s, score=4.4e+3]
+Sampling solutions:  13%|█▎        | 16/125 [00:00<00:02, 53.97it/s, score=4.36e+3]
+Sampling solutions:  14%|█▎        | 17/125 [00:00<00:02, 53.97it/s, score=4.36e+3]
+Sampling solutions:  14%|█▍        | 18/125 [00:00<00:01, 57.94it/s, score=4.36e+3]
+Sampling solutions:  14%|█▍        | 18/125 [00:00<00:01, 57.94it/s, score=4.36e+3]
+Sampling solutions:  15%|█▌        | 19/125 [00:00<00:01, 57.94it/s, score=4.36e+3]
+Sampling solutions:  16%|█▌        | 20/125 [00:00<00:01, 57.94it/s, score=4.31e+3]
+Sampling solutions:  17%|█▋        | 21/125 [00:00<00:01, 57.94it/s, score=4.31e+3]
+Sampling solutions:  18%|█▊        | 22/125 [00:00<00:01, 57.94it/s, score=4.29e+3]
+Sampling solutions:  18%|█▊        | 23/125 [00:00<00:01, 57.94it/s, score=4.29e+3]
+Sampling solutions:  19%|█▉        | 24/125 [00:00<00:01, 55.88it/s, score=4.29e+3]
+Sampling solutions:  19%|█▉        | 24/125 [00:00<00:01, 55.88it/s, score=4.29e+3]
+Sampling solutions:  20%|██        | 25/125 [00:00<00:01, 55.88it/s, score=4.29e+3]
+Sampling solutions:  21%|██        | 26/125 [00:00<00:01, 55.88it/s, score=4.29e+3]
+Sampling solutions:  22%|██▏       | 27/125 [00:00<00:01, 55.88it/s, score=4.27e+3]
+Sampling solutions:  22%|██▏       | 28/125 [00:00<00:01, 55.88it/s, score=4.24e+3]
+Sampling solutions:  23%|██▎       | 29/125 [00:00<00:01, 55.88it/s, score=4.24e+3]
+Sampling solutions:  24%|██▍       | 30/125 [00:00<00:01, 55.06it/s, score=4.24e+3]
+Sampling solutions:  24%|██▍       | 30/125 [00:00<00:01, 55.06it/s, score=4.24e+3]
+Sampling solutions:  25%|██▍       | 31/125 [00:00<00:01, 55.06it/s, score=4.24e+3]
+Sampling solutions:  26%|██▌       | 32/125 [00:00<00:01, 55.06it/s, score=4.24e+3]
+Sampling solutions:  26%|██▋       | 33/125 [00:00<00:01, 55.06it/s, score=4.23e+3]
+Sampling solutions:  27%|██▋       | 34/125 [00:00<00:01, 55.06it/s, score=4.23e+3]
+Sampling solutions:  28%|██▊       | 35/125 [00:00<00:01, 55.06it/s, score=4.23e+3]
+Sampling solutions:  29%|██▉       | 36/125 [00:00<00:01, 55.75it/s, score=4.23e+3]
+Sampling solutions:  29%|██▉       | 36/125 [00:00<00:01, 55.75it/s, score=4.23e+3]
+Sampling solutions:  30%|██▉       | 37/125 [00:00<00:01, 55.75it/s, score=4.23e+3]
+Sampling solutions:  30%|███       | 38/125 [00:00<00:01, 55.75it/s, score=4.23e+3]
+Sampling solutions:  31%|███       | 39/125 [00:00<00:01, 55.75it/s, score=4.19e+3]
+Sampling solutions:  32%|███▏      | 40/125 [00:00<00:01, 55.75it/s, score=4.19e+3]
+Sampling solutions:  33%|███▎      | 41/125 [00:00<00:01, 55.75it/s, score=4.19e+3]
+Sampling solutions:  34%|███▎      | 42/125 [00:00<00:02, 33.26it/s, score=4.19e+3]
+Sampling solutions:  34%|███▎      | 42/125 [00:00<00:02, 33.26it/s, score=203]    
+Sampling solutions:  34%|███▍      | 43/125 [00:01<00:02, 33.26it/s, score=163]
+Sampling solutions:  35%|███▌      | 44/125 [00:01<00:02, 33.26it/s, score=163]
+Sampling solutions:  36%|███▌      | 45/125 [00:01<00:02, 33.26it/s, score=163]
+Sampling solutions:  37%|███▋      | 46/125 [00:01<00:02, 33.26it/s, score=163]
+Sampling solutions:  38%|███▊      | 47/125 [00:01<00:02, 35.66it/s, score=163]
+Sampling solutions:  38%|███▊      | 47/125 [00:01<00:02, 35.66it/s, score=153]
+Sampling solutions:  38%|███▊      | 48/125 [00:01<00:02, 35.66it/s, score=153]
+Sampling solutions:  39%|███▉      | 49/125 [00:01<00:02, 35.66it/s, score=153]
+Sampling solutions:  40%|████      | 50/125 [00:01<00:02, 35.66it/s, score=153]
+Sampling solutions:  41%|████      | 51/125 [00:01<00:02, 35.66it/s, score=153]
+Sampling solutions:  42%|████▏     | 52/125 [00:01<00:02, 35.66it/s, score=153]
+Sampling solutions:  42%|████▏     | 53/125 [00:01<00:01, 40.50it/s, score=153]
+Sampling solutions:  42%|████▏     | 53/125 [00:01<00:01, 40.50it/s, score=153]
+Sampling solutions:  43%|████▎     | 54/125 [00:01<00:01, 40.50it/s, score=151]
+Sampling solutions:  44%|████▍     | 55/125 [00:01<00:01, 40.50it/s, score=151]
+Sampling solutions:  45%|████▍     | 56/125 [00:01<00:01, 40.50it/s, score=151]
+Sampling solutions:  46%|████▌     | 57/125 [00:01<00:01, 40.50it/s, score=151]
+Sampling solutions:  46%|████▋     | 58/125 [00:01<00:01, 40.50it/s, score=151]
+Sampling solutions:  47%|████▋     | 59/125 [00:01<00:01, 43.68it/s, score=151]
+Sampling solutions:  47%|████▋     | 59/125 [00:01<00:01, 43.68it/s, score=151]
+Sampling solutions:  48%|████▊     | 60/125 [00:01<00:01, 43.68it/s, score=151]
+Sampling solutions:  49%|████▉     | 61/125 [00:01<00:01, 43.68it/s, score=151]
+Sampling solutions:  50%|████▉     | 62/125 [00:01<00:01, 43.68it/s, score=150]
+Sampling solutions:  50%|█████     | 63/125 [00:01<00:01, 43.68it/s, score=150]
+Sampling solutions:  51%|█████     | 64/125 [00:01<00:01, 45.08it/s, score=150]
+Sampling solutions:  51%|█████     | 64/125 [00:01<00:01, 45.08it/s, score=150]
+Sampling solutions:  52%|█████▏    | 65/125 [00:01<00:01, 45.08it/s, score=150]
+Sampling solutions:  53%|█████▎    | 66/125 [00:01<00:01, 45.08it/s, score=150]
+Sampling solutions:  54%|█████▎    | 67/125 [00:01<00:01, 45.08it/s, score=150]
+Sampling solutions:  54%|█████▍    | 68/125 [00:01<00:01, 45.08it/s, score=150]
+Sampling solutions:  55%|█████▌    | 69/125 [00:01<00:01, 45.08it/s, score=150]
+Sampling solutions:  56%|█████▌    | 70/125 [00:01<00:01, 48.25it/s, score=150]
+Sampling solutions:  56%|█████▌    | 70/125 [00:01<00:01, 48.25it/s, score=150]
+Sampling solutions:  57%|█████▋    | 71/125 [00:01<00:01, 48.25it/s, score=138]
+Sampling solutions:  58%|█████▊    | 72/125 [00:01<00:01, 48.25it/s, score=138]
+Sampling solutions:  58%|█████▊    | 73/125 [00:01<00:01, 48.25it/s, score=138]
+Sampling solutions:  59%|█████▉    | 74/125 [00:01<00:01, 48.25it/s, score=138]
+Sampling solutions:  60%|██████    | 75/125 [00:01<00:01, 48.25it/s, score=138]
+Sampling solutions:  61%|██████    | 76/125 [00:01<00:00, 50.34it/s, score=138]
+Sampling solutions:  61%|██████    | 76/125 [00:01<00:00, 50.34it/s, score=138]
+Sampling solutions:  62%|██████▏   | 77/125 [00:01<00:00, 50.34it/s, score=138]
+Sampling solutions:  62%|██████▏   | 78/125 [00:01<00:00, 50.34it/s, score=138]
+Sampling solutions:  63%|██████▎   | 79/125 [00:01<00:00, 50.34it/s, score=138]
+Sampling solutions:  64%|██████▍   | 80/125 [00:01<00:00, 50.34it/s, score=138]
+Sampling solutions:  65%|██████▍   | 81/125 [00:01<00:00, 50.34it/s, score=138]
+Sampling solutions:  66%|██████▌   | 82/125 [00:01<00:00, 50.34it/s, score=138]
+Sampling solutions:  66%|██████▋   | 83/125 [00:01<00:00, 53.47it/s, score=138]
+Sampling solutions:  66%|██████▋   | 83/125 [00:01<00:00, 53.47it/s, score=138]
+Sampling solutions:  67%|██████▋   | 84/125 [00:01<00:00, 53.47it/s, score=138]
+Sampling solutions:  68%|██████▊   | 85/125 [00:01<00:00, 53.47it/s, score=138]
+Sampling solutions:  69%|██████▉   | 86/125 [00:01<00:00, 53.47it/s, score=138]
+Sampling solutions:  70%|██████▉   | 87/125 [00:01<00:00, 53.47it/s, score=138]
+Sampling solutions:  70%|███████   | 88/125 [00:01<00:00, 53.47it/s, score=138]
+Sampling solutions:  71%|███████   | 89/125 [00:01<00:00, 53.45it/s, score=138]
+Sampling solutions:  71%|███████   | 89/125 [00:01<00:00, 53.45it/s, score=138]
+Sampling solutions:  72%|███████▏  | 90/125 [00:01<00:00, 53.45it/s, score=138]
+Sampling solutions:  73%|███████▎  | 91/125 [00:01<00:00, 53.45it/s, score=138]
+Sampling solutions:  74%|███████▎  | 92/125 [00:01<00:00, 53.45it/s, score=138]
+Sampling solutions:  74%|███████▍  | 93/125 [00:01<00:00, 53.45it/s, score=138]
+Sampling solutions:  75%|███████▌  | 94/125 [00:01<00:00, 53.45it/s, score=138]
+Sampling solutions:  76%|███████▌  | 95/125 [00:01<00:00, 53.45it/s, score=138]
+Sampling solutions:  77%|███████▋  | 96/125 [00:01<00:00, 57.10it/s, score=138]
+Sampling solutions:  77%|███████▋  | 96/125 [00:01<00:00, 57.10it/s, score=138]
+Sampling solutions:  78%|███████▊  | 97/125 [00:01<00:00, 57.10it/s, score=138]
+Sampling solutions:  78%|███████▊  | 98/125 [00:01<00:00, 57.10it/s, score=138]
+Sampling solutions:  79%|███████▉  | 99/125 [00:02<00:00, 57.10it/s, score=138]
+Sampling solutions:  80%|████████  | 100/125 [00:02<00:00, 57.10it/s, score=138]
+Sampling solutions:  81%|████████  | 101/125 [00:02<00:00, 57.10it/s, score=138]
+Sampling solutions:  82%|████████▏ | 102/125 [00:02<00:00, 57.19it/s, score=138]
+Sampling solutions:  82%|████████▏ | 102/125 [00:02<00:00, 57.19it/s, score=138]
+Sampling solutions:  82%|████████▏ | 103/125 [00:02<00:00, 57.19it/s, score=138]
+Sampling solutions:  83%|████████▎ | 104/125 [00:02<00:00, 57.19it/s, score=138]
+Sampling solutions:  84%|████████▍ | 105/125 [00:02<00:00, 57.19it/s, score=138]
+Sampling solutions:  85%|████████▍ | 106/125 [00:02<00:00, 57.19it/s, score=138]
+Sampling solutions:  86%|████████▌ | 107/125 [00:02<00:00, 57.19it/s, score=138]
+Sampling solutions:  86%|████████▋ | 108/125 [00:02<00:00, 56.59it/s, score=138]
+Sampling solutions:  86%|████████▋ | 108/125 [00:02<00:00, 56.59it/s, score=138]
+Sampling solutions:  87%|████████▋ | 109/125 [00:02<00:00, 56.59it/s, score=138]
+Sampling solutions:  88%|████████▊ | 110/125 [00:02<00:00, 56.59it/s, score=138]
+Sampling solutions:  89%|████████▉ | 111/125 [00:02<00:00, 56.59it/s, score=138]
+Sampling solutions:  90%|████████▉ | 112/125 [00:02<00:00, 56.59it/s, score=138]
+Sampling solutions:  90%|█████████ | 113/125 [00:02<00:00, 56.59it/s, score=138]
+Sampling solutions:  91%|█████████ | 114/125 [00:02<00:00, 56.58it/s, score=138]
+Sampling solutions:  91%|█████████ | 114/125 [00:02<00:00, 56.58it/s, score=138]
+Sampling solutions:  92%|█████████▏| 115/125 [00:02<00:00, 56.58it/s, score=138]
+Sampling solutions:  93%|█████████▎| 116/125 [00:02<00:00, 56.58it/s, score=138]
+Sampling solutions:  94%|█████████▎| 117/125 [00:02<00:00, 56.58it/s, score=138]
+Sampling solutions:  94%|█████████▍| 118/125 [00:02<00:00, 56.58it/s, score=138]
+Sampling solutions:  95%|█████████▌| 119/125 [00:02<00:00, 56.58it/s, score=138]
+Sampling solutions:  96%|█████████▌| 120/125 [00:02<00:00, 56.58it/s, score=138]
+Sampling solutions:  97%|█████████▋| 121/125 [00:02<00:00, 57.53it/s, score=138]
+Sampling solutions:  97%|█████████▋| 121/125 [00:02<00:00, 57.53it/s, score=138]
+Sampling solutions:  98%|█████████▊| 122/125 [00:02<00:00, 57.53it/s, score=138]
+Sampling solutions:  98%|█████████▊| 123/125 [00:02<00:00, 57.53it/s, score=138]
+Sampling solutions:  99%|█████████▉| 124/125 [00:02<00:00, 57.53it/s, score=138]
+Sampling solutions: 100%|██████████| 125/125 [00:02<00:00, 57.53it/s, score=138]
+Sampling solutions: 100%|██████████| 125/125 [00:02<00:00, 50.50it/s, score=138]
+[15:12:14.832] [logging] [INFO] | [solve_rooms] finished in 0:00:06.448222
+[15:12:14.833] [logging] [INFO] | [solve_large]
+[15:12:14.907] [solve] [INFO] | Greedily solve ('on_floor_and_wall_0', 'bathroom_0/0') - stage has 5/63 bounds, active_count=4/25 objs
+[15:12:15.100] [annealing] [INFO] | it=0/100 dt=0.185 n=26 loss=2.708e+01 viol=3.0 temp=3.00e+00 diff=14.21 viol_diff=-1.0 prob=0.01 accept=True Addition(StandingSinkFactory, 2 relations)
+[15:12:15.165] [annealing] [INFO] | it=1/100 dt=0.064 n=26 loss=2.708e+01 viol=3.0 temp=2.73e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=True RelationPlaneChange(names=['624088_StandingSinkFactory'], relation_idx=0, plane_idx=0)
+[15:12:15.496] [annealing] [INFO] | it=2/100 dt=0.331 n=27 loss=3.340e+01 viol=2.0 temp=2.48e+00 diff=6.33 viol_diff=-1.0 prob=0.08 accept=True Addition(CellShelfFactory, 2 relations)
+[15:12:15.560] [annealing] [INFO] | it=3/100 dt=0.064 n=27 loss=3.331e+01 viol=2.0 temp=2.26e+00 diff=-0.09 viol_diff=0.0 prob=1.04 accept=True RelationPlaneChange(names=['624088_StandingSinkFactory'], relation_idx=0, plane_idx=4)
+[15:12:15.829] [annealing] [INFO] | it=4/100 dt=0.269 n=28 loss=3.564e+01 viol=1.0 temp=2.06e+00 diff=2.33 viol_diff=-1.0 prob=0.32 accept=True Addition(ToiletFactory, 2 relations)
+[15:12:16.161] [annealing] [INFO] | it=5/100 dt=0.332 n=29 loss=3.517e+01 viol=1.0 temp=1.87e+00 diff=-0.47 viol_diff=0.0 prob=1.28 accept=True Addition(SimpleBookcaseFactory, 2 relations)
+[15:12:16.337] [annealing] [INFO] | it=6/100 dt=0.175 n=29 loss=3.517e+01 viol=1.0 temp=1.70e+00 diff=0.12 viol_diff=0.0 prob=0.93 accept=False RelationPlaneChange(names=['436859_CellShelfFactory'], relation_idx=0, plane_idx=3)
+[15:12:16.596] [annealing] [INFO] | it=7/100 dt=0.259 n=29 loss=3.524e+01 viol=1.0 temp=1.55e+00 diff=0.07 viol_diff=0.0 prob=0.96 accept=True RelationPlaneChange(names=['558105_SimpleBookcaseFactory'], relation_idx=0, plane_idx=2)
+[15:12:17.870] [annealing] [INFO] | it=8/100 dt=1.274 n=29 loss=3.524e+01 viol=1.0 temp=1.41e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:12:17.987] [annealing] [INFO] | it=9/100 dt=0.117 n=29 loss=3.522e+01 viol=1.0 temp=1.29e+00 diff=-0.01 viol_diff=0.0 prob=1.01 accept=True RelationPlaneChange(names=['624088_StandingSinkFactory'], relation_idx=0, plane_idx=1)
+[15:12:18.294] [annealing] [INFO] | it=10/100 dt=0.306 n=29 loss=3.517e+01 viol=1.0 temp=1.17e+00 diff=-0.05 viol_diff=0.0 prob=1.05 accept=True Resample(names=['509900_ToiletFactory'], align_corner=None)
+[15:12:18.564] [annealing] [INFO] | it=11/100 dt=0.270 n=30 loss=3.499e+01 viol=1.0 temp=1.06e+00 diff=-0.18 viol_diff=0.0 prob=1.19 accept=True Addition(LargePlantContainerFactory, 2 relations)
+[15:12:19.712] [annealing] [INFO] | it=12/100 dt=1.147 n=30 loss=3.499e+01 viol=1.0 temp=9.69e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(StandingSinkFactory, 2 relations)
+[15:12:20.319] [annealing] [INFO] | it=13/100 dt=0.607 n=30 loss=3.499e+01 viol=1.0 temp=8.82e-01 diff=-4.81 viol_diff=1.0 prob=232.80 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:12:20.516] [annealing] [INFO] | it=14/100 dt=0.197 n=30 loss=3.499e+01 viol=1.0 temp=8.02e-01 diff=2.37 viol_diff=1.0 prob=0.05 accept=False Addition(ToiletFactory, 2 relations)
+[15:12:20.778] [annealing] [INFO] | it=15/100 dt=0.262 n=30 loss=3.499e+01 viol=1.0 temp=7.30e-01 diff=-0.65 viol_diff=1.0 prob=2.44 accept=False Addition(StandingSinkFactory, 2 relations)
+[15:12:21.456] [annealing] [INFO] | it=16/100 dt=0.677 n=30 loss=3.499e+01 viol=1.0 temp=6.65e-01 diff=0.81 viol_diff=0.0 prob=0.30 accept=False Addition(KitchenCabinetFactory, 2 relations)
+[15:12:22.339] [annealing] [INFO] | it=17/100 dt=0.883 n=30 loss=3.499e+01 viol=1.0 temp=6.05e-01 diff=-4.07 viol_diff=1.0 prob=832.37 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:12:22.648] [annealing] [INFO] | it=18/100 dt=0.309 n=30 loss=3.499e+01 viol=1.0 temp=5.51e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Resample(names=['509900_ToiletFactory'], align_corner=None)
+[15:12:23.259] [annealing] [INFO] | it=19/100 dt=0.611 n=30 loss=3.499e+01 viol=1.0 temp=5.01e-01 diff=-0.37 viol_diff=1.0 prob=2.07 accept=False Addition(StandingSinkFactory, 2 relations)
+[15:12:23.347] [annealing] [INFO] | it=20/100 dt=0.087 n=30 loss=3.499e+01 viol=1.0 temp=4.56e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None TranslateMove(['624088_StandingSinkFactory'], 1.74e+00)
+[15:12:23.348] [annealing] [INFO] | it=21/100 dt=0.001 n=30 loss=3.499e+01 viol=1.0 temp=4.15e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:12:23.471] [annealing] [INFO] | it=22/100 dt=0.124 n=30 loss=3.499e+01 viol=1.0 temp=3.78e-01 diff=0.18 viol_diff=0.0 prob=0.61 accept=False Deletion(['89217_LargePlantContainerFactory'])
+[15:12:24.632] [annealing] [INFO] | it=23/100 dt=1.160 n=30 loss=3.499e+01 viol=1.0 temp=3.44e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:12:24.954] [annealing] [INFO] | it=24/100 dt=0.322 n=30 loss=3.499e+01 viol=1.0 temp=3.13e-01 diff=-0.67 viol_diff=1.0 prob=8.41 accept=False Addition(ToiletFactory, 2 relations)
+[15:12:25.162] [annealing] [INFO] | it=25/100 dt=0.208 n=30 loss=3.499e+01 viol=1.0 temp=2.85e-01 diff=-0.81 viol_diff=1.0 prob=17.14 accept=False Addition(ToiletFactory, 2 relations)
+[15:12:26.146] [annealing] [INFO] | it=26/100 dt=0.983 n=30 loss=3.499e+01 viol=1.0 temp=2.59e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenCabinetFactory, 2 relations)
+[15:12:26.283] [annealing] [INFO] | it=27/100 dt=0.137 n=30 loss=3.499e+01 viol=1.0 temp=2.36e-01 diff=0.40 viol_diff=0.0 prob=0.18 accept=False Deletion(['558105_SimpleBookcaseFactory'])
+[15:12:26.745] [annealing] [INFO] | it=28/100 dt=0.462 n=30 loss=3.499e+01 viol=1.0 temp=2.15e-01 diff=-0.70 viol_diff=1.0 prob=25.63 accept=False Addition(ToiletFactory, 2 relations)
+[15:12:27.454] [annealing] [INFO] | it=29/100 dt=0.708 n=30 loss=3.499e+01 viol=1.0 temp=1.95e-01 diff=-0.85 viol_diff=1.0 prob=75.80 accept=False Addition(ToiletFactory, 2 relations)
+[15:12:27.720] [annealing] [INFO] | it=30/100 dt=0.266 n=30 loss=3.499e+01 viol=1.0 temp=1.78e-01 diff=-0.69 viol_diff=1.0 prob=49.28 accept=False Addition(ToiletFactory, 2 relations)
+[15:12:28.029] [annealing] [INFO] | it=31/100 dt=0.309 n=30 loss=3.499e+01 viol=1.0 temp=1.62e-01 diff=2.15 viol_diff=1.0 prob=0.00 accept=False Addition(StandingSinkFactory, 2 relations)
+[15:12:28.188] [annealing] [INFO] | it=32/100 dt=0.158 n=30 loss=3.499e+01 viol=1.0 temp=1.47e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['624088_StandingSinkFactory'], 7.06e-02)
+[15:12:28.316] [annealing] [INFO] | it=33/100 dt=0.128 n=30 loss=3.499e+01 viol=1.0 temp=1.34e-01 diff=-0.00 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['509900_ToiletFactory'], 3.66e-02)
+[15:12:29.808] [annealing] [INFO] | it=34/100 dt=1.492 n=30 loss=3.499e+01 viol=1.0 temp=1.22e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenCabinetFactory, 2 relations)
+[15:12:31.968] [annealing] [INFO] | it=35/100 dt=2.160 n=30 loss=3.499e+01 viol=1.0 temp=1.11e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:12:36.735] [annealing] [INFO] | it=36/100 dt=4.766 n=30 loss=3.499e+01 viol=1.0 temp=1.01e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(BathtubFactory, 2 relations)
+[15:12:37.498] [annealing] [INFO] | it=37/100 dt=0.762 n=30 loss=3.499e+01 viol=1.0 temp=9.19e-02 diff=-0.42 viol_diff=1.0 prob=94.18 accept=False Addition(ToiletFactory, 2 relations)
+[15:12:38.214] [annealing] [INFO] | it=38/100 dt=0.715 n=30 loss=3.499e+01 viol=1.0 temp=8.37e-02 diff=-0.69 viol_diff=1.0 prob=1.00 accept=False Addition(StandingSinkFactory, 2 relations)
+[15:12:38.475] [annealing] [INFO] | it=39/100 dt=0.260 n=30 loss=3.499e+01 viol=1.0 temp=7.62e-02 diff=0.00 viol_diff=0.0 prob=0.99 accept=True RelationPlaneChange(names=['509900_ToiletFactory'], relation_idx=0, plane_idx=3)
+[15:12:41.468] [annealing] [INFO] | it=40/100 dt=2.993 n=31 loss=3.375e+01 viol=1.0 temp=6.93e-02 diff=-1.24 viol_diff=0.0 prob=1.00 accept=True Addition(BathtubFactory, 2 relations)
+[15:12:43.531] [annealing] [INFO] | it=41/100 dt=2.063 n=31 loss=3.375e+01 viol=1.0 temp=6.31e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:12:45.517] [annealing] [INFO] | it=42/100 dt=1.985 n=31 loss=3.375e+01 viol=1.0 temp=5.74e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:12:47.575] [annealing] [INFO] | it=43/100 dt=2.058 n=31 loss=3.375e+01 viol=1.0 temp=5.23e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(StandingSinkFactory, 2 relations)
+[15:12:52.961] [annealing] [INFO] | it=44/100 dt=5.385 n=31 loss=3.375e+01 viol=1.0 temp=4.76e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(BathtubFactory, 2 relations)
+[15:12:54.743] [annealing] [INFO] | it=45/100 dt=1.782 n=31 loss=3.375e+01 viol=1.0 temp=4.33e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Resample(names=['624088_StandingSinkFactory'], align_corner=None)
+[15:12:54.913] [annealing] [INFO] | it=46/100 dt=0.170 n=31 loss=3.207e+01 viol=1.0 temp=3.94e-02 diff=-1.68 viol_diff=0.0 prob=1.00 accept=True RelationPlaneChange(names=['89217_LargePlantContainerFactory'], relation_idx=0, plane_idx=2)
+[15:12:57.645] [annealing] [INFO] | it=47/100 dt=2.731 n=31 loss=3.207e+01 viol=1.0 temp=3.58e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:12:58.101] [annealing] [INFO] | it=48/100 dt=0.455 n=31 loss=3.207e+01 viol=1.0 temp=3.26e-02 diff=1.98 viol_diff=1.0 prob=0.00 accept=False Addition(ToiletFactory, 2 relations)
+[15:12:58.309] [annealing] [INFO] | it=49/100 dt=0.208 n=31 loss=3.207e+01 viol=1.0 temp=2.97e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['624088_StandingSinkFactory'], 9.53e-02)
+[15:13:04.776] [annealing] [INFO] | it=50/100 dt=6.467 n=31 loss=3.207e+01 viol=1.0 temp=2.70e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(BathtubFactory, 2 relations)
+[15:13:06.704] [annealing] [INFO] | it=51/100 dt=1.927 n=31 loss=3.207e+01 viol=1.0 temp=2.46e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(CellShelfFactory, 2 relations)
+[15:13:12.612] [annealing] [INFO] | it=52/100 dt=5.907 n=31 loss=3.207e+01 viol=1.0 temp=2.24e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(BathtubFactory, 2 relations)
+[15:13:12.880] [annealing] [INFO] | it=53/100 dt=0.268 n=31 loss=3.207e+01 viol=1.0 temp=2.04e-02 diff=-0.00 viol_diff=0.0 prob=1.01 accept=True ReinitPoseMove(['509900_ToiletFactory'])
+[15:13:17.380] [annealing] [INFO] | it=54/100 dt=4.500 n=31 loss=3.207e+01 viol=1.0 temp=1.85e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(BathtubFactory, 2 relations)
+[15:13:17.607] [annealing] [INFO] | it=55/100 dt=0.226 n=31 loss=3.207e+01 viol=1.0 temp=1.69e-02 diff=-0.00 viol_diff=0.0 prob=1.00 accept=True ReinitPoseMove(['145558_BathtubFactory'])
+[15:13:19.570] [annealing] [INFO] | it=56/100 dt=1.963 n=31 loss=3.207e+01 viol=1.0 temp=1.54e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(StandingSinkFactory, 2 relations)
+[15:13:21.577] [annealing] [INFO] | it=57/100 dt=2.006 n=31 loss=3.207e+01 viol=1.0 temp=1.40e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:13:23.605] [annealing] [INFO] | it=58/100 dt=2.028 n=31 loss=3.207e+01 viol=1.0 temp=1.27e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:13:25.568] [annealing] [INFO] | it=59/100 dt=1.962 n=31 loss=3.207e+01 viol=1.0 temp=1.16e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(ToiletFactory, 2 relations)
+[15:13:25.742] [annealing] [INFO] | it=60/100 dt=0.174 n=31 loss=3.207e+01 viol=1.0 temp=1.05e-02 diff=-0.00 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['509900_ToiletFactory'], 5.01e-03)
+[15:13:26.026] [annealing] [INFO] | it=61/100 dt=0.284 n=31 loss=3.207e+01 viol=1.0 temp=9.59e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=True RelationPlaneChange(names=['145558_BathtubFactory'], relation_idx=0, plane_idx=0)
+[15:13:27.632] [annealing] [INFO] | it=62/100 dt=1.606 n=31 loss=3.207e+01 viol=1.0 temp=8.73e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(CellShelfFactory, 2 relations)
+[15:13:29.182] [annealing] [INFO] | it=63/100 dt=1.549 n=31 loss=3.207e+01 viol=1.0 temp=7.94e-03 diff=-1.01 viol_diff=1.0 prob=1.00 accept=False Addition(ToiletFactory, 2 relations)
+[15:13:36.853] [annealing] [INFO] | it=64/100 dt=7.671 n=31 loss=3.207e+01 viol=1.0 temp=7.23e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(BathtubFactory, 2 relations)
+[15:13:37.401] [annealing] [INFO] | it=65/100 dt=0.548 n=31 loss=3.207e+01 viol=1.0 temp=6.58e-03 diff=1.98 viol_diff=1.0 prob=0.00 accept=False Addition(ToiletFactory, 2 relations)
+[15:13:37.402] [annealing] [INFO] | it=66/100 dt=0.001 n=31 loss=3.207e+01 viol=1.0 temp=5.99e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:13:37.816] [annealing] [INFO] | it=67/100 dt=0.413 n=31 loss=3.207e+01 viol=1.0 temp=5.45e-03 diff=-0.98 viol_diff=1.0 prob=1.00 accept=False Addition(ToiletFactory, 2 relations)
+[15:13:39.958] [annealing] [INFO] | it=68/100 dt=2.142 n=31 loss=3.207e+01 viol=1.0 temp=4.96e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:13:41.854] [annealing] [INFO] | it=69/100 dt=1.896 n=31 loss=3.207e+01 viol=1.0 temp=4.51e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:13:41.983] [annealing] [INFO] | it=70/100 dt=0.129 n=31 loss=3.207e+01 viol=1.0 temp=4.11e-03 diff=0.00 viol_diff=0.0 prob=0.69 accept=True TranslateMove(['558105_SimpleBookcaseFactory'], 1.25e-02)
+[15:13:42.649] [annealing] [INFO] | it=71/100 dt=0.665 n=32 loss=3.073e+01 viol=1.0 temp=3.74e-03 diff=-1.34 viol_diff=0.0 prob=1.00 accept=True Addition(SingleCabinetFactory, 2 relations)
+[15:13:42.826] [annealing] [INFO] | it=72/100 dt=0.177 n=32 loss=3.070e+01 viol=1.0 temp=3.40e-03 diff=-0.03 viol_diff=0.0 prob=1.00 accept=True RelationPlaneChange(names=['624088_StandingSinkFactory'], relation_idx=0, plane_idx=2)
+[15:13:42.962] [annealing] [INFO] | it=73/100 dt=0.136 n=32 loss=3.032e+01 viol=1.0 temp=3.10e-03 diff=-0.38 viol_diff=0.0 prob=1.00 accept=True ReinitPoseMove(['89217_LargePlantContainerFactory'])
+[15:13:45.420] [annealing] [INFO] | it=74/100 dt=2.457 n=32 loss=3.032e+01 viol=1.0 temp=2.82e-03 diff=-0.33 viol_diff=1.0 prob=1.00 accept=False Addition(StandingSinkFactory, 2 relations)
+[15:13:45.422] [annealing] [INFO] | it=75/100 dt=0.001 n=32 loss=3.032e+01 viol=1.0 temp=2.56e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:13:47.685] [annealing] [INFO] | it=76/100 dt=2.263 n=32 loss=3.032e+01 viol=1.0 temp=2.33e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(CellShelfFactory, 2 relations)
+[15:13:47.687] [annealing] [INFO] | it=77/100 dt=0.001 n=32 loss=3.032e+01 viol=1.0 temp=2.12e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:13:48.639] [annealing] [INFO] | it=78/100 dt=0.951 n=32 loss=3.032e+01 viol=1.0 temp=1.93e-03 diff=1.88 viol_diff=1.0 prob=0.00 accept=False Addition(StandingSinkFactory, 2 relations)
+[15:13:48.954] [annealing] [INFO] | it=79/100 dt=0.315 n=32 loss=3.032e+01 viol=1.0 temp=1.76e-03 diff=1.05 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['509900_ToiletFactory'])
+[15:13:50.785] [annealing] [INFO] | it=80/100 dt=1.830 n=32 loss=3.032e+01 viol=1.0 temp=1.60e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RelationPlaneChange(names=['558105_SimpleBookcaseFactory'], relation_idx=1, plane_idx=0)
+[15:13:52.045] [annealing] [INFO] | it=81/100 dt=1.259 n=32 loss=3.031e+01 viol=1.0 temp=1.46e-03 diff=-0.01 viol_diff=0.0 prob=113.69 accept=True ReinitPoseMove(['15963_SingleCabinetFactory'])
+[15:13:52.047] [annealing] [INFO] | it=82/100 dt=0.002 n=32 loss=3.031e+01 viol=1.0 temp=1.33e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:13:52.707] [annealing] [INFO] | it=83/100 dt=0.659 n=32 loss=3.031e+01 viol=1.0 temp=1.21e-03 diff=-0.00 viol_diff=0.0 prob=1.00 accept=True ReinitPoseMove(['145558_BathtubFactory'])
+[15:13:56.025] [annealing] [INFO] | it=84/100 dt=3.318 n=32 loss=3.031e+01 viol=1.0 temp=1.10e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:14:01.683] [annealing] [INFO] | it=85/100 dt=5.657 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:14:02.317] [annealing] [INFO] | it=86/100 dt=0.634 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=0.03 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['624088_StandingSinkFactory'], relation_idx=0, plane_idx=0)
+[15:14:02.321] [annealing] [INFO] | it=87/100 dt=0.003 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:14:08.542] [annealing] [INFO] | it=88/100 dt=6.220 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=2.33 viol_diff=0.0 prob=0.00 accept=False Addition(SimpleBookcaseFactory, 2 relations)
+[15:14:09.034] [annealing] [INFO] | it=89/100 dt=0.491 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['145558_BathtubFactory'], 9.23e-03)
+[15:14:09.802] [annealing] [INFO] | it=90/100 dt=0.767 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=1.21 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['145558_BathtubFactory'])
+[15:14:10.579] [annealing] [INFO] | it=91/100 dt=0.776 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=-0.00 viol_diff=0.0 prob=3.23 accept=True ReinitPoseMove(['436859_CellShelfFactory'])
+[15:14:12.615] [annealing] [INFO] | it=92/100 dt=2.034 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=1.75 viol_diff=1.0 prob=0.00 accept=False Addition(StandingSinkFactory, 2 relations)
+[15:14:12.620] [annealing] [INFO] | it=93/100 dt=0.005 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:14:13.401] [annealing] [INFO] | it=94/100 dt=0.779 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=-0.00 viol_diff=0.0 prob=1.00 accept=True ReinitPoseMove(['145558_BathtubFactory'])
+[15:14:13.947] [annealing] [INFO] | it=95/100 dt=0.545 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['145558_BathtubFactory'], 7.70e-03)
+[15:14:14.344] [annealing] [INFO] | it=96/100 dt=0.396 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=0.18 accept=False TranslateMove(['558105_SimpleBookcaseFactory'], 1.72e-02)
+[15:14:14.347] [annealing] [INFO] | it=97/100 dt=0.003 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:14:14.810] [annealing] [INFO] | it=98/100 dt=0.462 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=0.24 accept=True TranslateMove(['15963_SingleCabinetFactory'], 1.44e-02)
+[15:14:15.200] [annealing] [INFO] | it=99/100 dt=0.389 n=32 loss=3.031e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=0.04 accept=False TranslateMove(['436859_CellShelfFactory'], 1.57e-02)
+[15:14:15.201] [solve] [INFO] | Finished solving ('on_floor_and_wall_0', 'bathroom_0/0'), added 7 objects, loss=30.3119 viol=1
+[15:14:15.218] [solve] [INFO] |            bathtub dining_chairs  ...  wall_decorations  bedroom
+loss         False         False  ...               0.0        0
+viol_count       0             0  ...               0.0        0
+
+[2 rows x 36 columns]
+[15:14:15.351] [solve] [WARNING] | Solver has failed to satisfy constraints for stage ('on_floor_and_wall_0', 'bathroom_0/0'). violations={'lighting': 1}. Continuing anyway, override `solve_objects.abort_unsatisfied=True` via gin to crash instead.
+[15:14:15.629] [solve] [INFO] | Greedily solve ('on_floor_and_wall_1', 'bedroom_0/0') - stage has 6/63 bounds, active_count=7/32 objs
+[15:14:15.663] [annealing] [INFO] | it=0/100 dt=0.002 n=32 loss=1.387e+01 viol=5.0 temp=3.00e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_relation_plane_change
+[15:14:16.970] [annealing] [INFO] | it=1/100 dt=1.306 n=33 loss=2.755e+01 viol=4.0 temp=2.73e+00 diff=13.68 viol_diff=-1.0 prob=0.01 accept=True Addition(BedFactory, 2 relations)
+[15:14:17.521] [annealing] [INFO] | it=2/100 dt=0.550 n=34 loss=3.749e+01 viol=2.0 temp=2.48e+00 diff=9.93 viol_diff=-2.0 prob=0.02 accept=True Addition(SingleCabinetFactory, 2 relations)
+[15:14:24.076] [annealing] [INFO] | it=3/100 dt=6.553 n=35 loss=3.671e+01 viol=1.0 temp=2.26e+00 diff=-0.78 viol_diff=-1.0 prob=1.41 accept=True Addition(LargeShelfFactory, 2 relations)
+[15:14:24.734] [annealing] [INFO] | it=4/100 dt=0.657 n=36 loss=3.671e+01 viol=1.0 temp=2.06e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=True Addition(FloorLampFactory, 2 relations)
+[15:14:26.690] [annealing] [INFO] | it=5/100 dt=1.955 n=37 loss=3.545e+01 viol=1.0 temp=1.87e+00 diff=-1.26 viol_diff=0.0 prob=1.96 accept=True Addition(LargeShelfFactory, 2 relations)
+[15:14:27.361] [annealing] [INFO] | it=6/100 dt=0.671 n=38 loss=3.545e+01 viol=1.0 temp=1.70e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=True Addition(FloorLampFactory, 2 relations)
+[15:14:27.922] [annealing] [INFO] | it=7/100 dt=0.560 n=39 loss=3.487e+01 viol=1.0 temp=1.55e+00 diff=-0.58 viol_diff=0.0 prob=1.45 accept=True Addition(CellShelfFactory, 2 relations)
+[15:14:29.214] [annealing] [INFO] | it=8/100 dt=1.291 n=40 loss=3.470e+01 viol=1.0 temp=1.41e+00 diff=-0.17 viol_diff=0.0 prob=1.13 accept=True Addition(CellShelfFactory, 2 relations)
+[15:14:29.712] [annealing] [INFO] | it=9/100 dt=0.497 n=39 loss=3.470e+01 viol=1.0 temp=1.29e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=True Deletion(['841384_FloorLampFactory'])
+[15:14:29.716] [annealing] [INFO] | it=10/100 dt=0.003 n=39 loss=3.470e+01 viol=1.0 temp=1.17e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:14:30.359] [annealing] [INFO] | it=11/100 dt=0.643 n=40 loss=5.004e+00 viol=1.0 temp=1.06e+00 diff=-29.69 viol_diff=0.0 prob=1.00 accept=True Addition(LargePlantContainerFactory, 2 relations)
+[15:14:32.338] [annealing] [INFO] | it=12/100 dt=1.978 n=40 loss=5.004e+00 viol=1.0 temp=9.69e-01 diff=10.56 viol_diff=1.0 prob=0.00 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:14:33.834] [annealing] [INFO] | it=13/100 dt=1.496 n=40 loss=5.004e+00 viol=1.0 temp=8.82e-01 diff=-0.49 viol_diff=1.0 prob=1.74 accept=False Addition(LargeShelfFactory, 2 relations)
+[15:14:35.873] [annealing] [INFO] | it=14/100 dt=2.038 n=40 loss=5.004e+00 viol=1.0 temp=8.02e-01 diff=5.50 viol_diff=1.0 prob=0.00 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:14:37.763] [annealing] [INFO] | it=15/100 dt=1.889 n=40 loss=5.004e+00 viol=1.0 temp=7.30e-01 diff=-0.09 viol_diff=1.0 prob=1.13 accept=False Addition(SimpleBookcaseFactory, 2 relations)
+[15:14:38.373] [annealing] [INFO] | it=16/100 dt=0.610 n=40 loss=5.004e+00 viol=1.0 temp=6.65e-01 diff=2.52 viol_diff=1.0 prob=0.02 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:14:39.085] [annealing] [INFO] | it=17/100 dt=0.712 n=41 loss=5.004e+00 viol=1.0 temp=6.05e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=True Addition(FloorLampFactory, 2 relations)
+[15:14:39.089] [annealing] [INFO] | it=18/100 dt=0.003 n=41 loss=5.004e+00 viol=1.0 temp=5.51e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:14:40.440] [annealing] [INFO] | it=19/100 dt=1.351 n=41 loss=5.004e+00 viol=1.0 temp=5.01e-01 diff=9.53 viol_diff=1.0 prob=0.00 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:14:41.161] [annealing] [INFO] | it=20/100 dt=0.720 n=42 loss=3.944e+00 viol=1.0 temp=4.56e-01 diff=-1.06 viol_diff=0.0 prob=10.22 accept=True Addition(SimpleDeskFactory, 2 relations)
+[15:14:44.020] [annealing] [INFO] | it=21/100 dt=2.841 n=42 loss=3.944e+00 viol=1.0 temp=4.15e-01 diff=0.27 viol_diff=1.0 prob=0.52 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:14:44.544] [annealing] [INFO] | it=22/100 dt=0.524 n=42 loss=3.944e+00 viol=1.0 temp=3.78e-01 diff=0.08 viol_diff=0.0 prob=0.81 accept=False Resample(names=['615710_CellShelfFactory'], align_corner=None)
+[15:14:45.105] [annealing] [INFO] | it=23/100 dt=0.561 n=42 loss=3.946e+00 viol=1.0 temp=3.44e-01 diff=0.00 viol_diff=0.0 prob=0.99 accept=True RelationPlaneChange(names=['459914_SimpleDeskFactory'], relation_idx=1, plane_idx=3)
+[15:14:47.405] [annealing] [INFO] | it=24/100 dt=2.299 n=42 loss=3.946e+00 viol=1.0 temp=3.13e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RelationPlaneChange(names=['329171_LargeShelfFactory'], relation_idx=1, plane_idx=1)
+[15:14:47.786] [annealing] [INFO] | it=25/100 dt=0.380 n=42 loss=3.946e+00 viol=1.0 temp=2.85e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['987725_FloorLampFactory'], 9.01e-01)
+[15:14:53.096] [annealing] [INFO] | it=26/100 dt=5.310 n=42 loss=3.946e+00 viol=1.0 temp=2.59e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargeShelfFactory, 2 relations)
+[15:14:53.648] [annealing] [INFO] | it=27/100 dt=0.551 n=41 loss=3.222e+00 viol=1.0 temp=2.36e-01 diff=-0.72 viol_diff=0.0 prob=21.55 accept=True Deletion(['355902_SingleCabinetFactory'])
+[15:14:54.025] [annealing] [INFO] | it=28/100 dt=0.376 n=41 loss=3.222e+00 viol=1.0 temp=2.15e-01 diff=0.00 viol_diff=1.0 prob=1.00 accept=False RelationPlaneChange(names=['546107_FloorLampFactory'], relation_idx=1, plane_idx=3)
+[15:14:54.366] [annealing] [INFO] | it=29/100 dt=0.341 n=41 loss=3.222e+00 viol=1.0 temp=1.95e-01 diff=0.00 viol_diff=1.0 prob=1.00 accept=False RelationPlaneChange(names=['546107_FloorLampFactory'], relation_idx=1, plane_idx=3)
+[15:14:55.411] [annealing] [INFO] | it=30/100 dt=1.043 n=41 loss=3.222e+00 viol=1.0 temp=1.78e-01 diff=0.06 viol_diff=1.0 prob=0.70 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:14:56.423] [annealing] [INFO] | it=31/100 dt=1.012 n=41 loss=3.222e+00 viol=1.0 temp=1.62e-01 diff=1.86 viol_diff=0.0 prob=0.00 accept=False Addition(LargeShelfFactory, 2 relations)
+[15:14:56.426] [annealing] [INFO] | it=32/100 dt=0.002 n=41 loss=3.222e+00 viol=1.0 temp=1.47e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:14:56.738] [annealing] [INFO] | it=33/100 dt=0.312 n=41 loss=3.150e+00 viol=1.0 temp=1.34e-01 diff=-0.07 viol_diff=0.0 prob=1.71 accept=True Resample(names=['615710_CellShelfFactory'], align_corner=None)
+[15:14:56.977] [annealing] [INFO] | it=34/100 dt=0.238 n=41 loss=3.153e+00 viol=1.0 temp=1.22e-01 diff=0.00 viol_diff=0.0 prob=0.97 accept=True TranslateMove(['459914_SimpleDeskFactory'], 2.02e-02)
+[15:14:59.148] [annealing] [INFO] | it=35/100 dt=2.170 n=41 loss=3.153e+00 viol=1.0 temp=1.11e-01 diff=-0.66 viol_diff=1.0 prob=379.41 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:15:06.106] [annealing] [INFO] | it=36/100 dt=6.958 n=41 loss=3.153e+00 viol=1.0 temp=1.01e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(CellShelfFactory, 2 relations)
+[15:15:08.588] [annealing] [INFO] | it=37/100 dt=2.482 n=41 loss=3.153e+00 viol=1.0 temp=9.19e-02 diff=0.81 viol_diff=0.0 prob=0.00 accept=False Addition(SimpleBookcaseFactory, 2 relations)
+[15:15:08.815] [annealing] [INFO] | it=38/100 dt=0.226 n=41 loss=3.152e+00 viol=1.0 temp=8.37e-02 diff=-0.00 viol_diff=0.0 prob=1.02 accept=True TranslateMove(['974337_CellShelfFactory'], 1.60e-02)
+[15:15:10.869] [annealing] [INFO] | it=39/100 dt=2.054 n=41 loss=3.152e+00 viol=1.0 temp=7.62e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(SingleCabinetFactory, 2 relations)
+[15:15:11.247] [annealing] [INFO] | it=40/100 dt=0.378 n=41 loss=3.111e+00 viol=1.0 temp=6.93e-02 diff=-0.04 viol_diff=0.0 prob=1.81 accept=True ReinitPoseMove(['388269_BedFactory'])
+[15:15:12.484] [annealing] [INFO] | it=41/100 dt=1.237 n=41 loss=3.111e+00 viol=1.0 temp=6.31e-02 diff=-0.10 viol_diff=1.0 prob=5.04 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:15:12.956] [annealing] [INFO] | it=42/100 dt=0.471 n=42 loss=2.444e+00 viol=1.0 temp=5.74e-02 diff=-0.67 viol_diff=0.0 prob=1.00 accept=True Addition(KitchenCabinetFactory, 2 relations)
+[15:15:13.514] [annealing] [INFO] | it=43/100 dt=0.557 n=42 loss=2.444e+00 viol=1.0 temp=5.23e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=True RelationPlaneChange(names=['987725_FloorLampFactory'], relation_idx=1, plane_idx=1)
+[15:15:16.917] [annealing] [INFO] | it=44/100 dt=3.403 n=42 loss=2.444e+00 viol=1.0 temp=4.76e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargeShelfFactory, 2 relations)
+[15:15:17.385] [annealing] [INFO] | it=45/100 dt=0.467 n=42 loss=2.444e+00 viol=1.0 temp=4.33e-02 diff=1.52 viol_diff=1.0 prob=0.00 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:15:18.495] [annealing] [INFO] | it=46/100 dt=1.110 n=42 loss=2.444e+00 viol=1.0 temp=3.94e-02 diff=-0.39 viol_diff=1.0 prob=1.00 accept=False Addition(LargeShelfFactory, 2 relations)
+[15:15:18.497] [annealing] [INFO] | it=47/100 dt=0.001 n=42 loss=2.444e+00 viol=1.0 temp=3.58e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:15:19.562] [annealing] [INFO] | it=48/100 dt=1.064 n=42 loss=2.444e+00 viol=1.0 temp=3.26e-02 diff=-0.38 viol_diff=1.0 prob=1.00 accept=False Addition(LargeShelfFactory, 2 relations)
+[15:15:21.051] [annealing] [INFO] | it=49/100 dt=1.489 n=42 loss=2.444e+00 viol=1.0 temp=2.97e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RelationPlaneChange(names=['329171_LargeShelfFactory'], relation_idx=1, plane_idx=0)
+[15:15:21.940] [annealing] [INFO] | it=50/100 dt=0.888 n=42 loss=2.444e+00 viol=1.0 temp=2.70e-02 diff=0.33 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['459914_SimpleDeskFactory'], relation_idx=1, plane_idx=0)
+[15:15:22.845] [annealing] [INFO] | it=51/100 dt=0.905 n=42 loss=2.444e+00 viol=1.0 temp=2.46e-02 diff=-0.09 viol_diff=1.0 prob=40.03 accept=False Addition(SimpleBookcaseFactory, 2 relations)
+[15:15:23.876] [annealing] [INFO] | it=52/100 dt=1.030 n=42 loss=2.444e+00 viol=1.0 temp=2.24e-02 diff=-0.23 viol_diff=1.0 prob=1.00 accept=False Addition(CellShelfFactory, 2 relations)
+[15:15:26.326] [annealing] [INFO] | it=53/100 dt=2.450 n=42 loss=2.444e+00 viol=1.0 temp=2.04e-02 diff=0.01 viol_diff=1.0 prob=0.66 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:15:26.720] [annealing] [INFO] | it=54/100 dt=0.394 n=42 loss=2.444e+00 viol=1.0 temp=1.85e-02 diff=1.00 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['615710_CellShelfFactory'], relation_idx=1, plane_idx=2)
+[15:15:26.928] [annealing] [INFO] | it=55/100 dt=0.207 n=42 loss=2.444e+00 viol=1.0 temp=1.69e-02 diff=0.04 viol_diff=0.0 prob=0.10 accept=False TranslateMove(['9140_LargePlantContainerFactory'], 2.27e-02)
+[15:15:29.747] [annealing] [INFO] | it=56/100 dt=2.819 n=42 loss=2.444e+00 viol=1.0 temp=1.54e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargeShelfFactory, 2 relations)
+[15:15:30.549] [annealing] [INFO] | it=57/100 dt=0.801 n=42 loss=2.444e+00 viol=1.0 temp=1.40e-02 diff=-0.07 viol_diff=1.0 prob=207.19 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:15:32.291] [annealing] [INFO] | it=58/100 dt=1.742 n=42 loss=2.444e+00 viol=1.0 temp=1.27e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargePlantContainerFactory, 2 relations)
+[15:15:34.834] [annealing] [INFO] | it=59/100 dt=2.543 n=42 loss=2.444e+00 viol=1.0 temp=1.16e-02 diff=-0.28 viol_diff=1.0 prob=1.00 accept=False Addition(LargeShelfFactory, 2 relations)
+[15:15:35.384] [annealing] [INFO] | it=60/100 dt=0.550 n=42 loss=2.444e+00 viol=1.0 temp=1.05e-02 diff=-0.02 viol_diff=1.0 prob=4.90 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:15:37.405] [annealing] [INFO] | it=61/100 dt=2.020 n=42 loss=2.444e+00 viol=1.0 temp=9.59e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(SimpleBookcaseFactory, 2 relations)
+[15:15:37.407] [annealing] [INFO] | it=62/100 dt=0.002 n=42 loss=2.444e+00 viol=1.0 temp=8.73e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:15:39.673] [annealing] [INFO] | it=63/100 dt=2.265 n=42 loss=2.444e+00 viol=1.0 temp=7.94e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RelationPlaneChange(names=['798136_LargeShelfFactory'], relation_idx=1, plane_idx=3)
+[15:15:39.976] [annealing] [INFO] | it=64/100 dt=0.303 n=42 loss=2.444e+00 viol=1.0 temp=7.23e-03 diff=0.00 viol_diff=1.0 prob=0.99 accept=False RelationPlaneChange(names=['546107_FloorLampFactory'], relation_idx=1, plane_idx=1)
+[15:15:44.266] [annealing] [INFO] | it=65/100 dt=4.290 n=42 loss=2.444e+00 viol=1.0 temp=6.58e-03 diff=-0.04 viol_diff=1.0 prob=796.73 accept=False Addition(LargeShelfFactory, 2 relations)
+[15:15:44.272] [annealing] [INFO] | it=66/100 dt=0.005 n=42 loss=2.444e+00 viol=1.0 temp=5.99e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:15:52.512] [annealing] [INFO] | it=67/100 dt=8.239 n=42 loss=2.444e+00 viol=1.0 temp=5.45e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenCabinetFactory, 2 relations)
+[15:15:53.691] [annealing] [INFO] | it=68/100 dt=1.179 n=42 loss=2.444e+00 viol=1.0 temp=4.96e-03 diff=0.46 viol_diff=1.0 prob=0.00 accept=False Addition(SimpleBookcaseFactory, 2 relations)
+[15:15:56.815] [annealing] [INFO] | it=69/100 dt=3.123 n=42 loss=2.444e+00 viol=1.0 temp=4.51e-03 diff=7.64 viol_diff=1.0 prob=0.00 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:15:57.094] [annealing] [INFO] | it=70/100 dt=0.279 n=42 loss=2.446e+00 viol=1.0 temp=4.11e-03 diff=0.00 viol_diff=0.0 prob=0.66 accept=True TranslateMove(['718131_KitchenCabinetFactory'], 1.90e-02)
+[15:16:00.218] [annealing] [INFO] | it=71/100 dt=3.123 n=43 loss=1.715e+00 viol=1.0 temp=3.74e-03 diff=-0.73 viol_diff=0.0 prob=1.00 accept=True Addition(BedFactory, 2 relations)
+[15:16:00.427] [annealing] [INFO] | it=72/100 dt=0.208 n=43 loss=1.715e+00 viol=1.0 temp=3.40e-03 diff=11.33 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['9140_LargePlantContainerFactory'], relation_idx=1, plane_idx=2)
+[15:16:01.300] [annealing] [INFO] | it=73/100 dt=0.872 n=43 loss=1.616e+00 viol=1.0 temp=3.10e-03 diff=-0.10 viol_diff=0.0 prob=1.00 accept=True ReinitPoseMove(['9140_LargePlantContainerFactory'])
+[15:16:01.304] [annealing] [INFO] | it=74/100 dt=0.003 n=43 loss=1.616e+00 viol=1.0 temp=2.82e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:16:01.307] [annealing] [INFO] | it=75/100 dt=0.002 n=43 loss=1.616e+00 viol=1.0 temp=2.56e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:16:05.050] [annealing] [INFO] | it=76/100 dt=3.743 n=43 loss=1.616e+00 viol=1.0 temp=2.33e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenCabinetFactory, 2 relations)
+[15:16:05.460] [annealing] [INFO] | it=77/100 dt=0.410 n=43 loss=1.616e+00 viol=1.0 temp=2.12e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['987725_FloorLampFactory'], 1.20e-02)
+[15:16:07.365] [annealing] [INFO] | it=78/100 dt=1.904 n=43 loss=1.616e+00 viol=1.0 temp=1.93e-03 diff=-0.20 viol_diff=1.0 prob=1.00 accept=False Addition(CellShelfFactory, 2 relations)
+[15:16:07.663] [annealing] [INFO] | it=79/100 dt=0.298 n=43 loss=1.617e+00 viol=1.0 temp=1.76e-03 diff=0.00 viol_diff=0.0 prob=0.84 accept=True TranslateMove(['798136_LargeShelfFactory'], 4.50e-03)
+[15:16:07.815] [annealing] [INFO] | it=80/100 dt=0.152 n=43 loss=1.587e+00 viol=1.0 temp=1.60e-03 diff=-0.03 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['9140_LargePlantContainerFactory'], 1.70e-02)
+[15:16:08.875] [annealing] [INFO] | it=81/100 dt=1.059 n=43 loss=1.587e+00 viol=1.0 temp=1.46e-03 diff=0.43 viol_diff=1.0 prob=0.00 accept=False Addition(SingleCabinetFactory, 2 relations)
+[15:16:10.821] [annealing] [INFO] | it=82/100 dt=1.945 n=43 loss=1.587e+00 viol=1.0 temp=1.33e-03 diff=1.00 viol_diff=1.0 prob=0.00 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:16:22.237] [annealing] [INFO] | it=83/100 dt=11.415 n=43 loss=1.587e+00 viol=1.0 temp=1.21e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(SimpleBookcaseFactory, 2 relations)
+[15:16:22.740] [annealing] [INFO] | it=84/100 dt=0.502 n=43 loss=1.585e+00 viol=1.0 temp=1.10e-03 diff=-0.00 viol_diff=0.0 prob=6.14 accept=True TranslateMove(['906617_BedFactory'], 9.36e-03)
+[15:16:22.743] [annealing] [INFO] | it=85/100 dt=0.003 n=43 loss=1.585e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:16:22.747] [annealing] [INFO] | it=86/100 dt=0.004 n=43 loss=1.585e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:16:23.550] [annealing] [INFO] | it=87/100 dt=0.803 n=43 loss=1.585e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=True ReinitPoseMove(['987725_FloorLampFactory'])
+[15:16:27.645] [annealing] [INFO] | it=88/100 dt=4.093 n=43 loss=1.585e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(LargeShelfFactory, 2 relations)
+[15:16:27.893] [annealing] [INFO] | it=89/100 dt=0.248 n=43 loss=1.586e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=0.55 accept=True TranslateMove(['974337_CellShelfFactory'], 7.98e-03)
+[15:16:28.238] [annealing] [INFO] | it=90/100 dt=0.345 n=43 loss=1.548e+00 viol=1.0 temp=1.00e-03 diff=-0.04 viol_diff=0.0 prob=1.00 accept=True RelationPlaneChange(names=['974337_CellShelfFactory'], relation_idx=1, plane_idx=1)
+[15:16:28.526] [annealing] [INFO] | it=91/100 dt=0.287 n=43 loss=1.546e+00 viol=1.0 temp=1.00e-03 diff=-0.00 viol_diff=0.0 prob=12.25 accept=True TranslateMove(['329171_LargeShelfFactory'], 4.01e-03)
+[15:16:29.149] [annealing] [INFO] | it=92/100 dt=0.622 n=43 loss=1.546e+00 viol=1.0 temp=1.00e-03 diff=0.02 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['459914_SimpleDeskFactory'])
+[15:16:29.411] [annealing] [INFO] | it=93/100 dt=0.262 n=43 loss=1.546e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=0.23 accept=False TranslateMove(['459914_SimpleDeskFactory'], 1.91e-02)
+[15:16:29.413] [annealing] [INFO] | it=94/100 dt=0.002 n=43 loss=1.546e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:16:29.785] [annealing] [INFO] | it=95/100 dt=0.371 n=43 loss=1.546e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=0.04 accept=False TranslateMove(['906617_BedFactory'], 1.47e-02)
+[15:16:30.049] [annealing] [INFO] | it=96/100 dt=0.263 n=43 loss=1.545e+00 viol=1.0 temp=1.00e-03 diff=-0.00 viol_diff=0.0 prob=2.64 accept=True TranslateMove(['974337_CellShelfFactory'], 1.29e-02)
+[15:16:30.052] [annealing] [INFO] | it=97/100 dt=0.003 n=43 loss=1.545e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:16:30.197] [annealing] [INFO] | it=98/100 dt=0.145 n=43 loss=1.545e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['987725_FloorLampFactory'], 8.98e-03)
+[15:16:30.450] [annealing] [INFO] | it=99/100 dt=0.252 n=43 loss=1.545e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=0.72 accept=True TranslateMove(['718131_KitchenCabinetFactory'], 7.97e-03)
+[15:16:30.450] [solve] [INFO] | Finished solving ('on_floor_and_wall_1', 'bedroom_0/0'), added 11 objects, loss=1.5453 viol=1
+[15:16:30.454] [solve] [INFO] |            bathtub dining_chairs  ...  wall_decorations  bedroom
+loss          True         False  ...               0.0      0.0
+viol_count       0             0  ...               0.0      1.0
+
+[2 rows x 36 columns]
+[15:16:30.514] [solve] [WARNING] | Solver has failed to satisfy constraints for stage ('on_floor_and_wall_1', 'bedroom_0/0'). violations={'bedroom': 1}. Continuing anyway, override `solve_objects.abort_unsatisfied=True` via gin to crash instead.
+[15:16:30.684] [solve] [INFO] | No objects to be added for desc_full=('on_floor_and_wall_2', 'dining-room_0/0'), skipping
+[15:16:30.874] [solve] [INFO] | Greedily solve ('on_floor_and_wall_3', 'kitchen_0/0') - stage has 5/63 bounds, active_count=5/43 objs
+[15:16:34.428] [annealing] [INFO] | it=0/100 dt=3.514 n=43 loss=4.787e+01 viol=4.0 temp=3.00e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:16:34.670] [annealing] [INFO] | it=1/100 dt=0.193 n=43 loss=4.787e+01 viol=4.0 temp=2.73e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_deletion
+[15:16:34.675] [annealing] [INFO] | it=2/100 dt=0.004 n=43 loss=4.787e+01 viol=4.0 temp=2.48e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_relation_plane_change
+[15:16:36.165] [annealing] [INFO] | it=3/100 dt=1.489 n=44 loss=6.810e+01 viol=3.0 temp=2.26e+00 diff=20.23 viol_diff=-1.0 prob=0.00 accept=True Addition(OvenFactory, 2 relations)
+[15:16:38.624] [annealing] [INFO] | it=4/100 dt=2.458 n=44 loss=6.810e+01 viol=3.0 temp=2.06e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenCabinetFactory, 2 relations)
+[15:16:41.581] [annealing] [INFO] | it=5/100 dt=2.957 n=45 loss=7.472e+01 viol=2.0 temp=1.87e+00 diff=6.63 viol_diff=-1.0 prob=0.03 accept=True Addition(LargeShelfFactory, 2 relations)
+[15:16:45.070] [annealing] [INFO] | it=6/100 dt=3.489 n=45 loss=7.472e+01 viol=2.0 temp=1.70e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:16:46.068] [annealing] [INFO] | it=7/100 dt=0.997 n=45 loss=7.472e+01 viol=2.0 temp=1.55e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=True RelationPlaneChange(names=['761601_LargeShelfFactory'], relation_idx=0, plane_idx=1)
+[15:16:46.375] [annealing] [INFO] | it=8/100 dt=0.306 n=45 loss=7.472e+01 viol=2.0 temp=1.41e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None TranslateMove(['751849_OvenFactory'], 1.07e+01)
+[15:16:49.599] [annealing] [INFO] | it=9/100 dt=3.224 n=45 loss=7.472e+01 viol=2.0 temp=1.29e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:16:53.197] [annealing] [INFO] | it=10/100 dt=3.596 n=45 loss=7.472e+01 viol=2.0 temp=1.17e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:16:53.199] [annealing] [INFO] | it=11/100 dt=0.001 n=45 loss=7.472e+01 viol=2.0 temp=1.06e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:16:56.997] [annealing] [INFO] | it=12/100 dt=3.798 n=45 loss=7.472e+01 viol=2.0 temp=9.69e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:16:57.285] [annealing] [INFO] | it=13/100 dt=0.288 n=45 loss=7.472e+01 viol=2.0 temp=8.82e-01 diff=2.42 viol_diff=0.0 prob=0.06 accept=False RelationPlaneChange(names=['751849_OvenFactory'], relation_idx=0, plane_idx=2)
+[15:17:02.049] [annealing] [INFO] | it=14/100 dt=4.763 n=45 loss=7.472e+01 viol=2.0 temp=8.02e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:17:06.331] [annealing] [INFO] | it=15/100 dt=4.282 n=45 loss=7.472e+01 viol=2.0 temp=7.30e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:17:11.716] [annealing] [INFO] | it=16/100 dt=5.385 n=45 loss=7.472e+01 viol=2.0 temp=6.65e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:17:15.427] [annealing] [INFO] | it=17/100 dt=3.709 n=45 loss=7.472e+01 viol=2.0 temp=6.05e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:17:20.262] [annealing] [INFO] | it=18/100 dt=4.835 n=45 loss=7.472e+01 viol=2.0 temp=5.51e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:17:20.537] [annealing] [INFO] | it=19/100 dt=0.275 n=45 loss=7.466e+01 viol=2.0 temp=5.01e-01 diff=-0.06 viol_diff=0.0 prob=1.14 accept=True ReinitPoseMove(['751849_OvenFactory'])
+[15:17:20.942] [annealing] [INFO] | it=20/100 dt=0.404 n=45 loss=7.466e+01 viol=2.0 temp=4.56e-01 diff=-11.65 viol_diff=1.0 prob=1.00 accept=False Deletion(['751849_OvenFactory'])
+[15:17:26.763] [annealing] [INFO] | it=21/100 dt=5.246 n=45 loss=7.466e+01 viol=2.0 temp=4.15e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:17:30.878] [annealing] [INFO] | it=22/100 dt=4.115 n=45 loss=7.466e+01 viol=2.0 temp=3.78e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:17:35.323] [annealing] [INFO] | it=23/100 dt=4.444 n=45 loss=7.466e+01 viol=2.0 temp=3.44e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:17:40.243] [annealing] [INFO] | it=24/100 dt=4.920 n=45 loss=7.466e+01 viol=2.0 temp=3.13e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:17:45.997] [annealing] [INFO] | it=25/100 dt=5.752 n=45 loss=7.466e+01 viol=2.0 temp=2.85e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:17:50.454] [annealing] [INFO] | it=26/100 dt=4.456 n=45 loss=7.466e+01 viol=2.0 temp=2.59e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:17:50.833] [annealing] [INFO] | it=27/100 dt=0.378 n=45 loss=7.466e+01 viol=2.0 temp=2.36e-01 diff=2.07 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['751849_OvenFactory'], relation_idx=0, plane_idx=2)
+[15:17:54.605] [annealing] [INFO] | it=28/100 dt=3.771 n=45 loss=7.466e+01 viol=2.0 temp=2.15e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:17:59.011] [annealing] [INFO] | it=29/100 dt=4.405 n=45 loss=7.466e+01 viol=2.0 temp=1.95e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RelationPlaneChange(names=['751849_OvenFactory'], relation_idx=1, plane_idx=3)
+[15:18:03.111] [annealing] [INFO] | it=30/100 dt=4.099 n=45 loss=7.466e+01 viol=2.0 temp=1.78e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Resample(names=['751849_OvenFactory'], align_corner=None)
+[15:18:03.327] [annealing] [INFO] | it=31/100 dt=0.216 n=45 loss=7.466e+01 viol=2.0 temp=1.62e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None TranslateMove(['751849_OvenFactory'], 3.49e-02)
+[15:18:03.555] [annealing] [INFO] | it=32/100 dt=0.228 n=45 loss=7.466e+01 viol=2.0 temp=1.47e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['761601_LargeShelfFactory'], 8.57e-02)
+[15:18:07.611] [annealing] [INFO] | it=33/100 dt=4.055 n=45 loss=7.466e+01 viol=2.0 temp=1.34e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:07.962] [annealing] [INFO] | it=34/100 dt=0.351 n=45 loss=7.466e+01 viol=2.0 temp=1.22e-01 diff=-0.00 viol_diff=0.0 prob=1.00 accept=True RelationPlaneChange(names=['761601_LargeShelfFactory'], relation_idx=0, plane_idx=2)
+[15:18:11.585] [annealing] [INFO] | it=35/100 dt=3.622 n=45 loss=7.466e+01 viol=2.0 temp=1.11e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:15.224] [annealing] [INFO] | it=36/100 dt=3.638 n=45 loss=7.466e+01 viol=2.0 temp=1.01e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:19.368] [annealing] [INFO] | it=37/100 dt=4.144 n=45 loss=7.466e+01 viol=2.0 temp=9.19e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:22.911] [annealing] [INFO] | it=38/100 dt=3.542 n=45 loss=7.466e+01 viol=2.0 temp=8.37e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:23.074] [annealing] [INFO] | it=39/100 dt=0.163 n=45 loss=7.466e+01 viol=2.0 temp=7.62e-02 diff=-0.00 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['761601_LargeShelfFactory'], 2.47e-01)
+[15:18:26.548] [annealing] [INFO] | it=40/100 dt=3.473 n=45 loss=7.466e+01 viol=2.0 temp=6.93e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:31.090] [annealing] [INFO] | it=41/100 dt=3.392 n=45 loss=7.466e+01 viol=2.0 temp=6.31e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:33.868] [annealing] [INFO] | it=42/100 dt=2.777 n=45 loss=7.466e+01 viol=2.0 temp=5.74e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:37.505] [annealing] [INFO] | it=43/100 dt=3.636 n=45 loss=7.466e+01 viol=2.0 temp=5.23e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:41.009] [annealing] [INFO] | it=44/100 dt=3.504 n=45 loss=7.466e+01 viol=2.0 temp=4.76e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:43.596] [annealing] [INFO] | it=45/100 dt=2.587 n=45 loss=7.466e+01 viol=2.0 temp=4.33e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:47.320] [annealing] [INFO] | it=46/100 dt=3.723 n=45 loss=7.466e+01 viol=2.0 temp=3.94e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:50.787] [annealing] [INFO] | it=47/100 dt=3.467 n=45 loss=7.466e+01 viol=2.0 temp=3.58e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:53.490] [annealing] [INFO] | it=48/100 dt=2.702 n=45 loss=7.466e+01 viol=2.0 temp=3.26e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:18:53.728] [annealing] [INFO] | it=49/100 dt=0.237 n=45 loss=7.456e+01 viol=2.0 temp=2.97e-02 diff=-0.10 viol_diff=0.0 prob=26.66 accept=True RelationPlaneChange(names=['751849_OvenFactory'], relation_idx=0, plane_idx=2)
+[15:18:56.641] [annealing] [INFO] | it=50/100 dt=2.913 n=45 loss=7.456e+01 viol=2.0 temp=2.70e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:00.165] [annealing] [INFO] | it=51/100 dt=3.521 n=45 loss=7.456e+01 viol=2.0 temp=2.46e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:01.323] [annealing] [INFO] | it=52/100 dt=1.157 n=45 loss=7.456e+01 viol=2.0 temp=2.24e-02 diff=0.89 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['751849_OvenFactory'], relation_idx=0, plane_idx=1)
+[15:19:01.325] [annealing] [INFO] | it=53/100 dt=0.002 n=45 loss=7.456e+01 viol=2.0 temp=2.04e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:19:04.392] [annealing] [INFO] | it=54/100 dt=3.066 n=45 loss=7.456e+01 viol=2.0 temp=1.85e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:09.169] [annealing] [INFO] | it=55/100 dt=4.776 n=45 loss=7.456e+01 viol=2.0 temp=1.69e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:13.362] [annealing] [INFO] | it=56/100 dt=4.193 n=45 loss=7.456e+01 viol=2.0 temp=1.54e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:16.212] [annealing] [INFO] | it=57/100 dt=2.849 n=45 loss=7.456e+01 viol=2.0 temp=1.40e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:20.166] [annealing] [INFO] | it=58/100 dt=3.954 n=45 loss=7.456e+01 viol=2.0 temp=1.27e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:20.168] [annealing] [INFO] | it=59/100 dt=0.001 n=45 loss=7.456e+01 viol=2.0 temp=1.16e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:19:23.083] [annealing] [INFO] | it=60/100 dt=2.915 n=45 loss=7.456e+01 viol=2.0 temp=1.05e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:27.191] [annealing] [INFO] | it=61/100 dt=3.174 n=45 loss=7.456e+01 viol=2.0 temp=9.59e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:27.463] [annealing] [INFO] | it=62/100 dt=0.271 n=45 loss=7.456e+01 viol=2.0 temp=8.73e-03 diff=0.30 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['751849_OvenFactory'])
+[15:19:27.466] [annealing] [INFO] | it=63/100 dt=0.001 n=45 loss=7.456e+01 viol=2.0 temp=7.94e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:19:31.360] [annealing] [INFO] | it=64/100 dt=3.894 n=45 loss=7.456e+01 viol=2.0 temp=7.23e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:33.988] [annealing] [INFO] | it=65/100 dt=2.628 n=45 loss=7.456e+01 viol=2.0 temp=6.58e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:37.123] [annealing] [INFO] | it=66/100 dt=3.135 n=45 loss=7.456e+01 viol=2.0 temp=5.99e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:40.459] [annealing] [INFO] | it=67/100 dt=3.336 n=45 loss=7.456e+01 viol=2.0 temp=5.45e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:42.998] [annealing] [INFO] | it=68/100 dt=2.538 n=45 loss=7.456e+01 viol=2.0 temp=4.96e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:45.868] [annealing] [INFO] | it=69/100 dt=2.869 n=45 loss=7.456e+01 viol=2.0 temp=4.51e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:46.120] [annealing] [INFO] | it=70/100 dt=0.251 n=45 loss=7.456e+01 viol=2.0 temp=4.11e-03 diff=0.02 viol_diff=0.0 prob=0.01 accept=False TranslateMove(['751849_OvenFactory'], 3.52e-02)
+[15:19:49.306] [annealing] [INFO] | it=71/100 dt=3.185 n=45 loss=7.456e+01 viol=2.0 temp=3.74e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:50.247] [annealing] [INFO] | it=72/100 dt=0.940 n=45 loss=7.456e+01 viol=2.0 temp=3.40e-03 diff=-0.00 viol_diff=0.0 prob=3.60 accept=True RelationPlaneChange(names=['761601_LargeShelfFactory'], relation_idx=0, plane_idx=1)
+[15:19:52.801] [annealing] [INFO] | it=73/100 dt=2.554 n=45 loss=7.456e+01 viol=2.0 temp=3.10e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:55.234] [annealing] [INFO] | it=74/100 dt=2.433 n=45 loss=7.456e+01 viol=2.0 temp=2.82e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:58.350] [annealing] [INFO] | it=75/100 dt=3.116 n=45 loss=7.456e+01 viol=2.0 temp=2.56e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:19:58.597] [annealing] [INFO] | it=76/100 dt=0.247 n=45 loss=7.456e+01 viol=2.0 temp=2.33e-03 diff=0.27 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['751849_OvenFactory'])
+[15:20:02.221] [annealing] [INFO] | it=77/100 dt=3.623 n=45 loss=7.456e+01 viol=2.0 temp=2.12e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:20:04.715] [annealing] [INFO] | it=78/100 dt=2.493 n=45 loss=7.456e+01 viol=2.0 temp=1.93e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:20:07.707] [annealing] [INFO] | it=79/100 dt=2.991 n=45 loss=7.456e+01 viol=2.0 temp=1.76e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:20:11.000] [annealing] [INFO] | it=80/100 dt=3.292 n=45 loss=7.456e+01 viol=2.0 temp=1.60e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:20:11.906] [annealing] [INFO] | it=81/100 dt=0.001 n=45 loss=7.456e+01 viol=2.0 temp=1.46e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:20:12.087] [annealing] [INFO] | it=82/100 dt=0.180 n=45 loss=7.456e+01 viol=2.0 temp=1.33e-03 diff=-0.00 viol_diff=0.0 prob=3.56 accept=True TranslateMove(['761601_LargeShelfFactory'], 2.32e-02)
+[15:20:12.290] [annealing] [INFO] | it=83/100 dt=0.202 n=45 loss=7.456e+01 viol=2.0 temp=1.21e-03 diff=1.63 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['751849_OvenFactory'], relation_idx=0, plane_idx=1)
+[15:20:12.490] [annealing] [INFO] | it=84/100 dt=0.200 n=45 loss=7.456e+01 viol=2.0 temp=1.10e-03 diff=4.97 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['751849_OvenFactory'])
+[15:20:12.705] [annealing] [INFO] | it=85/100 dt=0.214 n=45 loss=7.456e+01 viol=2.0 temp=1.00e-03 diff=0.01 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['761601_LargeShelfFactory'])
+[15:20:15.141] [annealing] [INFO] | it=86/100 dt=2.436 n=45 loss=7.456e+01 viol=2.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenSpaceFactory, 2 relations)
+[15:20:15.425] [annealing] [INFO] | it=87/100 dt=0.284 n=45 loss=7.456e+01 viol=2.0 temp=1.00e-03 diff=0.01 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['761601_LargeShelfFactory'])
+[15:20:15.580] [annealing] [INFO] | it=88/100 dt=0.155 n=45 loss=7.456e+01 viol=2.0 temp=1.00e-03 diff=-0.00 viol_diff=0.0 prob=1.49 accept=True TranslateMove(['761601_LargeShelfFactory'], 4.99e-03)
+[15:20:15.751] [annealing] [INFO] | it=89/100 dt=0.170 n=45 loss=7.456e+01 viol=2.0 temp=1.00e-03 diff=-0.00 viol_diff=0.0 prob=2.95 accept=True TranslateMove(['761601_LargeShelfFactory'], 1.28e-02)
+[15:20:15.752] [annealing] [INFO] | it=90/100 dt=0.001 n=45 loss=7.456e+01 viol=2.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:20:15.950] [annealing] [INFO] | it=91/100 dt=0.198 n=45 loss=7.456e+01 viol=2.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=0.06 accept=False TranslateMove(['751849_OvenFactory'], 4.88e-03)
+[15:20:16.139] [annealing] [INFO] | it=92/100 dt=0.189 n=45 loss=7.456e+01 viol=2.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=0.64 accept=True TranslateMove(['751849_OvenFactory'], 7.53e-04)
+[15:20:16.373] [annealing] [INFO] | it=93/100 dt=0.233 n=45 loss=7.454e+01 viol=2.0 temp=1.00e-03 diff=-0.01 viol_diff=0.0 prob=1.00 accept=True ReinitPoseMove(['761601_LargeShelfFactory'])
+[15:20:16.629] [annealing] [INFO] | it=94/100 dt=0.254 n=45 loss=7.454e+01 viol=2.0 temp=1.00e-03 diff=0.02 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['761601_LargeShelfFactory'])
+[15:20:18.210] [annealing] [INFO] | it=95/100 dt=1.581 n=45 loss=7.454e+01 viol=2.0 temp=1.00e-03 diff=0.63 viol_diff=0.0 prob=0.00 accept=False Resample(names=['751849_OvenFactory'], align_corner=None)
+[15:20:18.425] [annealing] [INFO] | it=96/100 dt=0.214 n=45 loss=7.454e+01 viol=2.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=0.37 accept=True TranslateMove(['751849_OvenFactory'], 1.72e-03)
+[15:20:18.687] [annealing] [INFO] | it=97/100 dt=0.261 n=45 loss=7.454e+01 viol=2.0 temp=1.00e-03 diff=0.01 viol_diff=0.0 prob=0.00 accept=False TranslateMove(['751849_OvenFactory'], 1.47e-02)
+[15:20:18.937] [annealing] [INFO] | it=98/100 dt=0.249 n=45 loss=7.454e+01 viol=2.0 temp=1.00e-03 diff=0.17 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['751849_OvenFactory'])
+[15:20:18.938] [annealing] [INFO] | it=99/100 dt=0.001 n=45 loss=7.454e+01 viol=2.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:20:18.938] [solve] [INFO] | Finished solving ('on_floor_and_wall_3', 'kitchen_0/0'), added 2 objects, loss=74.5434 viol=2
+[15:20:18.954] [solve] [INFO] |            bathtub dining_chairs  ...  wall_decorations  bedroom
+loss          True         False  ...               0.0        0
+viol_count       0             0  ...               0.0        0
+
+[2 rows x 36 columns]
+[15:20:19.058] [solve] [WARNING] | Solver has failed to satisfy constraints for stage ('on_floor_and_wall_3', 'kitchen_0/0'). violations={'lighting': 1, 'kitchen_counters': 1}. Continuing anyway, override `solve_objects.abort_unsatisfied=True` via gin to crash instead.
+[15:20:19.299] [solve] [INFO] | Greedily solve ('on_floor_and_wall_4', 'living-room_0/0') - stage has 5/63 bounds, active_count=7/45 objs
+[15:20:20.704] [annealing] [INFO] | it=0/100 dt=1.369 n=46 loss=2.955e+01 viol=2.0 temp=3.00e+00 diff=15.68 viol_diff=-1.0 prob=0.01 accept=True Addition(TVStandFactory, 2 relations)
+[15:20:22.784] [annealing] [INFO] | it=1/100 dt=1.925 n=47 loss=3.443e+01 viol=1.0 temp=2.73e+00 diff=4.87 viol_diff=-1.0 prob=0.17 accept=True Addition(KitchenCabinetFactory, 2 relations)
+[15:20:23.537] [annealing] [INFO] | it=2/100 dt=0.753 n=47 loss=3.443e+01 viol=1.0 temp=2.48e+00 diff=3.00 viol_diff=0.0 prob=0.30 accept=False RelationPlaneChange(names=['194230_TVStandFactory'], relation_idx=1, plane_idx=9)
+[15:20:24.439] [annealing] [INFO] | it=3/100 dt=0.901 n=48 loss=3.441e+01 viol=1.0 temp=2.26e+00 diff=-0.01 viol_diff=0.0 prob=1.01 accept=True Addition(LargePlantContainerFactory, 2 relations)
+[15:20:25.143] [annealing] [INFO] | it=4/100 dt=0.703 n=49 loss=3.632e+01 viol=1.0 temp=2.06e+00 diff=1.91 viol_diff=0.0 prob=0.40 accept=True Addition(SimpleDeskFactory, 2 relations)
+[15:20:26.175] [annealing] [INFO] | it=5/100 dt=1.031 n=49 loss=3.632e+01 viol=1.0 temp=1.87e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Resample(names=['379618_SimpleDeskFactory'], align_corner=None)
+[15:20:28.495] [annealing] [INFO] | it=6/100 dt=2.319 n=49 loss=3.632e+01 viol=1.0 temp=1.70e+00 diff=0.82 viol_diff=1.0 prob=0.62 accept=False Addition(TVStandFactory, 2 relations)
+[15:20:31.136] [annealing] [INFO] | it=7/100 dt=2.640 n=50 loss=3.585e+01 viol=1.0 temp=1.55e+00 diff=-0.47 viol_diff=0.0 prob=1.36 accept=True Addition(SingleCabinetFactory, 2 relations)
+[15:20:31.138] [annealing] [INFO] | it=8/100 dt=0.002 n=50 loss=3.585e+01 viol=1.0 temp=1.41e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:20:31.790] [annealing] [INFO] | it=9/100 dt=0.651 n=50 loss=3.585e+01 viol=1.0 temp=1.29e+00 diff=0.51 viol_diff=0.0 prob=0.67 accept=False Addition(SingleCabinetFactory, 2 relations)
+[15:20:38.845] [annealing] [INFO] | it=10/100 dt=7.054 n=50 loss=3.585e+01 viol=1.0 temp=1.17e+00 diff=10.13 viol_diff=0.0 prob=0.00 accept=False Addition(SofaFactory, 2 relations)
+[15:20:39.931] [annealing] [INFO] | it=11/100 dt=1.086 n=50 loss=3.586e+01 viol=1.0 temp=1.06e+00 diff=0.01 viol_diff=0.0 prob=0.99 accept=True ReinitPoseMove(['441106_KitchenCabinetFactory'])
+[15:20:46.181] [annealing] [INFO] | it=12/100 dt=6.249 n=51 loss=3.574e+01 viol=1.0 temp=9.69e-01 diff=-0.11 viol_diff=0.0 prob=1.12 accept=True Addition(LargeShelfFactory, 2 relations)
+[15:20:46.378] [annealing] [INFO] | it=13/100 dt=0.197 n=51 loss=3.574e+01 viol=1.0 temp=8.82e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None TranslateMove(['293907_LargeShelfFactory'], 3.16e-01)
+[15:20:48.870] [annealing] [INFO] | it=14/100 dt=2.491 n=51 loss=3.574e+01 viol=1.0 temp=8.02e-01 diff=0.09 viol_diff=1.0 prob=0.89 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:20:50.769] [annealing] [INFO] | it=15/100 dt=1.899 n=51 loss=3.574e+01 viol=1.0 temp=7.30e-01 diff=0.26 viol_diff=1.0 prob=0.70 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:20:51.674] [annealing] [INFO] | it=16/100 dt=0.905 n=51 loss=3.566e+01 viol=1.0 temp=6.65e-01 diff=-0.09 viol_diff=0.0 prob=1.14 accept=True RelationPlaneChange(names=['293907_LargeShelfFactory'], relation_idx=1, plane_idx=1)
+[15:20:51.677] [annealing] [INFO] | it=17/100 dt=0.002 n=51 loss=3.566e+01 viol=1.0 temp=6.05e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:20:52.762] [annealing] [INFO] | it=18/100 dt=1.084 n=51 loss=3.566e+01 viol=1.0 temp=5.51e-01 diff=0.30 viol_diff=1.0 prob=0.58 accept=False Addition(TVStandFactory, 2 relations)
+[15:20:54.762] [annealing] [INFO] | it=19/100 dt=1.999 n=51 loss=3.566e+01 viol=1.0 temp=5.01e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Resample(names=['62854_SingleCabinetFactory'], align_corner=None)
+[15:20:55.832] [annealing] [INFO] | it=20/100 dt=1.069 n=51 loss=3.566e+01 viol=1.0 temp=4.56e-01 diff=-2.08 viol_diff=1.0 prob=95.16 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:20:59.187] [annealing] [INFO] | it=21/100 dt=3.218 n=51 loss=3.566e+01 viol=1.0 temp=4.15e-01 diff=0.67 viol_diff=1.0 prob=0.20 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:21:00.282] [annealing] [INFO] | it=22/100 dt=1.094 n=51 loss=3.566e+01 viol=1.0 temp=3.78e-01 diff=-0.89 viol_diff=1.0 prob=10.57 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:21:01.009] [annealing] [INFO] | it=23/100 dt=0.726 n=51 loss=3.566e+01 viol=1.0 temp=3.44e-01 diff=-3.38 viol_diff=1.0 prob=1.00 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:21:03.101] [annealing] [INFO] | it=24/100 dt=2.092 n=51 loss=3.566e+01 viol=1.0 temp=3.13e-01 diff=1.30 viol_diff=0.0 prob=0.02 accept=False Addition(SingleCabinetFactory, 2 relations)
+[15:21:03.441] [annealing] [INFO] | it=25/100 dt=0.339 n=51 loss=3.556e+01 viol=1.0 temp=2.85e-01 diff=-0.10 viol_diff=0.0 prob=1.42 accept=True ReinitPoseMove(['62854_SingleCabinetFactory'])
+[15:21:08.669] [annealing] [INFO] | it=26/100 dt=5.228 n=52 loss=2.211e+01 viol=1.0 temp=2.59e-01 diff=-13.44 viol_diff=0.0 prob=1.00 accept=True Addition(SofaFactory, 2 relations)
+[15:21:09.181] [annealing] [INFO] | it=27/100 dt=0.512 n=52 loss=2.211e+01 viol=1.0 temp=2.36e-01 diff=-5.24 viol_diff=1.0 prob=1.00 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:21:09.353] [annealing] [INFO] | it=28/100 dt=0.171 n=52 loss=1.602e+01 viol=1.0 temp=2.15e-01 diff=-6.10 viol_diff=0.0 prob=1.00 accept=True RelationPlaneChange(names=['410209_LargePlantContainerFactory'], relation_idx=1, plane_idx=2)
+[15:21:13.352] [annealing] [INFO] | it=29/100 dt=3.999 n=53 loss=8.272e+00 viol=1.0 temp=1.95e-01 diff=-7.75 viol_diff=0.0 prob=1.00 accept=True Addition(SofaFactory, 2 relations)
+[15:21:15.718] [annealing] [INFO] | it=30/100 dt=2.366 n=53 loss=8.272e+00 viol=1.0 temp=1.78e-01 diff=0.05 viol_diff=0.0 prob=0.76 accept=False Addition(CellShelfFactory, 2 relations)
+[15:21:21.136] [annealing] [INFO] | it=31/100 dt=5.417 n=53 loss=8.272e+00 viol=1.0 temp=1.62e-01 diff=-32.74 viol_diff=2.0 prob=1.00 accept=False Addition(SofaFactory, 2 relations)
+[15:21:22.582] [annealing] [INFO] | it=32/100 dt=1.446 n=54 loss=8.424e+00 viol=1.0 temp=1.47e-01 diff=0.15 viol_diff=0.0 prob=0.36 accept=True Addition(SimpleBookcaseFactory, 2 relations)
+[15:21:24.012] [annealing] [INFO] | it=33/100 dt=1.429 n=54 loss=8.424e+00 viol=1.0 temp=1.34e-01 diff=0.11 viol_diff=0.0 prob=0.45 accept=False Addition(SimpleBookcaseFactory, 2 relations)
+[15:21:25.296] [annealing] [INFO] | it=34/100 dt=1.284 n=54 loss=8.424e+00 viol=1.0 temp=1.22e-01 diff=-0.65 viol_diff=1.0 prob=203.27 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:21:27.467] [annealing] [INFO] | it=35/100 dt=2.170 n=54 loss=8.424e+00 viol=1.0 temp=1.11e-01 diff=1.11 viol_diff=1.0 prob=0.00 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:21:28.626] [annealing] [INFO] | it=36/100 dt=1.159 n=54 loss=8.424e+00 viol=1.0 temp=1.01e-01 diff=0.12 viol_diff=0.0 prob=0.32 accept=False Addition(SingleCabinetFactory, 2 relations)
+[15:21:34.431] [annealing] [INFO] | it=37/100 dt=5.804 n=55 loss=8.444e+00 viol=1.0 temp=9.19e-02 diff=0.02 viol_diff=0.0 prob=0.80 accept=True Addition(LargeShelfFactory, 2 relations)
+[15:21:35.049] [annealing] [INFO] | it=38/100 dt=0.618 n=55 loss=8.444e+00 viol=1.0 temp=8.37e-02 diff=0.49 viol_diff=0.0 prob=0.00 accept=False TranslateMove(['671508_SofaFactory'], 1.34e-01)
+[15:21:36.849] [annealing] [INFO] | it=39/100 dt=1.799 n=55 loss=8.444e+00 viol=1.0 temp=7.62e-02 diff=0.42 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['410209_LargePlantContainerFactory'])
+[15:21:39.920] [annealing] [INFO] | it=40/100 dt=3.071 n=55 loss=8.444e+00 viol=1.0 temp=6.93e-02 diff=-0.06 viol_diff=1.0 prob=2.43 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:21:44.600] [annealing] [INFO] | it=41/100 dt=3.879 n=55 loss=8.444e+00 viol=1.0 temp=6.31e-02 diff=-0.01 viol_diff=1.0 prob=1.09 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:21:45.543] [annealing] [INFO] | it=42/100 dt=0.941 n=55 loss=8.444e+00 viol=1.0 temp=5.74e-02 diff=-0.00 viol_diff=1.0 prob=1.02 accept=False Addition(SingleCabinetFactory, 2 relations)
+[15:21:46.366] [annealing] [INFO] | it=43/100 dt=0.822 n=55 loss=8.444e+00 viol=1.0 temp=5.23e-02 diff=1.42 viol_diff=1.0 prob=0.00 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:21:47.382] [annealing] [INFO] | it=44/100 dt=1.016 n=55 loss=8.444e+00 viol=1.0 temp=4.76e-02 diff=0.92 viol_diff=1.0 prob=0.00 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:21:49.997] [annealing] [INFO] | it=45/100 dt=2.614 n=55 loss=8.444e+00 viol=1.0 temp=4.33e-02 diff=-0.06 viol_diff=1.0 prob=4.05 accept=False Addition(SimpleBookcaseFactory, 2 relations)
+[15:21:50.765] [annealing] [INFO] | it=46/100 dt=0.768 n=55 loss=8.444e+00 viol=1.0 temp=3.94e-02 diff=2.32 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['62854_SingleCabinetFactory'], relation_idx=1, plane_idx=6)
+[15:21:52.635] [annealing] [INFO] | it=47/100 dt=1.869 n=55 loss=8.444e+00 viol=1.0 temp=3.58e-02 diff=-0.14 viol_diff=1.0 prob=46.67 accept=False Addition(SimpleBookcaseFactory, 2 relations)
+[15:21:59.060] [annealing] [INFO] | it=48/100 dt=6.425 n=56 loss=-3.140e+01 viol=1.0 temp=3.26e-02 diff=-39.85 viol_diff=0.0 prob=1.00 accept=True Addition(SofaFactory, 2 relations)
+[15:22:04.151] [annealing] [INFO] | it=49/100 dt=5.089 n=56 loss=-3.140e+01 viol=1.0 temp=2.97e-02 diff=-0.16 viol_diff=1.0 prob=192.52 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:22:04.154] [annealing] [INFO] | it=50/100 dt=0.003 n=56 loss=-3.140e+01 viol=1.0 temp=2.70e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:22:05.020] [annealing] [INFO] | it=51/100 dt=0.865 n=56 loss=-3.140e+01 viol=1.0 temp=2.46e-02 diff=1.97 viol_diff=1.0 prob=0.00 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:22:05.582] [annealing] [INFO] | it=52/100 dt=0.561 n=56 loss=-3.140e+01 viol=1.0 temp=2.24e-02 diff=2.88 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['410209_LargePlantContainerFactory'])
+[15:22:15.587] [annealing] [INFO] | it=53/100 dt=10.005 n=56 loss=-3.140e+01 viol=1.0 temp=2.04e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(SofaFactory, 2 relations)
+[15:22:16.830] [annealing] [INFO] | it=54/100 dt=1.242 n=56 loss=-3.140e+01 viol=1.0 temp=1.85e-02 diff=2.69 viol_diff=1.0 prob=0.00 accept=False Addition(LargePlantContainerFactory, 2 relations)
+[15:22:26.728] [annealing] [INFO] | it=55/100 dt=9.897 n=56 loss=-3.140e+01 viol=1.0 temp=1.69e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(SofaFactory, 2 relations)
+[15:22:27.512] [annealing] [INFO] | it=56/100 dt=0.784 n=56 loss=-3.139e+01 viol=1.0 temp=1.54e-02 diff=0.01 viol_diff=0.0 prob=0.59 accept=True TranslateMove(['293907_LargeShelfFactory'], 1.81e-01)
+[15:22:30.951] [annealing] [INFO] | it=57/100 dt=3.438 n=56 loss=-3.139e+01 viol=1.0 temp=1.40e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RelationPlaneChange(names=['441106_KitchenCabinetFactory'], relation_idx=1, plane_idx=7)
+[15:22:30.954] [annealing] [INFO] | it=58/100 dt=0.003 n=56 loss=-3.139e+01 viol=1.0 temp=1.27e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:22:32.000] [annealing] [INFO] | it=59/100 dt=1.046 n=56 loss=-3.139e+01 viol=1.0 temp=1.16e-02 diff=-0.04 viol_diff=1.0 prob=44.24 accept=False Addition(SingleCabinetFactory, 2 relations)
+[15:22:42.870] [annealing] [INFO] | it=60/100 dt=10.869 n=56 loss=-3.139e+01 viol=1.0 temp=1.05e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(SofaFactory, 2 relations)
+[15:22:45.662] [annealing] [INFO] | it=61/100 dt=0.946 n=56 loss=-3.178e+01 viol=1.0 temp=9.59e-03 diff=-0.39 viol_diff=0.0 prob=1.00 accept=True ReinitPoseMove(['194230_TVStandFactory'])
+[15:22:56.792] [annealing] [INFO] | it=62/100 dt=11.130 n=56 loss=-3.178e+01 viol=1.0 temp=8.73e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(SofaFactory, 2 relations)
+[15:22:57.553] [annealing] [INFO] | it=63/100 dt=0.761 n=56 loss=-3.177e+01 viol=1.0 temp=7.94e-03 diff=0.02 viol_diff=0.0 prob=0.13 accept=True TranslateMove(['62854_SingleCabinetFactory'], 1.23e-01)
+[15:23:09.489] [annealing] [INFO] | it=64/100 dt=11.935 n=56 loss=-3.177e+01 viol=1.0 temp=7.23e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(SofaFactory, 2 relations)
+[15:23:11.980] [annealing] [INFO] | it=65/100 dt=2.490 n=56 loss=-3.177e+01 viol=1.0 temp=6.58e-03 diff=-0.14 viol_diff=1.0 prob=1.00 accept=False Addition(SingleCabinetFactory, 2 relations)
+[15:23:14.440] [annealing] [INFO] | it=66/100 dt=2.459 n=56 loss=-3.177e+01 viol=1.0 temp=5.99e-03 diff=2.76 viol_diff=1.0 prob=0.00 accept=False Addition(TVStandFactory, 2 relations)
+[15:23:19.528] [annealing] [INFO] | it=67/100 dt=5.087 n=56 loss=-3.177e+01 viol=1.0 temp=5.45e-03 diff=-0.57 viol_diff=1.0 prob=1.00 accept=False Addition(TVStandFactory, 2 relations)
+[15:23:20.646] [annealing] [INFO] | it=68/100 dt=1.118 n=56 loss=-3.178e+01 viol=1.0 temp=4.96e-03 diff=-0.01 viol_diff=0.0 prob=19.80 accept=True ReinitPoseMove(['293907_LargeShelfFactory'])
+[15:23:21.921] [annealing] [INFO] | it=69/100 dt=1.274 n=56 loss=-3.178e+01 viol=1.0 temp=4.51e-03 diff=-0.06 viol_diff=1.0 prob=1.00 accept=False Addition(SingleCabinetFactory, 2 relations)
+[15:23:23.535] [annealing] [INFO] | it=70/100 dt=1.613 n=56 loss=-3.178e+01 viol=1.0 temp=4.11e-03 diff=0.01 viol_diff=1.0 prob=0.09 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:23:25.986] [annealing] [INFO] | it=71/100 dt=2.450 n=56 loss=-3.178e+01 viol=1.0 temp=3.74e-03 diff=0.07 viol_diff=1.0 prob=0.00 accept=False Addition(SimpleBookcaseFactory, 2 relations)
+[15:23:26.474] [annealing] [INFO] | it=72/100 dt=0.487 n=56 loss=-3.178e+01 viol=1.0 temp=3.40e-03 diff=-0.00 viol_diff=0.0 prob=1.03 accept=True TranslateMove(['105841_SimpleBookcaseFactory'], 1.66e-03)
+[15:23:28.439] [annealing] [INFO] | it=73/100 dt=1.965 n=56 loss=-3.178e+01 viol=1.0 temp=3.10e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RelationPlaneChange(names=['441106_KitchenCabinetFactory'], relation_idx=1, plane_idx=0)
+[15:23:29.560] [annealing] [INFO] | it=74/100 dt=1.119 n=56 loss=-3.178e+01 viol=1.0 temp=2.82e-03 diff=0.00 viol_diff=0.0 prob=0.35 accept=True ReinitPoseMove(['105841_SimpleBookcaseFactory'])
+[15:23:30.669] [annealing] [INFO] | it=75/100 dt=1.109 n=56 loss=-3.195e+01 viol=1.0 temp=2.56e-03 diff=-0.17 viol_diff=0.0 prob=1.00 accept=True ReinitPoseMove(['62854_SingleCabinetFactory'])
+[15:23:30.676] [annealing] [INFO] | it=76/100 dt=0.006 n=56 loss=-3.195e+01 viol=1.0 temp=2.33e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:23:34.764] [annealing] [INFO] | it=77/100 dt=4.087 n=56 loss=-3.195e+01 viol=1.0 temp=2.12e-03 diff=-0.16 viol_diff=1.0 prob=1.00 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:23:35.549] [annealing] [INFO] | it=78/100 dt=0.784 n=56 loss=-3.196e+01 viol=1.0 temp=1.93e-03 diff=-0.01 viol_diff=0.0 prob=415.26 accept=True TranslateMove(['194230_TVStandFactory'], 7.61e-03)
+[15:23:46.312] [annealing] [INFO] | it=79/100 dt=10.764 n=56 loss=-3.196e+01 viol=1.0 temp=1.76e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(SofaFactory, 2 relations)
+[15:23:48.931] [annealing] [INFO] | it=80/100 dt=2.618 n=56 loss=-3.196e+01 viol=1.0 temp=1.60e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenCabinetFactory, 2 relations)
+[15:23:56.144] [annealing] [INFO] | it=81/100 dt=1.581 n=56 loss=-3.196e+01 viol=1.0 temp=1.46e-03 diff=0.66 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['671508_SofaFactory'], relation_idx=1, plane_idx=4)
+[15:23:57.038] [annealing] [INFO] | it=82/100 dt=0.893 n=56 loss=-3.196e+01 viol=1.0 temp=1.33e-03 diff=0.37 viol_diff=1.0 prob=0.00 accept=False Addition(KitchenCabinetFactory, 2 relations)
+[15:24:08.544] [annealing] [INFO] | it=83/100 dt=11.506 n=56 loss=-3.196e+01 viol=1.0 temp=1.21e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(SofaFactory, 2 relations)
+[15:24:08.547] [annealing] [INFO] | it=84/100 dt=0.002 n=56 loss=-3.196e+01 viol=1.0 temp=1.10e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:24:09.978] [annealing] [INFO] | it=85/100 dt=1.431 n=56 loss=-3.196e+01 viol=1.0 temp=1.00e-03 diff=0.02 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['379618_SimpleDeskFactory'])
+[15:24:11.396] [annealing] [INFO] | it=86/100 dt=1.417 n=56 loss=-3.320e+01 viol=1.0 temp=1.00e-03 diff=-1.23 viol_diff=0.0 prob=1.00 accept=True RelationPlaneChange(names=['410209_LargePlantContainerFactory'], relation_idx=1, plane_idx=7)
+[15:24:12.532] [annealing] [INFO] | it=87/100 dt=1.135 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=-0.01 viol_diff=0.0 prob=1.00 accept=True ReinitPoseMove(['379618_SimpleDeskFactory'])
+[15:24:13.606] [annealing] [INFO] | it=88/100 dt=1.073 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=-0.00 viol_diff=0.0 prob=88.91 accept=True TranslateMove(['671508_SofaFactory'], 3.93e-03)
+[15:24:14.387] [annealing] [INFO] | it=89/100 dt=0.780 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=0.01 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['293907_LargeShelfFactory'])
+[15:24:15.270] [annealing] [INFO] | it=90/100 dt=0.881 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=-0.00 viol_diff=0.0 prob=7.71 accept=True TranslateMove(['360193_SofaFactory'], 2.41e-03)
+[15:24:15.877] [annealing] [INFO] | it=91/100 dt=0.607 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=0.01 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['293907_LargeShelfFactory'])
+[15:24:16.479] [annealing] [INFO] | it=92/100 dt=0.601 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=0.01 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['293907_LargeShelfFactory'])
+[15:24:17.351] [annealing] [INFO] | it=93/100 dt=0.872 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=0.02 viol_diff=0.0 prob=0.00 accept=False TranslateMove(['204969_SofaFactory'], 1.04e-02)
+[15:24:18.202] [annealing] [INFO] | it=94/100 dt=0.851 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['105841_SimpleBookcaseFactory'], 8.18e-03)
+[15:24:19.119] [annealing] [INFO] | it=95/100 dt=0.916 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=0.74 accept=False TranslateMove(['360193_SofaFactory'], 3.52e-04)
+[15:24:24.664] [annealing] [INFO] | it=96/100 dt=5.544 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=0.08 viol_diff=1.0 prob=0.00 accept=False Addition(SimpleDeskFactory, 2 relations)
+[15:24:24.666] [annealing] [INFO] | it=97/100 dt=0.002 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:24:24.669] [annealing] [INFO] | it=98/100 dt=0.002 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_rotate
+[15:24:25.547] [annealing] [INFO] | it=99/100 dt=0.878 n=56 loss=-3.321e+01 viol=1.0 temp=1.00e-03 diff=-0.00 viol_diff=0.0 prob=1.93 accept=True TranslateMove(['360193_SofaFactory'], 7.78e-04)
+[15:24:25.547] [solve] [INFO] | Finished solving ('on_floor_and_wall_4', 'living-room_0/0'), added 11 objects, loss=-33.2127 viol=1
+[15:24:25.550] [solve] [INFO] |            bathtub dining_chairs  ...  wall_decorations  bedroom
+loss          True         False  ...               0.0        0
+viol_count       0             0  ...               0.0        0
+
+[2 rows x 36 columns]
+[15:24:25.618] [solve] [WARNING] | Solver has failed to satisfy constraints for stage ('on_floor_and_wall_4', 'living-room_0/0'). violations={'lighting': 1}. Continuing anyway, override `solve_objects.abort_unsatisfied=True` via gin to crash instead.
+[15:24:25.816] [solve] [INFO] | No objects to be added for desc_full=('on_floor_freestanding_0', 'bathroom_0/0'), skipping
+[15:24:26.002] [solve] [INFO] | Greedily solve ('on_floor_freestanding_1', 'bedroom_0/0') - stage has 1/63 bounds, active_count=18/56 objs
+[15:24:26.889] [annealing] [INFO] | it=0/100 dt=0.674 n=57 loss=2.633e-01 viol=1.0 temp=3.00e+00 diff=-1.28 viol_diff=0.0 prob=1.53 accept=True Addition(RugFactory, 1 relations)
+[15:24:30.860] [annealing] [INFO] | it=1/100 dt=1.011 n=57 loss=2.633e-01 viol=1.0 temp=2.73e+00 diff=0.23 viol_diff=1.0 prob=0.92 accept=False Addition(RugFactory, 1 relations)
+[15:24:31.812] [annealing] [INFO] | it=2/100 dt=0.952 n=57 loss=2.633e-01 viol=1.0 temp=2.48e+00 diff=-1.98 viol_diff=1.0 prob=2.22 accept=False Addition(RugFactory, 1 relations)
+[15:24:32.160] [annealing] [INFO] | it=3/100 dt=0.348 n=57 loss=1.763e+00 viol=1.0 temp=2.26e+00 diff=1.50 viol_diff=0.0 prob=0.52 accept=True RotateMove(['485410_RugFactory'], 1.57e+00)
+[15:24:32.774] [annealing] [INFO] | it=4/100 dt=0.613 n=56 loss=1.545e+00 viol=1.0 temp=2.06e+00 diff=-0.22 viol_diff=0.0 prob=1.11 accept=True Deletion(['485410_RugFactory'])
+[15:24:33.877] [annealing] [INFO] | it=5/100 dt=1.102 n=57 loss=1.527e+00 viol=1.0 temp=1.87e+00 diff=-0.02 viol_diff=0.0 prob=1.01 accept=True Addition(RugFactory, 1 relations)
+[15:24:34.892] [annealing] [INFO] | it=6/100 dt=1.015 n=57 loss=1.527e+00 viol=1.0 temp=1.70e+00 diff=0.17 viol_diff=1.0 prob=0.90 accept=False Addition(RugFactory, 1 relations)
+[15:24:35.706] [annealing] [INFO] | it=7/100 dt=0.813 n=57 loss=1.527e+00 viol=1.0 temp=1.55e+00 diff=-0.10 viol_diff=1.0 prob=1.07 accept=False Addition(RugFactory, 1 relations)
+[15:24:36.503] [annealing] [INFO] | it=8/100 dt=0.796 n=57 loss=1.527e+00 viol=1.0 temp=1.41e+00 diff=0.03 viol_diff=1.0 prob=0.98 accept=False Addition(RugFactory, 1 relations)
+[15:24:36.845] [annealing] [INFO] | it=9/100 dt=0.342 n=57 loss=-3.820e-01 viol=1.0 temp=1.29e+00 diff=-1.91 viol_diff=0.0 prob=4.42 accept=True RotateMove(['755026_RugFactory'], -4.71e+00)
+[15:24:37.084] [annealing] [INFO] | it=10/100 dt=0.239 n=57 loss=-3.820e-01 viol=1.0 temp=1.17e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None TranslateMove(['755026_RugFactory'], 2.52e+00)
+[15:24:38.056] [annealing] [INFO] | it=11/100 dt=0.972 n=57 loss=-3.820e-01 viol=1.0 temp=1.06e+00 diff=-0.41 viol_diff=1.0 prob=1.46 accept=False Addition(RugFactory, 1 relations)
+[15:24:38.809] [annealing] [INFO] | it=12/100 dt=0.752 n=57 loss=-3.820e-01 viol=1.0 temp=9.69e-01 diff=1.24 viol_diff=1.0 prob=0.28 accept=False Addition(RugFactory, 1 relations)
+[15:24:39.540] [annealing] [INFO] | it=13/100 dt=0.731 n=57 loss=-3.820e-01 viol=1.0 temp=8.82e-01 diff=1.30 viol_diff=1.0 prob=0.23 accept=False Addition(RugFactory, 1 relations)
+[15:24:40.418] [annealing] [INFO] | it=14/100 dt=0.877 n=57 loss=-3.820e-01 viol=1.0 temp=8.02e-01 diff=0.71 viol_diff=1.0 prob=0.41 accept=False Addition(RugFactory, 1 relations)
+[15:24:41.359] [annealing] [INFO] | it=15/100 dt=0.940 n=57 loss=-3.820e-01 viol=1.0 temp=7.30e-01 diff=1.43 viol_diff=1.0 prob=0.14 accept=False Addition(RugFactory, 1 relations)
+[15:24:42.270] [annealing] [INFO] | it=16/100 dt=0.911 n=57 loss=-3.820e-01 viol=1.0 temp=6.65e-01 diff=0.08 viol_diff=1.0 prob=0.88 accept=False Addition(RugFactory, 1 relations)
+[15:24:43.411] [annealing] [INFO] | it=17/100 dt=1.139 n=57 loss=-3.820e-01 viol=1.0 temp=6.05e-01 diff=2.11 viol_diff=1.0 prob=0.03 accept=False Addition(RugFactory, 1 relations)
+[15:24:44.338] [annealing] [INFO] | it=18/100 dt=0.927 n=57 loss=-3.820e-01 viol=1.0 temp=5.51e-01 diff=0.99 viol_diff=1.0 prob=0.16 accept=False Addition(RugFactory, 1 relations)
+[15:24:45.150] [annealing] [INFO] | it=19/100 dt=0.810 n=57 loss=-3.820e-01 viol=1.0 temp=5.01e-01 diff=1.96 viol_diff=1.0 prob=0.02 accept=False Addition(RugFactory, 1 relations)
+[15:24:45.869] [annealing] [INFO] | it=20/100 dt=0.718 n=57 loss=-3.820e-01 viol=1.0 temp=4.56e-01 diff=1.21 viol_diff=1.0 prob=0.07 accept=False Addition(RugFactory, 1 relations)
+[15:24:47.209] [annealing] [INFO] | it=21/100 dt=0.705 n=57 loss=-3.820e-01 viol=1.0 temp=4.15e-01 diff=1.29 viol_diff=1.0 prob=0.04 accept=False Addition(RugFactory, 1 relations)
+[15:24:48.040] [annealing] [INFO] | it=22/100 dt=0.830 n=57 loss=-3.820e-01 viol=1.0 temp=3.78e-01 diff=1.67 viol_diff=1.0 prob=0.01 accept=False Addition(RugFactory, 1 relations)
+[15:24:48.425] [annealing] [INFO] | it=23/100 dt=0.385 n=57 loss=-3.977e-01 viol=1.0 temp=3.44e-01 diff=-0.02 viol_diff=0.0 prob=1.05 accept=True TranslateMove(['755026_RugFactory'], 2.00e+00)
+[15:24:49.120] [annealing] [INFO] | it=24/100 dt=0.694 n=57 loss=-3.977e-01 viol=1.0 temp=3.13e-01 diff=1.41 viol_diff=1.0 prob=0.01 accept=False Addition(RugFactory, 1 relations)
+[15:24:49.887] [annealing] [INFO] | it=25/100 dt=0.766 n=57 loss=-3.977e-01 viol=1.0 temp=2.85e-01 diff=1.56 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:24:50.928] [annealing] [INFO] | it=26/100 dt=1.040 n=57 loss=-3.977e-01 viol=1.0 temp=2.59e-01 diff=-0.20 viol_diff=1.0 prob=2.14 accept=False Addition(RugFactory, 1 relations)
+[15:24:51.819] [annealing] [INFO] | it=27/100 dt=0.891 n=57 loss=-3.977e-01 viol=1.0 temp=2.36e-01 diff=0.12 viol_diff=1.0 prob=0.61 accept=False Addition(RugFactory, 1 relations)
+[15:24:52.922] [annealing] [INFO] | it=28/100 dt=1.100 n=57 loss=-3.977e-01 viol=1.0 temp=2.15e-01 diff=1.93 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:24:53.420] [annealing] [INFO] | it=29/100 dt=0.498 n=57 loss=-3.977e-01 viol=1.0 temp=1.95e-01 diff=1.94 viol_diff=0.0 prob=0.00 accept=False Deletion(['755026_RugFactory'])
+[15:24:54.579] [annealing] [INFO] | it=30/100 dt=1.154 n=57 loss=-3.977e-01 viol=1.0 temp=1.78e-01 diff=1.90 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:24:54.975] [annealing] [INFO] | it=31/100 dt=0.396 n=57 loss=-3.977e-01 viol=1.0 temp=1.62e-01 diff=2.81 viol_diff=0.0 prob=0.00 accept=False RotateMove(['755026_RugFactory'], 7.85e-01)
+[15:24:55.391] [annealing] [INFO] | it=32/100 dt=0.415 n=57 loss=-3.977e-01 viol=1.0 temp=1.47e-01 diff=1.94 viol_diff=0.0 prob=0.00 accept=False Deletion(['755026_RugFactory'])
+[15:24:56.246] [annealing] [INFO] | it=33/100 dt=0.855 n=57 loss=-3.977e-01 viol=1.0 temp=1.34e-01 diff=1.22 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:24:56.981] [annealing] [INFO] | it=34/100 dt=0.734 n=57 loss=-3.977e-01 viol=1.0 temp=1.22e-01 diff=0.52 viol_diff=1.0 prob=0.01 accept=False Addition(RugFactory, 1 relations)
+[15:24:57.748] [annealing] [INFO] | it=35/100 dt=0.767 n=57 loss=-3.977e-01 viol=1.0 temp=1.11e-01 diff=0.68 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:24:58.597] [annealing] [INFO] | it=36/100 dt=0.848 n=57 loss=-3.977e-01 viol=1.0 temp=1.01e-01 diff=2.12 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:24:58.603] [annealing] [INFO] | it=37/100 dt=0.005 n=57 loss=-3.977e-01 viol=1.0 temp=9.19e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_relation_plane_change
+[15:24:59.365] [annealing] [INFO] | it=38/100 dt=0.762 n=57 loss=-3.977e-01 viol=1.0 temp=8.37e-02 diff=1.05 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:00.180] [annealing] [INFO] | it=39/100 dt=0.814 n=57 loss=-3.977e-01 viol=1.0 temp=7.62e-02 diff=0.37 viol_diff=1.0 prob=0.01 accept=False Addition(RugFactory, 1 relations)
+[15:25:01.112] [annealing] [INFO] | it=40/100 dt=0.931 n=57 loss=-3.977e-01 viol=1.0 temp=6.93e-02 diff=1.25 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:01.518] [annealing] [INFO] | it=41/100 dt=0.406 n=57 loss=-3.977e-01 viol=1.0 temp=6.31e-02 diff=1.86 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['755026_RugFactory'])
+[15:25:02.521] [annealing] [INFO] | it=42/100 dt=1.001 n=57 loss=-3.977e-01 viol=1.0 temp=5.74e-02 diff=0.52 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:03.495] [annealing] [INFO] | it=43/100 dt=0.972 n=57 loss=-3.977e-01 viol=1.0 temp=5.23e-02 diff=1.89 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:03.879] [annealing] [INFO] | it=44/100 dt=0.383 n=57 loss=-3.977e-01 viol=1.0 temp=4.76e-02 diff=2.81 viol_diff=0.0 prob=0.00 accept=False RotateMove(['755026_RugFactory'], 7.85e-01)
+[15:25:04.996] [annealing] [INFO] | it=45/100 dt=1.117 n=57 loss=-3.977e-01 viol=1.0 temp=4.33e-02 diff=1.45 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:06.271] [annealing] [INFO] | it=46/100 dt=1.274 n=57 loss=-3.977e-01 viol=1.0 temp=3.94e-02 diff=2.14 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:07.049] [annealing] [INFO] | it=47/100 dt=0.776 n=57 loss=-3.977e-01 viol=1.0 temp=3.58e-02 diff=0.25 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:07.818] [annealing] [INFO] | it=48/100 dt=0.768 n=57 loss=-3.977e-01 viol=1.0 temp=3.26e-02 diff=0.92 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:08.628] [annealing] [INFO] | it=49/100 dt=0.810 n=57 loss=-3.977e-01 viol=1.0 temp=2.97e-02 diff=1.45 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:08.794] [annealing] [INFO] | it=50/100 dt=0.166 n=57 loss=-3.977e-01 viol=1.0 temp=2.70e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Resample(names=['755026_RugFactory'], align_corner=None)
+[15:25:09.364] [annealing] [INFO] | it=51/100 dt=0.568 n=57 loss=-3.977e-01 viol=1.0 temp=2.46e-02 diff=0.73 viol_diff=0.0 prob=0.00 accept=False TranslateMove(['755026_RugFactory'], 2.64e-01)
+[15:25:10.541] [annealing] [INFO] | it=52/100 dt=1.176 n=57 loss=-3.977e-01 viol=1.0 temp=2.24e-02 diff=1.30 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:11.552] [annealing] [INFO] | it=53/100 dt=1.010 n=57 loss=-3.977e-01 viol=1.0 temp=2.04e-02 diff=-0.50 viol_diff=1.0 prob=1.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:12.632] [annealing] [INFO] | it=54/100 dt=1.079 n=57 loss=-3.977e-01 viol=1.0 temp=1.85e-02 diff=0.07 viol_diff=1.0 prob=0.03 accept=False Addition(RugFactory, 1 relations)
+[15:25:13.114] [annealing] [INFO] | it=55/100 dt=0.481 n=57 loss=-3.977e-01 viol=1.0 temp=1.69e-02 diff=0.06 viol_diff=0.0 prob=0.04 accept=False TranslateMove(['755026_RugFactory'], 1.48e-01)
+[15:25:13.592] [annealing] [INFO] | it=56/100 dt=0.478 n=57 loss=-7.856e-01 viol=1.0 temp=1.54e-02 diff=-0.39 viol_diff=0.0 prob=1.00 accept=True Resample(names=['755026_RugFactory'], align_corner=None)
+[15:25:14.101] [annealing] [INFO] | it=57/100 dt=0.509 n=57 loss=-7.856e-01 viol=1.0 temp=1.40e-02 diff=3.43 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['755026_RugFactory'])
+[15:25:14.517] [annealing] [INFO] | it=58/100 dt=0.416 n=57 loss=-7.856e-01 viol=1.0 temp=1.27e-02 diff=0.55 viol_diff=0.0 prob=0.00 accept=False RotateMove(['755026_RugFactory'], -7.85e-01)
+[15:25:14.944] [annealing] [INFO] | it=59/100 dt=0.426 n=57 loss=-7.856e-01 viol=1.0 temp=1.16e-02 diff=0.55 viol_diff=0.0 prob=0.00 accept=False RotateMove(['755026_RugFactory'], -7.85e-01)
+[15:25:14.953] [annealing] [INFO] | it=60/100 dt=0.008 n=57 loss=-7.856e-01 viol=1.0 temp=1.05e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_relation_plane_change
+[15:25:15.383] [annealing] [INFO] | it=61/100 dt=0.426 n=57 loss=-7.856e-01 viol=1.0 temp=9.59e-03 diff=1.08 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['755026_RugFactory'])
+[15:25:15.744] [annealing] [INFO] | it=62/100 dt=0.360 n=57 loss=-7.856e-01 viol=1.0 temp=8.73e-03 diff=0.01 viol_diff=0.0 prob=0.30 accept=False ReinitPoseMove(['755026_RugFactory'])
+[15:25:16.510] [annealing] [INFO] | it=63/100 dt=0.765 n=57 loss=-7.856e-01 viol=1.0 temp=7.94e-03 diff=-0.51 viol_diff=1.0 prob=1.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:17.384] [annealing] [INFO] | it=64/100 dt=0.874 n=57 loss=-7.856e-01 viol=1.0 temp=7.23e-03 diff=1.39 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:18.260] [annealing] [INFO] | it=65/100 dt=0.875 n=57 loss=-7.856e-01 viol=1.0 temp=6.58e-03 diff=1.39 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:18.628] [annealing] [INFO] | it=66/100 dt=0.367 n=57 loss=-2.101e+00 viol=1.0 temp=5.99e-03 diff=-1.32 viol_diff=0.0 prob=1.00 accept=True Resample(names=['755026_RugFactory'], align_corner=None)
+[15:25:19.526] [annealing] [INFO] | it=67/100 dt=0.898 n=57 loss=-2.101e+00 viol=1.0 temp=5.45e-03 diff=-1.27 viol_diff=1.0 prob=1.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:20.385] [annealing] [INFO] | it=68/100 dt=0.859 n=57 loss=-2.101e+00 viol=1.0 temp=4.96e-03 diff=0.38 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:20.396] [annealing] [INFO] | it=69/100 dt=0.010 n=57 loss=-2.101e+00 viol=1.0 temp=4.51e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_relation_plane_change
+[15:25:20.742] [annealing] [INFO] | it=70/100 dt=0.346 n=57 loss=-2.101e+00 viol=1.0 temp=4.11e-03 diff=0.01 viol_diff=0.0 prob=0.05 accept=False TranslateMove(['755026_RugFactory'], 9.41e-03)
+[15:25:21.718] [annealing] [INFO] | it=71/100 dt=0.975 n=57 loss=-2.101e+00 viol=1.0 temp=3.74e-03 diff=3.07 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:22.075] [annealing] [INFO] | it=72/100 dt=0.357 n=57 loss=-2.117e+00 viol=1.0 temp=3.40e-03 diff=-0.02 viol_diff=0.0 prob=99.86 accept=True TranslateMove(['755026_RugFactory'], 3.02e-02)
+[15:25:22.434] [annealing] [INFO] | it=73/100 dt=0.359 n=57 loss=-2.117e+00 viol=1.0 temp=3.10e-03 diff=0.01 viol_diff=0.0 prob=0.05 accept=False TranslateMove(['755026_RugFactory'], 3.02e-02)
+[15:25:22.445] [annealing] [INFO] | it=74/100 dt=0.010 n=57 loss=-2.117e+00 viol=1.0 temp=2.82e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_relation_plane_change
+[15:25:23.276] [annealing] [INFO] | it=75/100 dt=0.830 n=57 loss=-2.117e+00 viol=1.0 temp=2.56e-03 diff=0.16 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:24.192] [annealing] [INFO] | it=76/100 dt=0.916 n=57 loss=-2.117e+00 viol=1.0 temp=2.33e-03 diff=1.65 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:25.110] [annealing] [INFO] | it=77/100 dt=0.918 n=57 loss=-2.117e+00 viol=1.0 temp=2.12e-03 diff=1.58 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:25.439] [annealing] [INFO] | it=78/100 dt=0.328 n=57 loss=-2.154e+00 viol=1.0 temp=1.93e-03 diff=-0.04 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['755026_RugFactory'], 1.76e-02)
+[15:25:26.171] [annealing] [INFO] | it=79/100 dt=0.732 n=57 loss=-2.154e+00 viol=1.0 temp=1.76e-03 diff=1.61 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:26.292] [annealing] [INFO] | it=80/100 dt=0.121 n=57 loss=-2.154e+00 viol=1.0 temp=1.60e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Resample(names=['755026_RugFactory'], align_corner=None)
+[15:25:26.734] [annealing] [INFO] | it=81/100 dt=0.441 n=57 loss=-2.154e+00 viol=1.0 temp=1.46e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(RugFactory, 1 relations)
+[15:25:27.449] [annealing] [INFO] | it=82/100 dt=0.715 n=57 loss=-2.154e+00 viol=1.0 temp=1.33e-03 diff=2.20 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:27.767] [annealing] [INFO] | it=83/100 dt=0.317 n=57 loss=-2.186e+00 viol=1.0 temp=1.21e-03 diff=-0.03 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['755026_RugFactory'], 1.42e-02)
+[15:25:27.778] [annealing] [INFO] | it=84/100 dt=0.011 n=57 loss=-2.186e+00 viol=1.0 temp=1.10e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_relation_plane_change
+[15:25:28.111] [annealing] [INFO] | it=85/100 dt=0.333 n=57 loss=-2.186e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=0.01 accept=False TranslateMove(['755026_RugFactory'], 3.47e-03)
+[15:25:29.077] [annealing] [INFO] | it=86/100 dt=0.966 n=57 loss=-2.186e+00 viol=1.0 temp=1.00e-03 diff=1.82 viol_diff=1.0 prob=0.00 accept=False Addition(RugFactory, 1 relations)
+[15:25:29.513] [annealing] [INFO] | it=87/100 dt=0.436 n=57 loss=-2.186e+00 viol=1.0 temp=1.00e-03 diff=2.29 viol_diff=0.0 prob=0.00 accept=False RotateMove(['755026_RugFactory'], 7.85e-01)
+[15:25:29.867] [annealing] [INFO] | it=88/100 dt=0.354 n=57 loss=-2.186e+00 viol=1.0 temp=1.00e-03 diff=0.01 viol_diff=0.0 prob=0.00 accept=False TranslateMove(['755026_RugFactory'], 6.07e-03)
+[15:25:30.187] [annealing] [INFO] | it=89/100 dt=0.319 n=57 loss=-2.214e+00 viol=1.0 temp=1.00e-03 diff=-0.03 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['755026_RugFactory'], 1.19e-02)
+[15:25:30.525] [annealing] [INFO] | it=90/100 dt=0.337 n=57 loss=-2.214e+00 viol=1.0 temp=1.00e-03 diff=3.44 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['755026_RugFactory'])
+[15:25:30.530] [annealing] [INFO] | it=91/100 dt=0.005 n=57 loss=-2.214e+00 viol=1.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_relation_plane_change
+[15:25:30.811] [annealing] [INFO] | it=92/100 dt=0.280 n=57 loss=-2.218e+00 viol=1.0 temp=1.00e-03 diff=-0.00 viol_diff=0.0 prob=47.81 accept=True TranslateMove(['755026_RugFactory'], 2.18e-03)
+[15:25:31.217] [annealing] [INFO] | it=93/100 dt=0.406 n=57 loss=-2.218e+00 viol=1.0 temp=1.00e-03 diff=2.29 viol_diff=0.0 prob=0.00 accept=False RotateMove(['755026_RugFactory'], 7.85e-01)
+[15:25:31.609] [annealing] [INFO] | it=94/100 dt=0.392 n=57 loss=-2.218e+00 viol=1.0 temp=1.00e-03 diff=0.02 viol_diff=0.0 prob=0.00 accept=False TranslateMove(['755026_RugFactory'], 1.17e-02)
+[15:25:32.054] [annealing] [INFO] | it=95/100 dt=0.444 n=57 loss=-2.218e+00 viol=1.0 temp=1.00e-03 diff=3.85 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['755026_RugFactory'])
+[15:25:32.429] [annealing] [INFO] | it=96/100 dt=0.374 n=57 loss=-2.218e+00 viol=1.0 temp=1.00e-03 diff=2.29 viol_diff=0.0 prob=0.00 accept=False RotateMove(['755026_RugFactory'], -7.85e-01)
+[15:25:32.757] [annealing] [INFO] | it=97/100 dt=0.327 n=57 loss=-2.225e+00 viol=1.0 temp=1.00e-03 diff=-0.01 viol_diff=0.0 prob=666.01 accept=True TranslateMove(['755026_RugFactory'], 7.69e-03)
+[15:25:33.105] [annealing] [INFO] | it=98/100 dt=0.347 n=57 loss=-2.240e+00 viol=1.0 temp=1.00e-03 diff=-0.01 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['755026_RugFactory'], 5.10e-03)
+[15:25:33.544] [annealing] [INFO] | it=99/100 dt=0.438 n=57 loss=-2.240e+00 viol=1.0 temp=1.00e-03 diff=3.73 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['755026_RugFactory'])
+[15:25:33.544] [solve] [INFO] | Finished solving ('on_floor_freestanding_1', 'bedroom_0/0'), added 1 objects, loss=-2.2396 viol=1
+[15:25:33.547] [solve] [INFO] |            bathtub dining_chairs  ...  wall_decorations  bedroom
+loss          True         False  ...               0.0      0.0
+viol_count       0             0  ...               0.0      0.0
+
+[2 rows x 36 columns]
+[15:25:33.642] [solve] [WARNING] | Solver has failed to satisfy constraints for stage ('on_floor_freestanding_1', 'bedroom_0/0'). violations={'rugs': 1}. Continuing anyway, override `solve_objects.abort_unsatisfied=True` via gin to crash instead.
+[15:25:33.857] [solve] [INFO] | Greedily solve ('on_floor_freestanding_2', 'dining-room_0/0') - stage has 1/63 bounds, active_count=6/57 objs
+[15:25:35.550] [annealing] [INFO] | it=0/100 dt=1.675 n=58 loss=2.505e+01 viol=2.0 temp=3.00e+00 diff=11.18 viol_diff=-1.0 prob=0.02 accept=True Addition(TableDiningFactory, 1 relations)
+[15:25:36.856] [annealing] [INFO] | it=1/100 dt=1.283 n=58 loss=2.505e+01 viol=2.0 temp=2.73e+00 diff=8.68 viol_diff=1.0 prob=0.04 accept=False Addition(TableDiningFactory, 1 relations)
+[15:25:37.178] [annealing] [INFO] | it=2/100 dt=0.322 n=58 loss=2.505e+01 viol=2.0 temp=2.48e+00 diff=6.21 viol_diff=0.0 prob=0.08 accept=False ReinitPoseMove(['880655_TableDiningFactory'])
+[15:25:39.333] [annealing] [INFO] | it=3/100 dt=2.155 n=58 loss=2.505e+01 viol=2.0 temp=2.26e+00 diff=9.15 viol_diff=1.0 prob=0.02 accept=False Addition(TableDiningFactory, 1 relations)
+[15:25:42.650] [annealing] [INFO] | it=4/100 dt=3.316 n=58 loss=2.505e+01 viol=2.0 temp=2.06e+00 diff=1.99 viol_diff=1.0 prob=0.38 accept=False Addition(TableDiningFactory, 1 relations)
+[15:25:45.765] [annealing] [INFO] | it=5/100 dt=3.115 n=58 loss=2.505e+01 viol=2.0 temp=1.87e+00 diff=4.37 viol_diff=1.0 prob=0.10 accept=False Addition(TableDiningFactory, 1 relations)
+[15:25:46.967] [annealing] [INFO] | it=6/100 dt=1.201 n=58 loss=2.505e+01 viol=2.0 temp=1.70e+00 diff=6.84 viol_diff=1.0 prob=0.02 accept=False Addition(TableDiningFactory, 1 relations)
+[15:25:51.017] [annealing] [INFO] | it=7/100 dt=4.050 n=58 loss=2.505e+01 viol=2.0 temp=1.55e+00 diff=7.40 viol_diff=1.0 prob=0.01 accept=False Addition(TableDiningFactory, 1 relations)
+[15:25:52.641] [annealing] [INFO] | it=8/100 dt=1.624 n=58 loss=2.505e+01 viol=2.0 temp=1.41e+00 diff=10.93 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:25:53.583] [annealing] [INFO] | it=9/100 dt=0.941 n=58 loss=2.505e+01 viol=2.0 temp=1.29e+00 diff=6.61 viol_diff=0.0 prob=0.01 accept=False RelationPlaneChange(names=['880655_TableDiningFactory'], relation_idx=0, plane_idx=2)
+[15:25:58.283] [annealing] [INFO] | it=10/100 dt=4.700 n=58 loss=2.505e+01 viol=2.0 temp=1.17e+00 diff=10.42 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:25:58.596] [annealing] [INFO] | it=11/100 dt=0.312 n=58 loss=2.505e+01 viol=2.0 temp=1.06e+00 diff=2.20 viol_diff=0.0 prob=0.13 accept=False RelationPlaneChange(names=['880655_TableDiningFactory'], relation_idx=0, plane_idx=5)
+[15:25:58.790] [annealing] [INFO] | it=12/100 dt=0.194 n=58 loss=2.505e+01 viol=2.0 temp=9.69e-01 diff=-11.18 viol_diff=1.0 prob=1.00 accept=False Deletion(['880655_TableDiningFactory'])
+[15:25:59.598] [annealing] [INFO] | it=13/100 dt=0.808 n=58 loss=2.550e+01 viol=2.0 temp=8.82e-01 diff=0.45 viol_diff=0.0 prob=0.60 accept=True Resample(names=['880655_TableDiningFactory'], align_corner=None)
+[15:26:04.436] [annealing] [INFO] | it=14/100 dt=4.837 n=58 loss=2.550e+01 viol=2.0 temp=8.02e-01 diff=10.11 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:06.533] [annealing] [INFO] | it=15/100 dt=2.097 n=58 loss=2.550e+01 viol=2.0 temp=7.30e-01 diff=8.24 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['880655_TableDiningFactory'], relation_idx=0, plane_idx=0)
+[15:26:07.844] [annealing] [INFO] | it=16/100 dt=1.311 n=58 loss=2.550e+01 viol=2.0 temp=6.65e-01 diff=3.48 viol_diff=1.0 prob=0.01 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:09.090] [annealing] [INFO] | it=17/100 dt=1.245 n=58 loss=2.550e+01 viol=2.0 temp=6.05e-01 diff=3.31 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:11.214] [annealing] [INFO] | it=18/100 dt=2.124 n=58 loss=2.550e+01 viol=2.0 temp=5.51e-01 diff=10.28 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:12.898] [annealing] [INFO] | it=19/100 dt=1.683 n=58 loss=2.550e+01 viol=2.0 temp=5.01e-01 diff=2.28 viol_diff=1.0 prob=0.01 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:16.828] [annealing] [INFO] | it=20/100 dt=3.929 n=58 loss=2.550e+01 viol=2.0 temp=4.56e-01 diff=8.97 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:18.494] [annealing] [INFO] | it=21/100 dt=1.318 n=58 loss=2.550e+01 viol=2.0 temp=4.15e-01 diff=6.33 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:19.768] [annealing] [INFO] | it=22/100 dt=1.274 n=58 loss=2.550e+01 viol=2.0 temp=3.78e-01 diff=7.57 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:24.789] [annealing] [INFO] | it=23/100 dt=5.020 n=58 loss=2.550e+01 viol=2.0 temp=3.44e-01 diff=8.01 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:26.195] [annealing] [INFO] | it=24/100 dt=1.405 n=58 loss=2.550e+01 viol=2.0 temp=3.13e-01 diff=5.26 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:29.397] [annealing] [INFO] | it=25/100 dt=3.201 n=58 loss=2.550e+01 viol=2.0 temp=2.85e-01 diff=3.46 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:30.040] [annealing] [INFO] | it=26/100 dt=0.643 n=58 loss=2.550e+01 viol=2.0 temp=2.59e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Resample(names=['880655_TableDiningFactory'], align_corner=None)
+[15:26:31.204] [annealing] [INFO] | it=27/100 dt=1.164 n=58 loss=2.550e+01 viol=2.0 temp=2.36e-01 diff=7.21 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:32.649] [annealing] [INFO] | it=28/100 dt=1.445 n=58 loss=2.550e+01 viol=2.0 temp=2.15e-01 diff=4.07 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:35.744] [annealing] [INFO] | it=29/100 dt=3.093 n=58 loss=2.550e+01 viol=2.0 temp=1.95e-01 diff=11.12 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:37.166] [annealing] [INFO] | it=30/100 dt=1.421 n=58 loss=2.550e+01 viol=2.0 temp=1.78e-01 diff=2.91 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:42.151] [annealing] [INFO] | it=31/100 dt=4.984 n=58 loss=2.550e+01 viol=2.0 temp=1.62e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(TableDiningFactory, 1 relations)
+[15:26:48.021] [annealing] [INFO] | it=32/100 dt=5.869 n=58 loss=2.550e+01 viol=2.0 temp=1.47e-01 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(TableDiningFactory, 1 relations)
+[15:26:48.593] [annealing] [INFO] | it=33/100 dt=0.572 n=58 loss=2.550e+01 viol=2.0 temp=1.34e-01 diff=8.49 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['880655_TableDiningFactory'], relation_idx=0, plane_idx=0)
+[15:26:48.979] [annealing] [INFO] | it=34/100 dt=0.386 n=58 loss=2.443e+01 viol=2.0 temp=1.22e-01 diff=-1.07 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['880655_TableDiningFactory'], 2.81e-01)
+[15:26:51.250] [annealing] [INFO] | it=35/100 dt=2.270 n=58 loss=2.443e+01 viol=2.0 temp=1.11e-01 diff=9.13 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:52.755] [annealing] [INFO] | it=36/100 dt=1.504 n=58 loss=2.443e+01 viol=2.0 temp=1.01e-01 diff=7.46 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:26:52.991] [annealing] [INFO] | it=37/100 dt=0.236 n=58 loss=2.443e+01 viol=2.0 temp=9.19e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RotateMove(['880655_TableDiningFactory'], 7.85e-01)
+[15:26:59.343] [annealing] [INFO] | it=38/100 dt=6.351 n=58 loss=2.443e+01 viol=2.0 temp=8.37e-02 diff=9.11 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:02.645] [annealing] [INFO] | it=39/100 dt=3.301 n=58 loss=2.443e+01 viol=2.0 temp=7.62e-02 diff=12.33 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:06.939] [annealing] [INFO] | it=40/100 dt=4.293 n=58 loss=2.443e+01 viol=2.0 temp=6.93e-02 diff=1.95 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:11.537] [annealing] [INFO] | it=41/100 dt=3.806 n=58 loss=2.443e+01 viol=2.0 temp=6.31e-02 diff=10.06 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:12.931] [annealing] [INFO] | it=42/100 dt=1.394 n=58 loss=2.443e+01 viol=2.0 temp=5.74e-02 diff=6.74 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:14.763] [annealing] [INFO] | it=43/100 dt=1.832 n=58 loss=2.443e+01 viol=2.0 temp=5.23e-02 diff=9.77 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:15.047] [annealing] [INFO] | it=44/100 dt=0.284 n=58 loss=2.443e+01 viol=2.0 temp=4.76e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None TranslateMove(['880655_TableDiningFactory'], 2.53e-01)
+[15:27:20.270] [annealing] [INFO] | it=45/100 dt=5.222 n=58 loss=2.443e+01 viol=2.0 temp=4.33e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(TableDiningFactory, 1 relations)
+[15:27:20.442] [annealing] [INFO] | it=46/100 dt=0.171 n=58 loss=2.443e+01 viol=2.0 temp=3.94e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RotateMove(['880655_TableDiningFactory'], -7.85e-01)
+[15:27:22.774] [annealing] [INFO] | it=47/100 dt=2.332 n=58 loss=2.443e+01 viol=2.0 temp=3.58e-02 diff=2.99 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:28.533] [annealing] [INFO] | it=48/100 dt=5.759 n=58 loss=2.443e+01 viol=2.0 temp=3.26e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(TableDiningFactory, 1 relations)
+[15:27:33.444] [annealing] [INFO] | it=49/100 dt=4.910 n=58 loss=2.443e+01 viol=2.0 temp=2.97e-02 diff=7.71 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:35.786] [annealing] [INFO] | it=50/100 dt=2.341 n=58 loss=2.443e+01 viol=2.0 temp=2.70e-02 diff=10.16 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:38.024] [annealing] [INFO] | it=51/100 dt=2.235 n=58 loss=2.443e+01 viol=2.0 temp=2.46e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RelationPlaneChange(names=['880655_TableDiningFactory'], relation_idx=0, plane_idx=0)
+[15:27:38.389] [annealing] [INFO] | it=52/100 dt=0.364 n=58 loss=2.443e+01 viol=2.0 temp=2.24e-02 diff=0.57 viol_diff=0.0 prob=0.00 accept=False TranslateMove(['880655_TableDiningFactory'], 6.05e-02)
+[15:27:42.217] [annealing] [INFO] | it=53/100 dt=3.828 n=58 loss=2.443e+01 viol=2.0 temp=2.04e-02 diff=4.22 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:44.005] [annealing] [INFO] | it=54/100 dt=1.788 n=58 loss=2.443e+01 viol=2.0 temp=1.85e-02 diff=5.63 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:47.078] [annealing] [INFO] | it=55/100 dt=3.072 n=58 loss=2.443e+01 viol=2.0 temp=1.69e-02 diff=3.44 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:48.275] [annealing] [INFO] | it=56/100 dt=1.197 n=58 loss=2.443e+01 viol=2.0 temp=1.54e-02 diff=0.82 viol_diff=0.0 prob=0.00 accept=False Resample(names=['880655_TableDiningFactory'], align_corner=None)
+[15:27:49.073] [annealing] [INFO] | it=57/100 dt=0.798 n=58 loss=2.443e+01 viol=2.0 temp=1.40e-02 diff=8.65 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['880655_TableDiningFactory'])
+[15:27:55.739] [annealing] [INFO] | it=58/100 dt=6.665 n=58 loss=2.443e+01 viol=2.0 temp=1.27e-02 diff=3.14 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:27:56.693] [annealing] [INFO] | it=59/100 dt=0.954 n=58 loss=2.443e+01 viol=2.0 temp=1.16e-02 diff=8.36 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['880655_TableDiningFactory'])
+[15:27:57.834] [annealing] [INFO] | it=60/100 dt=1.141 n=58 loss=2.443e+01 viol=2.0 temp=1.05e-02 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Resample(names=['880655_TableDiningFactory'], align_corner=None)
+[15:28:00.956] [annealing] [INFO] | it=61/100 dt=2.688 n=58 loss=2.443e+01 viol=2.0 temp=9.59e-03 diff=9.23 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:28:02.522] [annealing] [INFO] | it=62/100 dt=1.565 n=58 loss=2.443e+01 viol=2.0 temp=8.73e-03 diff=11.09 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:28:09.687] [annealing] [INFO] | it=63/100 dt=7.165 n=58 loss=2.443e+01 viol=2.0 temp=7.94e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(TableDiningFactory, 1 relations)
+[15:28:16.524] [annealing] [INFO] | it=64/100 dt=6.836 n=58 loss=2.443e+01 viol=2.0 temp=7.23e-03 diff=3.32 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:28:18.610] [annealing] [INFO] | it=65/100 dt=2.084 n=58 loss=2.443e+01 viol=2.0 temp=6.58e-03 diff=7.57 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:28:20.361] [annealing] [INFO] | it=66/100 dt=1.750 n=58 loss=2.443e+01 viol=2.0 temp=5.99e-03 diff=4.23 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:28:22.353] [annealing] [INFO] | it=67/100 dt=1.992 n=58 loss=2.443e+01 viol=2.0 temp=5.45e-03 diff=7.82 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:28:27.192] [annealing] [INFO] | it=68/100 dt=4.838 n=58 loss=2.443e+01 viol=2.0 temp=4.96e-03 diff=4.69 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:28:27.474] [annealing] [INFO] | it=69/100 dt=0.281 n=58 loss=2.443e+01 viol=2.0 temp=4.51e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RotateMove(['880655_TableDiningFactory'], -7.85e-01)
+[15:28:28.457] [annealing] [INFO] | it=70/100 dt=0.983 n=58 loss=2.443e+01 viol=2.0 temp=4.11e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Resample(names=['880655_TableDiningFactory'], align_corner=None)
+[15:28:34.726] [annealing] [INFO] | it=71/100 dt=6.268 n=58 loss=2.443e+01 viol=2.0 temp=3.74e-03 diff=8.47 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:28:41.751] [annealing] [INFO] | it=72/100 dt=7.024 n=58 loss=2.443e+01 viol=2.0 temp=3.40e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(TableDiningFactory, 1 relations)
+[15:28:42.346] [annealing] [INFO] | it=73/100 dt=0.594 n=58 loss=2.443e+01 viol=2.0 temp=3.10e-03 diff=0.50 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['880655_TableDiningFactory'], relation_idx=0, plane_idx=2)
+[15:28:42.544] [annealing] [INFO] | it=74/100 dt=0.197 n=58 loss=2.443e+01 viol=2.0 temp=2.82e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RotateMove(['880655_TableDiningFactory'], 7.85e-01)
+[15:28:44.380] [annealing] [INFO] | it=75/100 dt=1.836 n=58 loss=2.443e+01 viol=2.0 temp=2.56e-03 diff=4.72 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:28:48.811] [annealing] [INFO] | it=76/100 dt=4.430 n=58 loss=2.443e+01 viol=2.0 temp=2.33e-03 diff=12.17 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:28:50.427] [annealing] [INFO] | it=77/100 dt=1.616 n=58 loss=2.443e+01 viol=2.0 temp=2.12e-03 diff=4.02 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:28:50.624] [annealing] [INFO] | it=78/100 dt=0.196 n=58 loss=2.443e+01 viol=2.0 temp=1.93e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RotateMove(['880655_TableDiningFactory'], 7.85e-01)
+[15:28:51.535] [annealing] [INFO] | it=79/100 dt=0.911 n=58 loss=2.443e+01 viol=2.0 temp=1.76e-03 diff=1.97 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['880655_TableDiningFactory'], relation_idx=0, plane_idx=0)
+[15:28:51.907] [annealing] [INFO] | it=80/100 dt=0.372 n=58 loss=2.443e+01 viol=2.0 temp=1.60e-03 diff=8.11 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['880655_TableDiningFactory'], relation_idx=0, plane_idx=2)
+[15:28:55.570] [annealing] [INFO] | it=81/100 dt=3.128 n=58 loss=2.443e+01 viol=2.0 temp=1.46e-03 diff=5.62 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:28:57.101] [annealing] [INFO] | it=82/100 dt=1.530 n=58 loss=2.443e+01 viol=2.0 temp=1.33e-03 diff=4.54 viol_diff=0.0 prob=0.00 accept=False Resample(names=['880655_TableDiningFactory'], align_corner=None)
+[15:28:57.440] [annealing] [INFO] | it=83/100 dt=0.338 n=58 loss=2.443e+01 viol=2.0 temp=1.21e-03 diff=0.08 viol_diff=0.0 prob=0.00 accept=False TranslateMove(['880655_TableDiningFactory'], 2.75e-02)
+[15:28:58.475] [annealing] [INFO] | it=84/100 dt=1.034 n=58 loss=2.443e+01 viol=2.0 temp=1.10e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Resample(names=['880655_TableDiningFactory'], align_corner=None)
+[15:28:58.767] [annealing] [INFO] | it=85/100 dt=0.292 n=58 loss=2.443e+01 viol=2.0 temp=1.00e-03 diff=0.22 viol_diff=0.0 prob=0.00 accept=False TranslateMove(['880655_TableDiningFactory'], 2.15e-02)
+[15:29:04.943] [annealing] [INFO] | it=86/100 dt=6.175 n=58 loss=2.443e+01 viol=2.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(TableDiningFactory, 1 relations)
+[15:29:05.796] [annealing] [INFO] | it=87/100 dt=0.853 n=58 loss=2.443e+01 viol=2.0 temp=1.00e-03 diff=7.81 viol_diff=0.0 prob=0.00 accept=False RelationPlaneChange(names=['880655_TableDiningFactory'], relation_idx=0, plane_idx=0)
+[15:29:06.171] [annealing] [INFO] | it=88/100 dt=0.375 n=58 loss=2.435e+01 viol=2.0 temp=1.00e-03 diff=-0.09 viol_diff=0.0 prob=1.00 accept=True TranslateMove(['880655_TableDiningFactory'], 1.22e-02)
+[15:29:06.717] [annealing] [INFO] | it=89/100 dt=0.544 n=58 loss=2.435e+01 viol=2.0 temp=1.00e-03 diff=8.10 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['880655_TableDiningFactory'])
+[15:29:13.342] [annealing] [INFO] | it=90/100 dt=6.624 n=58 loss=2.435e+01 viol=2.0 temp=1.00e-03 diff=6.98 viol_diff=1.0 prob=0.00 accept=False Addition(TableDiningFactory, 1 relations)
+[15:29:13.684] [annealing] [INFO] | it=91/100 dt=0.340 n=58 loss=2.435e+01 viol=2.0 temp=1.00e-03 diff=0.19 viol_diff=0.0 prob=0.00 accept=False TranslateMove(['880655_TableDiningFactory'], 1.93e-02)
+[15:29:13.917] [annealing] [INFO] | it=92/100 dt=0.233 n=58 loss=2.435e+01 viol=2.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RotateMove(['880655_TableDiningFactory'], 7.85e-01)
+[15:29:14.141] [annealing] [INFO] | it=93/100 dt=0.223 n=58 loss=2.435e+01 viol=2.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RotateMove(['880655_TableDiningFactory'], -7.85e-01)
+[15:29:14.375] [annealing] [INFO] | it=94/100 dt=0.233 n=58 loss=2.435e+01 viol=2.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RotateMove(['880655_TableDiningFactory'], 7.85e-01)
+[15:29:21.100] [annealing] [INFO] | it=95/100 dt=6.725 n=58 loss=2.435e+01 viol=2.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(TableDiningFactory, 1 relations)
+[15:29:21.396] [annealing] [INFO] | it=96/100 dt=0.295 n=58 loss=2.435e+01 viol=2.0 temp=1.00e-03 diff=0.10 viol_diff=0.0 prob=0.00 accept=False TranslateMove(['880655_TableDiningFactory'], 1.16e-02)
+[15:29:21.594] [annealing] [INFO] | it=97/100 dt=0.197 n=58 loss=2.435e+01 viol=2.0 temp=1.00e-03 diff=0.00 viol_diff=0.0 prob=1.00 accept=None RotateMove(['880655_TableDiningFactory'], 7.85e-01)
+[15:29:22.010] [annealing] [INFO] | it=98/100 dt=0.416 n=58 loss=2.435e+01 viol=2.0 temp=1.00e-03 diff=7.59 viol_diff=0.0 prob=0.00 accept=False ReinitPoseMove(['880655_TableDiningFactory'])
+[15:29:22.312] [annealing] [INFO] | it=99/100 dt=0.301 n=58 loss=2.435e+01 viol=2.0 temp=1.00e-03 diff=0.20 viol_diff=0.0 prob=0.00 accept=False TranslateMove(['880655_TableDiningFactory'], 2.16e-02)
+[15:29:22.312] [solve] [INFO] | Finished solving ('on_floor_freestanding_2', 'dining-room_0/0'), added 1 objects, loss=24.3488 viol=2
+[15:29:22.317] [solve] [INFO] |            bathtub dining_chairs  ...  wall_decorations  bedroom
+loss          True         False  ...               0.0        0
+viol_count       0             0  ...               0.0        0
+
+[2 rows x 36 columns]
+[15:29:22.370] [solve] [WARNING] | Solver has failed to satisfy constraints for stage ('on_floor_freestanding_2', 'dining-room_0/0'). violations={'rugs': 1, 'lighting': 1}. Continuing anyway, override `solve_objects.abort_unsatisfied=True` via gin to crash instead.
+[15:29:22.541] [solve] [INFO] | Greedily solve ('on_floor_freestanding_3', 'kitchen_0/0') - stage has 1/63 bounds, active_count=7/58 objs
+[15:29:22.622] [annealing] [INFO] | it=0/100 dt=0.004 n=58 loss=7.454e+01 viol=2.0 temp=3.00e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_resample
+[15:30:00.482] [annealing] [INFO] | it=1/100 dt=37.547 n=58 loss=7.454e+01 viol=2.0 temp=2.73e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenIslandFactory, 1 relations)
+[15:30:00.483] [annealing] [INFO] | it=2/100 dt=0.001 n=58 loss=7.454e+01 viol=2.0 temp=2.48e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_reinit_pose
+[15:30:38.121] [annealing] [INFO] | it=3/100 dt=37.638 n=58 loss=7.454e+01 viol=2.0 temp=2.26e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenIslandFactory, 1 relations)
+[15:31:31.673] [annealing] [INFO] | it=4/100 dt=53.552 n=58 loss=7.454e+01 viol=2.0 temp=2.06e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None Addition(KitchenIslandFactory, 1 relations)
+[15:32:21.565] [annealing] [INFO] | it=5/100 dt=49.893 n=58 loss=7.454e+01 viol=2.0 temp=1.87e+00 diff=-1.93 viol_diff=1.7 prob=2.81 accept=False Addition(KitchenIslandFactory, 1 relations)
+[15:32:21.566] [annealing] [INFO] | it=6/100 dt=0.000 n=58 loss=7.454e+01 viol=2.0 temp=1.70e+00 diff=0.00 viol_diff=0.0 prob=1.00 accept=None propose_reinit_pose
+[15:32:35.462] [annealing] [INFO] | it=7/100 dt=13.896 n=58 loss=7.454e+01 viol=2.0 temp=1.55e+00 diff=4.21 viol_diff=1.7 prob=0.07 accept=False Addition(KitchenIslandFactory, 1 relations)
+[15:32:52.738] [annealing] [INFO] | it=8/100 dt=17.275 n=58 loss=7.454e+01 viol=2.0 temp=1.41e+00 diff=-5.63 viol_diff=1.7 prob=53.98 accept=False Addition(KitchenIslandFactory, 1 relations)
+[15:33:19.609] [annealing] [INFO] | it=9/100 dt=26.872 n=58 loss=7.454e+01 viol=2.0 temp=1.29e+00 diff=-13.40 viol_diff=1.7 prob=1.00 accept=False Addition(KitchenIslandFactory, 1 relations)
+/usr/local/Cellar/python@3.11/3.11.15_4/Frameworks/Python.framework/Versions/3.11/lib/python3.11/multiprocessing/resource_tracker.py:254: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

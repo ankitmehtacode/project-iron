@@ -16,6 +16,7 @@
 /venv/
 /.venv/
 /.venv-pinned/
+/.venv-infinigen/
 
 # Editor / IDE state — machine-local, not shared engineering config. Root only.
 /.vscode/

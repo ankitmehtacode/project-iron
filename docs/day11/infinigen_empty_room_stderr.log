@@ -1,0 +1,272 @@
+[15:36:34.599] [init] [INFO] | Addon antlandscape already in blender local addons, attempt to enable it.
+[15:36:35.337] [init] [INFO] | Addon extra_mesh_objects already in blender local addons, attempt to enable it.
+[15:36:35.601] [smb_client] [WARNING] | SMB_AUTH envvar is not set, smb_client upload will not work. Ignore this message if not using upload
+[15:36:35.736] [init] [INFO] | Addon real_snow already in blender local addons, attempt to enable it.
+[15:36:35.748] [init] [INFO] | Converted seed='0' to scene_seed=0, parsed as hexadecimal
+[15:36:35.778] [execute_tasks] [INFO] | infinigen version 1.12.2
+[15:36:35.778] [execute_tasks] [INFO] | CUDA_VISIBLE_DEVICES=None
+[15:36:35.778] [logging] [INFO] | [MAIN TOTAL]
+[15:36:35.778] [execute_tasks] [INFO] | Processing frames 1 through 2 inclusive
+[15:36:35.798] [init] [INFO] | Available devices have types=['METAL', 'CPU']
+[15:36:35.798] [init] [INFO] | Cycles will use use_device_type='METAL', len(use_devices)=1
+[15:36:35.802] [logging] [INFO] | [sky_lighting]
+[15:36:35.804] [logging] [INFO] | [sky_lighting] finished in 0:00:00.002210
+
+Checking greedy stages coverage:   0%|          | 0/63 [00:00<?, ?it/s]
+Checking greedy stages coverage:  65%|██████▌   | 41/63 [00:00<00:00, 403.65it/s]
+Checking greedy stages coverage: 100%|██████████| 63/63 [00:00<00:00, 445.54it/s]
+[15:36:36.087] [logging] [INFO] | [solve_rooms]
+
+Computing typical areas:   0%|          | 0/11 [00:00<?, ?it/s]
+Computing typical areas:  18%|█▊        | 2/11 [00:00<00:00, 18.10it/s]
+Computing typical areas:  45%|████▌     | 5/11 [00:00<00:00, 20.93it/s]
+Computing typical areas:  73%|███████▎  | 8/11 [00:00<00:00, 21.27it/s]
+Computing typical areas: 100%|██████████| 11/11 [00:00<00:00, 20.93it/s]
+Computing typical areas: 100%|██████████| 11/11 [00:00<00:00, 20.80it/s]
+
+Generating graphs for 0:   0%|          | 0/40 [00:00<?, ?it/s]
+Generating graphs for 0:  15%|█▌        | 6/40 [00:00<00:00, 47.36it/s]
+Generating graphs for 0:  18%|█▊        | 7/40 [00:00<00:00, 43.34it/s]
+
+Dividing segments for 0:   0%|          | 0/25 [00:00<?, ?it/s]
+Dividing segments for 0:   8%|▊         | 2/25 [00:00<00:01, 18.72it/s]
+
+Sampling solutions:   0%|          | 0/125 [00:00<?, ?it/s]
+Sampling solutions:   1%|          | 1/125 [00:00<00:02, 52.35it/s, score=2.85e+4]
+Sampling solutions:   2%|▏         | 2/125 [00:00<00:02, 59.61it/s, score=2.85e+4]
+Sampling solutions:   2%|▏         | 3/125 [00:00<00:02, 60.09it/s, score=2.85e+4]
+Sampling solutions:   3%|▎         | 4/125 [00:00<00:02, 59.15it/s, score=2.85e+4]
+Sampling solutions:   4%|▍         | 5/125 [00:00<00:01, 61.07it/s, score=2.85e+4]
+Sampling solutions:   5%|▍         | 6/125 [00:00<00:02, 54.70it/s, score=2.85e+4]
+Sampling solutions:   5%|▍         | 6/125 [00:00<00:02, 54.70it/s, score=2.85e+4]
+Sampling solutions:   6%|▌         | 7/125 [00:00<00:02, 54.70it/s, score=2.85e+4]
+Sampling solutions:   6%|▋         | 8/125 [00:00<00:02, 54.70it/s, score=2.85e+4]
+Sampling solutions:   7%|▋         | 9/125 [00:00<00:02, 54.70it/s, score=2.85e+4]
+Sampling solutions:   8%|▊         | 10/125 [00:00<00:02, 54.70it/s, score=2.85e+4]
+Sampling solutions:   9%|▉         | 11/125 [00:00<00:02, 54.70it/s, score=4.4e+3] 
+Sampling solutions:  10%|▉         | 12/125 [00:00<00:02, 54.70it/s, score=4.4e+3]
+Sampling solutions:  10%|█         | 13/125 [00:00<00:01, 58.73it/s, score=4.4e+3]
+Sampling solutions:  10%|█         | 13/125 [00:00<00:01, 58.73it/s, score=4.4e+3]
+Sampling solutions:  11%|█         | 14/125 [00:00<00:01, 58.73it/s, score=4.4e+3]
+Sampling solutions:  12%|█▏        | 15/125 [00:00<00:01, 58.73it/s, score=4.4e+3]
+Sampling solutions:  13%|█▎        | 16/125 [00:00<00:01, 58.73it/s, score=4.36e+3]
+Sampling solutions:  14%|█▎        | 17/125 [00:00<00:01, 58.73it/s, score=4.36e+3]
+Sampling solutions:  14%|█▍        | 18/125 [00:00<00:01, 58.73it/s, score=4.36e+3]
+Sampling solutions:  15%|█▌        | 19/125 [00:00<00:01, 58.73it/s, score=4.36e+3]
+Sampling solutions:  16%|█▌        | 20/125 [00:00<00:01, 60.91it/s, score=4.36e+3]
+Sampling solutions:  16%|█▌        | 20/125 [00:00<00:01, 60.91it/s, score=4.31e+3]
+Sampling solutions:  17%|█▋        | 21/125 [00:00<00:01, 60.91it/s, score=4.31e+3]
+Sampling solutions:  18%|█▊        | 22/125 [00:00<00:01, 60.91it/s, score=4.29e+3]
+Sampling solutions:  18%|█▊        | 23/125 [00:00<00:01, 60.91it/s, score=4.29e+3]
+Sampling solutions:  19%|█▉        | 24/125 [00:00<00:01, 60.91it/s, score=4.29e+3]
+Sampling solutions:  20%|██        | 25/125 [00:00<00:01, 60.91it/s, score=4.29e+3]
+Sampling solutions:  21%|██        | 26/125 [00:00<00:01, 60.91it/s, score=4.29e+3]
+Sampling solutions:  22%|██▏       | 27/125 [00:00<00:02, 46.93it/s, score=4.29e+3]
+Sampling solutions:  22%|██▏       | 27/125 [00:00<00:02, 46.93it/s, score=4.27e+3]
+Sampling solutions:  22%|██▏       | 28/125 [00:00<00:02, 46.93it/s, score=4.24e+3]
+Sampling solutions:  23%|██▎       | 29/125 [00:00<00:02, 46.93it/s, score=4.24e+3]
+Sampling solutions:  24%|██▍       | 30/125 [00:00<00:02, 46.93it/s, score=4.24e+3]
+Sampling solutions:  25%|██▍       | 31/125 [00:00<00:02, 46.93it/s, score=4.24e+3]
+Sampling solutions:  26%|██▌       | 32/125 [00:00<00:01, 46.93it/s, score=4.24e+3]
+Sampling solutions:  26%|██▋       | 33/125 [00:00<00:01, 46.93it/s, score=4.23e+3]
+Sampling solutions:  27%|██▋       | 34/125 [00:00<00:01, 51.99it/s, score=4.23e+3]
+Sampling solutions:  27%|██▋       | 34/125 [00:00<00:01, 51.99it/s, score=4.23e+3]
+Sampling solutions:  28%|██▊       | 35/125 [00:00<00:01, 51.99it/s, score=4.23e+3]
+Sampling solutions:  29%|██▉       | 36/125 [00:00<00:01, 51.99it/s, score=4.23e+3]
+Sampling solutions:  30%|██▉       | 37/125 [00:00<00:01, 51.99it/s, score=4.23e+3]
+Sampling solutions:  30%|███       | 38/125 [00:00<00:01, 51.99it/s, score=4.23e+3]
+Sampling solutions:  31%|███       | 39/125 [00:00<00:01, 51.99it/s, score=4.19e+3]
+Sampling solutions:  32%|███▏      | 40/125 [00:00<00:01, 51.99it/s, score=4.19e+3]
+Sampling solutions:  33%|███▎      | 41/125 [00:00<00:01, 56.04it/s, score=4.19e+3]
+Sampling solutions:  33%|███▎      | 41/125 [00:00<00:01, 56.04it/s, score=4.19e+3]
+Sampling solutions:  34%|███▎      | 42/125 [00:00<00:01, 56.04it/s, score=203]    
+Sampling solutions:  34%|███▍      | 43/125 [00:00<00:01, 56.04it/s, score=163]
+Sampling solutions:  35%|███▌      | 44/125 [00:00<00:01, 56.04it/s, score=163]
+Sampling solutions:  36%|███▌      | 45/125 [00:00<00:01, 56.04it/s, score=163]
+Sampling solutions:  37%|███▋      | 46/125 [00:00<00:01, 56.04it/s, score=163]
+Sampling solutions:  38%|███▊      | 47/125 [00:00<00:01, 55.33it/s, score=163]
+Sampling solutions:  38%|███▊      | 47/125 [00:00<00:01, 55.33it/s, score=153]
+Sampling solutions:  38%|███▊      | 48/125 [00:00<00:01, 55.33it/s, score=153]
+Sampling solutions:  39%|███▉      | 49/125 [00:00<00:01, 55.33it/s, score=153]
+Sampling solutions:  40%|████      | 50/125 [00:00<00:01, 55.33it/s, score=153]
+Sampling solutions:  41%|████      | 51/125 [00:00<00:01, 55.33it/s, score=153]
+Sampling solutions:  42%|████▏     | 52/125 [00:00<00:01, 55.33it/s, score=153]
+Sampling solutions:  42%|████▏     | 53/125 [00:00<00:01, 55.33it/s, score=153]
+Sampling solutions:  43%|████▎     | 54/125 [00:00<00:01, 58.55it/s, score=153]
+Sampling solutions:  43%|████▎     | 54/125 [00:00<00:01, 58.55it/s, score=151]
+Sampling solutions:  44%|████▍     | 55/125 [00:00<00:01, 58.55it/s, score=151]
+Sampling solutions:  45%|████▍     | 56/125 [00:00<00:01, 58.55it/s, score=151]
+Sampling solutions:  46%|████▌     | 57/125 [00:01<00:01, 58.55it/s, score=151]
+Sampling solutions:  46%|████▋     | 58/125 [00:01<00:01, 58.55it/s, score=151]
+Sampling solutions:  47%|████▋     | 59/125 [00:01<00:01, 58.55it/s, score=151]
+Sampling solutions:  48%|████▊     | 60/125 [00:01<00:01, 58.55it/s, score=151]
+Sampling solutions:  49%|████▉     | 61/125 [00:01<00:01, 59.90it/s, score=151]
+Sampling solutions:  49%|████▉     | 61/125 [00:01<00:01, 59.90it/s, score=151]
+Sampling solutions:  50%|████▉     | 62/125 [00:01<00:01, 59.90it/s, score=150]
+Sampling solutions:  50%|█████     | 63/125 [00:01<00:01, 59.90it/s, score=150]
+Sampling solutions:  51%|█████     | 64/125 [00:01<00:01, 59.90it/s, score=150]
+Sampling solutions:  52%|█████▏    | 65/125 [00:01<00:01, 59.90it/s, score=150]
+Sampling solutions:  53%|█████▎    | 66/125 [00:01<00:00, 59.90it/s, score=150]
+Sampling solutions:  54%|█████▎    | 67/125 [00:01<00:00, 59.90it/s, score=150]
+Sampling solutions:  54%|█████▍    | 68/125 [00:01<00:00, 57.16it/s, score=150]
+Sampling solutions:  54%|█████▍    | 68/125 [00:01<00:00, 57.16it/s, score=150]
+Sampling solutions:  55%|█████▌    | 69/125 [00:01<00:00, 57.16it/s, score=150]
+Sampling solutions:  56%|█████▌    | 70/125 [00:01<00:00, 57.16it/s, score=150]
+Sampling solutions:  57%|█████▋    | 71/125 [00:01<00:00, 57.16it/s, score=138]
+Sampling solutions:  58%|█████▊    | 72/125 [00:01<00:00, 57.16it/s, score=138]
+Sampling solutions:  58%|█████▊    | 73/125 [00:01<00:00, 57.16it/s, score=138]
+Sampling solutions:  59%|█████▉    | 74/125 [00:01<00:00, 57.16it/s, score=138]
+Sampling solutions:  60%|██████    | 75/125 [00:01<00:00, 57.58it/s, score=138]
+Sampling solutions:  60%|██████    | 75/125 [00:01<00:00, 57.58it/s, score=138]
+Sampling solutions:  61%|██████    | 76/125 [00:01<00:00, 57.58it/s, score=138]
+Sampling solutions:  62%|██████▏   | 77/125 [00:01<00:00, 57.58it/s, score=138]
+Sampling solutions:  62%|██████▏   | 78/125 [00:01<00:00, 57.58it/s, score=138]
+Sampling solutions:  63%|██████▎   | 79/125 [00:01<00:00, 57.58it/s, score=138]
+Sampling solutions:  64%|██████▍   | 80/125 [00:01<00:00, 57.58it/s, score=138]
+Sampling solutions:  65%|██████▍   | 81/125 [00:01<00:00, 55.60it/s, score=138]
+Sampling solutions:  65%|██████▍   | 81/125 [00:01<00:00, 55.60it/s, score=138]
+Sampling solutions:  66%|██████▌   | 82/125 [00:01<00:00, 55.60it/s, score=138]
+Sampling solutions:  66%|██████▋   | 83/125 [00:01<00:00, 55.60it/s, score=138]
+Sampling solutions:  67%|██████▋   | 84/125 [00:01<00:00, 55.60it/s, score=138]
+Sampling solutions:  68%|██████▊   | 85/125 [00:01<00:00, 55.60it/s, score=138]
+Sampling solutions:  69%|██████▉   | 86/125 [00:01<00:00, 55.60it/s, score=138]
+Sampling solutions:  70%|██████▉   | 87/125 [00:01<00:00, 55.60it/s, score=138]
+Sampling solutions:  70%|███████   | 88/125 [00:01<00:00, 57.24it/s, score=138]
+Sampling solutions:  70%|███████   | 88/125 [00:01<00:00, 57.24it/s, score=138]
+Sampling solutions:  71%|███████   | 89/125 [00:01<00:00, 57.24it/s, score=138]
+Sampling solutions:  72%|███████▏  | 90/125 [00:01<00:00, 57.24it/s, score=138]
+Sampling solutions:  73%|███████▎  | 91/125 [00:01<00:00, 57.24it/s, score=138]
+Sampling solutions:  74%|███████▎  | 92/125 [00:01<00:00, 57.24it/s, score=138]
+Sampling solutions:  74%|███████▍  | 93/125 [00:01<00:00, 57.24it/s, score=138]
+Sampling solutions:  75%|███████▌  | 94/125 [00:01<00:00, 54.84it/s, score=138]
+Sampling solutions:  75%|███████▌  | 94/125 [00:01<00:00, 54.84it/s, score=138]
+Sampling solutions:  76%|███████▌  | 95/125 [00:01<00:00, 54.84it/s, score=138]
+Sampling solutions:  77%|███████▋  | 96/125 [00:01<00:00, 54.84it/s, score=138]
+Sampling solutions:  78%|███████▊  | 97/125 [00:01<00:00, 54.84it/s, score=138]
+Sampling solutions:  78%|███████▊  | 98/125 [00:01<00:00, 54.84it/s, score=138]
+Sampling solutions:  79%|███████▉  | 99/125 [00:01<00:00, 54.84it/s, score=138]
+Sampling solutions:  80%|████████  | 100/125 [00:01<00:00, 54.84it/s, score=138]
+Sampling solutions:  81%|████████  | 101/125 [00:01<00:00, 56.98it/s, score=138]
+Sampling solutions:  81%|████████  | 101/125 [00:01<00:00, 56.98it/s, score=138]
+Sampling solutions:  82%|████████▏ | 102/125 [00:01<00:00, 56.98it/s, score=138]
+Sampling solutions:  82%|████████▏ | 103/125 [00:01<00:00, 56.98it/s, score=138]
+Sampling solutions:  83%|████████▎ | 104/125 [00:01<00:00, 56.98it/s, score=138]
+Sampling solutions:  84%|████████▍ | 105/125 [00:01<00:00, 56.98it/s, score=138]
+Sampling solutions:  85%|████████▍ | 106/125 [00:01<00:00, 56.98it/s, score=138]
+Sampling solutions:  86%|████████▌ | 107/125 [00:01<00:00, 56.27it/s, score=138]
+Sampling solutions:  86%|████████▌ | 107/125 [00:01<00:00, 56.27it/s, score=138]
+Sampling solutions:  86%|████████▋ | 108/125 [00:01<00:00, 56.27it/s, score=138]
+Sampling solutions:  87%|████████▋ | 109/125 [00:01<00:00, 56.27it/s, score=138]
+Sampling solutions:  88%|████████▊ | 110/125 [00:01<00:00, 56.27it/s, score=138]
+Sampling solutions:  89%|████████▉ | 111/125 [00:01<00:00, 56.27it/s, score=138]
+Sampling solutions:  90%|████████▉ | 112/125 [00:01<00:00, 56.27it/s, score=138]
+Sampling solutions:  90%|█████████ | 113/125 [00:02<00:00, 56.27it/s, score=138]
+Sampling solutions:  91%|█████████ | 114/125 [00:02<00:00, 57.64it/s, score=138]
+Sampling solutions:  91%|█████████ | 114/125 [00:02<00:00, 57.64it/s, score=138]
+Sampling solutions:  92%|█████████▏| 115/125 [00:02<00:00, 57.64it/s, score=138]
+Sampling solutions:  93%|█████████▎| 116/125 [00:02<00:00, 57.64it/s, score=138]
+Sampling solutions:  94%|█████████▎| 117/125 [00:02<00:00, 57.64it/s, score=138]
+Sampling solutions:  94%|█████████▍| 118/125 [00:02<00:00, 57.64it/s, score=138]
+Sampling solutions:  95%|█████████▌| 119/125 [00:02<00:00, 57.64it/s, score=138]
+Sampling solutions:  96%|█████████▌| 120/125 [00:02<00:00, 51.58it/s, score=138]
+Sampling solutions:  96%|█████████▌| 120/125 [00:02<00:00, 51.58it/s, score=138]
+Sampling solutions:  97%|█████████▋| 121/125 [00:02<00:00, 51.58it/s, score=138]
+Sampling solutions:  98%|█████████▊| 122/125 [00:02<00:00, 51.58it/s, score=138]
+Sampling solutions:  98%|█████████▊| 123/125 [00:02<00:00, 51.58it/s, score=138]
+Sampling solutions:  99%|█████████▉| 124/125 [00:02<00:00, 51.58it/s, score=138]
+Sampling solutions: 100%|██████████| 125/125 [00:02<00:00, 51.58it/s, score=138]
+Sampling solutions: 100%|██████████| 125/125 [00:02<00:00, 55.53it/s, score=138]
+[15:36:41.768] [logging] [INFO] | [solve_rooms] finished in 0:00:05.681164
+[15:36:41.778] [logging] [INFO] | [pose_cameras]
+[15:36:41.778] [logging] [INFO] | [Building placeholders KDTree]
+[15:36:41.778] [camera] [INFO] | Building placeholder kd for 30 objects
+[15:36:41.780] [logging] [INFO] | [Building placeholders KDTree] finished in 0:00:00.001638
+
+Searching for camera viewpoints:   0%|          | 0/10 [00:00<?, ?it/s]
+Searching for camera viewpoints:   0%|          | 0/10 [00:00<?, ?it/s]
+[15:36:41.916] [logging] [INFO] | [pose_cameras] failed with <class 'AssertionError'>
+[15:36:41.917] [logging] [INFO] | [MAIN TOTAL] failed with <class 'AssertionError'>
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/infinigen_examples/generate_indoors.py", line 573, in <module>
+    main(args)
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/infinigen_examples/generate_indoors.py", line 509, in main
+    execute_tasks.main(
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/infinigen/core/execute_tasks.py", line 368, in main
+    execute_tasks(
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/config.py", line 1605, in gin_wrapper
+    utils.augment_exception_message_and_reraise(e, err_str)
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/utils.py", line 41, in augment_exception_message_and_reraise
+    raise proxy.with_traceback(exception.__traceback__) from None
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/config.py", line 1582, in gin_wrapper
+    return fn(*new_args, **new_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/infinigen/core/execute_tasks.py", line 245, in execute_tasks
+    info = compose_scene_func(output_folder, scene_seed)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/config.py", line 1605, in gin_wrapper
+    utils.augment_exception_message_and_reraise(e, err_str)
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/utils.py", line 41, in augment_exception_message_and_reraise
+    raise proxy.with_traceback(exception.__traceback__) from None
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/config.py", line 1582, in gin_wrapper
+    return fn(*new_args, **new_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/infinigen_examples/generate_indoors.py", line 261, in compose_indoors
+    scene_preprocessed = p.run_stage("pose_cameras", pose_cameras, use_chance=False)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/infinigen/core/util/pipeline.py", line 89, in run_stage
+    ret = fn(*args, **kwargs)
+          ^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/infinigen_examples/generate_indoors.py", line 251, in pose_cameras
+    placement.camera.configure_cameras(
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/config.py", line 1605, in gin_wrapper
+    utils.augment_exception_message_and_reraise(e, err_str)
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/utils.py", line 41, in augment_exception_message_and_reraise
+    raise proxy.with_traceback(exception.__traceback__) from None
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/config.py", line 1582, in gin_wrapper
+    return fn(*new_args, **new_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/infinigen/core/placement/camera.py", line 711, in configure_cameras
+    views = compute_base_views(
+            ^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/config.py", line 1605, in gin_wrapper
+    utils.augment_exception_message_and_reraise(e, err_str)
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/utils.py", line 41, in augment_exception_message_and_reraise
+    raise proxy.with_traceback(exception.__traceback__) from None
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/config.py", line 1582, in gin_wrapper
+    return fn(*new_args, **new_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/infinigen/core/placement/camera.py", line 474, in compute_base_views
+    score = keep_cam_pose_proposal(
+            ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/config.py", line 1605, in gin_wrapper
+    utils.augment_exception_message_and_reraise(e, err_str)
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/utils.py", line 41, in augment_exception_message_and_reraise
+    raise proxy.with_traceback(exception.__traceback__) from None
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/config.py", line 1582, in gin_wrapper
+    return fn(*new_args, **new_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/infinigen/core/placement/camera.py", line 347, in keep_cam_pose_proposal
+    dists, camera_selection_answers_counts, n_pix = terrain_camera_query(
+                                                    ^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/infinigen/core/placement/camera.py", line 200, in terrain_camera_query
+    sensor_coords, pix_it = get_sensor_coords(cam, sparse=True)
+                            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/config.py", line 1605, in gin_wrapper
+    utils.augment_exception_message_and_reraise(e, err_str)
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/utils.py", line 41, in augment_exception_message_and_reraise
+    raise proxy.with_traceback(exception.__traceback__) from None
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/gin/config.py", line 1582, in gin_wrapper
+    return fn(*new_args, **new_kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/manishmehta/Desktop/project-iron-main/.venv-infinigen/lib/python3.11/site-packages/infinigen/core/placement/camera.py", line 55, in get_sensor_coords
+    assert abs(sensor_width_in_m / sensor_height_in_m - W / H) < 1e-4, (
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: (0.024, 0.018, 1280, 720)
+  In call to configurable 'get_sensor_coords' (<function get_sensor_coords at 0x173b996c0>)
+  In call to configurable 'keep_cam_pose_proposal' (<function keep_cam_pose_proposal at 0x173b98f40>)
+  In call to configurable 'compute_base_views' (<function compute_base_views at 0x173b99d00>)
+  In call to configurable 'configure_cameras' (<function configure_cameras at 0x173da45e0>)
+  In call to configurable 'compose_indoors' (<function compose_indoors at 0x1748967a0>)
+  In call to configurable 'execute_tasks' (<function execute_tasks at 0x1746c9e40>)
