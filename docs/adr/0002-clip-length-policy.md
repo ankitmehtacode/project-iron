@@ -88,3 +88,23 @@ property of the system.
   discipline, and neither is implemented.
 - Does the tubelet stay at 2 across every export? The table above assumes
   it does; a different tubelet rescales the whole column.
+
+## Day 12 update — the metric now exists; the data to run it does not
+
+`scripts/eval_semantics.py` (Day 12) implements same-object retrieval mAP
+as a cross-boundary, gap-swept protocol: a query/target pair only counts
+if the GT track's patch index changed between the two frames, the
+temporal gap is an explicit parameter, and every number is reported next
+to a position-only baseline. This is the metric the first open question
+above asked for, and its `--window` flag is wired to accept an arbitrary
+clip length `T`.
+
+It has not been run at `T=16` or `T=64`, because no IR has been exported
+at those window lengths — the only export on disk
+(`models/export/2026-07-31/vjepa2_vitl_fp32.xml`) is fixed at `T=4`
+(`--window` refuses cleanly for any other value rather than feeding a
+mismatched shape into OpenVINO). **This ADR still adopts no clip-length
+policy today.** What changes is that the 16-vs-64 decision now has a
+concrete, already-written measurement path: export at each candidate `T`,
+run the gap sweep, compare mAP against the position-only baseline at
+each. The remaining work is exports, not method.
