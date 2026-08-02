@@ -2345,3 +2345,176 @@ is how v3 became a depth fixture in the first place.
    cannot support appearance capabilities is refused at mint time rather than
    discovered later.
 7. **MEVA licence verification**, still blocked on a human.
+
+---
+
+# Day 11
+
+Branch `foundation/day-11`. Three feature commits.
+
+## Infinigen verdict, and its consequence for the data plan
+
+**Infinigen installs on this box and does not render on it.** From a clean
+`.venv-infinigen` (Python 3.11.15, `bpy==4.2.0`, `infinigen==1.12.2` — the
+pinned 3.10 measurement env stayed untouched; `scikit-image` had to be
+constrained to 0.21.0 because Infinigen's pinned 0.19.3 does not build on
+macOS 15 clang, and the pip resolver dropped Infinigen from 1.15.5 to 1.12.2
+as a consequence). Two paths were attempted. The furnished path
+(`fast_solve.gin`) ran 623 constraint-annealing iterations over 21 minutes 35
+seconds, completed 7 of many solver stages across 5 rooms, and was killed
+with zero frames rendered — each iteration costs 25-55 s and per-stage
+budgets are 100 iterations, so a completed scene is many hours away. The
+empty-room path (`singleroom.gin + fast_solve.gin + no_objects.gin`) exits
+in ~30 s on `AssertionError: (0.024, 0.018, 1280, 720)` inside
+`get_sensor_coords`: the default sensor is 4:3, the default render is 16:9,
+and the `execute_tasks.generate_resolution=[160,120]` override needed to
+reconcile them is silently not applied by gin. Both logs are preserved at
+`docs/day11/`. **No renderer available to us can score appearance-learned
+capabilities in a decision-quality session budget on this hardware**, and
+that changes the data plan: **real data is now the sole path for depth,
+semantics and re-ID**. This is a finding about *our compute*, not about
+Infinigen's quality — the acceptance procedure the registry pins remains the
+right test on a GPU box with hours of budget, and the registry note keeps
+that door open explicitly.
+
+## The updated capability × dataset validity matrix
+
+`point_tracking` joins the gate registry. `Infinigen-Indoors-depth-candidate`
+joins the dataset axis, and refuses on generation rather than on cues.
+
+```
+dataset                              motion_geometry  depth      appearance_semantics  point_tracking
+v1-driving                           not present      not present   not present         not present
+v2-indoor                            PASS             REFUSED       REFUSED             (not scored)
+v3-indoor                            PASS             REFUSED       REFUSED             REFUSED (set)
+Infinigen-Indoors-depth-candidate    (not generated)  (not scored)  (not scored)        (not scored)
+```
+
+| refusal | evidence |
+| --- | --- |
+| v3 point_tracking (set) | **26 of 30** clips below the 1e-3 corners/pixel floor; the 4 clips that pass all sit at exactly 1.111e-3, an order of magnitude short of what a real corridor frame gives a detector |
+| Infinigen candidate generation | 21m35s + 7/many solver stages + 0 frames; empty-room path crashes on a config incompatibility |
+| v2, v3 appearance | texture energy 3.03 (floor 12.0) — carried from Day 10 |
+| v2, v3 depth | rank corr −0.38 / −0.63 (floor +0.30) — carried from Day 10 |
+
+## Tracking result
+
+`scripts/eval_tracking.py`, gate first per the Day-10 rule. Per-clip corner
+density on the v3 golden set spans 4e-5 (a `blown_window` clip that is almost
+entirely one dark region) up to 1.111e-3 (the coverage-gap cameras and one
+`near_static` clip, all at the same value — the density every clip converges
+to when the frame is dominated by a couple of high-contrast furniture
+silhouettes). Set aggregate: **REFUSE**. No CoTracker3 score is computed on
+v3 — a pooled tracking number across a set where 26/30 clips starve the
+matcher would describe the extrapolator, not correspondence. Full per-clip
+evidence at `docs/day11/tracking_verdict.json`.
+
+Two things this leaves unmeasured, both recorded so the numbers cannot travel
+without them:
+
+- `scaled_offline.pth` is **bidirectional** — the checkpoint attends to
+  future frames when predicting frame *t*. Even if v3 had passed, that
+  number would have been an offline oracle, not the streaming path. The
+  offline-minus-online penalty remains unmeasured.
+- Same-clip observability bucketing (observable / off-sensor / occluded) is
+  implemented in `score_clip_with_tracker` so a Day-12+ real-footage set
+  gets the breakdown by construction.
+
+The CoTracker3 pin itself: `git+https://…/co-tracker.git@82e02e8029753a…`
+plus `einops>=0.7.0` (CoTracker declares `install_requires=[]` in its
+`setup.py` but its runtime imports einops). Fresh-clone verified into
+`.venv-pinned` up front — Day 10 named that as the blocker, so it moved
+first, not last. **The pin authorises evaluation only.** The majority of
+CoTracker is CC-BY-NC 4.0, which blocks any product build that includes the
+tracker or checkpoint; the ship question stays open in the registry.
+
+## Semantics partition — the metric measured the wrong thing
+
+Numbers on the current golden set (30 clips, 72 GT tracks, 268 embeddings),
+computed twice: once with the sidecar preprocess spec applied (production
+path — mean/std standardisation), once with the raw [0, 1] clip fed straight
+in (pre-fix path, reconstructed behind a flag in the script; production
+preprocessing is not un-fixed anywhere).
+
+|                              | standardised | pre-fix | delta  |
+| ---------------------------- | -----------: | ------: | -----: |
+| same-object retrieval mAP    | **0.268**    | 0.265   | +0.002 |
+| chance mAP (1/n_tracks)      |        0.015 |   0.015 | 0.000  |
+| temporal cosine (same track) |        0.929 |   0.920 | +0.009 |
+| patch-boundary L2            |        0.963 |   0.922 | +0.041 |
+
+At face value the mAP contradicts the partition — it is ~18× chance, not
+degenerate. But the diagnostic that lands next to it in the JSON payload
+tells a different story:
+
+> `patch_visit_diagnostic`: **79%** of GT tracks stay inside exactly **one
+> 16-px patch** across the encoder's 4-frame window; **100%** stay inside
+> at most two.
+
+An agent that occupies one patch for the whole encoder window makes
+"same-object retrieval" reduce to "look up almost the same embedding four
+times". The mAP is real — the mechanism producing it is patch-location
+constancy under low motion and a short window, not V-JEPA understanding of
+the agent as an object. The corroborating evidence is the **normalization
+delta of +0.002 mAP** and +0.009 temporal cosine: standardisation is what
+makes V-JEPA embeddings semantically meaningful (Day 1: unstandardised
+input drops the reference cosine from 1.000000 to 0.332), so a delta of
+two-thousandths says the mAP is not doing semantic work at all. If it were,
+the fixed path would separate sharply from the pre-fix one.
+
+So none of the two outcomes the prompt asked for cleanly applies:
+- Not "metrics degenerate, matching the gate's refusal → partition validated".
+- Not "metrics meaningful despite refusal → partition too coarse".
+- **The metric on this fixture cannot distinguish those cases.** It measures
+  patch-location constancy, not object semantics, because the fixture cannot
+  make tracks TRAVERSE patches within the 4-frame encoder window. The
+  partition prediction on semantics remains untested.
+
+The normalization delta is reported as measured (+0.002 mAP, +0.009 temporal
+cosine, +0.041 patch boundary) and labeled weak evidence in the JSON's
+`interpretation_note` per the prompt — a relative improvement on degenerate
+data is weak, and dropping it would have been worse than reporting it that
+way. The appearance gate itself still refuses v3 on measured evidence
+(texture 3.03, floor 12.0), which today's sample of 8 clips confirmed;
+nothing here changes that refusal.
+
+Full verdict at `docs/day11/semantics_verdict.json`. Encoder is V-JEPA2 fp32
+IR (`models/export/2026-07-31/vjepa2_vitl_fp32.xml`) — no INT8, blocked on
+the production artifact human item.
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. These carry forward from Day 10, ages
+counted in days since the item first surfaced:
+
+1. **Git remote / push, 5 days old.** Configured; today's session's
+   permission layer blocks it, not credentials.
+2. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`, ~8 days.** All
+   perception numbers today are fp32, which is a ceiling.
+3. **MEVA licence verification, ~10 days.** Highest product impact of any
+   pending data item. Real corridor footage is now the sole path for depth
+   / semantics / re-ID (see the Infinigen verdict above), which raises the
+   stakes on this.
+4. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7, ~10 days.**
+
+## Day 12, in order
+
+1. **A cross-clip, longer-window semantics metric.** The Day-11 mAP measured
+   patch-location constancy, not semantics; a metric that forces tracks to
+   traverse patches (or queries at frame 0 and retrieves from frame ≥20) is
+   the only way to actually test the partition on the fixture we have.
+2. **A texture/material gate at fixture mint time,** so a set that cannot
+   support appearance capabilities is refused when it is generated rather
+   than discovered several capabilities later. Carried from Day-11's list;
+   Day-11 gate additions were all downstream of mint.
+3. **DA-2K licence verification and first real depth number.** The adapter
+   is written and tested (Day 10); a single human read of the terms
+   unblocks the first real-data depth eval this project has ever produced.
+4. **Push.** Sixth day deferred; do not extend the streak.
+5. **Investigate the 57 false negatives** in the motion gate. Visible since
+   Day 9, still uninvestigated.
+6. **Streaming CoTracker3 checkpoint,** so the offline-minus-online penalty
+   is measured; every tracking number quoted from now on has to name whether
+   it is offline oracle or streaming.
+7. **MEVA licence verification** — still blocked on a human, restated in
+   position 7 rather than dropped.
