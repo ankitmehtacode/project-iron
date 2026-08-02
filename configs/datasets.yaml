@@ -401,6 +401,17 @@ datasets:
       semantics and re-ID. This is a finding about *our compute*, not about
       Infinigen's quality: on a GPU box with hours of budget, the acceptance
       procedure remains the right test.
+      DAY 12 CORRECTION: the Day-11 verdict above overclaimed. What Day 11
+      established is that generation did not COMPLETE within a session
+      budget on this hardware — it never established that Infinigen CANNOT
+      generate a passing sample. Those are different claims and the first
+      does not imply the second. The depth validity gate on this candidate
+      remains UNMEASURED, not REFUSED — no sample has ever been scored
+      against it, so there is no gate evidence either way. Corrected
+      status: BLOCKED ON GENERATION THROUGHPUT, not blocked on renderer
+      capability. See docs/day12/infinigen_throughput.md for the measured
+      per-stage timing, the scenes/hour extrapolation, and the decision
+      memo (overnight local vs. rented GPU) this correction is based on.
     asset_clearance:
       - asset: Infinigen generator (code)
         origin: github.com/princeton-vl/infinigen v1.12.2, pip wheel on PyPI
