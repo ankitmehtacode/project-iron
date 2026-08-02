@@ -1,0 +1,141 @@
+{
+  "appearance_gate_sample": [
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_crawl_2agents__cam_a",
+      "dataset": "speed_crawl_2agents__cam_a",
+      "evidence": {
+        "material_diversity": 15.168,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.031,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.03 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 15.17 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_crawl_2agents__cam_b",
+      "dataset": "speed_crawl_2agents__cam_b",
+      "evidence": {
+        "material_diversity": 14.592,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.102,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.10 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 14.59 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_slow_2agents__cam_a",
+      "dataset": "speed_slow_2agents__cam_a",
+      "evidence": {
+        "material_diversity": 15.163,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.036,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.04 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 15.16 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_slow_2agents__cam_b",
+      "dataset": "speed_slow_2agents__cam_b",
+      "evidence": {
+        "material_diversity": 14.553,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.1,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.10 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 14.55 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_walk_2agents__cam_a",
+      "dataset": "speed_walk_2agents__cam_a",
+      "evidence": {
+        "material_diversity": 15.144,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.03,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.03 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 15.14 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_walk_2agents__cam_b",
+      "dataset": "speed_walk_2agents__cam_b",
+      "evidence": {
+        "material_diversity": 14.503,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.106,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.11 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 14.50 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_brisk_2agents__cam_a",
+      "dataset": "speed_brisk_2agents__cam_a",
+      "evidence": {
+        "material_diversity": 15.155,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.028,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.03 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 15.15 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_brisk_2agents__cam_b",
+      "dataset": "speed_brisk_2agents__cam_b",
+      "evidence": {
+        "material_diversity": 14.474,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.1,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.10 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 14.47 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    }
+  ],
+  "checkpoint_note": "V-JEPA2 fp32 IR at models/export/2026-07-31/. No INT8 (blocked on the production artifact human item). All numbers above are from fp32.",
+  "dataset": "synthetic-indoor-v3",
+  "delta_fixed_minus_prefix": {
+    "mAP": 0.0023118729359181134,
+    "patch_boundary_l2": 0.04063981771469116,
+    "temporal_cosine": 0.009031896664597694
+  },
+  "interpretation_note": "The appearance gate refuses v3 on measured evidence (texture energy 3.03, floor 12.0). Read the patch_visit_diagnostic FIRST: if most tracks occupy a single patch over the encoder window, mAP is dominated by patch-location constancy rather than by V-JEPA understanding of the agent as an object, so a high mAP is NOT evidence against the appearance gate \u2014 it's the metric measuring the wrong thing. A pooled score across a fixture that cannot make tracks traverse patches within the encoder's 4-frame window is a same-frame lookup dressed as retrieval. The normalization delta should be trusted more than mAP here: standardisation is what makes V-JEPA embeddings semantically meaningful, so if the delta is near zero the mAP is not doing semantic work at all.",
+  "patch_visit_diagnostic": {
+    "fraction_in_at_most_two_patches": 1.0,
+    "fraction_in_one_patch": 0.7916666666666666,
+    "n_tracks": 72,
+    "unique_patches_max": 2,
+    "unique_patches_mean": 1.2083333333333333
+  },
+  "prefix_metrics": {
+    "chance_mAP": 0.014925373134328358,
+    "mAP": 0.26547188447626135,
+    "n_queries": 268,
+    "n_tracks": 67,
+    "patch_boundary_l2": 0.9222238659858704,
+    "temporal_cosine": 0.9201776836983934
+  },
+  "set": "v3-indoor",
+  "spec_source": "read from vjepa2_vitl/config.json and video_preprocessor_config.json",
+  "standardised_metrics": {
+    "chance_mAP": 0.014925373134328358,
+    "mAP": 0.26778375741217947,
+    "n_queries": 268,
+    "n_tracks": 67,
+    "patch_boundary_l2": 0.9628636837005615,
+    "temporal_cosine": 0.9292095803629911
+  }
+}
