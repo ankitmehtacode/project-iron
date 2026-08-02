@@ -2216,3 +2216,132 @@ Day 10 goes to the fixture, not the model.
    suppressed by the metres constant and have never been looked at.
 6. **Restore occlusion difficulty** — `occluded_track_fraction` is 0.0674.
 7. **MEVA license verification**, still blocked on a human.
+
+---
+
+# Day 10
+
+Branch `foundation/day-10`. Four commits.
+
+## The capability × dataset validity matrix
+
+The day's headline, and it fits on one screen. **7 of 9 cells refuse.**
+
+```
+dataset      motion_geometry   depth      appearance_semantics
+v1-driving   not present       not present   not present
+v2-indoor    PASS              REFUSED       REFUSED
+v3-indoor    PASS              REFUSED       REFUSED
+```
+
+| refusal | evidence |
+| --- | --- |
+| v3 depth | rank corr **−0.6309** (floor +0.30); spread 2.54 (floor 3.0); **93%** of pixels in one distance band |
+| v2 depth | rank corr **−0.3789**; spread 2.33; 93% in one band |
+| v2 + v3 appearance | texture energy **3.03** (floor 12.0); material diversity **15.17** (floor 24.0) |
+| v1-driving, all | clips not materialised locally — a statement about presence, not a verdict on the set |
+
+This is the honest picture of what this project can currently evaluate: **one
+capability, on two datasets.** Every perception claim beyond motion is
+unmeasured and, on what we own, unmeasurable.
+
+`make eval` now consults the gate **before** computing a metric and records the
+verdict in the scorecard. A failing capability is recorded as a refusal with
+evidence — never a blank, never a zero, never omitted. Day 9's depth number
+existed and was reproducible; the only thing that would have stopped it being
+quoted is a refusal computed first.
+
+`motion_geometry` is implemented as a **passing** case deliberately. A validity
+registry that only ever refuses cannot be distinguished from a broken one.
+
+Band populations are now reported alongside band scores everywhere, because on
+day 9 a band holding 95% of pixels set the aggregate while the band containing
+every agent scored δ<1.25 of exactly 0.0000 without moving the headline.
+
+## Motion and observability — honest accounting
+
+**The category error was already closed on day 9**, in the same commit that
+caused it. Three of the four red tests written today pass against yesterday's
+code. I did not find that bug today and am not claiming to.
+
+The fourth test caught the real remaining defect: world motion was still
+thresholded at a hardcoded 1 cm, so a 6 mm step at 2 m (2.7 px, plainly
+visible) read as static, while the same step at 20 m (0.27 px, invisible to any
+sensor) would have read as motion. Replaced with a derived bound — one pixel
+subtends `z / fx` metres, so the threshold scales with distance from the
+observing camera while the quantity stays world displacement and therefore
+means the same thing from every camera.
+
+```
+world_motion()          does the agent move       camera-independent
+gt_moved_from_render()  can this camera see it    camera-dependent
+```
+
+Re-scored v3, **unchanged from day 9's final numbers**:
+
+```
+recall 0.9340   precision 1.0000   FN 57   FP 0
+unobservable 17   below-envelope 10   scored 863   observable_fraction 0.9589
+```
+
+The derived threshold moved no v3 verdict, because v3's agents all displace far
+more than a pixel. It matters for correctness and for sets not yet authored,
+not for today's numbers — claiming a delta here would be inventing one.
+
+**None of the 42 previously-suppressed misses changed classification.** They
+were already correctly counted once motion and observability were separated;
+today's change did not touch them. They remain uninvestigated.
+
+## Real depth path
+
+Registered, **none fetched**:
+
+| entry | lane | human action that unblocks it |
+| --- | --- | --- |
+| DA-2K | R | read the licence, record a snapshot |
+| ETH3D | R | verify licence |
+| iBims-1 | R | verify licence |
+| DIODE-indoor | R | verify licence |
+| Infinigen-Indoors-depth-candidate | S | **none — unblocked by work, not paperwork** |
+
+The **DA-2K adapter is written and tested** against a synthesized 5-pair
+fixture, ready the moment the licence clears. It suits `disparity_rel` exactly
+because it performs **no alignment**: the question is only "is A nearer than B",
+so there is nothing for a scale/shift fit to launder. An inverted prediction
+scores 0.0 and a constant one lands at chance — both pinned by tests, both
+being precisely the day-9 failure modes that metric alignment concealed.
+
+The Infinigen entry carries a **binding acceptance procedure**: not trusted for
+depth until it passes the same gate that condemned v3. Photorealistic-synthetic
+is a hypothesis about whether the cues return, not a pass. Assuming otherwise
+is how v3 became a depth fixture in the first place.
+
+## Not done
+
+- **Objective 4, CoTracker3 + tracking.** Not started. The dependency decision
+  was made for me and is recorded, but adding it to the lockfile requires a
+  fresh-clone verification cycle that was not affordable today. **No tracking
+  number exists.**
+- **Objective 5, semantics.** Not run. Note that the appearance gate already
+  **refuses v3** on measured evidence (texture 3.03 against a floor of 12.0), so
+  the partition's *prediction* is on record — but the point of the objective was
+  to test whether that prediction is correct, and an untested prediction is not
+  a confirmation. **The partition remains unvalidated for semantics**, and the
+  normalization fix still has no task-level evidence.
+
+## Day 11, in order
+
+1. **Run semantics against the prediction.** Cheapest remaining test of whether
+   the partition generalizes or is too coarse. Weights are already on disk.
+2. **CoTracker3 into the lockfile**, fresh-clone verify, then TAP-Vid — checking
+   the validity gate first, since textureless primitives may starve the feature
+   matcher.
+3. **Generate an Infinigen-Indoors candidate set and run it through the depth
+   gate.** This is the only path to a depth number that does not need a licence.
+4. **Push.** Tenth day deferred; `origin` is configured and the push is blocked
+   by this session's permission layer, not by credentials.
+5. **Investigate the 57 false negatives.** Visible since day 9, still unexamined.
+6. **A texture/material gate for the fixture generator itself**, so a set that
+   cannot support appearance capabilities is refused at mint time rather than
+   discovered later.
+7. **MEVA licence verification**, still blocked on a human.
