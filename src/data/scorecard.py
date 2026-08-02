@@ -170,13 +170,29 @@ def clip_content_sha(clip_path: Path) -> str:
 
 @dataclass(frozen=True)
 class Metric:
-    """One measured number, with enough context to interpret it."""
+    """One measured number, with enough context to interpret it.
+
+    Every metric ships with the score of a trivial strategy that ignores
+    the capability being measured, plus the margin between the two. A
+    metric without baselines is not accepted here — the check runs in
+    :func:`_metric_with_baselines`, the only way a ``Metric`` should be
+    constructed in this module. See :mod:`src.eval.baselines` for the
+    pattern and the registered strategies.
+    """
 
     name: str
     value: float
     unit: str
     higher_is_better: bool
     detail: str = ""
+    baselines: tuple["Any", ...] = field(default_factory=tuple)
+    margin: float = float("nan")
+    flagged: bool = False
+    """True when the margin is at or below zero — the metric is not
+    distinguishing the system under test from a trivial strategy. Serialized
+    into the scorecard, and rendered next to the metric line, so the
+    condition is visible in the report rather than requiring a reader to
+    notice it."""
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -185,7 +201,47 @@ class Metric:
             "unit": self.unit,
             "higher_is_better": self.higher_is_better,
             "detail": self.detail,
+            "baselines": [b.as_dict() for b in self.baselines],
+            "margin": (
+                None if not np.isfinite(self.margin) else round(float(self.margin), 6)
+            ),
+            "flagged": bool(self.flagged),
         }
+
+
+def _metric_with_baselines(
+    name: str,
+    value: float,
+    unit: str,
+    higher_is_better: bool,
+    detail: str = "",
+    /,
+    **baseline_context: Any,
+) -> Metric:
+    """Construct a :class:`Metric` and attach its registered baselines.
+
+    Raises :class:`~src.eval.baselines.BaselineMissing` when no baseline is
+    registered for ``name``. The raise happens BEFORE the ``Metric`` is
+    returned, so no unbaseline-checked number can flow into a scorecard.
+    """
+    from src.eval.baselines import compute_baselines, margin as _margin
+
+    baselines = tuple(compute_baselines(name, **baseline_context))
+    margin_value = _margin(value, list(baselines), higher_is_better=higher_is_better)
+    if higher_is_better:
+        flagged = bool(np.isfinite(margin_value) and margin_value <= 0.0)
+    else:
+        flagged = bool(np.isfinite(margin_value) and margin_value <= 0.0)
+    return Metric(
+        name=name,
+        value=float(value),
+        unit=unit,
+        higher_is_better=higher_is_better,
+        detail=detail,
+        baselines=baselines,
+        margin=float(margin_value),
+        flagged=flagged,
+    )
 
 
 @dataclass
@@ -254,19 +310,33 @@ class Scorecard:
 
     def render(self) -> str:
         lines = [
-            "=" * 74,
+            "=" * 90,
             f"SCORECARD — golden set {self.golden_set_version} ({self.domain})",
-            "=" * 74,
+            "=" * 90,
             f"set_sha     : {self.golden_set_sha}",
             f"clips scored: {self.clips_scored}",
             "",
-            f"{'metric':<38} {'value':>12}  unit",
-            "-" * 74,
+            f"{'metric':<40} {'value':>10}  {'baseline':<28} {'margin':>10}",
+            "-" * 90,
         ]
         for metric in self.metrics:
             arrow = "^" if metric.higher_is_better else "v"
+            strongest = _strongest_baseline(metric)
+            if strongest is None:
+                baseline_str = "(no strategy applies)"
+                margin_str = "n/a"
+            elif not np.isfinite(strongest.value):
+                baseline_str = f"{strongest.name}: n/a"
+                margin_str = "n/a"
+            else:
+                baseline_str = f"{strongest.name}: {strongest.value:.4f}"
+                margin_str = (
+                    f"{metric.margin:+.4f}" if np.isfinite(metric.margin) else "n/a"
+                )
+            flag = "  !! FLAGGED — margin <= 0" if metric.flagged else ""
             lines.append(
-                f"{metric.name:<38} {metric.value:>12.4f}  {metric.unit} ({arrow} better)"
+                f"{metric.name:<40} {metric.value:>10.4f}  {baseline_str:<28} "
+                f"{margin_str:>10} ({arrow}){flag}"
             )
             if metric.detail:
                 lines.append(f"    {metric.detail}")
@@ -274,6 +344,27 @@ class Scorecard:
             lines.extend(["", "CAVEATS"])
             lines.extend(f"  - {c}" for c in self.caveats)
         return "\n".join(lines)
+
+
+def _strongest_baseline(metric: Metric) -> Any:
+    """Pick the baseline that a real metric must beat.
+
+    Higher-is-better metrics compete against the highest baseline; the
+    reverse for lower-is-better. Set-descriptor baselines (value=NaN, used
+    for metrics that are properties of the fixture rather than of a model)
+    render as "n/a"; picking one of those still lets the row read cleanly.
+    NaN-only baselines default to the first entry.
+    """
+    if not metric.baselines:
+        return None
+    finite = [b for b in metric.baselines if np.isfinite(b.value)]
+    if not finite:
+        return metric.baselines[0]
+    return (
+        max(finite, key=lambda b: b.value)
+        if metric.higher_is_better
+        else min(finite, key=lambda b: b.value)
+    )
 
 
 class Observability(IntEnum):
@@ -616,8 +707,19 @@ def compute(
         else float("nan")
     )
 
+    # Baseline context — the always-wake precision and F1 baselines depend
+    # on the moving-frame fraction of the scored set. Passed here once so
+    # the number the report shows against every gate metric describes the
+    # same denominator.
+    scored_frames = totals["scored_frames"]
+    moving_frames = tp + fn
+    non_moving_frames = max(scored_frames - moving_frames, 0)
+    moving_fraction = (
+        moving_frames / scored_frames if scored_frames else float("nan")
+    )
+
     card.metrics = [
-        Metric(
+        _metric_with_baselines(
             "motion_gate.recall",
             recall,
             "fraction",
@@ -625,16 +727,19 @@ def compute(
             f"{tp} of {tp + fn} moving frames woke the next stage. A missed "
             "wake loses the event outright.",
         ),
-        Metric(
+        _metric_with_baselines(
             "motion_gate.precision",
             precision,
             "fraction",
             True,
             f"{tp} of {tp + fp} wakes were on genuinely moving frames. Low "
             "precision costs compute, not evidence.",
+            moving_fraction=moving_fraction,
         ),
-        Metric("motion_gate.f1", f1, "fraction", True),
-        Metric(
+        _metric_with_baselines(
+            "motion_gate.f1", f1, "fraction", True, moving_fraction=moving_fraction
+        ),
+        _metric_with_baselines(
             "motion_gate.false_negatives",
             float(fn),
             "frames",
@@ -642,14 +747,15 @@ def compute(
             "The number that matters most: frames with real motion the gate "
             "slept through.",
         ),
-        Metric(
+        _metric_with_baselines(
             "motion_gate.false_positives",
             float(fp),
             "frames",
             False,
             "Wakes on frames with no motion; a compute cost.",
+            non_moving_frames=non_moving_frames,
         ),
-        Metric(
+        _metric_with_baselines(
             "envelope.limited_misses",
             float(totals["envelope_limited_misses"]),
             "frames",
@@ -659,7 +765,7 @@ def compute(
             "defect and NOT tunable away — this is the camera's capability "
             "envelope, and it is a mount-position and coverage input.",
         ),
-        Metric(
+        _metric_with_baselines(
             "envelope.unobservable_frames",
             float(totals["unobservable_frames"]),
             "frames",
@@ -668,7 +774,7 @@ def compute(
             "from every denominator: scoring them would ask a camera to see "
             "through its own frustum.",
         ),
-        Metric(
+        _metric_with_baselines(
             "envelope.wakes_outside_envelope",
             float(totals["wakes_outside_envelope"]),
             "frames",
@@ -677,7 +783,7 @@ def compute(
             "Reported so the excluded buckets cannot hide a wake storm; the "
             "stay-awake latch is the expected cause.",
         ),
-        Metric(
+        _metric_with_baselines(
             "gt.occluded_track_fraction",
             float(np.mean(occlusion_fractions)) if occlusion_fractions else 0.0,
             "fraction",
@@ -685,10 +791,13 @@ def compute(
             "Difficulty of the set itself, not a model result. A perfect score "
             "on unoccluded clips says nothing about occlusion handling.",
         ),
-        Metric(
-            "coverage.frames_scored", float(totals["scored_frames"]), "frames", True
+        _metric_with_baselines(
+            "coverage.frames_scored",
+            float(totals["scored_frames"]),
+            "frames",
+            True,
         ),
-        Metric(
+        _metric_with_baselines(
             "coverage.observable_fraction",
             (totals["scored_frames"] / presented) if presented else float("nan"),
             "fraction",
