@@ -2518,3 +2518,155 @@ counted in days since the item first surfaced:
    it is offline oracle or streaming.
 7. **MEVA licence verification** — still blocked on a human, restated in
    position 7 rather than dropped.
+
+---
+
+# Day 12
+
+Branch `foundation/day-12`. Five commits.
+
+## Retroactive baseline margins — the gate's precision is indistinguishable from always-wake
+
+Three times now a metric produced a confident number for a degenerate
+reason, each caught by a bespoke diagnostic after the fact. Day 12 makes
+the check structural: `src/eval/baselines.py` requires every metric name
+to declare a trivial-strategy baseline before a `Metric` can even be
+constructed (`BaselineMissing` raises at construction time), and every
+scorecard line now renders `value  baseline: X  margin: Y`, with
+`!! FLAGGED` printed inline when the margin is at or below zero.
+
+Applied retroactively to `motion_gate` — this project's only PASSING
+capability, and the one every Tier-1 economics claim rests on:
+
+| metric | value | strongest baseline | margin | flagged |
+| --- | ---: | --- | ---: | :---: |
+| `motion_gate.recall` | 0.9340 | always-wake: 1.0000 (boundary, not flag-worthy) | n/a | — |
+| `motion_gate.precision` | 1.0000 | always-wake: 1.0000 | **+0.0000** | **YES** |
+| `motion_gate.f1` | 0.9658 | always-wake: 1.0000 | **-0.0342** | **YES** |
+| `motion_gate.false_negatives` | 57 | always-wake: 0 (boundary, not flag-worthy) | n/a | — |
+| `motion_gate.false_positives` | 0 | always-wake: 0 | **+0.0000** | **YES** |
+
+**On the current v3-indoor golden set, the motion gate's precision, F1,
+and false-positive count are all exactly indistinguishable from the
+naive always-wake strategy.** 806/806 wakes were on genuinely moving
+frames either way; zero false positives either way. This is not a defect
+in the gate — it means v3-indoor's `observability_partition` never
+produces a scoreable non-moving frame where the gate could have woken
+wrongly and didn't, so there is currently no adversary condition in this
+fixture for precision to distinguish a discriminating gate from a gate
+that wakes on everything. The gate's real selectivity remains untested;
+recall is the only axis this set currently measures. Full scorecard with
+every baseline/margin/flag at
+`docs/day12/motion_gate_v3_with_baselines.json`.
+
+## Repaired retrieval protocol, and what it now measures
+
+Day 11's mAP queried at frame 0 and pooled every frame of a 4-frame clip;
+79% of GT tracks never left their patch across that window, so "same
+object" collapsed to "same patch index." The repair
+(`scripts/eval_semantics.py`) makes position unable to solve the task:
+query/target pairs are kept only if the GT track's patch index changed
+between the two frames (`crossed_boundary`), the temporal gap is an
+explicit swept parameter, and a position-only baseline (rank by assumed
+co-location) is computed and reported at every gap.
+
+| gap (frames) | surviving pairs | pool | mAP | strongest baseline | margin |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1 | 4 | 67 | 0.452 | 0.483 | -0.031 **FLAGGED** (n too small to trust) |
+| 2 | 8 | 67 | 0.486 | 0.407 | +0.079 |
+| 4 | 20 | 67 | 0.467 | 0.274 | **+0.194** |
+| 8 | 36 | 67 | 0.326 | 0.216 | +0.110 |
+| 16 | 53 | 67 | 0.272 | 0.152 | +0.120 |
+| 32 | 60 | 66 | 0.182 | 0.115 | +0.067 |
+
+**At gap=4, mAP beats the strongest baseline by +0.194 — the first
+genuinely interpretable semantic-retrieval signal this project has
+produced.** Margin is positive at every gap except gap=1, where only 4
+pairs survive and the sample is honestly too small to trust (flagged
+rather than hidden). Both mAP and surviving-pair count fall as gap grows
+past 4, which is plausible on two counts: longer separation is a harder
+retrieval task, and appearance itself drifts over more time, not just
+position. Full per-gap payload at `docs/day12/semantics_gap_sweep.json`.
+ADR 0002 gets a Day-12 update: this gap-sweep protocol is the semantic
+metric its 16-vs-64 clip-length question needed, but no IR export exists
+at those window lengths yet — no policy is adopted today.
+
+## Infinigen: throughput measured, Day-11 verdict retracted
+
+Day 11 concluded no renderer available to us can score appearance-learned
+capabilities. That overclaimed: what was measured is that generation did
+not complete in ~21 minutes, not that it cannot complete at all. **The
+depth validity gate on `Infinigen-Indoors-depth-candidate` is corrected to
+UNMEASURED** (blocked on generation throughput), not REFUSED — no sample
+has ever reached the gate.
+
+Measured, from evidence already on disk (no new generation run today):
+coarse-stage constraint solving averages **170.9 s/stage** (6 completed
+stages, 67.5-246.2 s range) and is CPU-bound — every measured stage is
+Python/numpy optimization, none of it GPU work. A new, isolated,
+bounded probe (`scripts/probe_cycles_throughput.py`) measured raytracing
+separately: after one-time kernel compilation, Metal-GPU Cycles renders
+in **0.5-0.9 s/frame regardless of sample count** — roughly 200-300x
+faster than the solving bottleneck. **The render stage was never the
+problem; the coarse-stage constraint solver is.** Full memo, including the
+overnight-local-vs-rented-GPU decision (recommendation: measure
+populate/fine_terrain/render costs and the solver rate on any candidate
+rented hardware before committing spend — do not choose yet) at
+`docs/day12/infinigen_throughput.md`.
+
+## Camera ingest readiness
+
+Built so that plugging in a camera is the only remaining step:
+`scripts/discover_cameras.py` (WS-Discovery + ONVIF Media-service stream
+enumeration, credentials always masked), `src/ingest/rtcp.py` (RTCP
+Sender Report parsing and RTP-to-wall-clock mapping, RFC 3550 §6.4.1),
+`src/ingest/rtsp.py` (TCP-only transport — refuses rather than falling
+back to UDP — interleaved demux, per-frame timestamp source always
+explicit, every dropped packet a `FrameGap` record), and
+`scripts/measure_substream_hypothesis.py` (the sub-stream-vs-downscaled-
+main comparison the 4.57%-vs-3.00% budget miss motivates, scaffolded and
+tested but refusing to run against anything but matched real captures).
+27 tests, all against real sockets and a real minimal RTSP server fixture
+— zero mocks, zero hardware. **Genuinely blocked on a camera now, not on
+code.**
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Ages counted in days since first surfaced:
+
+1. **Git remote / push, 6 days old.** Still session-permission-blocked,
+   not credential-blocked.
+2. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`, ~9 days.**
+3. **MEVA licence verification, ~11 days.** Highest product impact of any
+   pending item, sharpened by Day 11's (partially-corrected) real-data
+   finding.
+4. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7, ~11 days.**
+5. **A physical camera, new today.** Everything ingest-side is built and
+   tested against a fixture; only hardware unblocks the real path.
+
+## Day 13, in order
+
+1. **Investigate why v3-indoor cannot exercise motion-gate precision.**
+   Today's retroactive baseline run found precision/F1/false-positives
+   indistinguishable from always-wake — understand whether this is a
+   `observability_partition` denominator issue or a genuine property of
+   the fixture (no adversarial non-moving-but-textured frames), and fix
+   or document accordingly. This is now the highest-priority open item:
+   it is the only passing capability and its real selectivity is unknown.
+2. **Extend the gap-sweep protocol to real footage once a camera lands** —
+   the gap=4 signal (+0.194 margin) is the strongest evidence yet that the
+   encoder does real semantic work; confirming it survives off synthetic
+   fixtures matters more than any other semantics question open.
+3. **A patient overnight local Infinigen run**, inspected each morning
+   rather than session-bounded, to fill the populate/fine_terrain/render
+   measurement gap the throughput memo left open. Costs nothing but
+   otherwise-idle wall-clock.
+4. **Connect a camera and run `scripts/discover_cameras.py`.** Everything
+   downstream (RTSP ingest, the sub-stream hypothesis harness, the first
+   lane-C data) is built and waiting on this single step.
+5. **Push.** Seventh day deferred; the streak itself is now worth a
+   dedicated look at what in the session permission layer is blocking it.
+6. **Investigate the 57 false negatives** in the motion gate — visible
+   since Day 9, still uninvestigated, and now sitting next to a precision
+   finding that makes the gate's overall selectivity even less settled.
+7. **MEVA licence verification** — still blocked on a human.
