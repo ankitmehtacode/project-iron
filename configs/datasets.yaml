@@ -320,6 +320,63 @@ datasets:
         license: ours — no third-party asset
         smpl_derived: "no"
 
+  # -- real depth evaluation (day 10) ------------------------------------
+  # Depth is appearance-learned and cannot be scored on anything this project
+  # can generate — v2 and v3 both fail the depth validity gate. These are the
+  # candidates that can. NONE is fetched; each needs a human to read its terms.
+  - name: DA-2K
+    lane: R
+    subsystem: depth
+    hypothesis_class: >-
+      Depth-Anything's own relative-depth benchmark. Believed research-only.
+      VERIFY before any use beyond local eval.
+    notes: >-
+      PAIRWISE RELATIVE DEPTH on annotated pixel pairs — which is exactly what
+      disparity_rel can be scored on, with NO metric alignment and therefore no
+      scale/shift fit to launder a constant prediction into a good number. That
+      makes it the single best first real depth eval for this project. Adapter
+      implemented and tested against a synthesized 5-pair fixture; ready the
+      moment the licence clears. HUMAN ACTION: read the DA-2K terms and record
+      a licence snapshot.
+  - name: ETH3D
+    lane: R
+    subsystem: depth
+    hypothesis_class: research/non-commercial — verify
+    notes: >-
+      High-accuracy laser-scanned indoor/outdoor GT. Real materials, real
+      lighting, so it can exercise what analytic primitives cannot. HUMAN
+      ACTION: verify licence.
+  - name: iBims-1
+    lane: R
+    subsystem: depth
+    hypothesis_class: research-only — verify
+    notes: >-
+      Indoor benchmark built for exactly this failure mode: planarity, depth
+      boundaries and directed depth error rather than a single pooled AbsRel.
+      Closest public match to the product's domain. HUMAN ACTION: verify licence.
+  - name: DIODE-indoor
+    lane: R
+    subsystem: depth
+    hypothesis_class: research-only — verify
+    notes: >-
+      Dense indoor GT at long range, which is where this project's coverage
+      question lives. HUMAN ACTION: verify licence.
+  - name: Infinigen-Indoors-depth-candidate
+    lane: S
+    subsystem: depth
+    hypothesis_class: >-
+      BSD-3 generator, procedurally generated assets, ours outright once
+      generated — same standing as synthetic-indoor-v3.
+    notes: >-
+      CANDIDATE ONLY, AND NOT TRUSTED FOR DEPTH. Procedural materials and real
+      shading may restore the cues analytic primitives delete, or may not.
+      ACCEPTANCE PROCEDURE, binding: generate a set, run it through the
+      Objective-2 depth validity gate (rank correlation >= 0.30, dynamic range
+      >= 3.0, no distance band above 90% of pixels), and only then may a depth
+      number be computed on it. The same test condemned v3-indoor. Being
+      synthetic-but-photorealistic is a hypothesis, not a pass. HUMAN ACTION:
+      none — this one is unblocked by work, not by paperwork.
+
   # -- consented self-collected ------------------------------------------
   - name: site-zero
     lane: C

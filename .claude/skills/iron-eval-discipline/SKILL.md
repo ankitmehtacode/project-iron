@@ -76,6 +76,38 @@ are about to measure the defect.
 Corollary: **the mildest configuration is the worst place to audit.** Reproduce a suspected
 bug at the setting the product will actually use, not the one that is fastest to run.
 
+## The Synthetic-Evaluability Partition — classify the capability before building the fixture
+
+**Geometry-derived capabilities are synthetically evaluable. Appearance-learned ones are not.**
+
+| | examples | why | fixture |
+|---|---|---|---|
+| Geometry-derived | motion, occlusion topology, coverage, frustum visibility | ground truth is computable from the scene description; the model infers nothing the renderer does not already know | synthetic is **better** than real — exact GT, no annotation |
+| Appearance-learned | depth, semantics, re-ID, detection | the model runs on shading gradients, texture statistics and object recognition | synthetic is **worse** than real — analytic primitives delete exactly those cues |
+
+Worked example. v3-indoor carries *exact* ground-truth depth in metres, which made it look like
+an ideal depth fixture. Measured, DA-V2 scored **rank correlation −0.5924** against that ground
+truth — it ordered the pixels backwards — while a scale-and-shift alignment produced a
+respectable-looking **AbsRel 0.1538**. The same weights on real footage produced a 4.44 dynamic
+range with the floor correctly nearer than the ceiling. A flat matte wall at 15 m is not an easy
+depth target; it is an absent one.
+
+The trap is that **exact GT does not make a set a fixture for that capability.** Ground truth
+answers "what is true"; it says nothing about whether the input carries the signal the model
+needs. Motion survives on primitives because motion *is* geometry. Depth does not, because
+monocular depth is learned appearance.
+
+In practice:
+
+- Classify the capability *before* authoring a fixture, and pick the data source from the class.
+- Every capability gets a **validity gate** that runs before its metric — see
+  `src/data/validity.py`. A gate that fails records `unmeasurable_here` with evidence; it never
+  emits a blank, a zero, or nothing at all.
+- Report **band populations alongside band scores, always.** A band holding 95% of pixels sets
+  the aggregate by itself while the band you care about scores zero without moving the headline.
+- A validity registry that only ever refuses is indistinguishable from a broken one. Implement
+  at least one passing capability so the mechanism is falsifiable.
+
 ## Bounded Nulls — a search result carries its bounds
 
 **"Not found within the measurement window" and "does not exist" are distinct
