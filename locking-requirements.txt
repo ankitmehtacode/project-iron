@@ -58,6 +58,36 @@ psutil>=5.9.0
 # scipy supplies the linear regression and Student's t used by the leak gate.
 scipy>=1.11.0
 
+# Point tracking (CoTracker3).
+#
+# Facebook Research publishes no PyPI wheel — the package is `pip install -e .`
+# from source only, so the pin here is a git URL fixed to a specific commit
+# SHA. `git+https://…@<sha>` is the deterministic form; without the @SHA a
+# fresh clone would silently pull whichever main is HEAD on the day.
+#
+# LICENSE, and why this is dev-only: the majority of CoTracker is CC-BY-NC 4.0,
+# with subcomponents under MIT (Particle Video Revisited) and Apache-2.0
+# (TAP-Vid, LocoTrack). CC-BY-NC blocks commercial use of the code AND the
+# `scaled_offline.pth` checkpoint. That is fine for evaluation and internal
+# capability measurement — this is what the pin authorises — and the ship
+# question stays open in the dataset/model registry rather than being decided
+# here. Any product build that includes tracker inference must resolve the
+# licence before it goes out.
+#
+# The Day-10 report notes that `scaled_offline.pth` is bidirectional (looks
+# at future frames), which makes it an oracle for offline scoring but not the
+# production path — the streaming penalty from the online checkpoint is
+# unmeasured. That number is a Day-12+ item; the pin here does not settle it.
+#
+# Deps NOT declared by CoTracker's setup.py but which its imports need at
+# runtime: torch and torch.nn.functional (already pinned above), plus einops
+# for tensor reshapes inside `cotracker.models.core`. The runtime path used by
+# the eval script — `cotracker.predictor.CoTrackerPredictor` — pulls only
+# torch + einops; the training/dataset paths need more (imageio-ffmpeg,
+# gluefactory, etc.) and are not exercised here.
+cotracker @ git+https://github.com/facebookresearch/co-tracker.git@82e02e8029753ad4ef13cf06be7f4fc5facdda4d
+einops>=0.7.0
+
 # Dev / Linting / Testing
 black==23.12.1
 flake8==7.0.0

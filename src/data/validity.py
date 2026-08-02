@@ -90,6 +90,21 @@ v3: 95% of pixels sat at 8 m+, so the aggregate reported that band and the
 moving the headline."""
 
 
+MIN_TRACKABLE_CORNER_DENSITY = 1.0e-3
+"""Shi-Tomasi corners per pixel, below which point tracking is starving.
+
+Point tracking sits between geometry and appearance: it estimates a geometric
+quantity (2D location over time) but the estimator keys on local texture to
+find something to track. Analytic primitives shaded with a little procedural
+noise give the corner detector almost nothing, and a tracker fed nothing
+produces a track anyway — it just extrapolates. The floor is deliberately
+loose: on v2 real corridor footage a Shi-Tomasi detector at
+``maxCorners=1024, qualityLevel=0.01, minDistance=3`` returns hundreds of
+strong corners per QVGA frame (density ~5e-3). Anything an order of
+magnitude below that starves the matcher, and the tracker's numbers describe
+its extrapolator rather than its accuracy."""
+
+
 # --- gates -----------------------------------------------------------------
 
 
@@ -245,10 +260,73 @@ def gate_appearance_semantics(frames: np.ndarray, **_: Any) -> tuple[bool, str, 
     return True, "the frames carry texture and distinguishable materials", evidence
 
 
+def gate_point_tracking(frames: np.ndarray, **_: Any) -> tuple[bool, str, dict]:
+    """Point tracking needs something to track.
+
+    Sits between geometry and appearance. The output is geometric (2D
+    location, per frame, per query point), but the estimator finds and
+    matches local texture patches — corners, edges, gradient junctions. A
+    fixture with no local structure gives the matcher no lock, and the
+    tracker returns an extrapolation while the metric averages it into a
+    number that looks like accuracy.
+
+    The measurement here is Shi-Tomasi corner density, in corners per pixel,
+    averaged over the first few frames. A single number, with the same
+    "measure before scoring" stance every other gate in this file takes: run
+    it and refuse rather than compute an accuracy number on a starved
+    matcher and hide the fact by pooling.
+    """
+    if frames.ndim != 4:
+        return False, "expected [T, H, W, C] frames", {}
+    try:
+        import cv2
+    except ImportError:
+        return (
+            False,
+            "opencv is required to measure corner density and is not "
+            "available; refuse rather than assume the fixture is trackable",
+            {},
+        )
+
+    sample = frames[: min(4, frames.shape[0])]
+    densities: list[float] = []
+    for index in range(sample.shape[0]):
+        frame = sample[index]
+        grey = cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY) if frame.ndim == 3 else frame
+        corners = cv2.goodFeaturesToTrack(
+            grey, maxCorners=1024, qualityLevel=0.01, minDistance=3
+        )
+        found = 0 if corners is None else int(corners.shape[0])
+        densities.append(found / float(grey.shape[0] * grey.shape[1]))
+
+    density = float(np.mean(densities)) if densities else 0.0
+    evidence = {
+        "corner_density_per_pixel": round(density, 6),
+        "corner_density_floor": MIN_TRACKABLE_CORNER_DENSITY,
+        "frames_sampled": len(densities),
+    }
+    if density < MIN_TRACKABLE_CORNER_DENSITY:
+        return (
+            False,
+            f"corner density {density:.3e} is below "
+            f"{MIN_TRACKABLE_CORNER_DENSITY:.0e} corners/pixel — the matcher "
+            "has almost nothing to lock onto, and any tracking accuracy "
+            "reported here would describe extrapolation, not correspondence",
+            evidence,
+        )
+    return (
+        True,
+        "the frames carry enough local structure for a corner-based tracker "
+        "to have something to lock onto",
+        evidence,
+    )
+
+
 GATES: dict[str, Callable[..., tuple[bool, str, dict]]] = {
     "motion_geometry": gate_motion_geometry,
     "depth": gate_depth,
     "appearance_semantics": gate_appearance_semantics,
+    "point_tracking": gate_point_tracking,
 }
 
 

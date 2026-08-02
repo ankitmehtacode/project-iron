@@ -1,0 +1,369 @@
+{
+  "checkpoint_note": "scaled_offline.pth is bidirectional; a tracking score from it would have been an offline oracle even if the set had passed. Streaming (online) penalty remains unmeasured.",
+  "dataset": "synthetic-indoor-v3",
+  "per_clip_gate": [
+    {
+      "capability": "point_tracking",
+      "clip_id": "speed_crawl_2agents__cam_a",
+      "dataset": "speed_crawl_2agents__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000234,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 2.344e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "speed_crawl_2agents__cam_b",
+      "dataset": "speed_crawl_2agents__cam_b",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000737,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 7.373e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "speed_slow_2agents__cam_a",
+      "dataset": "speed_slow_2agents__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000258,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 2.582e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "speed_slow_2agents__cam_b",
+      "dataset": "speed_slow_2agents__cam_b",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000764,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 7.644e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "speed_walk_2agents__cam_a",
+      "dataset": "speed_walk_2agents__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000281,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 2.808e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "speed_walk_2agents__cam_b",
+      "dataset": "speed_walk_2agents__cam_b",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000843,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 8.434e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "speed_brisk_2agents__cam_a",
+      "dataset": "speed_brisk_2agents__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000313,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 3.125e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "speed_brisk_2agents__cam_b",
+      "dataset": "speed_brisk_2agents__cam_b",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000942,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 9.418e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "speed_fast_2agents__cam_a",
+      "dataset": "speed_fast_2agents__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000547,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 5.466e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "speed_fast_2agents__cam_b",
+      "dataset": "speed_fast_2agents__cam_b",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.001024,
+        "frames_sampled": 4
+      },
+      "passed": true,
+      "reason": "the frames carry enough local structure for a corner-based tracker to have something to lock onto"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "speed_sprint_2agents__cam_a",
+      "dataset": "speed_sprint_2agents__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.00065,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 6.505e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "speed_sprint_2agents__cam_b",
+      "dataset": "speed_sprint_2agents__cam_b",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000824,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 8.238e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "crowded_6agents__cam_a",
+      "dataset": "crowded_6agents__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000305,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 3.054e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "crowded_6agents__cam_b",
+      "dataset": "crowded_6agents__cam_b",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000302,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 3.025e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "furniture_occlusion_3agents__cam_a",
+      "dataset": "furniture_occlusion_3agents__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000415,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 4.148e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "furniture_occlusion_3agents__cam_d",
+      "dataset": "furniture_occlusion_3agents__cam_d",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000455,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 4.552e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "receding_2agents__cam_d",
+      "dataset": "receding_2agents__cam_d",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000273,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 2.734e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "receding_2agents__cam_a",
+      "dataset": "receding_2agents__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000248,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 2.485e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "hd_walk_2agents__cam_a_1080",
+      "dataset": "hd_walk_2agents__cam_a_1080",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000494,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 4.938e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "hd_walk_2agents__cam_b_1080",
+      "dataset": "hd_walk_2agents__cam_b_1080",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000479,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 4.789e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "hd_far_field_3agents__cam_a_1080",
+      "dataset": "hd_far_field_3agents__cam_a_1080",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000339,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 3.390e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "lights_off_transient__cam_a",
+      "dataset": "lights_off_transient__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000376,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 3.760e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "lights_off_transient__cam_b",
+      "dataset": "lights_off_transient__cam_b",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000935,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 9.351e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "blown_window__cam_a",
+      "dataset": "blown_window__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 4.3e-05,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 4.286e-05 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "blown_window__cam_b",
+      "dataset": "blown_window__cam_b",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 4e-05,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 3.988e-05 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "near_static__cam_a",
+      "dataset": "near_static__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.001111,
+        "frames_sampled": 4
+      },
+      "passed": true,
+      "reason": "the frames carry enough local structure for a corner-based tracker to have something to lock onto"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "coverage_gap_3agents__cam_gap",
+      "dataset": "coverage_gap_3agents__cam_gap",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.001111,
+        "frames_sampled": 4
+      },
+      "passed": true,
+      "reason": "the frames carry enough local structure for a corner-based tracker to have something to lock onto"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "coverage_gap_3agents__cam_a",
+      "dataset": "coverage_gap_3agents__cam_a",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.00038,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 3.800e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "coverage_gap_handoff__cam_gap",
+      "dataset": "coverage_gap_handoff__cam_gap",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.001111,
+        "frames_sampled": 4
+      },
+      "passed": true,
+      "reason": "the frames carry enough local structure for a corner-based tracker to have something to lock onto"
+    },
+    {
+      "capability": "point_tracking",
+      "clip_id": "coverage_gap_handoff__cam_d",
+      "dataset": "coverage_gap_handoff__cam_d",
+      "evidence": {
+        "corner_density_floor": 0.001,
+        "corner_density_per_pixel": 0.000323,
+        "frames_sampled": 4
+      },
+      "passed": false,
+      "reason": "corner density 3.231e-04 is below 1e-03 corners/pixel \u2014 the matcher has almost nothing to lock onto, and any tracking accuracy reported here would describe extrapolation, not correspondence"
+    }
+  ],
+  "reason": "26 of 30 clips fell below the corner-density floor. A pooled tracking number across a set where the majority of clips starve the matcher reports its extrapolator; the set is not scored, per the Day-10 rule that a validity gate is checked before the metric is computed.",
+  "set": "v3-indoor",
+  "verdict": "REFUSE"
+}
