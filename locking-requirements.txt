@@ -88,6 +88,22 @@ scipy>=1.11.0
 cotracker @ git+https://github.com/facebookresearch/co-tracker.git@82e02e8029753ad4ef13cf06be7f4fc5facdda4d
 einops>=0.7.0
 
+# Camera discovery (scripts/discover_cameras.py, Day 12).
+#
+# `onvif-zeep` on PyPI is a naming trap: despite the name, that package
+# (github.com/quatanium/python-onvif) is `suds`-based, Python-2-oriented,
+# and unmaintained — pinning it would silently fail to import cleanly on
+# this stack. The actually-maintained, Python 3 async client is
+# `onvif-zeep-async` (github.com/hunterjm/python-onvif-zeep-async, used by
+# Home Assistant's ONVIF integration), which wraps `zeep` for real. Confirmed
+# from PyPI metadata directly before pinning, not from the package name.
+#
+# WS-Discovery (the subnet PROBE step) is hand-rolled in
+# scripts/discover_cameras.py rather than pulling in another dependency —
+# it is a small, well-specified UDP multicast protocol, and onvif-zeep-async
+# only covers device control once an IP is already known.
+onvif-zeep-async==4.2.1
+
 # Dev / Linting / Testing
 black==23.12.1
 flake8==7.0.0
