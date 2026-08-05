@@ -61,6 +61,19 @@ from src.model.events import (
     event_v2_to_dict,
     raise_alert,
 )
+from src.model.evidence import (
+    COMMITMENT_STATUSES,
+    CalibratedProbability,
+    CalibrationRecord,
+    CommitmentStatus,
+    Confidence,
+    DerivationStep,
+    Evidence,
+    EvidenceCommitment,
+    EvidenceError,
+    UncalibratedScore,
+    compute_merkle_root,
+)
 from src.model.frame_of_reference import FrameOfReference
 from src.model.measurement import (
     BadgeSwipeMeasurement,
@@ -150,4 +163,15 @@ __all__ = [
     "Correction",
     "DerivedArtifact",
     "ArtifactRegistry",
+    "EvidenceError",
+    "DerivationStep",
+    "Evidence",
+    "CommitmentStatus",
+    "COMMITMENT_STATUSES",
+    "compute_merkle_root",
+    "EvidenceCommitment",
+    "CalibrationRecord",
+    "UncalibratedScore",
+    "CalibratedProbability",
+    "Confidence",
 ]
