@@ -70,6 +70,17 @@ from src.model.measurement import (
     Measurement,
 )
 from src.model.observation import Observation, ObservationError
+from src.model.relationship import (
+    CORRECTION_KINDS,
+    RELATIONSHIP_BASES,
+    ArtifactRegistry,
+    Correction,
+    CorrectionKind,
+    DerivedArtifact,
+    Relationship,
+    RelationshipBasis,
+    RelationshipError,
+)
 from src.model.uncertainty import ALL_UNCERTAINTY_KINDS, Uncertainty, UncertaintyError
 from src.model.ulid import ULID, InvalidULID, generate_ulid
 
@@ -130,4 +141,13 @@ __all__ = [
     "confirm_prediction",
     "event_v2_to_dict",
     "event_v2_from_dict",
+    "RelationshipBasis",
+    "RELATIONSHIP_BASES",
+    "CorrectionKind",
+    "CORRECTION_KINDS",
+    "Relationship",
+    "RelationshipError",
+    "Correction",
+    "DerivedArtifact",
+    "ArtifactRegistry",
 ]
