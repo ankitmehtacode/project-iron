@@ -11,10 +11,6 @@ from __future__ import annotations
 
 from bisect import bisect_left
 from dataclasses import dataclass
-from typing import Literal, get_args
-
-EnvelopeStatus = Literal["live", "degraded", "offline", "occluded"]
-ENVELOPE_STATUSES: tuple[EnvelopeStatus, ...] = get_args(EnvelopeStatus)
 
 
 class EnvelopeError(ValueError):
