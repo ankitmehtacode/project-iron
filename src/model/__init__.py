@@ -28,6 +28,16 @@ from src.model.entity import (
     RegisteredAssetEntity,
     TimeVaryingAttribute,
 )
+from src.model.alert import (
+    Alert,
+    AlertEmissionEligibleEvent,
+    AlertError,
+    ExplainabilityError,
+    ExplainedAlert,
+    ExplainedHop,
+    emit_alert,
+    explain,
+)
 from src.model.coverage import (
     AbsenceResult,
     COVERAGE_STATUSES,
@@ -220,4 +230,12 @@ __all__ = [
     "TwinRevTransform",
     "TwinRevTransformRegistry",
     "TwinRevError",
+    "AlertEmissionEligibleEvent",
+    "AlertError",
+    "Alert",
+    "emit_alert",
+    "ExplainabilityError",
+    "ExplainedHop",
+    "ExplainedAlert",
+    "explain",
 ]

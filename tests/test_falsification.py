@@ -8,20 +8,23 @@ than confirming a guarantee, it says so in its own docstring and asserts
 the gap explicitly (not just leaves it unasserted), and the finding is
 also written up in FOUNDATION_REPORT.md's Day-13 section.
 
-Summary (see the Day-13 report for the full discussion):
-    1. Absence under degraded coverage        -- PASSES
-    2. Retroactive badge resolution            -- PASSES
-    3. Twin re-version                         -- PARTIAL: staleness is
-       detectable (FrameOfReference.is_current_for) but not automatically
-       enforced anywhere; nothing raises when stale data is used. Full
-       enforcement needs the estimator layer, out of scope for Day 13.
-    4. Alert explainability                    -- PARTIAL: explainable
-       when evidence_refs is populated, but nothing STRUCTURALLY requires
-       an alert-eligible event to carry evidence — an event can pass
-       raise_alert() with empty evidence_refs.
-    5. Behaviour-query shape                   -- PASSES at the type level
-       (an ActivityMode can never be confused with a fact); blocked on
-       the unimplemented estimator for producing a real answer to query.
+Summary (see the Day-14 report for the full discussion; Day-13 status in
+parens):
+    1. Absence under degraded coverage    -- PASSES (unchanged since Day 13)
+    2. Retroactive badge resolution       -- PASSES (unchanged since Day 13)
+    3. Twin re-version                    -- PASSES as of Day 14
+       (src/model/world.py — WorldPosition requires twin_rev; cross-rev
+       distance/reproject raise without an explicit TwinRevTransform).
+       Day 13: PARTIAL, staleness detectable but not enforced.
+    4. Alert explainability               -- PASSES as of Day 14
+       (src/model/alert.py — emit_alert()/explain() require and resolve a
+       full evidence chain; raise_alert() stays the deliberately broader
+       Day-13 type-eligibility check for forecast-only paging).
+       Day 13: PARTIAL, an alert-eligible event could carry zero evidence.
+    5. Behaviour-query shape              -- PASSES at the type level
+       (an ActivityMode can never be confused with a fact); still blocked
+       on the unimplemented estimator for producing a real answer to a
+       live query — unchanged since Day 13, by scope, not by oversight.
 """
 
 from __future__ import annotations
@@ -30,7 +33,9 @@ import uuid
 
 import pytest
 
+from src.contracts.frames import AffineTransform, FrameGeometry
 from src.events.schema import EntityRef, Verb
+from src.model.alert import AlertError, emit_alert, explain
 from src.model.coverage import (
     Absence,
     CannotEstablish,
@@ -56,7 +61,12 @@ from src.model.relationship import (
     DerivedArtifact,
     Relationship,
 )
-from src.contracts.frames import AffineTransform, FrameGeometry
+from src.model.world import (
+    RigidTransform3D,
+    TwinRevError,
+    TwinRevTransform,
+    WorldPosition,
+)
 
 SECOND_NS = 1_000_000_000
 BASE_TS = 1_785_000_000 * SECOND_NS
@@ -161,15 +171,15 @@ def test_falsification_retroactive_badge_resolution() -> None:
 
 
 # ---------------------------------------------------------------------------
-# 3. Twin re-version -- PARTIAL (see module docstring)
+# 3. Twin re-version -- PASSES as of Day 14 (see module docstring)
 # ---------------------------------------------------------------------------
 
 
 def test_falsification_twin_reversion_staleness_is_detectable() -> None:
     """A camera recalibration bumps twin_rev; old-rev data must be flaggable.
 
-    PASSES: FrameOfReference.is_current_for correctly distinguishes
-    pre-remount from post-remount data.
+    FrameOfReference.is_current_for correctly distinguishes pre-remount
+    from post-remount pixel-frame data (unchanged since Day 13).
     """
     pre_remount = FrameOfReference(
         geometry=FrameGeometry(1920, 1080),
@@ -182,34 +192,43 @@ def test_falsification_twin_reversion_staleness_is_detectable() -> None:
     assert not pre_remount.is_current_for(current_twin_rev_after_remount)
 
 
-def test_falsification_twin_reversion_is_not_automatically_enforced() -> None:
-    """GAP, documented rather than hidden: nothing raises when stale
-    twin-rev data is actually used.
+def test_falsification_twin_reversion_world_position_now_raises_across_revs() -> None:
+    """FIXED on Day 14 (src/model/world.py): a WorldPosition cannot be
+    compared, or have its distance measured, against a position from a
+    different twin_rev without an explicit TwinRevTransform.
 
-    Staleness is representable and comparable (previous test), but no
-    guard in src/model stops a caller from combining a twin_rev=1
-    FrameOfReference with twin_rev=2 world-state — that enforcement point
-    is the estimator / query layer, out of scope for Day 13 (see
-    src/model/episode.py::solve_state). This test asserts the CURRENT
-    (gap) behaviour explicitly, so it starts failing the day someone adds
-    the guard — at which point this test should be deleted, not "fixed".
+    Day 13's version of this test asserted the gap directly: nothing
+    stopped a caller from combining a stale-rev position with current
+    data, no exception, no warning. That is no longer true.
     """
-    stale_ref = FrameOfReference(
-        geometry=FrameGeometry(1920, 1080),
-        to_canonical=AffineTransform.identity(),
-        twin_rev=1,
-    )
-    current_twin_rev = 2
+    pre_remount = WorldPosition(x_m=1.0, y_m=2.0, z_m=0.0, twin_rev=1)
+    post_remount = WorldPosition(x_m=1.0, y_m=2.0, z_m=0.0, twin_rev=2)
 
-    # Nothing prevents constructing or using a record with a stale
-    # twin_rev alongside a "current" world — no exception, no warning.
-    assert stale_ref.twin_rev != current_twin_rev
-    # The caller must remember to check is_current_for() themselves; nothing
-    # forces it. This is the gap.
+    with pytest.raises(TwinRevError):
+        pre_remount.distance_to(post_remount)  # no transform supplied
+
+    wrong_direction = TwinRevTransform(
+        from_twin_rev=2, to_twin_rev=1, transform=RigidTransform3D.identity()
+    )
+    with pytest.raises(TwinRevError):
+        pre_remount.reproject(wrong_direction)  # pre_remount is rev 1, not 2
+
+    # With the correct, explicit transform, the historical position
+    # remains interpretable — the falsification claim itself.
+    remount_shift = TwinRevTransform(
+        from_twin_rev=1,
+        to_twin_rev=2,
+        transform=RigidTransform3D(
+            rotation=(1, 0, 0, 0, 1, 0, 0, 0, 1), translation=(0.1, 0.0, 0.0)
+        ),
+    )
+    reprojected = pre_remount.reproject(remount_shift)
+    assert reprojected.twin_rev == 2
+    assert pre_remount.twin_rev == 1  # original record untouched
 
 
 # ---------------------------------------------------------------------------
-# 4. Alert explainability -- PARTIAL (see module docstring)
+# 4. Alert explainability -- PASSES as of Day 14 (see module docstring)
 # ---------------------------------------------------------------------------
 
 
@@ -257,21 +276,49 @@ def test_falsification_alert_explainability_when_evidence_is_populated() -> None
     assert all(e.observation_refs for e in chain)
 
 
-def test_falsification_alert_explainability_is_not_structurally_required() -> None:
-    """GAP, documented rather than hidden: raise_alert does not require
-    evidence_refs to be non-empty.
-
-    An event can be alert-eligible by type (ObservedEvent) and still
-    carry zero evidence references — nothing in src/model/events.py's
-    validation or in raise_alert() checks this. Explainability today is a
-    property of how a producer *chooses* to populate evidence_refs, not a
-    guarantee the type system makes. This is a real finding, not a
-    theoretical one: it means an alert can currently be un-explainable
-    and still fire.
+def test_falsification_raise_alert_alone_still_permits_empty_evidence() -> None:
+    """UNCHANGED, by design: events.raise_alert() (Day 13) is deliberately
+    still the broader type-eligibility check, and still permits an event
+    with empty evidence_refs to pass it — that path exists for forecast
+    paging (test below), not for the fully-explainable production alert
+    surface. src/model/alert.py's emit_alert() is the strict path, tested
+    next, and it is what actually closes the falsification gap.
     """
     unexplainable = _explainable_event(evidence_refs=())
-    triggerable = raise_alert(unexplainable)  # succeeds -- this is the gap
+    triggerable = raise_alert(unexplainable)  # still succeeds -- unchanged
     assert triggerable.evidence_refs == ()
+
+
+def test_falsification_emit_alert_now_requires_a_resolvable_evidence_chain() -> None:
+    """FIXED on Day 14 (src/model/alert.py): the strict alert-emission path
+    requires a non-empty, resolved evidence chain, and explain() resolves
+    it end to end -- alert -> event -> evidence -> observations/clips,
+    with producer_sha checked at every derivation step.
+    """
+    unexplainable = _explainable_event(evidence_refs=())
+    with pytest.raises(AlertError):
+        emit_alert("alert-1", unexplainable, evidence_chain=[], manifest_sha="sha-1")
+
+    explainable = _explainable_event(evidence_refs=("ev-1",))
+    evidence = Evidence(
+        evidence_id="ev-1",
+        clip_refs=("cam-1/clip-1",),
+        state_refs=(),
+        observation_refs=("obs-1", "obs-2"),
+        derivation_chain=(
+            DerivationStep(stage="detector:yolov8", producer_sha="sha-det"),
+            DerivationStep(stage="hand_object_continuity", producer_sha="sha-cont"),
+        ),
+        producer_shas=("sha-det", "sha-cont"),
+        reproducible=True,
+        reproduce_command="python scripts/rerun_claim.py --evidence ev-1",
+    )
+    alert = emit_alert(
+        "alert-1", explainable, evidence_chain=[evidence], manifest_sha="sha-1"
+    )
+    explained = explain("alert-1", {"alert-1": alert})
+    assert explained.hops[0].observation_refs == ("obs-1", "obs-2")
+    assert explained.hops[0].producer_shas == ("sha-det", "sha-cont")
 
 
 def test_falsification_predicted_event_can_alert_but_is_not_evidence_eligible() -> None:
