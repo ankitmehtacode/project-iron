@@ -1,0 +1,245 @@
+{
+  "appearance_gate_sample": [
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_crawl_2agents__cam_a",
+      "dataset": "speed_crawl_2agents__cam_a",
+      "evidence": {
+        "material_diversity": 15.168,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.031,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.03 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 15.17 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_crawl_2agents__cam_b",
+      "dataset": "speed_crawl_2agents__cam_b",
+      "evidence": {
+        "material_diversity": 14.592,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.102,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.10 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 14.59 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_slow_2agents__cam_a",
+      "dataset": "speed_slow_2agents__cam_a",
+      "evidence": {
+        "material_diversity": 15.163,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.036,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.04 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 15.16 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_slow_2agents__cam_b",
+      "dataset": "speed_slow_2agents__cam_b",
+      "evidence": {
+        "material_diversity": 14.553,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.1,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.10 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 14.55 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_walk_2agents__cam_a",
+      "dataset": "speed_walk_2agents__cam_a",
+      "evidence": {
+        "material_diversity": 15.144,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.03,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.03 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 15.14 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_walk_2agents__cam_b",
+      "dataset": "speed_walk_2agents__cam_b",
+      "evidence": {
+        "material_diversity": 14.503,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.106,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.11 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 14.50 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_brisk_2agents__cam_a",
+      "dataset": "speed_brisk_2agents__cam_a",
+      "evidence": {
+        "material_diversity": 15.155,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.028,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.03 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 15.15 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    },
+    {
+      "capability": "appearance_semantics",
+      "clip_id": "speed_brisk_2agents__cam_b",
+      "dataset": "speed_brisk_2agents__cam_b",
+      "evidence": {
+        "material_diversity": 14.474,
+        "material_diversity_floor": 24.0,
+        "texture_energy": 3.1,
+        "texture_energy_floor": 12.0
+      },
+      "passed": false,
+      "reason": "texture energy 3.10 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 14.47 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval"
+    }
+  ],
+  "checkpoint_note": "V-JEPA2 fp32 IR at models/export/2026-07-31/. No INT8 (blocked on the production artifact human item).",
+  "dataset": "synthetic-indoor-v3",
+  "gaps_swept": [
+    1,
+    2,
+    4,
+    8,
+    16,
+    32
+  ],
+  "interpretation_note": "Read n_pairs before mAP. A gap where n_pairs is tiny relative to the track count means almost no track crosses a patch boundary in that many frames \u2014 the fixture's motion is too slow, not the encoder's fault, and the mAP at that gap should not be trusted. Compare mAP against BOTH baselines: chance (uniform-random ranking) and position_only (rank by assumed co-location). If mAP is close to position_only, the encoder is not adding information beyond spatial proximity \u2014 the same failure mode Day 11 found, just no longer hidden by a query protocol that could not detect it.",
+  "patch_visit_diagnostic": {
+    "fraction_in_at_most_two_patches": 1.0,
+    "fraction_in_one_patch": 0.7916666666666666,
+    "n_tracks": 72,
+    "unique_patches_max": 2,
+    "unique_patches_mean": 1.2083333333333333
+  },
+  "per_gap": {
+    "1": {
+      "delta_mAP": -0.4226190476190476,
+      "flagged": true,
+      "margin_over_strongest_baseline": -0.030952380952380953,
+      "prefix": {
+        "chance_mAP": 0.014925373134328358,
+        "mAP": 0.875,
+        "n_pairs": 4,
+        "n_pool": 67,
+        "position_only_mAP": 0.48333333333333334
+      },
+      "standardised": {
+        "chance_mAP": 0.014925373134328358,
+        "mAP": 0.4523809523809524,
+        "n_pairs": 4,
+        "n_pool": 67,
+        "position_only_mAP": 0.48333333333333334
+      }
+    },
+    "16": {
+      "delta_mAP": 0.004912144576586064,
+      "flagged": false,
+      "margin_over_strongest_baseline": 0.12009824857966608,
+      "prefix": {
+        "chance_mAP": 0.014925373134328358,
+        "mAP": 0.26725910064154484,
+        "n_pairs": 53,
+        "n_pool": 67,
+        "position_only_mAP": 0.15207299663846482
+      },
+      "standardised": {
+        "chance_mAP": 0.014925373134328358,
+        "mAP": 0.2721712452181309,
+        "n_pairs": 53,
+        "n_pool": 67,
+        "position_only_mAP": 0.15207299663846482
+      }
+    },
+    "2": {
+      "delta_mAP": 0.04503251686368803,
+      "flagged": false,
+      "margin_over_strongest_baseline": 0.07871307241924358,
+      "prefix": {
+        "chance_mAP": 0.014925373134328358,
+        "mAP": 0.44062499999999993,
+        "n_pairs": 8,
+        "n_pool": 67,
+        "position_only_mAP": 0.4069444444444444
+      },
+      "standardised": {
+        "chance_mAP": 0.014925373134328358,
+        "mAP": 0.48565751686368797,
+        "n_pairs": 8,
+        "n_pool": 67,
+        "position_only_mAP": 0.4069444444444444
+      }
+    },
+    "32": {
+      "delta_mAP": 0.026121662249690036,
+      "flagged": false,
+      "margin_over_strongest_baseline": 0.06729919259217232,
+      "prefix": {
+        "chance_mAP": 0.015151515151515152,
+        "mAP": 0.15605750333716217,
+        "n_pairs": 60,
+        "n_pool": 66,
+        "position_only_mAP": 0.11487997299467989
+      },
+      "standardised": {
+        "chance_mAP": 0.015151515151515152,
+        "mAP": 0.1821791655868522,
+        "n_pairs": 60,
+        "n_pool": 66,
+        "position_only_mAP": 0.11487997299467989
+      }
+    },
+    "4": {
+      "delta_mAP": -0.008920202604413063,
+      "flagged": false,
+      "margin_over_strongest_baseline": 0.19367234373813325,
+      "prefix": {
+        "chance_mAP": 0.014925373134328358,
+        "mAP": 0.4763461538461538,
+        "n_pairs": 20,
+        "n_pool": 67,
+        "position_only_mAP": 0.2737536075036075
+      },
+      "standardised": {
+        "chance_mAP": 0.014925373134328358,
+        "mAP": 0.46742595124174074,
+        "n_pairs": 20,
+        "n_pool": 67,
+        "position_only_mAP": 0.2737536075036075
+      }
+    },
+    "8": {
+      "delta_mAP": -0.06998163352676279,
+      "flagged": false,
+      "margin_over_strongest_baseline": 0.10987956207652155,
+      "prefix": {
+        "chance_mAP": 0.014925373134328358,
+        "mAP": 0.3958847204625935,
+        "n_pairs": 36,
+        "n_pool": 67,
+        "position_only_mAP": 0.21602352485930915
+      },
+      "standardised": {
+        "chance_mAP": 0.014925373134328358,
+        "mAP": 0.3259030869358307,
+        "n_pairs": 36,
+        "n_pool": 67,
+        "position_only_mAP": 0.21602352485930915
+      }
+    }
+  },
+  "set": "v3-indoor",
+  "window_T": 4,
+  "window_note": "T is fixed by the exported IR (4 frames). ADR 0002's 16-vs-64 decision needed a semantic metric to decide it; this script's gap-sweep + cross-boundary protocol is that metric, but no IR has been exported at T=16 or T=64 yet, so no data exists at those windows. No clip-length policy is adopted today."
+}

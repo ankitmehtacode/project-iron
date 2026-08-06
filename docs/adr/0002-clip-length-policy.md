@@ -108,3 +108,53 @@ policy today.** What changes is that the 16-vs-64 decision now has a
 concrete, already-written measurement path: export at each candidate `T`,
 run the gap sweep, compare mAP against the position-only baseline at
 each. The remaining work is exports, not method.
+
+## Day 14 update — re-run confirms reproducibility; the normalization fix's
+## effect is unmeasurable on this golden set except where the sample is
+## too small to trust
+
+Re-ran `scripts/eval_semantics.py --gaps 1,2,4,8,16,32` against the full
+30-clip `v3-indoor` set, with no changes to `src/semantics` or the script
+between Day 12 and today. The result is byte-for-byte identical to Day
+12's recorded artifact (`docs/day12/semantics_gap_sweep.json` vs
+`docs/day14/semantics_gap_sweep_rerun.json`) — full reproducibility,
+which is itself worth stating: nothing in the Day-13/14 data-model work
+touched this path, and the pipeline proves it rather than assuming it.
+
+The script already computes every gap's mAP twice — once through the
+production preprocessing spec, once with the pre-fix raw-`[0, 1]` path
+reconstructed behind a flag (`prefix` vs `standardised` in the JSON) —
+so the standardisation fix's effect (`delta = standardised - prefix`) has
+been measured at every gap since Day 12; what was missing was stating
+the finding in prose:
+
+| gap | pairs | delta (fix − prefix) | flagged |
+| ---: | ---: | ---: | :---: |
+| 1 | 4 | **−0.4226** | **YES** (margin −0.031) |
+| 2 | 8 | +0.0450 | no |
+| 4 | 20 | −0.0089 | no |
+| 8 | 36 | −0.0700 | no |
+| 16 | 53 | +0.0049 | no |
+| 32 | 60 | +0.0261 | no |
+
+**The normalization fix's effect is unmeasurable at every gap this set
+currently supports.** At gap 2 through 32 the delta is small (−0.07 to
++0.05) against pair counts of 8–60 — indistinguishable from sampling
+noise at this scale, not evidence the fix does nothing. At gap 1 the
+delta is large (−0.42) but `n_pairs=4` is far too small to trust (already
+flagged on its own margin in the base metric); a 4-pair sample can swing
+by that much from a single track's ranking changing.
+
+**What would make it measurable:** enough cross-boundary pairs at a
+single gap to distinguish a real effect from sampling noise — as a
+concrete bar, the same order of magnitude as gap 4's 20 pairs, which is
+already the smallest gap this analysis treats as informative for mAP
+itself. Gap 1 has only 4 surviving pairs because very few tracks cross a
+patch boundary in a single frame step at this frame rate; reaching ~20
+there needs either more clips in the golden set (more independent tracks
+to draw crossings from) or faster-moving agents in the fixture (more
+single-frame crossings per track). Neither is proposed here — this ADR
+still adopts no clip-length policy and takes no position on whether the
+golden set should grow for this purpose specifically; it records what
+the measurement needs, per the Day-14 instruction to state the condition
+rather than the number when the number does not exist.
