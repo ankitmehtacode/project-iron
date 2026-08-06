@@ -3066,3 +3066,271 @@ Per [[iron-blocked-on-humans]]. Unchanged today.
 8. **MEVA licence verification** — still blocked on a human.
 9. **The factor-graph solver**, once there is a measured reason to
    start it — unchanged from Day 13's list.
+
+# Day 15
+
+Branch `foundation/day-15`, off Day 14. Pinned venv. A seam is worse than a
+hole, because a hole is visibly missing while a seam looks closed — today
+closes two seams by deletion and migration, not documentation, and fixes a
+scorecard that invited a wrong economic conclusion.
+
+## The headline: the permissive alert path could only ever alert on nothing
+
+Enumerating every caller of `events.raise_alert()` before changing anything
+(full repo grep, `src/`, `tests/`, `scripts/`):
+
+| # | Site | What it did |
+| --- | --- | --- |
+| 1 | `src/model/events.py:278` | the definition itself |
+| 2 | `src/model/__init__.py:72,188` | re-export (not a call) |
+| 3 | `tests/test_model_events.py:190` | `raise_alert(_hypothesis())`, expects rejection |
+| 4 | `tests/test_model_events.py:195` | `raise_alert(factory())` for observed/inferred/**predicted** |
+| 5 | `tests/test_falsification.py:255` | on an evidenced `ObservedEvent` |
+| 6 | `tests/test_falsification.py:288` | on an `ObservedEvent` with **empty** `evidence_refs` — the permissive path's whole point |
+| 7 | `tests/test_falsification.py:342` | a **`PredictedEvent`** triggering an alert |
+
+**Zero production callers.** Every real call site was a test asserting the
+permissive path's own permissiveness. Sites 5 and 6 migrate cleanly onto
+`emit_alert()` — an evidenced event alerts, an unevidenced one now raises
+where it used to silently pass (this is the actual falsification-test-4 gap
+Day 14 only partly closed). Sites 4 and 7 are the finding: a `PredictedEvent`
+alerting through `raise_alert()` could **never** be given an evidence chain,
+because `assemble_evidence()` has no handler for `PredictedEvent` either
+(ADR 0003 — a forecast can't be evidence). The permissive path's one
+distinguishing feature beyond `emit_alert()` was a way to alert on something
+that, by construction, could never have anything behind it. Nobody was
+exploiting it in production; the test suite had simply never stopped
+sanctioning it.
+
+`raise_alert()`, `_admit_as_alert_trigger`, and the `AlertEligibleEvent` type
+alias are **deleted**, not deprecated — every caller was migratable (the two
+production-shaped ones onto `emit_alert()`, the two forecast-only ones by
+removing the capability entirely, since it was never usable safely). If
+forecast-paging is wanted later it needs its own explicit capability that
+renders the `InferredEvent`/`ObservedEvent` chain behind the forecast, not a
+relaxation of `emit_alert()`'s dispatch.
+
+**STRUCTURAL**, tested on the actual public surface, not a convention:
+`test_alert_package_exposes_no_alternative_emission_entry_point`
+(`tests/test_model_alert.py`) asserts `src.model.alert.__all__` contains
+exactly one alert-emitting callable (`emit_alert`), and
+`test_raise_alert_deleted_from_events_module_and_package_root` asserts
+`raise_alert` and `AlertEligibleEvent` are unreachable from
+`src.model.events` and `src.model` by `hasattr`, not by grep. Falsification
+test 4 re-run: **passes**, single path.
+
+## Objective 2 — the two legacy world-coordinate paths: one migrated, one was never in scope
+
+Re-examining Day 14's audit finding against the actual code, not its
+one-line summary, split the two paths differently than the finding implied:
+
+**`src/geometry/projector_vectorized.py::project_to_3d` is not a
+world-coordinate path and is excluded from this migration.** Its output
+columns are `X_uncalibrated`, `Y_uncalibrated`, `disparity_rel` —
+self-labelled camera-space, uncalibrated, never routed through
+`src/contracts/geometry.unproject()` (Day 2's depth-honesty fix,
+`test_projector_output_columns_are_not_named_as_metric`, made this the
+enforced state on purpose). `WorldPosition` requires real metres in a
+world frame; wrapping this path's guessed-intrinsics disparity products in
+it would misrepresent uncalibrated data as calibrated, undoing Day 2's fix
+rather than extending Day 14's. `src/contracts/geometry.py`'s own docstring
+already names the real migration this path needs ("deliberately not wired
+into `projector_vectorized.py` yet... a separate, measured change with
+before/after numbers") — a different objective than today's.
+
+**The real bypass: `src/inspector/artifacts.py::clip_analysis` and
+`src/data/scorecard.py::observability_partition`**, both loading genuine
+world-frame, metric `agent_xyz` straight from a `.npz` clip with no
+`twin_rev` recorded anywhere. Migrated:
+
+- `src/model/world.py` gains `UNREGISTERED: Final[int] = -1`, a
+  constructable sentinel `twin_rev` for exactly this case — legacy data
+  with no recorded revision — and `WorldPositionArray`, the vectorized-array
+  analogue of `WorldPosition` for code that cannot afford one dataclass
+  instance per point (`np.diff`/`np.linalg.norm` over a `[T, A, 3]` clip).
+  `WorldPosition.__post_init__` now accepts exactly `-1` as the sentinel and
+  rejects every other negative unchanged. `distance_to()`, `reproject()`,
+  and `WorldPositionArray.combine()` all raise `TwinRevError` the instant
+  either side is `UNREGISTERED` — **including `UNREGISTERED` against another
+  `UNREGISTERED`**, because two positions of unknown provenance are not
+  known to share a revision.
+- Both call sites now construct `WorldPositionArray(xyz_m=..., twin_rev=UNREGISTERED).xyz_m`
+  immediately on load, before the array reaches `world_motion()` (itself
+  untouched). The wrap is a pure boundary check: `.xyz_m` returns the same
+  array object, no copy.
+
+**Byte-identical, proven two ways**, per the SCOPE requirement that this be
+the day's only numerical change:
+1. `test_world_position_array_wrap_is_byte_identical_through_world_motion`
+   (`tests/test_model_world.py`): fixed synthetic input through
+   `world_motion()` raw vs. through the wrap, `tobytes()` equal.
+2. The real thing: v3-indoor re-scored end to end after the migration
+   reproduces Day 14's exact numbers — `gate.wake_fraction` 0.9067
+   (816/900), `gate.recall_retained` 0.9340 (806/863), `gate.compute_saved`
+   1.8667 ms/frame, `gate.miss_cost` 57 — unchanged to four decimal places.
+
+**Re-audit for remaining bypasses**: `grep -rl "agent_xyz\|world_motion\|WorldPosition" src/` returns exactly `scorecard.py`, `inspector/artifacts.py`, and `model/world.py`/`model/__init__.py` — the two now-migrated call sites and the type's own module. **Remaining bypass count: 0**, for genuine world-frame data. (`project_to_3d`'s camera-space data is not a bypass of this contract — it was never subject to it, per above.)
+
+## Objective 3 — the gate scorecard now shows its own denominator
+
+`gate.wake_fraction` 0.9067 on v3-indoor invited "the gate wakes on
+everything" as a verdict on the gate. Two additions make that reading
+impossible without also seeing the number that explains it:
+
+- **`dataset.moving_frame_fraction`**, a first-class scorecard metric:
+  fraction of presented frames with world motion by *any* agent, camera-
+  independent (reuses the `world_moved` array `observability_partition()`
+  already computed, now exposed via `Partition.world_moved_any`). On
+  v3-indoor: **0.9667** (870/900). A gate cannot beat the scene's own
+  motion density, and this is why not to try.
+- **`gate.wake_fraction` per condition bucket** (occupied / empty / night /
+  degenerate), derived from the golden-set `Condition` taxonomy via
+  `_condition_bucket()` — not literal tags; the taxonomy has no
+  "occupied"/"night" member, and its actual Degradation category
+  (`CAMERA_BUMP`, `LENS_SMUDGE`) has zero clips in v3-indoor, so
+  "degenerate" here means `LIGHTS_TRANSIENT`/`GLARE` instead. Mapping and
+  priority order are pinned by
+  `test_condition_bucket_partitions_v3_indoor_exactly`.
+
+Re-scored, full v3-indoor, per condition:
+
+| condition | clips | presented | wake_fraction | recall_retained | moving_frame_fraction |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| occupied | 25 | 750 | 0.9387 | 0.9734 | 1.0000 |
+| empty | 1 | 30 | 0.0000 | 0.0000 | 0.0000 |
+| night | 0 | 0 | n/a | n/a | n/a |
+| degenerate | 4 | 120 | 0.9333 | 0.9333 | 1.0000 |
+
+Two findings the table itself surfaces, not asserted separately: **the
+"occupied" bucket's moving_frame_fraction is 1.0000** — every frame in
+v3-indoor's 25 ordinary-condition clips contains motion by construction
+(the speed-ladder authoring), so a 93.87% wake fraction there is a gate
+essentially unable to beat a scene that never stops moving, not a
+trigger-happy gate. And **v3-indoor's "night" bucket is empty**: the only
+tag adjacent to steady artificial lighting, `EVENING_ARTIFICIAL`, never
+appears in this dataset without also being `LIGHTS_TRANSIENT` — v3-indoor
+contains a lighting-transient condition but no steady-low-light condition
+distinct from it. `empty`'s single clip (`near_static__cam_a`) is the
+dataset's only true-negative source and the only bucket where the gate
+correctly stays fully asleep.
+
+**STRUCTURAL**: `_GATE_METRIC_REQUIRES["gate.wake_fraction"]` now requires
+both `gate.recall_retained` (Day 14) and `dataset.moving_frame_fraction`
+(today) — emitting wake_fraction without either raises `ScorecardError`
+before the scorecard is returned, checked against the scorecard's full,
+final metric list (moved from checking only the four `gate.*` metrics in
+isolation, which could not have caught a missing cross-cutting metric).
+Tested: `test_wake_fraction_with_recall_retained_but_no_moving_fraction_raises`.
+
+**Stated plainly, in the prompt's terms**: this table measures the gate's
+mechanism — it is internally consistent, the pairing rule holds, the
+per-condition breakdown is honest about where the aggregate's 90.67% comes
+from. **It is not the Tier-1 economic claim.** That claim requires wake
+fraction over 24 hours of real office footage including nights and
+weekends, and v3-indoor — authored to contain moving agents, with an empty
+"night" bucket and a single "empty" clip — cannot produce it. That
+measurement does not yet exist.
+
+## Objective 4 — ADR 0008: the parked forensic verdict is closed, unanswered
+
+`docs/adr/0008-production-provenance-lost.md`, Accepted. The parked
+objective (Day 3: a side-by-side forensic verdict, production
+`vjepa2_vitl_int8.xml`/`.bin` vs. the 2026-07-31 reference export, on token
+count and temporal alignment) is **closed as unanswerable**, not left
+pending: it has been blocked on the same human handoff for 12 days with
+zero movement, and "pending" implies forward motion is possible from
+inside this repository, which it is not. What is actually known —
+tubelet=2, confirmed three independent ways at Day 3 (D3.5) — is answered
+**only for the Day-3 scripted export**, never for production, and that
+will remain true regardless of how much longer the wait continues.
+
+The 22 artifacts under `outputs/` this verdict would have validated or
+condemned are recorded **`unattributable`**, not `pending`/`void or
+unverifiable` — `scripts/rebuild_index.py --audit`'s per-artifact reason
+now reads "unattributable (ADR 0008), not pending: predates provenance
+coupling, and the pipeline that produced it no longer exists in this
+form." Re-ran the audit against the real files: **0 artifact(s) carry
+provenance, 22 are void or unverifiable** — same count as Day 3's D3.8,
+now correctly labelled as terminal rather than transitional.
+
+**STRUCTURAL, added today (was not enforced)**: loading the V-JEPA2 IR
+without an export manifest raises. `src/provenance.py::require_export_manifest`
+checks for `export_manifest.json` beside the model file and that it names
+the file among its recorded artifacts, before `SemanticExtractor.__init__`
+compiles anything — previously `PreprocessSpec.load_for_model()` gated
+preprocessing correctness but nothing gated export provenance at load
+time. Tested: five `require_export_manifest` unit tests (absent sidecar,
+wrong-file sidecar, malformed JSON, success path, and the real Day-3
+export at `models/export/2026-07-31/`), plus a source-order regression
+test asserting the manifest check runs before `compile_model()`, the
+pattern this repo already uses for other structural invariants. Scoped
+today to the V-JEPA2 IR load path only — CoTracker3 and Depth-Anything-V2
+weight loading are not yet covered; listed below, not claimed done.
+
+## All five falsification tests, re-run today
+
+| # | Test | Day 14 | Day 15 |
+| --- | --- | --- | --- |
+| 1 | Absence under degraded coverage | PASSES | PASSES (unchanged) |
+| 2 | Retroactive badge resolution | PASSES | PASSES (unchanged) |
+| 3 | Twin re-version | PASSES | PASSES (unchanged; `WorldPositionArray`/`UNREGISTERED` extend the same guarantee to vectorized legacy data) |
+| 4 | Alert explainability | PASSES (strict path only) | **PASSES, single path** — `raise_alert()` deleted, `emit_alert()` is the only public alert-emission entry point |
+| 5 | Behaviour-query shape | PASSES (type-level) | PASSES (type-level, unchanged) — still blocked on the unimplemented estimator |
+
+`tests/test_falsification.py`: 8 tests, all green (9 on Day 14 — one test
+existed solely to demonstrate the permissive path's permissiveness, which
+no longer exists to demonstrate). Repo-wide: **741 passed, 1 skipped, 8
+deselected, 0 failures** (`not requires_weights and not slow`), up from Day
+14's 712 — net +29 from today's additions across four objectives, 0
+regressions. `mypy --strict` on the CI-scoped file set: **35 pre-existing
+errors, unchanged before and after today's changes** (verified both ways
+via `git stash`) — all in `src/data/scorecard.py`, `src/semantics/
+patch_mapping.py`, and `src/endurance/runner.py`, all bare `np.ndarray`
+annotations that predate today and are out of today's scope; today's own
+three new type sites (`WorldPositionArray`, `Partition.world_moved_any`,
+`require_export_manifest`'s return) are fully typed and add zero new
+errors.
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged today except item 2's framing
+(see ADR 0008: the artifact is still wanted, but its arrival now answers a
+new question rather than resuming Day 3's).
+
+1. **Git remote / push, 9 days old.**
+2. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`, ~12 days.**
+   Forensic objective closed unanswered (ADR 0008); still wanted for its
+   own sake, refused at load without an export manifest if it arrives.
+3. **MEVA licence verification, ~14 days.**
+4. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7, ~14
+   days.**
+5. **A physical camera, 3 days old.**
+
+## Day 16, in order
+
+1. **The motion-gate precision/selectivity investigation**, now four days
+   deferred. Reframing the scorecard (Day 14) and adding its denominator
+   (Day 15) did not investigate the 57 false negatives — it changed what
+   gets reported and how it reads, not what gets investigated.
+2. **Extend `require_export_manifest` to CoTracker3 and Depth-Anything-V2
+   weight loading** — ADR 0008's process change is scoped to the V-JEPA2
+   IR only today; the other two model loads have no equivalent gate yet.
+3. **A canonical `Observation -> hash` function** for
+   `EvidenceCommitment.compute()` (ADR 0007) — still open from Day 13.
+4. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+   replaced now that both `gate.compute_saved` and
+   `dataset.moving_frame_fraction` exist and are being read together** —
+   either measure a real `DetectorStage` cost or make the "estimate,
+   unmeasured cost model" label louder in whatever surface consumes the
+   scorecard next.
+5. **The 35 pre-existing `mypy --strict` `[type-arg]` errors** in
+   `src/data/scorecard.py`, `src/semantics/patch_mapping.py`, and
+   `src/endurance/runner.py` — bare `np.ndarray` annotations, unchanged
+   today, module-by-module the same way legacy strictness has moved
+   before (see `mypy.ini`'s own stated policy).
+6. **Connect a camera and run `scripts/discover_cameras.py`** — still
+   the single step unblocking the whole ingest path, now 3 days old.
+7. **Push.**
+8. **MEVA licence verification** — still blocked on a human.
+9. **The factor-graph solver**, once there is a measured reason to start
+   it — unchanged from Day 13's list.
