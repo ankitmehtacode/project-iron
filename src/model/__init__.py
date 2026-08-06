@@ -114,6 +114,13 @@ from src.model.relationship import (
 )
 from src.model.uncertainty import ALL_UNCERTAINTY_KINDS, Uncertainty, UncertaintyError
 from src.model.ulid import ULID, InvalidULID, generate_ulid
+from src.model.world import (
+    RigidTransform3D,
+    TwinRevError,
+    TwinRevTransform,
+    TwinRevTransformRegistry,
+    WorldPosition,
+)
 
 __all__ = [
     "ULID",
@@ -208,4 +215,9 @@ __all__ = [
     "StateQuery",
     "StateGraph",
     "solve_state",
+    "WorldPosition",
+    "RigidTransform3D",
+    "TwinRevTransform",
+    "TwinRevTransformRegistry",
+    "TwinRevError",
 ]
