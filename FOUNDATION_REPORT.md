@@ -2856,3 +2856,213 @@ surfaced; unchanged today — Day 13 did not touch any of these.
    start it — `StateGraph`'s skeleton is ready to be filled, but per Day
    13's own scope discipline, estimation lands in a later, *measured*
    phase, not because the skeleton now exists.
+
+# Day 14
+
+Branch `foundation/day-14`, off Day 13. Six commits.
+
+## Closing two holes opened a third — say so first
+
+Day 13's two PARTIAL falsification results are both closed today (below),
+and the fix pattern for one of them opens a new, honest seam rather than
+sealing the surface completely. **`events.raise_alert()` (Day 13, broad
+type-eligibility) and `alert.emit_alert()` (Day 14, strict — requires a
+resolvable evidence chain) now both exist, and nothing steers a caller
+toward the strict one.** `raise_alert()` still lets a `PredictedEvent` —
+or an `ObservedEvent` with empty `evidence_refs` — through unchanged; that
+is by design (forecast-only paging is a real, narrower use case), but
+there is no deprecation notice, no runtime warning, and no lint rule
+distinguishing "the permissive check for a fast-lane notification" from
+"the strict check for a production alert a customer will see." A future
+integration that reaches for `raise_alert()` because it is the
+Day-13-vintage, more-familiar name reintroduces exactly the
+un-explainable-alert failure Day 14 closed, and nothing in the type
+system stops it — this is a naming/discoverability gap, not a structural
+one, and it is exactly the kind of thing that survives because both
+functions individually do what they claim. Tracked on the Day-15 list.
+
+## Objective 1 — the twin_rev hole (falsification test 3): CLOSED
+
+`src/model/world.py`: `WorldPosition` requires `x_m`/`y_m`/`z_m`/`twin_rev`
+as four undefaulted fields (mirrors Day 13's `Relationship`).
+`distance_to()`/`reproject()` raise `TwinRevError` across differing
+revisions unless an explicit `TwinRevTransform` is supplied, and no
+arithmetic operator exists on the type at all, so anything not routed
+through those two methods fails with a plain `TypeError` by the absence
+of an override. `TwinRevTransformRegistry.resolve()` raises for an
+unregistered rev pair rather than defaulting to identity.
+
+**Proving tests:** `test_falsification_twin_reversion_world_position_
+now_raises_across_revs` (raises without a transform, raises on a
+mismatched transform, succeeds and stays interpretable with the correct
+one); `test_registry_resolve_unregistered_pair_raises_not_identity`
+(`tests/test_model_world.py`).
+
+**Audit finding, not fixed today** (numerical-behaviour paths; a rules-
+only day does not touch them without a separate measurement): two
+existing world-coordinate paths bypass this contract entirely. (1)
+`src/geometry/projector_vectorized.py::project_to_3d` writes
+`outputs/point_cloud_tracks.csv` with camera-space (not world-space),
+already-self-labelled-uncalibrated columns, no `twin_rev`, no route
+through `src/contracts/geometry.unproject()`. (2)
+`src/data/scorecard.py::world_motion` and `src/inspector/artifacts.py`
+consume raw `[T, A, 3]` `agent_xyz` world positions with no `twin_rev` —
+synthetic-GT-only, and the risk this objective targets does not actually
+apply there, since each synthetic clip bakes one scene regenerated
+wholesale rather than a twin re-versioned in place.
+
+## Objective 2 — the alert-evidence hole (falsification test 4): CLOSED
+
+`src/model/alert.py`: `Alert.evidence_chain` is required and non-empty.
+`emit_alert()` is a closed-world `singledispatch`, registered only for
+`ObservedEvent`/`InferredEvent` — exactly the intersection of Day 13's
+`AlertEligibleEvent` and `EvidenceEligibleEvent`, since a `PredictedEvent`
+can never itself be admitted as evidence (ADR 0003) and a
+`HypothesisEvent` was never alert-eligible. `explain(alert_id,
+alert_store, observation_store=None)` walks alert → event → evidence →
+observation_refs/clip_refs/state_refs, checking `producer_sha` at every
+derivation step, and raises `ExplainabilityError` naming the exact broken
+hop — unknown `alert_id`, an unresolved `evidence_ref`, missing
+observations/derivation, or an observation absent from a supplied store.
+
+**Proving tests:** `test_falsification_emit_alert_now_requires_a_
+resolvable_evidence_chain`; `tests/test_model_alert.py`'s six
+`test_explain_*` tests, one per hop that can break.
+
+**As stated above, this is closed for the strict path only** —
+`raise_alert()` (Day 13) is unchanged and still permits an unexplainable
+alert; see "Closing two holes opened a third."
+
+## Objective 3 — the gate.\* metric reframe
+
+Full detail and the re-scored v3-indoor numbers are in Day 14's earlier
+section above (`fix(eval): reframe the motion-gate scorecard...`,
+commit `891dd58`); summarised here for the day's record:
+
+| metric | value | strongest baseline | margin |
+| --- | ---: | --- | ---: |
+| `gate.wake_fraction` | 0.9067 (816/900) | always_wake: 1.0000 | +0.0933 |
+| `gate.recall_retained` | 0.9340 (806/863) | always_wake: 1.0000 (boundary) | n/a |
+| `gate.compute_saved` | 1.87 ms/frame **(estimate, unmeasured cost model)** | always_wake: 0.0000 | +1.87 |
+| `gate.miss_cost` | 57 frames | never_wake: 863 | +806 |
+
+**SYNTHETIC-ONLY, restated plainly per the objective's instruction:**
+wake fraction on authored synthetic scenes says nothing about wake
+fraction on a real corridor at 3 AM, and the entire Tier-1 economic claim
+depends on the latter. This table is a mechanism check — the four
+numbers are internally consistent and the pairing rule holds — not a
+business case. `gate.compute_saved`'s 1.87 ms/frame is doubly caveated:
+even granting the synthetic-vs-real gap, the multiplier itself
+(`PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME = 20.0`) is not measured —
+`DetectorStage` is an unimplemented stub — so this number is an estimate
+under a stated model squared, not a measurement once removed.
+
+## Objective 4 — retrieval-metric repair: verified, not rebuilt
+
+Day 12 already built everything this objective specifies (cross-boundary
+queries, gap sweep, same-class/different-instance distractor pool,
+position-only baseline every gap, `--window` as a metric parameter, and
+the standardised-vs-prefix normalization comparison at every gap). No
+code changed today. Re-ran the full 30-clip sweep:
+**byte-for-byte identical to Day 12's recorded artifact** — full
+reproducibility confirmed, not assumed.
+
+Surviving cross-boundary pairs, and the normalization fix's effect
+(`delta = standardised − prefix` mAP), per gap:
+
+| gap | pairs | mAP | margin | delta (fix effect) |
+| ---: | ---: | ---: | ---: | ---: |
+| 1 | 4 | 0.4524 | −0.031 **FLAGGED** | −0.4226 (untrustworthy: n too small) |
+| 2 | 8 | 0.4857 | +0.0787 | +0.0450 |
+| 4 | 20 | 0.4674 | +0.1937 | −0.0089 |
+| 8 | 36 | 0.3259 | +0.1099 | −0.0700 |
+| 16 | 53 | 0.2722 | +0.1201 | +0.0049 |
+| 32 | 60 | 0.1822 | +0.0673 | +0.0261 |
+
+**The normalization fix's effect is unmeasurable at every gap this set
+currently supports** — full reasoning in ADR 0002's Day-14 update. Gaps
+2–32 show deltas within noise of their pair counts; gap 1's large delta
+sits on only 4 pairs. Stated condition for measurability: ~20
+cross-boundary pairs at a single gap (matching gap 4, the smallest gap
+already treated as informative for mAP itself) — reached by more clips
+or faster-moving agents in the fixture, neither adopted today. No
+clip-length policy adopted, per instruction.
+
+## Objective 5 — camera ingest readiness
+
+`FrameGap.to_coverage_gap()` / `RtspIngestSession.coverage_gaps()`
+project RTP-level drop detection into Day-13 `Coverage.Gap` records
+(`reason="dropped_frame"`) instead of a second gap-reporting mechanism;
+`FrameGap` itself is kept for the RTP-specific diagnostics (`expected_
+seq`/`observed_seq`/`gap_count`) `Gap` has no field for. Verified, no
+changes needed: `discover_cameras.py`'s ONVIF client is already pinned
+(`onvif-zeep-async`) with no hardcoded vendor URL pattern; `scripts/
+ingest_capture.py`'s `ConsentRecord` (Day 5) is the reusable consent gate
+for whenever a live-RTSP-to-store script exists — none does yet, so
+there is nothing to enforce consent on today. 28 tests in the RTSP suite
+(27 + 1 new), all against real sockets and the local RTSP server
+fixture — zero hardware, as before.
+
+**What remains manual:** everything genuinely needs a camera. Discovery,
+transport, timing, and gap accounting are built and tested against
+fixtures; the sub-stream-vs-downscaled-main comparison harness
+(Day 12) still refuses to run against anything but matched real
+captures. Nothing changed here today — still blocked on hardware, not
+code.
+
+## All five falsification tests, re-run today
+
+| # | Test | Day 13 | Day 14 |
+| --- | --- | --- | --- |
+| 1 | Absence under degraded coverage | PASSES | PASSES (unchanged) |
+| 2 | Retroactive badge resolution | PASSES | PASSES (unchanged) |
+| 3 | Twin re-version | PARTIAL | **PASSES** |
+| 4 | Alert explainability | PARTIAL | **PASSES** (strict path; see caveat above) |
+| 5 | Behaviour-query shape | PASSES (type-level) | PASSES (type-level, unchanged) — still blocked on the unimplemented estimator for a live answer |
+
+**5 of 5 pass today**, up from 3 of 5 fully passing on Day 13. `tests/
+test_falsification.py`: 9 tests, all green. Repo-wide:
+**712 passed, 1 skipped, 8 deselected, 0 failures** (`not requires_weights
+and not slow`), 0 regressions from Day 13's 661.
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged today.
+
+1. **Git remote / push, 8 days old.**
+2. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`, ~11 days.**
+3. **MEVA licence verification, ~13 days.**
+4. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7, ~13
+   days.**
+5. **A physical camera, 2 days old.**
+
+## Day 15, in order
+
+1. **Steer callers away from `raise_alert()` toward `emit_alert()`** for
+   anything that will reach a customer — today's own most valuable
+   finding. A docstring cross-reference is not enough; consider whether
+   `raise_alert()` should require an explicit `allow_unexplained=True`
+   opt-in, or whether the two should be renamed so the permissive one
+   reads as the exception.
+2. **The motion-gate precision/selectivity investigation**, now three
+   days deferred. Reframing the scorecard (Objective 3) did not
+   investigate the 57 false negatives or why this fixture has zero
+   scoreable non-moving frames — it changed what gets reported, not what
+   gets investigated.
+3. **A canonical `Observation -> hash` function** for
+   `EvidenceCommitment.compute()` (ADR 0007) — still open from Day 13.
+4. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+   replaced now that `gate.compute_saved` exists and is being read** —
+   either measure a real `DetectorStage` cost or make the "estimate,
+   unmeasured cost model" label louder in whatever surface consumes the
+   scorecard next.
+5. **Grow the golden set toward ~20 cross-boundary pairs at gap=1** if
+   the normalization fix's effect is worth measuring precisely — a
+   product decision on golden-set composition, not an engineering
+   default.
+6. **Connect a camera and run `scripts/discover_cameras.py`** — still
+   the single step unblocking the whole ingest path, now 2 days old.
+7. **Push.**
+8. **MEVA licence verification** — still blocked on a human.
+9. **The factor-graph solver**, once there is a measured reason to
+   start it — unchanged from Day 13's list.
