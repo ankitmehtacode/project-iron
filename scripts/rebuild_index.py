@@ -74,7 +74,14 @@ def audit(roots: list[Path]) -> int:
         try:
             metadata = read_metadata(path)
         except ArtifactMismatch:
-            void.append((path, "no metadata sidecar — predates provenance coupling"))
+            void.append(
+                (
+                    path,
+                    "no metadata sidecar — unattributable (ADR 0008), not "
+                    "pending: predates provenance coupling, and the pipeline "
+                    "that produced it no longer exists in this form",
+                )
+            )
         else:
             described.append(path)
             print(

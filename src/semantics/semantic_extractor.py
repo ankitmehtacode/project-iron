@@ -140,6 +140,15 @@ class SemanticExtractor:
         self._preprocess = PreprocessSpec.load_for_model(Path(vjepa_xml))
         print(f"  preprocessing: {self._preprocess.describe()}")
 
+        # ── Require export provenance (ADR 0008) ───────────────────
+        # Refuses to load an artifact with no export_manifest.json naming
+        # its source-checkpoint sha -- the process change that prevents a
+        # repeat of the parked, now-permanently-unattributable production
+        # artifact. Checked before the model is compiled, not after.
+        from src.provenance import require_export_manifest
+
+        require_export_manifest(Path(vjepa_xml))
+
         # ── Load V-JEPA2 OpenVINO IR ──────────────────────────────
         print(f"Loading V-JEPA2 IR from: {vjepa_xml}")
         core = ov.Core()

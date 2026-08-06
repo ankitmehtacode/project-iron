@@ -22,8 +22,11 @@ from src.provenance import (
     git_state,
     hash_model_files,
     library_versions,
+    require_export_manifest,
     sha256_file,
 )
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 @pytest.fixture()
@@ -343,3 +346,99 @@ def test_run_refuses_to_start_when_the_manifest_cannot_be_written(
     code = execute(config, mode="steady", iterations=10, factory=counting_factory)
     assert code == ExitCode.MANIFEST_UNWRITABLE
     assert calls == [], "the pipeline was constructed despite having no manifest"
+
+
+# ---------------------------------------------------------------------------
+# require_export_manifest — ADR 0008 (Day 15): no artifact loads unmanifested
+# ---------------------------------------------------------------------------
+
+
+def test_require_export_manifest_raises_when_sidecar_is_absent(tmp_path: Path) -> None:
+    model = tmp_path / "some_model.xml"
+    model.write_text("<xml/>")
+    with pytest.raises(ManifestError, match="no export_manifest.json"):
+        require_export_manifest(model)
+
+
+def test_require_export_manifest_raises_when_manifest_names_a_different_file(
+    tmp_path: Path,
+) -> None:
+    model = tmp_path / "some_model.xml"
+    model.write_text("<xml/>")
+    (tmp_path / "export_manifest.json").write_text(
+        json.dumps({"artifacts": {"xml": {"name": "a_different_model.xml"}}})
+    )
+    with pytest.raises(ManifestError, match="does not name"):
+        require_export_manifest(model)
+
+
+def test_require_export_manifest_raises_on_malformed_json(tmp_path: Path) -> None:
+    model = tmp_path / "some_model.xml"
+    model.write_text("<xml/>")
+    (tmp_path / "export_manifest.json").write_text("{not valid json")
+    with pytest.raises(ManifestError, match="not valid JSON"):
+        require_export_manifest(model)
+
+
+def test_require_export_manifest_succeeds_and_returns_payload(tmp_path: Path) -> None:
+    model = tmp_path / "some_model.xml"
+    model.write_text("<xml/>")
+    payload = {
+        "artifacts": {"xml": {"name": "some_model.xml", "sha256": "abc"}},
+        "source_checkpoint": {"path": "models/weights/vjepa2_vitl"},
+    }
+    (tmp_path / "export_manifest.json").write_text(json.dumps(payload))
+
+    result = require_export_manifest(model)
+    assert result == payload
+
+
+def test_require_export_manifest_accepts_the_real_day3_export() -> None:
+    """The one artifact this repo actually ships: the Day-3 scripted FP32
+    export, still the only one with a real manifest and a verified
+    forensic answer (see ADR 0008 and docs/adr/0008-production-provenance-lost.md).
+    """
+    real_xml = REPO_ROOT / "models" / "export" / "2026-07-31" / "vjepa2_vitl_fp32.xml"
+    if not real_xml.exists():
+        pytest.skip("Day-3 export artifact not present in this checkout")
+    payload = require_export_manifest(real_xml)
+    assert payload["source_checkpoint"]["path"] == "models/weights/vjepa2_vitl"
+
+
+def test_rebuild_index_audit_reports_void_artifacts_as_unattributable(
+    tmp_path: Path,
+) -> None:
+    """ADR 0008, Decision 2: a void artifact's registry entry reads
+    unattributable, not pending — no future action resolves it.
+    """
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    import rebuild_index
+
+    import numpy as np
+
+    (tmp_path / "orphan.npy").write_bytes(np.zeros(4, dtype=np.float32).tobytes())
+
+    void_count = rebuild_index.audit([tmp_path])
+    assert void_count == 1
+
+
+def test_semantic_extractor_checks_manifest_before_compiling_model() -> None:
+    """Regression guard: the manifest check must run before
+    ov.Core().compile_model, not after — an artifact that fails provenance
+    must never reach the compiler. Asserted on the source order directly,
+    the same pattern this repo uses for other structural invariants that
+    a later edit could silently reorder.
+    """
+    import inspect
+
+    from src.semantics import semantic_extractor
+
+    source = inspect.getsource(semantic_extractor.SemanticExtractor.__init__)
+    manifest_idx = source.index("require_export_manifest(")
+    compile_idx = source.index("compile_model(")
+    assert manifest_idx < compile_idx, (
+        "require_export_manifest() must run before core.compile_model() in "
+        "SemanticExtractor.__init__"
+    )

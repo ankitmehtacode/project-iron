@@ -158,6 +158,56 @@ def hash_model_files(paths: list[Path]) -> dict[str, str]:
     return hashes
 
 
+def require_export_manifest(model_path: Path) -> dict[str, Any]:
+    """Require, load, and return the export manifest beside ``model_path``.
+
+    ADR 0008 (Day 15): the production V-JEPA2 artifact's export was never
+    recorded, and its forensic verdict is now permanently unattributable
+    rather than pending. The process change that prevents recurrence:
+    every shipped artifact carries an ``export_manifest.json`` naming its
+    ``source_checkpoint`` sha beside it, written by
+    ``scripts/export_vjepa_ov.py``, and loading an artifact without one is
+    refused here rather than producing embeddings nothing can trace back
+    to a checkpoint. Same shape as :meth:`PreprocessSpec.load_for_model`
+    (:mod:`src.models.preprocess`): deliberately no fallback to a
+    canonical or assumed manifest, because a guessed manifest defeats the
+    entire point of one.
+
+    Raises:
+        ManifestError: if no ``export_manifest.json`` sits beside
+            ``model_path``, or one exists but does not name
+            ``model_path``'s own filename among its recorded artifacts —
+            trusting a manifest for a different file is worse than
+            trusting none.
+    """
+    manifest_path = model_path.parent / "export_manifest.json"
+    if not manifest_path.exists():
+        raise ManifestError(
+            f"no export_manifest.json beside {model_path}: expected "
+            f"{manifest_path}. Every shipped model artifact must carry an "
+            "export manifest naming its source-checkpoint sha (ADR 0008) "
+            "-- an unmanifested artifact is refused at load, not silently "
+            "compiled. Run scripts/export_vjepa_ov.py to produce one."
+        )
+    try:
+        payload: dict[str, Any] = json.loads(manifest_path.read_text())
+    except json.JSONDecodeError as exc:
+        raise ManifestError(f"{manifest_path} is not valid JSON: {exc}") from exc
+
+    named = {
+        entry.get("name")
+        for entry in payload.get("artifacts", {}).values()
+        if isinstance(entry, dict)
+    }
+    if model_path.name not in named:
+        raise ManifestError(
+            f"{manifest_path} does not name {model_path.name!r} among its "
+            f"recorded artifacts ({sorted(n for n in named if n)}); "
+            "refusing to trust a manifest for a different file"
+        )
+    return payload
+
+
 def library_versions() -> dict[str, str]:
     """Version of Python and of every library that can change results."""
     versions = {"python": platform.python_version()}
