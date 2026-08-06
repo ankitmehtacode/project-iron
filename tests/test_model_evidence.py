@@ -198,9 +198,7 @@ def test_calibrated_probability_requires_calibration_record() -> None:
         CalibratedProbability(probability=0.9)  # type: ignore[call-arg]
 
 
-def test_calibrated_probability_constructs_with_calibration_and_serializes_as_probability() -> (
-    None
-):
+def test_calibrated_probability_serializes_with_calibration_as_probability() -> None:
     calib = CalibrationRecord(
         calibration_id="calib-1",
         method="isotonic_regression",

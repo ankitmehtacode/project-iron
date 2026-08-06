@@ -41,7 +41,6 @@ from src.events.schema import (
     POSE_VERBS,
     ClipRef,
     EntityRef,
-    SchemaError,
     Verb,
 )
 

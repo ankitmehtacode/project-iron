@@ -316,7 +316,8 @@ def prove_absence(
             ),
             uncovered_subintervals=tuple(uncovered),
             envelope_violations=tuple(
-                f"{cov.subject_id}:{cov.status}:{cov.interval.start_ns}-{cov.interval.end_ns}"
+                f"{cov.subject_id}:{cov.status}:"
+                f"{cov.interval.start_ns}-{cov.interval.end_ns}"
                 for cov in violating_statuses
             ),
             gaps=tuple(all_gaps),

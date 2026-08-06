@@ -2670,3 +2670,189 @@ Per [[iron-blocked-on-humans]]. Ages counted in days since first surfaced:
    since Day 9, still uninvestigated, and now sitting next to a precision
    finding that makes the gate's overall selectivity even less settled.
 7. **MEVA licence verification** — still blocked on a human.
+
+# Day 13
+
+Branch `foundation/day-13`, off Day 12. Seven commits: six feature
+objectives plus this report. `src/model/` is new: 2,700 lines across
+twelve modules (plus `__init__.py`), 133 tests, `mypy --strict` clean
+with zero suppressions.
+
+## Objective 0 — Day-12 status check
+
+Day 12 fully landed: five commits, all four of its objectives complete
+(trivial-baseline requirement, retrieval-protocol repair, Infinigen
+throughput measurement, camera-ingest readiness). Nothing to retroactively
+implement. **Motion-gate margin, restated from Day 12** — still the
+project's only passing capability and still the number every Tier-1
+economics claim rests on:
+
+| metric | value | strongest baseline | margin | flagged |
+| --- | ---: | --- | ---: | :---: |
+| `motion_gate.recall` | 0.9340 | always-wake: 1.0000 (boundary) | n/a | — |
+| `motion_gate.precision` | 1.0000 | always-wake: 1.0000 | **+0.0000** | **YES** |
+| `motion_gate.f1` | 0.9658 | always-wake: 1.0000 | **-0.0342** | **YES** |
+| `motion_gate.false_positives` | 0 | always-wake: 0 | **+0.0000** | **YES** |
+
+Unchanged since Day 12 because no new gate measurement ran today — Day
+13 was a data-model day by design. Day 12's diagnosis stands: v3-indoor
+never produces a scoreable non-moving frame, so precision/F1/FP cannot
+currently distinguish this gate from always-wake. Still open (Day-14 list,
+below).
+
+## Objectives 1-6 — `src/model/`, built in dependency order
+
+Twelve modules (`ulid`, `uncertainty`, `measurement`, `frame_of_reference`,
+`observation`, `entity`, `envelope`, `events`, `coverage`, `relationship`,
+`evidence`, `episode`), each frozen, fully typed, `mypy --strict`. One
+commit per objective, matching the standing rule.
+
+| # | Module(s) | What it is | Tests |
+| --- | --- | --- | --- |
+| 1 | `ulid`, `uncertainty`, `measurement`, `frame_of_reference`, `observation`, `entity`, `envelope` | Core primitives | 27 |
+| 2 | `events` + `scripts/migrate_events_v1_v2.py` | Four event classes, v1 migration | 28 |
+| 3 | `coverage` | Coverage and Absence | 18 |
+| 4 | `relationship` | Bitemporal Relationship, Correction | 13 |
+| 5 | `evidence` | Evidence, EvidenceCommitment, Confidence | 20 |
+| 6 | `episode` | Episode, ActivityMode, StateGraph skeleton | 19 |
+| — | `test_falsification.py` | The five falsification tests (below) | 8 |
+
+**133 tests total, all green.** `mypy --strict` over
+`src/model` plus the pre-existing strict set: zero new errors (the six
+errors `mypy` reports are pre-existing, in `src/data/depth_eval.py` and
+`src/data/validity.py`, untouched today — confirmed by running the same
+check on the pre-Day-13 tree). `black` and `flake8` clean on every file
+touched.
+
+### Which STRUCTURAL rules are now genuinely unviolatable, and the test that proves each
+
+Per the Day-13 quality bar: STRUCTURAL means impossible to violate — a
+raise, or unrepresentable in the type — not merely documented, with a
+test that attempts the violation.
+
+| Rule | Mechanism | Proving test |
+| --- | --- | --- |
+| `Observation` without uncertainty is unconstructable | Required constructor arg, no default; `__post_init__` also rejects an explicit `None` | `test_observation_without_uncertainty_kwarg_is_unconstructable`, `test_observation_with_none_uncertainty_raises` |
+| Anonymous entities have no cross-session persistence field | `AnonymousSessionEntity` is its own dataclass with no `persistent_identity_ref` slot — passing one is `TypeError`, not a validation failure | `test_anonymous_entity_has_no_persistence_field_to_populate` |
+| Envelope thresholds are curves, not scalars | `EnvelopeCurve.__post_init__` rejects fewer than 2 points | `test_envelope_curve_rejects_single_point` |
+| `PredictedEvent` cannot be admitted as evidence | `functools.singledispatch` with no handler registered for it — the rejection is an absent registration, not a written conditional | `test_predicted_event_cannot_be_admitted_as_evidence`, `test_no_isinstance_predicted_event_check_in_evidence_admission_source` (asserts the dispatch source contains neither `isinstance` nor the excluded class name) |
+| `HypothesisEvent` cannot trigger an alert | Same `singledispatch` pattern, no handler | `test_hypothesis_event_cannot_trigger_alert` |
+| A confirmed prediction is a new record, never a mutation | `PredictedEvent` is frozen; `confirm_prediction()` is the only path to confirmation and always returns a fresh `ObservedEvent` | `test_confirm_prediction_does_not_mutate_the_predicted_event` |
+| Negative queries can never return bare "nothing happened" | `prove_absence`'s return type is the union `Absence \| CannotEstablish`, nothing else; empty coverage log falls to `CannotEstablish` | `test_empty_coverage_log_cannot_establish_absence`, `test_prove_absence_return_type_is_always_the_union` |
+| A single-timestamp `Relationship` is unconstructable | Four temporal fields, all required, none defaulted | `test_relationship_missing_valid_time_axis_is_unconstructable`, `test_relationship_missing_assertion_time_axis_is_unconstructable` |
+| A `DerivedArtifact` with no `input_closure` cannot be registered | `ArtifactRegistry.register()` raises before adding it to the dependency graph | `test_derived_artifact_without_input_closure_cannot_be_registered` |
+| `Confidence` cannot claim to be a probability without calibration | `UncalibratedScore` has no `probability` attribute at all; `CalibratedProbability.calibration` is a required arg with no default | `test_uncalibrated_score_has_no_probability_attribute`, `test_calibrated_probability_requires_calibration_record` |
+| `ActivityMode` can never alert or become evidence | `attach_to_alert` / `attach_to_evidence` unconditionally raise; `admissible` is checked `False` even against a caller bypassing the type checker | `test_attach_to_alert_always_raises`, `test_attach_to_evidence_always_raises`, `test_activity_mode_rejects_true_admissible_even_bypassing_typing` |
+
+### Migration results
+
+`scripts/migrate_events_v1_v2.py`, round-tripped on the three-event demo
+incident (`scripts/demo_events.py`, written to a real Parquet file with
+the v1 writer — the "existing demo parquet" the objective asks for): 3
+total, 2 mapped to `ObservedEvent`, 1 to `InferredEvent`, **0
+unmappable**. Migrated records preserve `site_id`, `ts_ns`, `subject`,
+`verb`, `confidence`, `object`, `zone`, and `clip` exactly; the migrated
+`InferredEvent` carries a stated (if generic) `basis` string, since v1
+never recorded why a record was inferred. The unmappable-record path is
+exercised with a synthetic duck-typed record carrying an out-of-range
+confidence (`test_unmappable_record_is_reported_not_dropped_silently_or_forced`)
+— there is currently no real v1 record that can violate the v2 contract,
+because v1's own constructor already enforces the same bounds. The path
+exists for the day the two rule sets diverge, not because it has fired
+yet.
+
+### What remains skeleton
+
+- **`StateGraph.solve_state`** raises `NotImplementedError` naming the
+  factor-graph solver as the thing that fills it. `graph_rev` exists,
+  increments monotonically, and is append-only — enough for `Evidence`
+  to reference today — but nothing resolves a `StateQuery` yet.
+- **No canonical `Observation -> hash` function** for
+  `EvidenceCommitment.compute()`'s leaf hashes (ADR 0007, Open questions).
+  The commitment mechanism is real; what hashes an observation into a
+  leaf is not decided.
+- **Twin-rev staleness is detectable, not enforced** (ADR-adjacent
+  finding, see the falsification tests below): `FrameOfReference.is_current_for()`
+  answers the question correctly, but nothing raises if a caller uses
+  stale-twin_rev data anyway. Enforcement belongs at the estimator/query
+  layer, which does not exist yet.
+- **No aggregation across multiple cameras** in `Coverage`/`prove_absence`
+  — a zone watched redundantly by two degraded cameras cannot jointly
+  prove absence even though the two together might genuinely establish it
+  (ADR 0004, Open questions).
+
+## The five falsification tests (`tests/test_falsification.py`)
+
+Run as integration tests exercising several `src/model` types together,
+per the instruction that a model passing all five on day one probably
+was not tested hard enough. Two of the five surfaced real gaps rather
+than confirming guarantees — reported here rather than smoothed over.
+
+| # | Test | Result |
+| --- | --- | --- |
+| 1 | Absence under degraded coverage | **PASSES.** A camera that goes `degraded` partway through a query window blocks a proven absence; `prove_absence` returns `CannotEstablish(reason="coverage_insufficient", ...)` with the degraded interval named in `envelope_violations`. |
+| 2 | Retroactive badge resolution | **PASSES.** The canonical 13:58/14:02 scenario end to end: `Relationship.is_retroactive` is `True`, `ArtifactRegistry.apply_correction` invalidates the affected scorecard, and `registry.get()` still returns the original pre-correction record unchanged. |
+| 3 | Twin re-version | **PARTIAL.** Staleness is representable and correctly detected (`FrameOfReference.is_current_for`), but nothing in `src/model` automatically enforces it — a caller can combine twin_rev=1 geometry with a twin_rev=2 world and nothing raises. `test_falsification_twin_reversion_is_not_automatically_enforced` asserts this current gap explicitly rather than leaving it silent, so it starts failing (correctly) the day the enforcement is added — at which point the test should be deleted, not patched. Full enforcement is estimator-layer work, out of scope for Day 13. |
+| 4 | Alert explainability | **PARTIAL.** When an alert-eligible event's `evidence_refs` is populated, the chain resolves to real `Evidence` with a non-empty `derivation_chain` — explainable. But nothing structurally requires `evidence_refs` to be non-empty for `raise_alert()` to succeed: `test_falsification_alert_explainability_is_not_structurally_required` shows an event with empty evidence can still trigger an alert today. Separately, a `PredictedEvent`-triggered alert can never point at itself as evidence (ADR 0003) — a UI rendering that alert must show the `InferredEvent`/`ObservedEvent` chain that fed the predictor, which is a Day-14+ rendering requirement, not a data-model gap. |
+| 5 | Behaviour-query shape | **PASSES at the type level; BLOCKED on the unimplemented estimator for a live answer.** An `ActivityMode` can never be mistaken for one of the four event classes, and `attach_to_alert`/`attach_to_evidence` both refuse it unconditionally. But `solve_state` — the thing that would actually produce an `ActivityMode` from a real trajectory — raises `NotImplementedError`, so this proves the answer's shape is safe once an estimator exists, not that a behaviour query can be answered today. |
+
+**Reading across all five:** the falsification suite did its job. It
+confirmed two designs the day's ADRs argue for (Coverage/Absence, ADR
+0004; bitemporal Relationship, ADR 0005) and it found two real,
+now-documented gaps (twin-rev enforcement, alert-evidence requirement)
+that a suite designed only to pass would have missed. Neither gap is a
+regression — both are honest statements of what Day 13 built (primitives
+and rules) versus what it explicitly deferred (inference, enforcement
+that depends on inference).
+
+## ADRs
+
+Five, all Accepted: `0003` (event-class hierarchy over a boolean flag),
+`0004` (Coverage/Absence as primitives), `0005` (bitemporal
+relationships), `0006` (Episode with roled participants instead of a
+separate Interaction primitive — records the primitive-proliferation
+reasoning an earlier draft's `Interaction` type was rejected for), `0007`
+(EvidenceCommitment's reproducibility-vs-erasure design, explicitly not
+resolving the DPDP-Act question it sits next to — that stays counsel's).
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Ages counted in days since first
+surfaced; unchanged today — Day 13 did not touch any of these.
+
+1. **Git remote / push, 7 days old.**
+2. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`, ~10 days.**
+3. **MEVA licence verification, ~12 days.**
+4. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7, ~12
+   days** — now directly load-bearing for ADR 0007's open question, not
+   just ADR 0001's.
+5. **A physical camera, 1 day old** (first surfaced Day 12).
+
+## Day 14, in order
+
+1. **The motion-gate precision/selectivity investigation**, still
+   deferred a second day now — the gate is this project's only passing
+   capability and Day 12's finding (precision indistinguishable from
+   always-wake on v3-indoor) is unchanged because no gate work happened
+   today.
+2. **Close the alert-explainability gap** (falsification test 4):
+   either require non-empty `evidence_refs` for anything that passes
+   `raise_alert()`, or make the absence of evidence a rendered,
+   explicit state in whatever alert surface gets built, rather than an
+   unstated possibility.
+3. **Decide the twin-rev enforcement point** (falsification test 3):
+   where staleness checking actually belongs — write time, query time,
+   or the estimator — before the estimator itself gets built on top of
+   an unenforced assumption.
+4. **A canonical `Observation -> hash` function** for
+   `EvidenceCommitment.compute()` (ADR 0007), so two callers cannot hash
+   the same observation two different ways and produce commitments that
+   silently fail to compare.
+5. **Connect a camera and run `scripts/discover_cameras.py`** — still
+   the single step unblocking the whole ingest path.
+6. **Push.**
+7. **MEVA licence verification** — still blocked on a human.
+8. **The factor-graph solver**, once there is a measured reason to
+   start it — `StateGraph`'s skeleton is ready to be filled, but per Day
+   13's own scope discipline, estimation lands in a later, *measured*
+   phase, not because the skeleton now exists.

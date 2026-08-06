@@ -59,8 +59,9 @@ def test_relationship_requires_all_four_temporal_fields() -> None:
     # reports MISSING for a field with no default.
     for name in ("valid_from_ns", "valid_to_ns", "asserted_at_ns", "asserted_by"):
         field = next(f for f in dataclasses.fields(Relationship) if f.name == name)
+        no_factory: object = field.default_factory
         assert field.default is dataclasses.MISSING
-        assert field.default_factory is dataclasses.MISSING  # type: ignore[comparison-overlap]
+        assert no_factory is dataclasses.MISSING
 
 
 def test_relationship_missing_valid_time_axis_is_unconstructable() -> None:

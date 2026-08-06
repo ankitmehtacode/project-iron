@@ -205,9 +205,13 @@ def test_entity_rejects_last_seen_before_first_seen() -> None:
 
 
 def test_entity_rejects_unknown_kind() -> None:
+    bad_kind: str = "spaceship"
     with pytest.raises(EntityError):
         AnonymousSessionEntity(
-            entity_id="sess-1", kind="spaceship", first_seen_ns=0, last_seen_ns=1  # type: ignore[arg-type]
+            entity_id="sess-1",
+            kind=bad_kind,  # type: ignore[arg-type]
+            first_seen_ns=0,
+            last_seen_ns=1,
         )
 
 

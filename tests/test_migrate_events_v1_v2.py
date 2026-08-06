@@ -19,7 +19,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from src.events.schema import EntityRef, Event, Verb, write_events_parquet
+from src.events.schema import EntityRef, Verb, write_events_parquet
 from src.model.events import InferredEvent, ObservedEvent, event_v2_from_dict
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
