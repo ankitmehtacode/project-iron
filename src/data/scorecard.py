@@ -43,6 +43,22 @@ definitions are :func:`world_motion` (does the agent move) and
 """
 
 
+PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME = 20.0
+"""NOT MEASURED. A stated placeholder for stage 1's (detector) per-frame cost.
+
+``gate.compute_saved`` needs a downstream cost figure to turn "frames
+suppressed" into "compute avoided", and ``DetectorStage``
+(``src/cascade/stages.py``) is an unimplemented stub with no measured
+``StageStats.p50_ms`` to use. Inventing a specific number and presenting
+it as measured would be exactly the kind of unvalidated claim this
+project's eval discipline exists to prevent — so this constant exists
+instead, named and documented as a placeholder, with the estimate it
+produces labelled ``(estimate, unmeasured cost model)`` everywhere it is
+rendered. Replace this constant with a real per-stage cost the day
+``DetectorStage`` is implemented and benchmarked; nothing else about
+``gate.compute_saved``'s formula needs to change.
+"""
+
 MIN_RESOLVABLE_PIXELS = 1.0
 """Image-plane displacement, native pixels, below which motion is not motion.
 
@@ -631,6 +647,39 @@ def occlusion_metrics(clip_path: Path) -> dict[str, float]:
     }
 
 
+_GATE_METRIC_REQUIRES: dict[str, tuple[str, ...]] = {
+    "gate.wake_fraction": ("gate.recall_retained",),
+}
+"""Metrics on the left never ship without every metric on the right present
+in the same scorecard. See :func:`_validate_gate_metric_pairing`."""
+
+
+def _validate_gate_metric_pairing(metrics: list[Metric]) -> None:
+    """Refuse a scorecard that reports gate savings without gate loss.
+
+    ``gate.wake_fraction`` alone tells only the savings side of the
+    compute/recall trade. Day 12 showed precision/F1/false_positives
+    indistinguishable from always-wake on this fixture precisely because
+    they were read without their counterpart; the fix is structural here,
+    not a reviewer's reminder — a wake_fraction with no recall_retained
+    next to it raises before either can reach a report.
+
+    Raises:
+        ScorecardError: if a required pairing is broken.
+    """
+    names = {m.name for m in metrics}
+    for required, needs in _GATE_METRIC_REQUIRES.items():
+        if required not in names:
+            continue
+        missing = [n for n in needs if n not in names]
+        if missing:
+            raise ScorecardError(
+                f"{required} is present without {missing} — a gate savings "
+                "metric must never be emitted without its paired loss "
+                "metric (Day 14, Objective 3)"
+            )
+
+
 def compute(
     golden: Any, clip_root: Path, gate_config: Any, envelope: Any | None = None
 ) -> Scorecard:
@@ -700,61 +749,76 @@ def compute(
         + totals["unobservable_frames"]
     )
     recall = tp / (tp + fn) if (tp + fn) else float("nan")
-    precision = tp / (tp + fp) if (tp + fp) else float("nan")
-    f1 = (
-        2 * precision * recall / (precision + recall)
-        if precision + recall > 0 and np.isfinite(precision + recall)
+    moving_frames = tp + fn
+
+    # -- gate.* — the Day-14 reframe -------------------------------------
+    #
+    # Day 12's baseline rule showed precision/F1/false_positives
+    # indistinguishable from always-wake on this fixture: always-wake has
+    # recall 1.0 by definition, so precision/recall was never the frame
+    # that measures what a gate is FOR. A gate's product is compute saved,
+    # not detections made. These four numbers replace that section and are
+    # always reported together — see _validate_gate_metric_pairing below.
+    wakes_total = tp + fp + totals["wakes_outside_envelope"]
+    wake_fraction = wakes_total / presented if presented else float("nan")
+    frames_suppressed = presented - wakes_total if presented else 0
+    suppressed_fraction = frames_suppressed / presented if presented else float("nan")
+    compute_saved_ms_per_frame = (
+        suppressed_fraction * PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME
+        if np.isfinite(suppressed_fraction)
         else float("nan")
     )
+    max_compute_saved_ms = PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME
 
-    # Baseline context — the always-wake precision and F1 baselines depend
-    # on the moving-frame fraction of the scored set. Passed here once so
-    # the number the report shows against every gate metric describes the
-    # same denominator.
-    scored_frames = totals["scored_frames"]
-    moving_frames = tp + fn
-    non_moving_frames = max(scored_frames - moving_frames, 0)
-    moving_fraction = (
-        moving_frames / scored_frames if scored_frames else float("nan")
-    )
-
-    card.metrics = [
+    gate_metrics = [
         _metric_with_baselines(
-            "motion_gate.recall",
+            "gate.wake_fraction",
+            wake_fraction,
+            "fraction",
+            False,
+            f"{wakes_total} of {presented} presented frames reached stage 1. "
+            "The primary number: everything else on this trade is read "
+            "against it.",
+        ),
+        _metric_with_baselines(
+            "gate.recall_retained",
             recall,
             "fraction",
             True,
-            f"{tp} of {tp + fn} moving frames woke the next stage. A missed "
-            "wake loses the event outright.",
+            f"{tp} of {tp + fn} moving frames woke the next stage — recall "
+            "relative to always-wake (whose recall is 1.0 by construction), "
+            "not absolute recall. This is the loss side of the trade.",
         ),
         _metric_with_baselines(
-            "motion_gate.precision",
-            precision,
-            "fraction",
+            "gate.compute_saved",
+            compute_saved_ms_per_frame,
+            "ms/frame (estimate, unmeasured cost model)",
             True,
-            f"{tp} of {tp + fp} wakes were on genuinely moving frames. Low "
-            "precision costs compute, not evidence.",
-            moving_fraction=moving_fraction,
+            f"{frames_suppressed} of {presented} frames never reached stage "
+            f"1, x {PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME:.1f} ms/frame "
+            "PLACEHOLDER downstream cost (DetectorStage is an unimplemented "
+            "stub — see PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME). This is "
+            "an ESTIMATE under a stated, unmeasured cost model, not a "
+            "measurement.",
+            max_compute_saved_ms=max_compute_saved_ms,
         ),
         _metric_with_baselines(
-            "motion_gate.f1", f1, "fraction", True, moving_fraction=moving_fraction
-        ),
-        _metric_with_baselines(
-            "motion_gate.false_negatives",
+            "gate.miss_cost",
             float(fn),
             "frames",
             False,
-            "The number that matters most: frames with real motion the gate "
-            "slept through.",
+            f"Of the {moving_frames} reportable (above-envelope) frames, "
+            f"{fn} were slept through. NOT importance-weighted: this "
+            "synthetic set carries no per-event importance annotation, so "
+            "every reportable frame counts equally — a real weighting "
+            "requires Site Zero data.",
+            moving_frames=moving_frames,
         ),
-        _metric_with_baselines(
-            "motion_gate.false_positives",
-            float(fp),
-            "frames",
-            False,
-            "Wakes on frames with no motion; a compute cost.",
-            non_moving_frames=non_moving_frames,
-        ),
+    ]
+    _validate_gate_metric_pairing(gate_metrics)
+
+    card.metrics = [
+        *gate_metrics,
         _metric_with_baselines(
             "envelope.limited_misses",
             float(totals["envelope_limited_misses"]),

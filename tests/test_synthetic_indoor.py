@@ -129,9 +129,14 @@ def test_manifest_declares_the_synthetic_limitation(tmp_path: Path) -> None:
 def test_scorecard_reports_false_negatives_prominently(tmp_path: Path) -> None:
     """The metric that matters most must be present and correctly directed.
 
-    A missed wake loses the event outright, so false negatives are reported as
-    a raw count with higher_is_better=False rather than folded into an
-    aggregate that can look healthy.
+    A missed wake loses the event outright, so the miss count is reported
+    as a raw count with higher_is_better=False rather than folded into an
+    aggregate that can look healthy. Day 14 renamed the emitted metrics to
+    gate.miss_cost / gate.recall_retained (see FOUNDATION_REPORT.md's
+    Day-14 section, Objective 3) — same underlying counts, reframed
+    against wake_fraction/compute_saved instead of precision/F1, which
+    Day 12 showed do not discriminate a real gate from always-wake on
+    this fixture.
     """
     from src.config import IronConfig
     from src.data.golden import Domain, GoldenClip, GoldenSet, Status
@@ -148,10 +153,12 @@ def test_scorecard_reports_false_negatives_prominently(tmp_path: Path) -> None:
     card = compute(golden, tmp_path, IronConfig.load().cascade.motion_gate_config())
 
     names = {m.name for m in card.metrics}
-    assert "motion_gate.false_negatives" in names
-    assert "motion_gate.recall" in names
+    assert "gate.miss_cost" in names
+    assert "gate.recall_retained" in names
+    assert "gate.wake_fraction" in names
+    assert "gate.compute_saved" in names
 
-    fn = next(m for m in card.metrics if m.name == "motion_gate.false_negatives")
+    fn = next(m for m in card.metrics if m.name == "gate.miss_cost")
     assert fn.higher_is_better is False
     assert card.clips_scored == 2
 

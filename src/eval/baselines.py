@@ -40,7 +40,7 @@ refusal, never a blank.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable
 
 import numpy as np
@@ -172,7 +172,9 @@ def require_baseline(metric_name: str) -> None:
     baseline_registry.require(metric_name)
 
 
-def margin(metric_value: float, baselines: list[Baseline], higher_is_better: bool) -> float:
+def margin(
+    metric_value: float, baselines: list[Baseline], higher_is_better: bool
+) -> float:
     """Metric's advantage over the STRONGEST FLAG-WORTHY trivial baseline.
 
     A margin at or below zero means the metric is not distinguishing the
@@ -238,7 +240,9 @@ def _motion_gate_recall_baselines(**ctx: Any) -> list[Baseline]:
     ]
 
 
-def _motion_gate_precision_baselines(*, moving_fraction: float, **_: Any) -> list[Baseline]:
+def _motion_gate_precision_baselines(
+    *, moving_fraction: float, **_: Any
+) -> list[Baseline]:
     """Always-wake's precision equals the fraction of scored frames that move.
 
     ``moving_fraction`` is the strongest fair baseline: an oracle-free
@@ -289,7 +293,9 @@ def _motion_gate_false_negatives_baselines(**_: Any) -> list[Baseline]:
     ]
 
 
-def _motion_gate_false_positives_baselines(*, non_moving_frames: int, **_: Any) -> list[Baseline]:
+def _motion_gate_false_positives_baselines(
+    *, non_moving_frames: int, **_: Any
+) -> list[Baseline]:
     """Always-wake FP is flag-worthy; never-wake FP is a boundary at 0.
 
     ``non_moving_frames`` is a beatable target: a gate that discriminates
@@ -301,14 +307,107 @@ def _motion_gate_false_positives_baselines(*, non_moving_frames: int, **_: Any) 
         Baseline(
             "always_wake",
             float(non_moving_frames),
-            "always wake; every non-moving scored frame becomes a false "
-            "positive",
+            "always wake; every non-moving scored frame becomes a false " "positive",
         ),
         Baseline(
             "never_wake",
             0.0,
             "never wake; no false positive is possible",
             flag_worthy=False,
+        ),
+    ]
+
+
+# -- gate.* (Day 14) ---------------------------------------------------------
+#
+# Day 12's baseline rule showed motion_gate.precision/f1/false_positives all
+# indistinguishable from always-wake on v3-indoor. That was not a defect in
+# the gate; it meant precision/recall was never the frame that measures what
+# a gate is FOR. These four baselines bracket the compute/recall trade
+# instead, per Day 14 Objective 3: always-wake and never-wake are the two
+# ends of the space, and a real gate's value is its position between them.
+
+
+def _gate_wake_fraction_baselines(**_: Any) -> list[Baseline]:
+    """always-wake (1.0) is a real, beatable target; never-wake (0.0) is not.
+
+    Any functioning gate that discriminates at all wakes on fewer than
+    100% of frames, so always-wake is flag-worthy here — unlike its role
+    as an unbeatable boundary for recall. never-wake's 0.0 is the
+    unreachable floor for a gate that must sometimes wake on real motion.
+    """
+    return [
+        Baseline("always_wake", 1.0, "wake on every frame", flag_worthy=True),
+        Baseline(
+            "never_wake",
+            0.0,
+            "sleep on every frame; the floor no functioning gate reaches",
+            flag_worthy=False,
+        ),
+    ]
+
+
+def _gate_recall_retained_baselines(**_: Any) -> list[Baseline]:
+    """Same boundary reasoning as motion_gate.recall — see that docstring."""
+    return [
+        Baseline(
+            "always_wake",
+            1.0,
+            "recall relative to always-wake is 1.0 by construction",
+            flag_worthy=False,
+        ),
+        Baseline(
+            "never_wake",
+            0.0,
+            "sleep on every frame; recall retained is 0.0",
+            flag_worthy=False,
+        ),
+    ]
+
+
+def _gate_compute_saved_baselines(
+    *, max_compute_saved_ms: float, **_: Any
+) -> list[Baseline]:
+    """always-wake saves nothing (beatable); never-wake's max is a boundary.
+
+    ``max_compute_saved_ms`` is the placeholder cost model's ceiling — see
+    ``PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME`` in
+    ``src/data/scorecard.py``. No real gate that must sometimes wake on
+    genuine motion can reach it.
+    """
+    return [
+        Baseline(
+            "always_wake",
+            0.0,
+            "wake on every frame; no downstream compute is ever saved",
+            flag_worthy=True,
+        ),
+        Baseline(
+            "never_wake",
+            float(max_compute_saved_ms),
+            "sleep on every frame; the maximum saving under the stated "
+            "(unmeasured) cost model — unreachable by a gate that must "
+            "sometimes wake",
+            flag_worthy=False,
+        ),
+    ]
+
+
+def _gate_miss_cost_baselines(*, moving_frames: int, **_: Any) -> list[Baseline]:
+    """always-wake misses nothing (boundary); never-wake misses everything
+    (beatable — any real detection beats total blindness)."""
+    return [
+        Baseline(
+            "always_wake",
+            0.0,
+            "wake on every frame; no reportable frame is ever missed",
+            flag_worthy=False,
+        ),
+        Baseline(
+            "never_wake",
+            float(moving_frames),
+            "sleep on every frame; every reportable frame is missed",
+            flag_worthy=True,
         ),
     ]
 
@@ -408,7 +507,9 @@ def _semantics_patch_boundary_baselines(**_: Any) -> list[Baseline]:
 
 
 def _tracking_pts_within_baselines(
-    *, static_point_pts_within: float | None = None, copy_prev_pts_within: float | None = None,
+    *,
+    static_point_pts_within: float | None = None,
+    copy_prev_pts_within: float | None = None,
     **_: Any,
 ) -> list[Baseline]:
     b: list[Baseline] = []
@@ -499,7 +600,9 @@ def _depth_rank_correlation_baselines(**_: Any) -> list[Baseline]:
     ]
 
 
-def _depth_absrel_baselines(*, per_band_absrel: dict[str, float] | None = None, **_: Any) -> list[Baseline]:
+def _depth_absrel_baselines(
+    *, per_band_absrel: dict[str, float] | None = None, **_: Any
+) -> list[Baseline]:
     """Constant prediction (dataset median) baseline; per-band already reported.
 
     A constant depth prediction produces low AbsRel on whichever band
@@ -536,6 +639,11 @@ def _register_defaults() -> None:
     register_baseline(
         "motion_gate.false_positives", _motion_gate_false_positives_baselines
     )
+    # -- gate.* (Day 14 reframe) -------------------------------------------
+    register_baseline("gate.wake_fraction", _gate_wake_fraction_baselines)
+    register_baseline("gate.recall_retained", _gate_recall_retained_baselines)
+    register_baseline("gate.compute_saved", _gate_compute_saved_baselines)
+    register_baseline("gate.miss_cost", _gate_miss_cost_baselines)
     # -- envelope / coverage / gt descriptors -----------------------------
     for name in (
         "envelope.limited_misses",
@@ -553,15 +661,11 @@ def _register_defaults() -> None:
         "semantics.patch_boundary_l2", _semantics_patch_boundary_baselines
     )
     # -- tracking (TAP-Vid family) ---------------------------------------
-    register_baseline(
-        "tracking.pts_within_avg", _tracking_pts_within_baselines
-    )
+    register_baseline("tracking.pts_within_avg", _tracking_pts_within_baselines)
     register_baseline(
         "tracking.occlusion_accuracy", _tracking_occlusion_accuracy_baselines
     )
-    register_baseline(
-        "tracking.average_jaccard", _tracking_average_jaccard_baselines
-    )
+    register_baseline("tracking.average_jaccard", _tracking_average_jaccard_baselines)
     # -- depth ------------------------------------------------------------
     register_baseline("depth.rank_correlation", _depth_rank_correlation_baselines)
     register_baseline("depth.absrel", _depth_absrel_baselines)
