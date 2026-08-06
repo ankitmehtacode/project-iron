@@ -56,7 +56,6 @@ from src.model.coverage import (
 from src.model.envelope import Envelope, EnvelopeCurve, EnvelopeError
 from src.model.events import (
     EVENT_SCHEMA_VERSION,
-    AlertEligibleEvent,
     EventClassName,
     EventError,
     EventV2,
@@ -69,7 +68,6 @@ from src.model.events import (
     confirm_prediction,
     event_v2_from_dict,
     event_v2_to_dict,
-    raise_alert,
 )
 from src.model.evidence import (
     COMMITMENT_STATUSES,
@@ -179,13 +177,11 @@ __all__ = [
     "EventError",
     "EventV2",
     "EvidenceEligibleEvent",
-    "AlertEligibleEvent",
     "ObservedEvent",
     "InferredEvent",
     "PredictedEvent",
     "HypothesisEvent",
     "assemble_evidence",
-    "raise_alert",
     "confirm_prediction",
     "event_v2_to_dict",
     "event_v2_from_dict",

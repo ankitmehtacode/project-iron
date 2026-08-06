@@ -4,13 +4,15 @@ STRUCTURAL rules under test:
   - Alert.evidence_chain is required and non-empty — no alert without
     resolvable evidence.
   - emit_alert() is a closed-world singledispatch: only ObservedEvent and
-    InferredEvent are eligible (the intersection of Day 13's
-    AlertEligibleEvent and EvidenceEligibleEvent). PredictedEvent and
-    HypothesisEvent both raise.
+    InferredEvent are eligible. PredictedEvent and HypothesisEvent both
+    raise.
   - explain() resolves the full chain or raises naming the exact broken
     hop.
   - Carried from Day 13: ActivityMode still cannot attach to alerts or
     evidence.
+  - Day 15: emit_alert() is the ONLY public way to emit an alert.
+    events.raise_alert(), the Day-13 permissive path, is deleted — see
+    test_alert_package_exposes_no_alternative_emission_entry_point below.
 """
 
 from __future__ import annotations
@@ -214,6 +216,47 @@ def test_no_isinstance_or_predicted_hypothesis_check_in_dispatch_source() -> Non
     assert "isinstance" not in source
     assert "PredictedEvent" not in source
     assert "HypothesisEvent" not in source
+
+
+# ---------------------------------------------------------------------------
+# STRUCTURAL (Day 15): exactly one public way to emit an alert.
+#
+# Day 13 shipped a second entry point, events.raise_alert() -- permissive,
+# no evidence requirement. Auditing its callers found none in production
+# and found its one distinguishing capability (letting a PredictedEvent
+# alert) could never be paired with an evidence chain, so it was deleted
+# rather than migrated. These tests assert the deletion on the module's
+# actual public surface, not on a convention a later edit could reopen by
+# adding a new function and forgetting to route it through emit_alert.
+# ---------------------------------------------------------------------------
+
+
+def test_alert_package_exposes_no_alternative_emission_entry_point() -> None:
+    from src.model import alert as alert_module
+
+    assert not hasattr(alert_module, "raise_alert")
+
+    public_emitters = [
+        name
+        for name in alert_module.__all__
+        if "alert" in name.lower()
+        and callable(getattr(alert_module, name))
+        and not isinstance(getattr(alert_module, name), type)
+    ]
+    assert public_emitters == ["emit_alert"], (
+        "alert.py's public surface must expose exactly one alert-emitting "
+        f"callable; found {public_emitters}"
+    )
+
+
+def test_raise_alert_deleted_from_events_module_and_package_root() -> None:
+    import src.model as model_package
+    from src.model import events as events_module
+
+    assert not hasattr(events_module, "raise_alert")
+    assert not hasattr(model_package, "raise_alert")
+    assert "raise_alert" not in model_package.__all__
+    assert not hasattr(events_module, "AlertEligibleEvent")
 
 
 # ---------------------------------------------------------------------------

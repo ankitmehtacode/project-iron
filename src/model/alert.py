@@ -12,27 +12,32 @@ fire with nothing behind it is the seed of "the system said so and
 nobody can explain why", which ends credibility with a Tier-3 customer
 the first time an investigator asks.
 
-Two alert paths now, on purpose
-----------------------------------
-``events.raise_alert`` (Day 13, unchanged) is deliberately still broader
-than this module: it stays the type-eligibility check used when a
-forecast alone is allowed to page someone (a ``PredictedEvent`` can
-still trigger a fast-lane notification). This module's :func:`emit_alert`
-is the stricter, fully-explainable path, and its eligible set is exactly
-the *intersection* of Day 13's ``AlertEligibleEvent``
-(``Observed | Inferred | Predicted``) and ``EvidenceEligibleEvent``
-(``Observed | Inferred | Hypothesis``) — which is ``Observed | Inferred``.
-A ``PredictedEvent`` cannot go through :func:`emit_alert` because it can
-never itself be admitted as evidence (ADR 0003); explaining a
-forecast-triggered notification means rendering the ``InferredEvent``/
-``ObservedEvent`` chain that fed the predictor, never the prediction
-record itself. A ``HypothesisEvent`` cannot go through either path — a
-lead is not a claim strong enough to page anyone, in either framing.
+One alert path (Day 15: the Day-13 permissive path is deleted)
+----------------------------------------------------------------
+Day 13 also shipped ``events.raise_alert``, a broader type-eligibility
+check that let a ``PredictedEvent`` trigger an alert with no evidence
+requirement at all — a second entry point with nothing steering callers
+to this stricter one. Day 15 deleted it: auditing every caller found
+none in production, and found that the one thing it permitted beyond
+this module — a ``PredictedEvent`` alerting — could never be paired with
+a resolvable evidence chain, because ``PredictedEvent`` is excluded from
+evidence eligibility too (ADR 0003; see ``EvidenceEligibleEvent`` in
+:mod:`src.model.events`). It was a path that could only ever alert on
+nothing. :func:`emit_alert` is now the only public way to emit an alert,
+and its eligible set, ``AlertEmissionEligibleEvent``
+(``Observed | Inferred``), is exactly ``EvidenceEligibleEvent`` minus
+``HypothesisEvent``. A ``PredictedEvent`` cannot go through it because it
+can never itself be admitted as evidence; explaining a
+forecast-triggered notification would mean rendering the
+``InferredEvent``/``ObservedEvent`` chain that fed the predictor, never
+the prediction record itself — that is future work, not a relaxation of
+this dispatch. A ``HypothesisEvent`` cannot go through it either — a lead
+is not a claim strong enough to page anyone.
 
-Both eligibility checks are closed-world ``singledispatch`` registries,
-not an ``if``, matching Day 13's pattern exactly: an unregistered event
-type fails by the absence of a handler, which a later edit cannot
-accidentally invert the way it can invert a conditional.
+The eligibility check is a closed-world ``singledispatch`` registry, not
+an ``if``: an unregistered event type fails by the absence of a handler,
+which a later edit cannot accidentally invert the way it can invert a
+conditional.
 
 explain() resolves the whole chain or names the exact broken hop
 ----------------------------------------------------------------------
@@ -57,6 +62,22 @@ from typing import Mapping, Sequence
 
 from src.model.evidence import Evidence
 from src.model.events import EventV2, InferredEvent, ObservedEvent
+
+__all__ = [
+    "Alert",
+    "AlertEmissionEligibleEvent",
+    "AlertError",
+    "ExplainabilityError",
+    "ExplainedAlert",
+    "ExplainedHop",
+    "emit_alert",
+    "explain",
+]
+# STRUCTURAL (Day 15): this list is the alert package's entire public
+# surface. ``emit_alert`` is the only public callable that constructs an
+# ``Alert`` -- there is deliberately no second, permissive entry point.
+# See test_alert_package_exposes_no_alternative_emission_entry_point in
+# tests/test_model_alert.py, which asserts this rather than trusting it.
 
 AlertEmissionEligibleEvent = ObservedEvent | InferredEvent
 """Exactly the intersection of Day 13's AlertEligibleEvent and

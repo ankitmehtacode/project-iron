@@ -16,10 +16,16 @@ parens):
        (src/model/world.py — WorldPosition requires twin_rev; cross-rev
        distance/reproject raise without an explicit TwinRevTransform).
        Day 13: PARTIAL, staleness detectable but not enforced.
-    4. Alert explainability               -- PASSES as of Day 14
+    4. Alert explainability               -- PASSES as of Day 14; seam
+       closed Day 15
        (src/model/alert.py — emit_alert()/explain() require and resolve a
-       full evidence chain; raise_alert() stays the deliberately broader
-       Day-13 type-eligibility check for forecast-only paging).
+       full evidence chain. Day 15 deleted events.raise_alert(), the
+       Day-13 permissive path with no evidence requirement: auditing its
+       callers found none in production, and found its one distinguishing
+       feature -- letting a PredictedEvent trigger an alert -- could never
+       be paired with an evidence chain, since PredictedEvent is excluded
+       from evidence eligibility too. emit_alert() is now the only public
+       alert path.)
        Day 13: PARTIAL, an alert-eligible event could carry zero evidence.
     5. Behaviour-query shape              -- PASSES at the type level
        (an ActivityMode can never be confused with a fact); still blocked
@@ -52,7 +58,6 @@ from src.model.events import (
     ObservedEvent,
     PredictedEvent,
     assemble_evidence,
-    raise_alert,
 )
 from src.model.frame_of_reference import FrameOfReference
 from src.model.relationship import (
@@ -249,44 +254,32 @@ def _explainable_event(evidence_refs: tuple[str, ...] = ("ev-1",)) -> ObservedEv
 
 def test_falsification_alert_explainability_when_evidence_is_populated() -> None:
     """PASSES: an alert-eligible event with evidence_refs resolves to a
-    real, non-empty derivation chain — the alert can be explained.
+    real, non-empty derivation chain, and emit_alert()/explain() actually
+    walk that chain end to end — the alert can be explained, not just
+    shown to carry a ref that points somewhere.
     """
     event = _explainable_event()
-    triggerable = raise_alert(event)
-    assert triggerable is event
+    evidence = Evidence(
+        evidence_id="ev-1",
+        clip_refs=("cam-1/clip-1",),
+        state_refs=(),
+        observation_refs=("obs-1", "obs-2"),
+        derivation_chain=(
+            DerivationStep(stage="detector:yolov8", producer_sha="sha-det"),
+            DerivationStep(stage="hand_object_continuity", producer_sha="sha-cont"),
+        ),
+        producer_shas=("sha-det", "sha-cont"),
+        reproducible=True,
+        reproduce_command="python scripts/rerun_claim.py --evidence ev-1",
+    )
 
-    evidence_store = {
-        "ev-1": Evidence(
-            evidence_id="ev-1",
-            clip_refs=("cam-1/clip-1",),
-            state_refs=(),
-            observation_refs=("obs-1", "obs-2"),
-            derivation_chain=(
-                DerivationStep(stage="detector:yolov8", producer_sha="sha-det"),
-                DerivationStep(stage="hand_object_continuity", producer_sha="sha-cont"),
-            ),
-            producer_shas=("sha-det", "sha-cont"),
-            reproducible=True,
-            reproduce_command="python scripts/rerun_claim.py --evidence ev-1",
-        )
-    }
-
-    chain = [evidence_store[ref] for ref in event.evidence_refs]
-    assert all(e.derivation_chain for e in chain)
-    assert all(e.observation_refs for e in chain)
-
-
-def test_falsification_raise_alert_alone_still_permits_empty_evidence() -> None:
-    """UNCHANGED, by design: events.raise_alert() (Day 13) is deliberately
-    still the broader type-eligibility check, and still permits an event
-    with empty evidence_refs to pass it — that path exists for forecast
-    paging (test below), not for the fully-explainable production alert
-    surface. src/model/alert.py's emit_alert() is the strict path, tested
-    next, and it is what actually closes the falsification gap.
-    """
-    unexplainable = _explainable_event(evidence_refs=())
-    triggerable = raise_alert(unexplainable)  # still succeeds -- unchanged
-    assert triggerable.evidence_refs == ()
+    alert = emit_alert("alert-1", event, evidence_chain=[evidence], manifest_sha="sha-1")
+    explained = explain("alert-1", {"alert-1": alert})
+    assert explained.hops[0].observation_refs == ("obs-1", "obs-2")
+    assert explained.hops[0].derivation_stages == (
+        "detector:yolov8",
+        "hand_object_continuity",
+    )
 
 
 def test_falsification_emit_alert_now_requires_a_resolvable_evidence_chain() -> None:
@@ -321,12 +314,18 @@ def test_falsification_emit_alert_now_requires_a_resolvable_evidence_chain() -> 
     assert explained.hops[0].producer_shas == ("sha-det", "sha-cont")
 
 
-def test_falsification_predicted_event_can_alert_but_is_not_evidence_eligible() -> None:
-    """A PredictedEvent may trigger an alert (paging on a forecast) but can
-    never itself be admitted as evidence (ADR 0003). Explaining such an
-    alert therefore requires rendering the InferredEvent/ObservedEvent
-    chain that fed the predictor, not the PredictedEvent record itself --
-    a UI/rendering requirement for whichever Day builds the alert surface.
+def test_falsification_predicted_event_can_neither_alert_nor_be_evidence() -> None:
+    """Day 15: a PredictedEvent can trigger NEITHER emit_alert() nor
+    assemble_evidence() (ADR 0003).
+
+    Day 13/14's version of this test asserted a PredictedEvent COULD
+    trigger an alert via the permissive events.raise_alert() -- a
+    "forecast paging" path that Day 15 deleted, because it could never be
+    paired with an evidence chain: assemble_evidence() has no handler for
+    PredictedEvent either, so that path could only ever alert on nothing.
+    A future forecast-paging feature must render the InferredEvent/
+    ObservedEvent chain that fed the predictor and be built as its own
+    explicit capability, not by relaxing emit_alert()'s dispatch.
     """
     predicted = PredictedEvent(
         event_id=uuid.uuid4(),
@@ -339,7 +338,8 @@ def test_falsification_predicted_event_can_alert_but_is_not_evidence_eligible() 
         manifest_sha="sha-1",
         predicted_by="trajectory-extrapolator-v1",
     )
-    assert raise_alert(predicted) is predicted
+    with pytest.raises(AlertError):
+        emit_alert("alert-x", predicted, evidence_chain=[], manifest_sha="sha-1")
     with pytest.raises(EventError):
         assemble_evidence([predicted])
 

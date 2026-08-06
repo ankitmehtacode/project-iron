@@ -18,15 +18,31 @@ groups are reused directly from schema v1. The vocabulary's closedness and
 versioning policy live there; v2 only changes how a fact's epistemic
 status is represented, not what verbs exist.
 
-Evidence and alerting are closed-world dispatches, not conditionals
+Evidence admission is a closed-world dispatch, not a conditional
 ---------------------------------------------------------------------
-:func:`assemble_evidence` and :func:`raise_alert` are built on
-``functools.singledispatch`` with handlers registered only for the event
-classes that are actually eligible. A :class:`PredictedEvent` passed to
-:func:`assemble_evidence`, or a :class:`HypothesisEvent` passed to
-:func:`raise_alert`, hits no registered handler and the dispatch itself
-raises — there is no ``if event_class == "predicted": reject`` anywhere
-in this module for a future edit to accidentally invert or forget.
+:func:`assemble_evidence` is built on ``functools.singledispatch`` with
+handlers registered only for the event classes that are actually
+eligible. A :class:`PredictedEvent` passed to :func:`assemble_evidence`
+hits no registered handler and the dispatch itself raises — there is no
+``if event_class == "predicted": reject`` anywhere in this module for a
+future edit to accidentally invert or forget.
+
+Alert triggering lives in :mod:`src.model.alert`, not here (Day 15)
+---------------------------------------------------------------------
+Day 13 shipped a second, permissive type-eligibility check in this
+module, ``raise_alert``, alongside the strict ``src.model.alert.
+emit_alert`` added Day 14 — two alert paths with nothing steering
+callers to the strict one. Auditing every caller (Day 15) found none in
+production code, and found that ``raise_alert``'s one distinguishing
+feature — letting a :class:`PredictedEvent` trigger an alert — could
+never be given an evidence chain, because :func:`assemble_evidence`
+excludes ``PredictedEvent`` from evidence eligibility too. That is not a
+caller to migrate; it is a permissive path that could only ever alert on
+nothing. ``raise_alert`` and ``AlertEligibleEvent`` are deleted.
+``src.model.alert.emit_alert`` is now the only public way to emit an
+alert, and it is a closed-world dispatch requiring a resolved evidence
+chain (see that module's docstring). A future forecast-paging feature
+must be built as its own explicit capability, not by relaxing this one.
 """
 
 from __future__ import annotations
@@ -185,8 +201,9 @@ class PredictedEvent(_EventCommon):
 class HypothesisEvent(_EventCommon):
     """An unconfirmed possibility raised for investigation.
 
-    STRUCTURAL: cannot trigger an alert (:func:`raise_alert` raises for
-    it). A hypothesis is a lead, not a claim strong enough to page anyone.
+    STRUCTURAL: cannot trigger an alert (:func:`src.model.alert.emit_alert`
+    raises for it). A hypothesis is a lead, not a claim strong enough to
+    page anyone.
     """
 
     event_class: Literal["hypothesis"] = "hypothesis"
@@ -200,7 +217,6 @@ class HypothesisEvent(_EventCommon):
 
 EventV2 = ObservedEvent | InferredEvent | PredictedEvent | HypothesisEvent
 EvidenceEligibleEvent = ObservedEvent | InferredEvent | HypothesisEvent
-AlertEligibleEvent = ObservedEvent | InferredEvent | PredictedEvent
 
 
 # ---------------------------------------------------------------------------
@@ -243,45 +259,6 @@ def assemble_evidence(events: Sequence[EventV2]) -> tuple[EvidenceEligibleEvent,
             no registered handler) encountered.
     """
     return tuple(_admit_as_evidence(e) for e in events)
-
-
-# ---------------------------------------------------------------------------
-# Alert eligibility — closed-world dispatch, no HypothesisEvent handler.
-# ---------------------------------------------------------------------------
-
-
-@singledispatch
-def _admit_as_alert_trigger(event: object) -> AlertEligibleEvent:
-    raise EventError(
-        f"{type(event).__name__} cannot trigger an alert: no handler is "
-        "registered for it in src.model.events._admit_as_alert_trigger. A "
-        "HypothesisEvent is a lead for investigation, not a claim strong "
-        "enough to page anyone."
-    )
-
-
-@_admit_as_alert_trigger.register
-def _(event: ObservedEvent) -> AlertEligibleEvent:
-    return event
-
-
-@_admit_as_alert_trigger.register
-def _(event: InferredEvent) -> AlertEligibleEvent:
-    return event
-
-
-@_admit_as_alert_trigger.register
-def _(event: PredictedEvent) -> AlertEligibleEvent:
-    return event
-
-
-def raise_alert(event: EventV2) -> AlertEligibleEvent:
-    """Validate that ``event`` is eligible to trigger an alert.
-
-    Raises:
-        EventError: if ``event`` is a :class:`HypothesisEvent`.
-    """
-    return _admit_as_alert_trigger(event)
 
 
 # ---------------------------------------------------------------------------
@@ -465,9 +442,7 @@ __all__ = [
     "HypothesisEvent",
     "EventV2",
     "EvidenceEligibleEvent",
-    "AlertEligibleEvent",
     "assemble_evidence",
-    "raise_alert",
     "confirm_prediction",
     "event_v2_to_dict",
     "event_v2_from_dict",

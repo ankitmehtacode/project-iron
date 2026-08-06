@@ -26,7 +26,6 @@ from src.model.events import (
     confirm_prediction,
     event_v2_from_dict,
     event_v2_to_dict,
-    raise_alert,
 )
 
 SUBJECT = EntityRef("session", "sess-1")
@@ -181,20 +180,18 @@ def test_no_isinstance_predicted_event_check_in_evidence_admission_source() -> N
 
 
 # ---------------------------------------------------------------------------
-# STRUCTURAL: alert triggering rejects HypothesisEvent by type
-# ---------------------------------------------------------------------------
-
-
-def test_hypothesis_event_cannot_trigger_alert() -> None:
-    with pytest.raises(EventError, match="cannot trigger an alert"):
-        raise_alert(_hypothesis())
-
-
-def test_observed_inferred_predicted_can_trigger_alert() -> None:
-    for factory in (_observed, _inferred, _predicted):
-        assert raise_alert(factory()) is not None
-
-
+# Alert triggering moved to src.model.alert.emit_alert (Day 15).
+#
+# Day 13's events.raise_alert() lived here as a permissive type-eligibility
+# check with no evidence requirement; Day 15 deleted it (see
+# src/model/events.py's module docstring and src/model/alert.py's) because
+# its one distinguishing feature -- letting a PredictedEvent trigger an
+# alert -- could never be paired with an evidence chain, since
+# PredictedEvent is excluded from evidence eligibility too. What alert
+# triggering rejects and admits by type is now tested against emit_alert
+# in tests/test_model_alert.py: test_emit_alert_rejects_hypothesis_event,
+# test_emit_alert_rejects_predicted_event,
+# test_emit_alert_succeeds_for_observed_and_inferred.
 # ---------------------------------------------------------------------------
 # STRUCTURAL: confirming a prediction produces a NEW ObservedEvent
 # ---------------------------------------------------------------------------
