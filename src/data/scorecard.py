@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 
 GT_MOTION_THRESHOLD_M = 0.01
 """RETIRED. The original definition of "moving": 1 cm of world displacement.
@@ -287,6 +288,17 @@ class Scorecard:
     different questions, and the difference would read as a change in the gate.
     """
 
+    per_condition: dict[str, dict[str, float]] = field(default_factory=dict)
+    """gate.wake_fraction (and its required pairing) per condition bucket.
+
+    Objective 3, Day 15: a single aggregate wake_fraction across mixed
+    conditions is uninterpretable and must not be the headline. Keyed by
+    ``_CONDITION_BUCKETS`` ("occupied", "empty", "night", "degenerate"),
+    always all four even when a bucket has zero clips — an empty bucket is
+    a finding (see v3-indoor's empty "night" bucket), not a gap to hide by
+    omission.
+    """
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "golden_set_version": self.golden_set_version,
@@ -298,6 +310,7 @@ class Scorecard:
             "per_clip": self.per_clip,
             "capability_gates": self.capability_gates,
             "envelope": self.envelope,
+            "per_condition": self.per_condition,
         }
 
     def require_comparable(self, other: "Scorecard") -> None:
@@ -356,6 +369,23 @@ class Scorecard:
             )
             if metric.detail:
                 lines.append(f"    {metric.detail}")
+        if self.per_condition:
+            lines.extend(
+                [
+                    "",
+                    "PER-CONDITION gate.wake_fraction (Objective 3, Day 15) — "
+                    "the aggregate above is not the headline; this is",
+                    f"{'condition':<12} {'clips':>6} {'presented':>10} "
+                    f"{'wake_fraction':>14} {'recall_ret.':>12} {'moving_frac':>12}",
+                    "-" * 90,
+                ]
+            )
+            for bucket, row in self.per_condition.items():
+                lines.append(
+                    f"{bucket:<12} {row['clips']:>6.0f} {row['presented']:>10.0f} "
+                    f"{row['wake_fraction']:>14.4f} {row['recall_retained']:>12.4f} "
+                    f"{row['moving_frame_fraction']:>12.4f}"
+                )
         if self.caveats:
             lines.extend(["", "CAVEATS"])
             lines.extend(f"  - {c}" for c in self.caveats)
@@ -425,6 +455,16 @@ class Partition:
     value it was validated against and disagreed with.
     """
 
+    world_moved_any: npt.NDArray[np.bool_]
+    """Bool per frame: did ANY agent move in the world frame this frame.
+
+    Day 15, for ``dataset.moving_frame_fraction``. Deliberately the world
+    signal, not any one camera's silhouette or envelope verdict — "how much
+    of this scene moves" is a property of the scene, not of what one sensor
+    could resolve, the same distinction :func:`world_motion` exists to
+    keep. Same length as ``labels``; slice with ``[warm:]`` the same way.
+    """
+
     def after_warmup(self) -> np.ndarray:
         return self.labels[self.warm :]
 
@@ -465,9 +505,17 @@ def observability_partition(
     if envelope is None:
         envelope = MeasuredEnvelope.load(DEFAULT_ENVELOPE_PATH)
 
+    from src.model.world import UNREGISTERED, WorldPositionArray
+
     with np.load(clip_path) as data:
-        agent_xyz = np.asarray(data["agent_xyz"])
         instances = np.asarray(data["instances"])
+        # The .npz clip records no twin_rev at all -- Day-15 migration:
+        # constructing WorldPositionArray makes that absence an explicit,
+        # typed UNREGISTERED rather than a bare ndarray silently readable
+        # as belonging to whatever revision a future caller assumes.
+        agent_xyz = WorldPositionArray(
+            xyz_m=np.asarray(data["agent_xyz"]), twin_rev=UNREGISTERED
+        ).xyz_m
         track_uv = np.asarray(data["track_uv"])
         intrinsics = np.asarray(data["intrinsics"], dtype=np.float64)
         extrinsics = np.asarray(data["extrinsics"], dtype=np.float64)
@@ -548,6 +596,11 @@ def observability_partition(
         labels=labels,
         warm=gate_config.warmup_frames,
         envelope_gate_px=float(envelope_gate_px),
+        world_moved_any=(
+            np.any(world_moved, axis=1)
+            if agents
+            else np.zeros(frames, dtype=bool)
+        ),
     )
 
 
@@ -617,6 +670,11 @@ def motion_gate_metrics(
         # buckets must not become somewhere for wakes to hide. The gate's
         # stay-awake latch is the expected cause.
         "wakes_outside_envelope": int(np.sum((below | unobservable) & guess)),
+        # dataset.moving_frame_fraction's numerator (Day 15): world motion by
+        # ANY agent, over every presented frame -- not gated by observability,
+        # because "how much of the scene moves" is a property of the scene,
+        # not of what this one camera could resolve.
+        "frames_with_world_motion": int(np.sum(partition.world_moved_any[partition.warm :])),
     }
     rates = {
         "recall": tp / (tp + fn) if (tp + fn) else float("nan"),
@@ -647,11 +705,95 @@ def occlusion_metrics(clip_path: Path) -> dict[str, float]:
     }
 
 
+_CONDITION_BUCKETS: tuple[str, ...] = ("occupied", "empty", "night", "degenerate")
+"""Objective 3 (Day 15) buckets for per-condition gate.wake_fraction.
+
+v3 was authored to contain moving agents and minted against an
+observability floor of 0.80 -- a set where nearly everything moves cannot
+tell you what a gate saves on a real corridor. A single aggregate
+wake_fraction across mixed conditions hides that; these four buckets make
+the mix visible. All four are always reported, including a bucket with
+zero clips (matching :meth:`~src.data.golden.GoldenSet.condition_coverage`'s
+"zeroes included deliberately" — an empty bucket is a finding, not a gap
+to hide by omission). See :func:`_condition_bucket` for the mapping."""
+
+
+def _condition_bucket(conditions: "tuple[Any, ...]") -> str:
+    """Collapse the golden-set Condition taxonomy into one of
+    :data:`_CONDITION_BUCKETS`.
+
+    These four names are NOT literal ``Condition`` members — the taxonomy
+    (``src/data/golden.py``) has no "occupied" or "night" tag, and its
+    actual "Degradation" category (``CAMERA_BUMP``, ``LENS_SMUDGE``) has
+    zero clips in v3-indoor. The mapping, in priority order (a clip
+    belongs to exactly one bucket):
+
+      empty      <- Condition.EMPTY (no agents in the scene).
+      degenerate <- Condition.LIGHTS_TRANSIENT or Condition.GLARE: the
+                    frame's photometric signal is unreliable independent
+                    of occupancy. Stands in for the schema's actual
+                    Degradation tags, which this dataset has none of.
+      night      <- Condition.EVENING_ARTIFICIAL, minus anything already
+                    claimed by degenerate above. In v3-indoor this bucket
+                    is EMPTY: every EVENING_ARTIFICIAL clip
+                    (lights_off_transient__cam_a/b) is also
+                    LIGHTS_TRANSIENT, so "steady artificial light" is not
+                    a condition this dataset actually contains — reported
+                    plainly in the Day-15 report rather than left silent.
+      occupied   <- everything else: agents present under ordinary light.
+
+    The priority order resolves every multi-tag overlap actually present
+    in v3-indoor (``lights_off_transient__*`` carries both
+    LIGHTS_TRANSIENT and EVENING_ARTIFICIAL; ``blown_window__*`` carries
+    GLARE and DAYLIGHT; ``near_static__cam_a`` carries EMPTY and
+    DAYLIGHT).
+    """
+    from src.data.golden import Condition
+
+    tags = set(conditions)
+    if Condition.EMPTY in tags:
+        return "empty"
+    if Condition.LIGHTS_TRANSIENT in tags or Condition.GLARE in tags:
+        return "degenerate"
+    if Condition.EVENING_ARTIFICIAL in tags:
+        return "night"
+    return "occupied"
+
+
+def _gate_rates_from_totals(totals: dict[str, int]) -> dict[str, float]:
+    """The gate.* formulas from :func:`compute`, factored so the aggregate
+    and each condition bucket compute them identically rather than by two
+    copies of the same arithmetic drifting apart.
+    """
+    tp, fp, fn = totals["tp"], totals["fp"], totals["fn"]
+    presented = (
+        totals["scored_frames"]
+        + totals["below_envelope_frames"]
+        + totals["unobservable_frames"]
+    )
+    wakes_total = tp + fp + totals["wakes_outside_envelope"]
+    wake_fraction = wakes_total / presented if presented else float("nan")
+    recall = tp / (tp + fn) if (tp + fn) else float("nan")
+    moving_frame_fraction = (
+        totals["frames_with_world_motion"] / presented if presented else float("nan")
+    )
+    return {
+        "presented": float(presented),
+        "wake_fraction": wake_fraction,
+        "recall_retained": recall,
+        "moving_frame_fraction": moving_frame_fraction,
+    }
+
+
 _GATE_METRIC_REQUIRES: dict[str, tuple[str, ...]] = {
-    "gate.wake_fraction": ("gate.recall_retained",),
+    "gate.wake_fraction": ("gate.recall_retained", "dataset.moving_frame_fraction"),
 }
 """Metrics on the left never ship without every metric on the right present
-in the same scorecard. See :func:`_validate_gate_metric_pairing`."""
+in the same scorecard. See :func:`_validate_gate_metric_pairing`.
+
+Day 15 adds dataset.moving_frame_fraction to gate.wake_fraction's
+requirement: a wake fraction read without the scene's own motion density
+reads as a gate defect when it may just be how much of the scene moves."""
 
 
 def _validate_gate_metric_pairing(metrics: list[Metric]) -> None:
@@ -707,8 +849,19 @@ def compute(
         "envelope_limited_misses": 0,
         "unobservable_frames": 0,
         "wakes_outside_envelope": 0,
+        "frames_with_world_motion": 0,
     }
     occlusion_fractions: list[float] = []
+
+    # Per-condition-bucket totals (Objective 3, Day 15): the SAME keys as
+    # `totals`, kept separately per bucket so gate.wake_fraction can be read
+    # against the condition that produced it instead of only the aggregate.
+    # See the module docstring section on _condition_bucket for what "night"
+    # and "degenerate" stand in for -- neither is a literal Condition tag.
+    condition_totals: dict[str, dict[str, int]] = {
+        bucket: dict(totals) for bucket in _CONDITION_BUCKETS
+    }
+    condition_clip_counts: dict[str, int] = {bucket: 0 for bucket in _CONDITION_BUCKETS}
 
     for clip in golden.clips:
         path = clip_root / f"{clip.clip_id}.npz"
@@ -733,6 +886,11 @@ def compute(
             totals[key] += counts[key]
         occlusion_fractions.append(occlusion["occluded_track_fraction"])
 
+        bucket = _condition_bucket(clip.conditions)
+        for key in condition_totals[bucket]:
+            condition_totals[bucket][key] += counts[key]
+        condition_clip_counts[bucket] += 1
+
         card.per_clip[clip.clip_id] = {
             **{k: float(v) for k, v in counts.items()},
             **{k: float(v) for k, v in rates.items()},
@@ -750,6 +908,9 @@ def compute(
     )
     recall = tp / (tp + fn) if (tp + fn) else float("nan")
     moving_frames = tp + fn
+    moving_frame_fraction = (
+        totals["frames_with_world_motion"] / presented if presented else float("nan")
+    )
 
     # -- gate.* — the Day-14 reframe -------------------------------------
     #
@@ -815,10 +976,27 @@ def compute(
             moving_frames=moving_frames,
         ),
     ]
-    _validate_gate_metric_pairing(gate_metrics)
+
+    dataset_metrics = [
+        _metric_with_baselines(
+            "dataset.moving_frame_fraction",
+            moving_frame_fraction,
+            "fraction",
+            False,
+            f"{totals['frames_with_world_motion']} of {presented} presented "
+            "frames contain world motion by ANY agent, camera-independent. "
+            "The denominator gate.wake_fraction must be read against: a "
+            "gate cannot beat the scene's own motion density, and v3 was "
+            "authored to contain moving agents. This measures the gate's "
+            "mechanism, not the Tier-1 economic claim -- that requires wake "
+            "fraction over 24 hours of real office footage including "
+            "nights and weekends, which does not yet exist.",
+        ),
+    ]
 
     card.metrics = [
         *gate_metrics,
+        *dataset_metrics,
         _metric_with_baselines(
             "envelope.limited_misses",
             float(totals["envelope_limited_misses"]),
@@ -872,6 +1050,15 @@ def compute(
             "statement about the set, not about the gate.",
         ),
     ]
+    _validate_gate_metric_pairing(card.metrics)
+
+    card.per_condition = {
+        bucket: {
+            "clips": float(condition_clip_counts[bucket]),
+            **_gate_rates_from_totals(condition_totals[bucket]),
+        }
+        for bucket in _CONDITION_BUCKETS
+    }
     return card
 
 

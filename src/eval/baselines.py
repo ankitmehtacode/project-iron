@@ -452,6 +452,24 @@ def _gt_metric_baselines(**_: Any) -> list[Baseline]:
     ]
 
 
+def _dataset_metric_baselines(**_: Any) -> list[Baseline]:
+    """Dataset composition descriptors (moving_frame_fraction, ...) are set
+    properties, same as envelope.*/coverage.*/gt.* — never a model result.
+
+    Day 15: dataset.moving_frame_fraction exists specifically so
+    gate.wake_fraction is never read without the denominator that decides
+    whether a high wake fraction is a gate defect or just how much of the
+    scene moves.
+    """
+    return [
+        Baseline(
+            "set_property",
+            float("nan"),
+            "descriptor of the set, not of any model — no strategy applies",
+        )
+    ]
+
+
 def _semantics_map_baselines(
     *, n_tracks: int, position_only_map: float | None = None, **_: Any
 ) -> list[Baseline]:
@@ -654,6 +672,7 @@ def _register_defaults() -> None:
     for name in ("coverage.frames_scored", "coverage.observable_fraction"):
         register_baseline(name, _coverage_metric_baselines)
     register_baseline("gt.occluded_track_fraction", _gt_metric_baselines)
+    register_baseline("dataset.moving_frame_fraction", _dataset_metric_baselines)
     # -- semantics --------------------------------------------------------
     register_baseline("semantics.mAP", _semantics_map_baselines)
     register_baseline("semantics.temporal_cosine", _semantics_temporal_cosine_baselines)

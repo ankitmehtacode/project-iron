@@ -43,7 +43,31 @@ def test_wake_fraction_without_recall_retained_raises() -> None:
         _validate_gate_metric_pairing(wake_fraction_only)
 
 
-def test_wake_fraction_with_recall_retained_does_not_raise() -> None:
+def test_wake_fraction_with_recall_retained_but_no_moving_fraction_raises() -> None:
+    """Day 15: wake_fraction's pairing requirement grew a second member,
+    dataset.moving_frame_fraction — recall_retained alone is no longer
+    enough. A wake fraction read without the scene's own motion density
+    reads as a gate defect when it may just be how much of the scene moves.
+    """
+    missing_moving_fraction = [
+        Metric(
+            name="gate.wake_fraction",
+            value=0.5,
+            unit="fraction",
+            higher_is_better=False,
+        ),
+        Metric(
+            name="gate.recall_retained",
+            value=0.9,
+            unit="fraction",
+            higher_is_better=True,
+        ),
+    ]
+    with pytest.raises(ScorecardError, match="gate.wake_fraction"):
+        _validate_gate_metric_pairing(missing_moving_fraction)
+
+
+def test_wake_fraction_with_recall_retained_and_moving_fraction_does_not_raise() -> None:
     paired = [
         Metric(
             name="gate.wake_fraction",
@@ -56,6 +80,12 @@ def test_wake_fraction_with_recall_retained_does_not_raise() -> None:
             value=0.9,
             unit="fraction",
             higher_is_better=True,
+        ),
+        Metric(
+            name="dataset.moving_frame_fraction",
+            value=0.95,
+            unit="fraction",
+            higher_is_better=False,
         ),
     ]
     _validate_gate_metric_pairing(paired)  # must not raise
@@ -174,3 +204,74 @@ def test_placeholder_cost_constant_is_documented_as_unmeasured() -> None:
     idx = source.index("PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME = 20.0")
     docstring_slice = source[idx : idx + 400]
     assert "NOT MEASURED" in docstring_slice
+
+
+# ---------------------------------------------------------------------------
+# Objective 3 (Day 15) — _condition_bucket, the occupied/empty/night/
+# degenerate mapping over the golden-set Condition taxonomy.
+# ---------------------------------------------------------------------------
+
+
+def test_condition_bucket_empty_takes_priority() -> None:
+    from src.data.golden import Condition
+    from src.data.scorecard import _condition_bucket
+
+    assert _condition_bucket((Condition.EMPTY, Condition.DAYLIGHT)) == "empty"
+
+
+def test_condition_bucket_lights_transient_and_glare_are_degenerate() -> None:
+    from src.data.golden import Condition
+    from src.data.scorecard import _condition_bucket
+
+    assert (
+        _condition_bucket((Condition.LIGHTS_TRANSIENT, Condition.EVENING_ARTIFICIAL))
+        == "degenerate"
+    )
+    assert _condition_bucket((Condition.GLARE, Condition.DAYLIGHT)) == "degenerate"
+
+
+def test_condition_bucket_evening_artificial_alone_is_night() -> None:
+    """v3-indoor has no clip like this (every EVENING_ARTIFICIAL clip is
+    also LIGHTS_TRANSIENT there), but the bucket itself must exist and
+    classify correctly for a future clip that carries steady artificial
+    light without a transient lighting event.
+    """
+    from src.data.golden import Condition
+    from src.data.scorecard import _condition_bucket
+
+    assert _condition_bucket((Condition.EVENING_ARTIFICIAL,)) == "night"
+
+
+def test_condition_bucket_defaults_to_occupied() -> None:
+    from src.data.golden import Condition
+    from src.data.scorecard import _condition_bucket
+
+    assert _condition_bucket((Condition.DAYLIGHT, Condition.SINGLE_PERSON)) == "occupied"
+    assert _condition_bucket(()) == "occupied"
+
+
+def test_condition_bucket_partitions_v3_indoor_exactly() -> None:
+    """Pins the real v3-indoor manifest's bucket counts so a manifest edit
+    or a mapping-priority change is caught here, not discovered by someone
+    reading a report with a table that no longer adds to 30.
+    """
+    from pathlib import Path
+
+    from src.data.golden import load_golden_set
+    from src.data.scorecard import _CONDITION_BUCKETS, _condition_bucket
+
+    golden_root = Path(__file__).resolve().parents[1] / "configs" / "golden"
+    golden = load_golden_set(golden_root, "v3-indoor")
+    counts = {b: 0 for b in _CONDITION_BUCKETS}
+    for clip in golden.clips:
+        counts[_condition_bucket(clip.conditions)] += 1
+
+    assert counts == {"occupied": 25, "empty": 1, "night": 0, "degenerate": 4}
+    assert sum(counts.values()) == len(golden.clips) == 30
+
+
+def test_dataset_moving_frame_fraction_has_a_registered_baseline() -> None:
+    metric = _metric_with_baselines(
+        "dataset.moving_frame_fraction", 0.97, "fraction", False
+    )
+    assert metric.baselines  # BaselineMissing would have raised otherwise

@@ -163,6 +163,38 @@ def test_scorecard_reports_false_negatives_prominently(tmp_path: Path) -> None:
     assert card.clips_scored == 2
 
 
+def test_scorecard_reports_per_condition_wake_fraction(tmp_path: Path) -> None:
+    """Objective 3 (Day 15): a single aggregate wake_fraction across mixed
+    conditions must not be the headline -- card.per_condition always
+    carries all four buckets, even ones with zero clips.
+    """
+    from src.config import IronConfig
+    from src.data.golden import Domain, GoldenClip, GoldenSet, Status
+    from src.data.scorecard import _CONDITION_BUCKETS, compute
+
+    manifest = gen.generate(tmp_path, frames=8, fps=12.0, seed=19)
+    clips = tuple(
+        GoldenClip(
+            clip_id=c["clip_id"],
+            content_sha=c["content_sha"],
+            conditions=(Condition.DAYLIGHT, Condition.SINGLE_PERSON),
+        )
+        for c in manifest["clips"][:2]
+    )
+    golden = GoldenSet(
+        version="vtest", domain=Domain.INDOOR, status=Status.ACTIVE, clips=clips
+    )
+    card = compute(golden, tmp_path, IronConfig.load().cascade.motion_gate_config())
+
+    assert set(card.per_condition) == set(_CONDITION_BUCKETS)
+    # Every clip tagged daylight/single_person lands in "occupied", and every
+    # other bucket is present but empty -- not silently omitted.
+    assert card.per_condition["occupied"]["clips"] == 2.0
+    for bucket in ("empty", "night", "degenerate"):
+        assert card.per_condition[bucket]["clips"] == 0.0
+        assert np.isnan(card.per_condition[bucket]["wake_fraction"])
+
+
 def test_scorecard_reports_set_difficulty_not_just_score(tmp_path: Path) -> None:
     """A perfect score on easy clips says nothing; difficulty must be visible."""
     from src.config import IronConfig
