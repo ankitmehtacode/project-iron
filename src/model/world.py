@@ -35,12 +35,42 @@ raises for an unregistered pair rather than defaulting to identity —
 silent identity is the bug a re-versioned twin produces, and this
 registry refuses to reproduce it. Same-rev resolution is the one case
 that never needs registration, because no re-versioning happened.
+
+UNREGISTERED — representable, useless (Day 15)
+----------------------------------------------
+Day 14's audit found two existing code paths that construct world-frame
+positions with no recorded ``twin_rev`` at all — legacy data, not new
+code, so falsification test 3 passed for anything built after Day 14
+while these paths kept producing revision-less positions. The fix is not
+to invent a revision for them (guessing "0" or "current" recreates
+exactly the silent-identity bug this module exists to prevent) but to
+make "unknown provenance" a real, constructable value that every
+cross-rev operation refuses to use: :data:`UNREGISTERED`.
+:class:`WorldPosition` and :class:`WorldPositionArray` both accept it as
+``twin_rev``; :meth:`WorldPosition.distance_to`, :meth:`WorldPosition.
+reproject`, and :meth:`WorldPositionArray.combine` all raise
+:class:`TwinRevError` the moment either side is ``UNREGISTERED`` — even
+against another ``UNREGISTERED`` position, since two unknown revisions
+are not known to be the same revision. A position of unknown provenance
+is not silently assumed current; it is unusable for cross-rev math and
+says so.
 """
 
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import Final
+
+import numpy as np
+import numpy.typing as npt
+
+FloatArray = npt.NDArray[np.float64]
+
+UNREGISTERED: Final[int] = -1
+"""Sentinel ``twin_rev`` for a world-frame position with no recorded
+revision (legacy data migrated after the fact). Constructable, and
+rejected by every cross-rev operation — see the module docstring."""
 
 
 class TwinRevError(ValueError):
@@ -134,9 +164,10 @@ class WorldPosition:
         for name, value in (("x_m", self.x_m), ("y_m", self.y_m), ("z_m", self.z_m)):
             if not math.isfinite(value):
                 raise ValueError(f"WorldPosition.{name} must be finite, got {value}")
-        if self.twin_rev < 0:
+        if self.twin_rev < 0 and self.twin_rev != UNREGISTERED:
             raise ValueError(
-                f"WorldPosition.twin_rev must be non-negative, got {self.twin_rev}"
+                f"WorldPosition.twin_rev must be non-negative, or the "
+                f"UNREGISTERED sentinel ({UNREGISTERED}), got {self.twin_rev}"
             )
 
     def distance_to(
@@ -145,10 +176,20 @@ class WorldPosition:
         """Euclidean distance in metres.
 
         Raises:
-            TwinRevError: if ``self`` and ``other`` carry different
-                ``twin_rev`` and ``transform`` is not supplied, or is
-                supplied but does not connect the two revisions.
+            TwinRevError: if either position is ``UNREGISTERED`` (even
+                against another ``UNREGISTERED`` position — unknown
+                provenance is never assumed equal to itself), or if
+                ``self`` and ``other`` carry different ``twin_rev`` and
+                ``transform`` is not supplied, or is supplied but does
+                not connect the two revisions.
         """
+        if self.twin_rev == UNREGISTERED or other.twin_rev == UNREGISTERED:
+            raise TwinRevError(
+                "cannot compute distance: a twin_rev=UNREGISTERED position "
+                "has no recorded revision, so it is never treated as any "
+                "specific revision -- not even matching another "
+                "UNREGISTERED position"
+            )
         if self.twin_rev == other.twin_rev:
             dx = self.x_m - other.x_m
             dy = self.y_m - other.y_m
@@ -173,9 +214,17 @@ class WorldPosition:
         pair) is explicit at the call site.
 
         Raises:
-            TwinRevError: if ``transform.from_twin_rev`` does not match
-                ``self.twin_rev``.
+            TwinRevError: if ``self.twin_rev`` is ``UNREGISTERED`` (its
+                true revision is unknown, so there is no valid "from" to
+                reproject out of), or if ``transform.from_twin_rev`` does
+                not match ``self.twin_rev``.
         """
+        if self.twin_rev == UNREGISTERED:
+            raise TwinRevError(
+                "cannot reproject a twin_rev=UNREGISTERED position: its "
+                "true revision is unknown, so no transform can be known "
+                "to apply to it"
+            )
         if transform.from_twin_rev != self.twin_rev:
             raise TwinRevError(
                 f"transform is from twin_rev={transform.from_twin_rev} but "
@@ -183,6 +232,72 @@ class WorldPosition:
             )
         x, y, z = transform.transform.apply((self.x_m, self.y_m, self.z_m))
         return WorldPosition(x_m=x, y_m=y, z_m=z, twin_rev=transform.to_twin_rev)
+
+
+@dataclass(frozen=True, eq=False)
+class WorldPositionArray:
+    """A batch of world-frame positions sharing one ``twin_rev``.
+
+    ``eq=False``: the default dataclass equality would compare ``xyz_m``
+    with bare ``==``, which raises on a multi-element ``ndarray`` ("truth
+    value of an array is ambiguous") rather than doing anything useful.
+    Identity comparison is what this type actually needs.
+
+    The array analogue of :class:`WorldPosition`, for vectorized code
+    (``np.diff``, ``np.linalg.norm`` over a ``[T, A, 3]`` clip) that
+    cannot afford one dataclass instance per point. Carries the same
+    required, undefaulted ``twin_rev`` — including :data:`UNREGISTERED`
+    for legacy data with no recorded revision — and enforces the same
+    rule: there is no bare way to combine two arrays of positions across
+    revisions. :meth:`combine` is the one sanctioned way to bring two
+    ``WorldPositionArray`` instances together, and it raises exactly
+    where :meth:`WorldPosition.distance_to` would.
+    """
+
+    xyz_m: FloatArray
+    twin_rev: int
+
+    def __post_init__(self) -> None:
+        if self.xyz_m.ndim < 1 or self.xyz_m.shape[-1] != 3:
+            raise ValueError(
+                "WorldPositionArray.xyz_m must have shape (..., 3), got "
+                f"{self.xyz_m.shape}"
+            )
+        if not np.all(np.isfinite(self.xyz_m)):
+            raise ValueError("WorldPositionArray.xyz_m must be all finite")
+        if self.twin_rev < 0 and self.twin_rev != UNREGISTERED:
+            raise ValueError(
+                f"WorldPositionArray.twin_rev must be non-negative, or the "
+                f"UNREGISTERED sentinel ({UNREGISTERED}), got {self.twin_rev}"
+            )
+
+    def combine(self, other: "WorldPositionArray") -> tuple[FloatArray, FloatArray]:
+        """Return ``(self.xyz_m, other.xyz_m)`` if they share a resolvable rev.
+
+        Raises:
+            TwinRevError: if either array is ``UNREGISTERED``, or the two
+                carry different ``twin_rev``. There is no transform
+                parameter here (unlike :meth:`WorldPosition.distance_to`)
+                because no caller in this codebase yet needs to combine
+                positions across two *known, different* revisions in
+                bulk; when one does, it should resolve a
+                :class:`TwinRevTransform` and apply it to both arrays
+                before calling this, the same way single-point code must.
+        """
+        if self.twin_rev == UNREGISTERED or other.twin_rev == UNREGISTERED:
+            raise TwinRevError(
+                "cannot combine: a twin_rev=UNREGISTERED array has no "
+                "recorded revision, so it is never treated as any "
+                "specific revision -- not even matching another "
+                "UNREGISTERED array"
+            )
+        if self.twin_rev != other.twin_rev:
+            raise TwinRevError(
+                f"cannot combine a twin_rev={self.twin_rev} array with a "
+                f"twin_rev={other.twin_rev} array without an explicit "
+                "TwinRevTransform connecting them"
+            )
+        return self.xyz_m, other.xyz_m
 
 
 @dataclass(frozen=True)

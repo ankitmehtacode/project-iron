@@ -123,11 +123,13 @@ from src.model.relationship import (
 from src.model.uncertainty import ALL_UNCERTAINTY_KINDS, Uncertainty, UncertaintyError
 from src.model.ulid import ULID, InvalidULID, generate_ulid
 from src.model.world import (
+    UNREGISTERED,
     RigidTransform3D,
     TwinRevError,
     TwinRevTransform,
     TwinRevTransformRegistry,
     WorldPosition,
+    WorldPositionArray,
 )
 
 __all__ = [
@@ -222,6 +224,8 @@ __all__ = [
     "StateGraph",
     "solve_state",
     "WorldPosition",
+    "WorldPositionArray",
+    "UNREGISTERED",
     "RigidTransform3D",
     "TwinRevTransform",
     "TwinRevTransformRegistry",

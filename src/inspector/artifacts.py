@@ -317,10 +317,18 @@ def clip_analysis(artifacts: Artifacts, clip_id: str) -> dict[str, Any] | Absent
 
     partition = observability_partition(path, gate_config, envelope)
 
+    from src.model.world import UNREGISTERED, WorldPositionArray
+
     with np.load(path) as data:
         rgb = np.asarray(data["rgb"])
         instances = np.asarray(data["instances"])
-        agent_xyz = np.asarray(data["agent_xyz"])
+        # The .npz clip records no twin_rev at all -- Day-15 migration:
+        # constructing WorldPositionArray makes that absence an explicit,
+        # typed UNREGISTERED rather than a bare ndarray silently readable
+        # as belonging to whatever revision a future caller assumes.
+        agent_xyz = WorldPositionArray(
+            xyz_m=np.asarray(data["agent_xyz"]), twin_rev=UNREGISTERED
+        ).xyz_m
         track_uv = np.asarray(data["track_uv"])
         intrinsics = np.asarray(data["intrinsics"], dtype=np.float64)
         extrinsics = np.asarray(data["extrinsics"], dtype=np.float64)
