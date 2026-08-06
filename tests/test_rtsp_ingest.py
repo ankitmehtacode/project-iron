@@ -19,6 +19,7 @@ from src.ingest.rtsp import (
     TransportRefused,
     negotiate_transport,
 )
+from src.model.coverage import Gap
 from fixtures.minimal_rtsp_server import (
     MinimalRtspServer,
     build_rtcp_sr,
@@ -46,14 +47,21 @@ def test_negotiate_transport_confirms_tcp_interleaved() -> None:
 def test_full_session_yields_frames_with_rtcp_derived_time() -> None:
     ntp_anchor_seconds = 2_208_988_800 + 5_000  # unix t=5000s
     chunks = [
-        (1, build_rtcp_sr(ntp_seconds=ntp_anchor_seconds, ntp_fraction=0, rtp_timestamp=0)),
+        (
+            1,
+            build_rtcp_sr(
+                ntp_seconds=ntp_anchor_seconds, ntp_fraction=0, rtp_timestamp=0
+            ),
+        ),
         (0, build_rtp_packet(seq=1, timestamp=0, payload=b"NALU-frame-1")),
         (0, build_rtp_packet(seq=2, timestamp=90_000, payload=b"NALU-frame-2")),  # +1s
     ]
     server = MinimalRtspServer(chunks=chunks)
     server.start()
     try:
-        session = RtspIngestSession.open("site-a", "/stream", host=server.host, port=server.port)
+        session = RtspIngestSession.open(
+            "site-a", "/stream", host=server.host, port=server.port
+        )
         try:
             frames = list(session.frames())
         finally:
@@ -81,7 +89,9 @@ def test_frames_before_any_rtcp_sr_use_arrival_time() -> None:
     server = MinimalRtspServer(chunks=chunks)
     server.start()
     try:
-        session = RtspIngestSession.open("site-a", "/stream", host=server.host, port=server.port)
+        session = RtspIngestSession.open(
+            "site-a", "/stream", host=server.host, port=server.port
+        )
         try:
             frames = list(session.frames())
         finally:
@@ -105,7 +115,9 @@ def test_sequence_gap_is_recorded_not_silently_dropped() -> None:
     server = MinimalRtspServer(chunks=chunks)
     server.start()
     try:
-        session = RtspIngestSession.open("site-a", "/stream", host=server.host, port=server.port)
+        session = RtspIngestSession.open(
+            "site-a", "/stream", host=server.host, port=server.port
+        )
         try:
             frames = list(session.frames())
         finally:
@@ -122,6 +134,41 @@ def test_sequence_gap_is_recorded_not_silently_dropped() -> None:
     assert gap.site_id == "site-a"
 
 
+def test_gaps_project_into_day13_coverage_gap_records() -> None:
+    """Day 14: every dropped frame writes a Gap via the Day-13 Coverage
+    types, not a parallel mechanism -- FrameGap.to_coverage_gap() / the
+    session's coverage_gaps() are that projection.
+    """
+    chunks = [
+        (0, build_rtp_packet(seq=1, timestamp=0, payload=b"frame-1")),
+        (0, build_rtp_packet(seq=2, timestamp=3000, payload=b"frame-2")),
+        # seq 3 and 4 are missing.
+        (0, build_rtp_packet(seq=5, timestamp=15000, payload=b"frame-5")),
+    ]
+    server = MinimalRtspServer(chunks=chunks)
+    server.start()
+    try:
+        session = RtspIngestSession.open(
+            "site-a", "/stream", host=server.host, port=server.port
+        )
+        try:
+            list(session.frames())
+        finally:
+            session.close()
+    finally:
+        server.stop()
+
+    assert len(session.gaps) == 1
+    coverage_gaps = session.coverage_gaps()
+    assert len(coverage_gaps) == 1
+    gap = coverage_gaps[0]
+    assert isinstance(gap, Gap)
+    assert gap.camera_id == "site-a"
+    assert gap.reason == "dropped_frame"
+    assert gap.interval.start_ns == session.gaps[0].detected_at_ts_ns
+    assert gap.interval.end_ns == session.gaps[0].detected_at_ts_ns + 1
+
+
 def test_sequence_number_wraparound_is_not_a_false_gap() -> None:
     chunks = [
         (0, build_rtp_packet(seq=0xFFFE, timestamp=0, payload=b"a")),
@@ -131,7 +178,9 @@ def test_sequence_number_wraparound_is_not_a_false_gap() -> None:
     server = MinimalRtspServer(chunks=chunks)
     server.start()
     try:
-        session = RtspIngestSession.open("site-a", "/stream", host=server.host, port=server.port)
+        session = RtspIngestSession.open(
+            "site-a", "/stream", host=server.host, port=server.port
+        )
         try:
             list(session.frames())
         finally:
@@ -168,7 +217,11 @@ def test_server_refusing_tcp_is_not_silently_downgraded_to_udp() -> None:
                 header_blob, _, buffer = buffer.partition(b"\r\n\r\n")
                 lines = header_blob.decode("iso-8859-1").split("\r\n")
                 method = lines[0].split(" ")[0]
-                cseq = next(l for l in lines if l.lower().startswith("cseq")).split(":", 1)[1].strip()
+                cseq = (
+                    next(l for l in lines if l.lower().startswith("cseq"))
+                    .split(":", 1)[1]
+                    .strip()
+                )
                 if method == "SETUP":
                     conn.sendall(
                         f"RTSP/1.0 200 OK\r\nCSeq: {cseq}\r\n"

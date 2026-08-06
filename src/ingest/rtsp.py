@@ -42,6 +42,7 @@ from enum import Enum
 from typing import Iterator
 
 from src.ingest.rtcp import RtcpParseError, RtcpTimeMapper, parse_sender_report
+from src.model.coverage import Gap, Interval
 
 DEFAULT_RTSP_PORT = 554
 _INTERLEAVED_MARKER = 0x24  # ASCII '$', RFC 2326 §10.12 framing byte
@@ -88,6 +89,31 @@ class FrameGap:
     gap_count: int
     detected_at_ts_ns: int
     ts_source: TimestampSource
+
+    def to_coverage_gap(self) -> Gap:
+        """Project this RTP-level detection into a Day-13 Coverage Gap.
+
+        ``FrameGap`` and :class:`~src.model.coverage.Gap` are not the same
+        record duplicated: ``FrameGap`` is the RTP-protocol-level
+        detection, carrying diagnostics (``expected_seq``,
+        ``observed_seq``, ``gap_count``) that have no home on the
+        cross-module ``Gap`` type; ``Gap`` is the coarser projection of
+        that same event into the Coverage log every other stage already
+        writes to (see :mod:`src.model.coverage`) — using it here rather
+        than inventing a second gap-reporting mechanism is what Day 14
+        asked for.
+
+        The interval is the minimal single-instant span ``Interval``
+        allows (``detected_at_ts_ns``, ``+1`` ns): RTP sequence-gap
+        detection knows WHEN a gap was found, not the wall-clock duration
+        of the missing packets — that would require the stream's frame
+        interval, which is not known at this transport layer.
+        """
+        return Gap(
+            camera_id=self.site_id,
+            interval=Interval(self.detected_at_ts_ns, self.detected_at_ts_ns + 1),
+            reason="dropped_frame",
+        )
 
 
 @dataclass(frozen=True)
@@ -149,7 +175,11 @@ def _read_response(sock: socket.socket) -> tuple[int, dict[str, str], bytes]:
 def _send_request(
     sock: socket.socket, method: str, url: str, cseq: int, extra_headers: dict[str, str]
 ) -> None:
-    header_lines = [f"{method} {url} {_RTSP_VERSION}", f"CSeq: {cseq}", f"User-Agent: {_USER_AGENT}"]
+    header_lines = [
+        f"{method} {url} {_RTSP_VERSION}",
+        f"CSeq: {cseq}",
+        f"User-Agent: {_USER_AGENT}",
+    ]
     for key, value in extra_headers.items():
         header_lines.append(f"{key}: {value}")
     request = "\r\n".join(header_lines) + "\r\n\r\n"
@@ -214,7 +244,9 @@ def negotiate_transport(
             f"SETUP confirmed TCP but did not state interleaved channel "
             f"numbers: {transport_header!r}"
         )
-    rtp_channel, rtcp_channel = int(channels_match.group(1)), int(channels_match.group(2))
+    rtp_channel, rtcp_channel = int(channels_match.group(1)), int(
+        channels_match.group(2)
+    )
     session_id = headers.get("session", "").split(";")[0]
     cseq += 1
 
@@ -227,7 +259,11 @@ def negotiate_transport(
         raise RtspError(f"PLAY failed: status {status}")
 
     return (
-        RtspTransport(rtp_channel=rtp_channel, rtcp_channel=rtcp_channel, clock_rate_hz=clock_rate_hz),
+        RtspTransport(
+            rtp_channel=rtp_channel,
+            rtcp_channel=rtcp_channel,
+            clock_rate_hz=clock_rate_hz,
+        ),
         rest + rest2,
     )
 
@@ -275,7 +311,9 @@ class RtspIngestSession:
     """Ties negotiation, demux, RTCP timing, and gap detection together.
 
     Construct via :meth:`open`, then iterate :meth:`frames` for
-    :class:`IngestFrame` and consult :attr:`gaps` for anything dropped.
+    :class:`IngestFrame` and consult :attr:`gaps` for anything dropped, or
+    :meth:`coverage_gaps` for the same drops as Day-13 Coverage ``Gap``
+    records suitable for a coverage log.
     """
 
     site_id: str
@@ -290,13 +328,30 @@ class RtspIngestSession:
         self._time_mapper = RtcpTimeMapper(clock_rate_hz=self.transport.clock_rate_hz)
 
     @classmethod
-    def open(cls, site_id: str, url: str, *, host: str, port: int = DEFAULT_RTSP_PORT, timeout_s: float = 5.0) -> "RtspIngestSession":
+    def open(
+        cls,
+        site_id: str,
+        url: str,
+        *,
+        host: str,
+        port: int = DEFAULT_RTSP_PORT,
+        timeout_s: float = 5.0,
+    ) -> "RtspIngestSession":
         sock = socket.create_connection((host, port), timeout=timeout_s)
         transport, leftover = negotiate_transport(sock, url)
         return cls(site_id=site_id, transport=transport, _sock=sock, _leftover=leftover)
 
     def close(self) -> None:
         self._sock.close()
+
+    def coverage_gaps(self) -> tuple[Gap, ...]:
+        """Every dropped-packet detection so far, as Coverage ``Gap`` records.
+
+        The Day-13 Coverage types already exist for exactly this — see
+        :meth:`FrameGap.to_coverage_gap`. Nothing here invents a second
+        gap-reporting mechanism; this is a projection of :attr:`gaps`.
+        """
+        return tuple(g.to_coverage_gap() for g in self.gaps)
 
     def _handle_rtcp(self, payload: bytes) -> None:
         try:
@@ -310,12 +365,17 @@ class RtspIngestSession:
 
     def _timestamp_for(self, rtp_timestamp: int) -> tuple[int, TimestampSource]:
         if self._time_mapper.has_anchor:
-            return self._time_mapper.map_to_wallclock_ns(rtp_timestamp), TimestampSource.RTCP_SENDER_REPORT
+            return (
+                self._time_mapper.map_to_wallclock_ns(rtp_timestamp),
+                TimestampSource.RTCP_SENDER_REPORT,
+            )
         import time
 
         return time.time_ns(), TimestampSource.ARRIVAL_TIME
 
-    def _check_sequence_gap(self, seq: int, ts_ns: int, ts_source: TimestampSource) -> None:
+    def _check_sequence_gap(
+        self, seq: int, ts_ns: int, ts_source: TimestampSource
+    ) -> None:
         if self._last_seq is not None:
             expected = (self._last_seq + 1) & 0xFFFF
             if seq != expected:
