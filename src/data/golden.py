@@ -112,6 +112,14 @@ class GoldenClip:
             from the mint-time observability floor and reported on its own
             line, so the hard case stays represented instead of being authored
             away to make the aggregate look good.
+        low_activity: This clip is deliberately low-motion — a quiet room, a
+            long static interval, a brief entry into an otherwise still
+            scene. Excluded from the mint-time observability floor and
+            reported on its own line, the same way and for the same reason
+            as ``hard_coverage``: a set built to measure a gate's value in
+            the hours when nothing happens must not be forced to author that
+            quiet away just to clear a floor tuned for tracking and depth.
+            See Day 16, ``MIN_OBSERVABLE_FRACTION``.
     """
 
     clip_id: str
@@ -120,6 +128,7 @@ class GoldenClip:
     source_dataset: str = ""
     notes: str = ""
     hard_coverage: bool = False
+    low_activity: bool = False
 
     def __post_init__(self) -> None:
         if not self.clip_id:
@@ -138,6 +147,7 @@ class GoldenClip:
             "source_dataset": self.source_dataset,
             "notes": self.notes,
             "hard_coverage": self.hard_coverage,
+            "low_activity": self.low_activity,
         }
 
 
@@ -273,6 +283,7 @@ class GoldenSet:
                     source_dataset=c.get("source_dataset", ""),
                     notes=c.get("notes", ""),
                     hard_coverage=c.get("hard_coverage", False),
+                    low_activity=c.get("low_activity", False),
                 )
                 for c in payload.get("clips", [])
             ),
@@ -329,6 +340,22 @@ computed against it inherits the problem.
 Clips tagged ``hard_coverage`` are excluded from the aggregate, so keeping a
 genuine blind-spot scenario does not push a set below the floor. That
 exclusion is the reason the floor can be strict.
+
+Day 16 adds a second exemption, ``low_activity``, mirroring this one but for
+the opposite reason: not a clip the camera cannot see, but a clip authored
+to contain almost nothing to see. A genuinely static frame is itself
+NO_MOTION and trivially observable, so most low-activity clips clear the
+floor on their own; the exemption exists for the ones that do not — a fast,
+brief transition into or out of stillness can register BELOW_ENVELOPE
+against the same speed-aware threshold that governs any other clip, on a
+clip too short for a few such frames to average out.
+
+Applied the same way ``hard_coverage`` is: declared by scene-authoring
+intent (this clip was built to be quiet), not assigned after the fact
+because a clip's measured score happened to be low. The floor check below
+still runs over every non-exempt clip's actual measurement, which is what
+stops the tag from laundering a set that merely came out badly rather than
+one that was deliberately built quiet.
 """
 
 
@@ -365,12 +392,12 @@ def mint_golden_set(
             "reached 0.4444 without anyone noticing."
         )
 
-    scored = [c for c in golden.clips if not c.hard_coverage]
+    scored = [c for c in golden.clips if not c.hard_coverage and not c.low_activity]
     if not scored:
         raise GoldenSetError(
-            "every clip is tagged hard_coverage, so the observability floor "
-            "has nothing to check. A set of nothing but blind spots measures "
-            "nothing."
+            "every clip is tagged hard_coverage or low_activity, so the "
+            "observability floor has nothing to check. A set of nothing but "
+            "exemptions measures nothing."
         )
 
     aggregate = sum(observable_fractions[c.clip_id] for c in scored) / len(scored)
@@ -382,10 +409,12 @@ def mint_golden_set(
         raise GoldenSetError(
             f"{golden.version} has observable_fraction {aggregate:.4f}, below "
             f"the {MIN_OBSERVABLE_FRACTION:.2f} floor over {len(scored)} "
-            f"non-hard_coverage clips. Worst: {detail}. Re-author the scenes "
-            "so agents stay in frustum; do not lower the floor, and do not tag "
-            "clips hard_coverage to get under it — that tag is for scenarios "
-            "that are deliberately hard, not for ones that came out badly."
+            f"non-exempt clips. Worst: {detail}. Re-author the scenes so "
+            "agents stay in frustum, or so a quiet clip's own frames are "
+            "trivially observable; do not lower the floor, and do not tag a "
+            "clip hard_coverage or low_activity to get under it — those tags "
+            "are for scenarios that are deliberately hard or deliberately "
+            "quiet, not for ones that came out badly."
         )
 
     return write_golden_set(root, golden, overwrite)

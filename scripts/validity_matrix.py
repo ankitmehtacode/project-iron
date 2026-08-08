@@ -24,7 +24,12 @@ from src.config import IronConfig  # noqa: E402
 from src.data import validity  # noqa: E402
 from src.data.golden import available_versions, load_golden_set  # noqa: E402
 
-CAPABILITIES = ("motion_geometry", "depth", "appearance_semantics")
+CAPABILITIES = ("motion_geometry", "depth", "appearance_semantics", "point_tracking")
+"""Day 16: point_tracking was registered in ``validity.GATES`` since Day 11
+(``scripts/eval_tracking.py`` uses it directly) but never appeared in THE
+matrix — the one script whose job is "which capabilities can this project
+evaluate" was answering that question for three of the four registered
+gates. Added here rather than left as a second, parallel evaluator."""
 DEPTH_WEIGHTS = Path("models/weights/depth_anything_v2_small")
 
 

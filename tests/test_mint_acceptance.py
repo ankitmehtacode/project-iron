@@ -28,8 +28,10 @@ from src.data.golden import (
 )
 
 
-def _clip(name: str, hard: bool = False) -> GoldenClip:
-    return GoldenClip(clip_id=name, content_sha="a" * 64, hard_coverage=hard)
+def _clip(name: str, hard: bool = False, quiet: bool = False) -> GoldenClip:
+    return GoldenClip(
+        clip_id=name, content_sha="a" * 64, hard_coverage=hard, low_activity=quiet
+    )
 
 
 def _set(*clips: GoldenClip, version: str = "v3-test") -> GoldenSet:
@@ -92,8 +94,58 @@ def test_hard_coverage_tag_cannot_rescue_a_bad_set(tmp_path: Path) -> None:
 def test_a_set_of_nothing_but_blind_spots_is_refused(tmp_path: Path) -> None:
     """Tagging everything would leave the floor with nothing to check."""
     golden = _set(_clip("a", hard=True), _clip("b", hard=True))
-    with pytest.raises(GoldenSetError, match="nothing but blind spots"):
+    with pytest.raises(GoldenSetError, match="nothing but exemptions"):
         mint_golden_set(tmp_path, golden, {"a": 0.1, "b": 0.1})
+
+
+# ---------------------------------------------------------------------------
+# low_activity (Day 16): mirrors hard_coverage, for the opposite reason —
+# not a clip the camera cannot see, but a clip authored to contain almost
+# nothing to see.
+# ---------------------------------------------------------------------------
+
+
+def test_low_activity_clips_are_excluded_from_the_floor(tmp_path: Path) -> None:
+    """A quiet clip whose own observable_fraction came in low must stay
+    representable, the same way a blind spot does.
+    """
+    golden = _set(_clip("good1"), _clip("good2"), _clip("quiet", quiet=True))
+    path = mint_golden_set(
+        tmp_path, golden, {"good1": 0.9, "good2": 0.9, "quiet": 0.5}
+    )
+    assert path.exists(), (
+        "a set with two strong clips and one tagged low_activity must mint; "
+        "the 0.5 belongs on its own line, not in the aggregate"
+    )
+
+
+def test_low_activity_tag_cannot_rescue_a_bad_set(tmp_path: Path) -> None:
+    """Tagging the weak clips is not a way under the floor, same rule as
+    hard_coverage: the tag is for scenarios authored to be quiet, not for
+    ones that came out badly.
+    """
+    golden = _set(_clip("weak1", quiet=True), _clip("weak2"), _clip("weak3"))
+    with pytest.raises(GoldenSetError, match="below the 0.80 floor"):
+        mint_golden_set(tmp_path, golden, {"weak1": 0.1, "weak2": 0.4, "weak3": 0.5})
+
+
+def test_a_set_of_nothing_but_exemptions_is_refused(tmp_path: Path) -> None:
+    """Mixing both exemption tags to cover every clip still leaves nothing
+    for the floor to check.
+    """
+    golden = _set(_clip("a", hard=True), _clip("b", quiet=True))
+    with pytest.raises(GoldenSetError, match="nothing but exemptions"):
+        mint_golden_set(tmp_path, golden, {"a": 0.1, "b": 0.5})
+
+
+def test_low_activity_survives_a_manifest_round_trip(tmp_path: Path) -> None:
+    """The tag must persist, or the exclusion silently stops applying."""
+    golden = _set(_clip("plain"), _clip("quiet", quiet=True), version="v3-test-2")
+    mint_golden_set(tmp_path, golden, {"plain": 0.9, "quiet": 0.5})
+
+    reloaded = load_golden_set(tmp_path, "v3-test-2")
+    tagged = {c.clip_id: c.low_activity for c in reloaded.clips}
+    assert tagged == {"plain": False, "quiet": True}
 
 
 def test_an_unmeasured_clip_is_refused(tmp_path: Path) -> None:

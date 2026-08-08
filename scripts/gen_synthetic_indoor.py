@@ -52,12 +52,21 @@ from src.data.golden import Condition
 
 DATASET_NAME = "synthetic-indoor-v1"
 
-DATASET_NAMES = {"v2": "synthetic-indoor-v1", "v3": "synthetic-indoor-v3"}
+DATASET_NAMES = {
+    "v2": "synthetic-indoor-v1",
+    "v3": "synthetic-indoor-v3",
+    "v4-gate": "synthetic-indoor-v4-gate",
+}
 """Scene set -> dataset directory and registry name.
 
 Separate directories because the sets are separate instruments. v2's bytes are
 cited by a frozen manifest, so rendering v3 over the top of them would leave
-the v2 golden set pointing at clips that no longer hash to what it records."""
+the v2 golden set pointing at clips that no longer hash to what it records.
+v4-gate (Day 16) is a distinct instrument for a different reason: it exists
+to measure a motion gate, not tracking or depth, and its scenes are authored
+quiet on purpose — mixing them into v3's directory would put low-activity
+clips under a dataset name whose own manifest says its agents were authored
+to move."""
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
 # Every asset in the generation stack, and where its rights come from. This is
@@ -624,6 +633,152 @@ def build_scenes_v3(frames: int, fps: float) -> list[Scene]:
     return scenes
 
 
+def build_scenes_v4_gate(frames: int, fps: float) -> list[Scene]:
+    """The v4-gate scene set: authored quiet, on purpose.
+
+    Day 15 found that v3-indoor cannot evaluate a motion gate: its
+    dataset.moving_frame_fraction is 0.9667 aggregate and 1.0000 in its
+    "occupied" bucket, because v3 was authored under the same >=0.80
+    observability floor as every other set — a floor that rewards agents
+    who stay in frustum and moving, exactly the opposite of what a gate's
+    entire product depends on (frames where nothing happens, correctly
+    slept through). v4-gate is the fixture built for that instead: empty
+    rooms, an agent that never moves, an agent that moves once and then
+    stops, and a lights-off period with nobody in the room. Every scene
+    here is tagged ``low_activity`` in its ``extra`` dict; see
+    :func:`write_golden_from_manifest`.
+
+    This does not touch v3's floor or v3's clips. v3 stays the instrument
+    for a scene that is genuinely almost always moving; v4-gate is the
+    instrument for a scene that almost never is. Neither one is the
+    Tier-1 economic claim — see the Day-16 report.
+    """
+    room = (10.0, 3.0, 14.0)
+
+    def cam(name: str, position: tuple[float, float, float], yaw: float, covers: str) -> CameraSpec:
+        return CameraSpec(name, 1280, 720, 900.0, 900.0, position, yaw, covers, 16.0)
+
+    cam_a = cam("cam_a", (-1.6, 2.6, 0.4), 6.0, "left half, looking down-room")
+    cam_b = cam("cam_b", (1.6, 2.6, 0.4), -6.0, "right half, overlaps cam_a")
+
+    furniture = [
+        Furniture("desk_left", (-3.1, 0.4, 5.0), (1.6, 0.8, 0.9)),
+        Furniture("desk_right", (3.1, 0.4, 6.5), (1.6, 0.8, 0.9)),
+    ]
+
+    daylight = Condition.DAYLIGHT
+    scenes: list[Scene] = []
+
+    # --- Genuinely empty: zero agents. The renderer's own limitation makes
+    # this the purest case it can produce — no sensor noise model means an
+    # empty, unlit-change room renders bit-identical frame to frame, which
+    # is a finding in its own right (see the Day-16 report), not hidden here.
+    #
+    # NOT tagged low_activity: an empty room is trivially NO_MOTION on every
+    # frame, so it clears the observability floor on its own -- there is
+    # nothing here for the exemption to do, and leaving it untagged is what
+    # gives mint_golden_set's floor something to actually check (a set of
+    # nothing but exemptions is refused; see MIN_OBSERVABLE_FRACTION).
+    scenes.append(
+        Scene(
+            "empty_room",
+            room,
+            [cam_a, cam_b],
+            [],
+            furniture,
+            (Condition.EMPTY, daylight),
+            frames,
+            fps,
+            "zero agents: the purest quiet case this renderer can produce",
+            extra={"speed_band": "none", "path_metres": 0.0},
+        )
+    )
+
+    # --- Empty, plus a lights-off transient. Nobody is in the room when the
+    # lights change, so this exercises "lights-off periods" without also
+    # exercising occupancy -- the two are independent variables. Also left
+    # untagged for the same reason: zero agents is trivially observable
+    # regardless of what the lights do.
+    scenes.append(
+        Scene(
+            "empty_room_lights_off",
+            room,
+            [cam_a],
+            [],
+            furniture,
+            (Condition.EMPTY, Condition.LIGHTS_TRANSIENT, Condition.EVENING_ARTIFICIAL),
+            frames,
+            fps,
+            "lights cut mid-clip in an otherwise empty room",
+            lights_off_from=frames // 2,
+            extra={"speed_band": "none", "path_metres": 0.0},
+        )
+    )
+
+    # --- One occupant, speed_scale=0: position_at(t) returns `start` for
+    # every t, so this agent is present in every frame and never moves --
+    # "long static interval" with a body in frame, not an empty room.
+    scenes.append(
+        Scene(
+            "long_static_occupant",
+            room,
+            [cam_a, cam_b],
+            [Agent(0, (0.3, 6.0), (0.3, 6.0), speed_scale=0.0)],
+            furniture,
+            (Condition.SINGLE_PERSON, daylight),
+            frames,
+            fps,
+            "one occupant present the whole clip, speed_scale=0: never moves",
+            extra={"low_activity": True, "speed_band": "none", "path_metres": 0.0},
+        )
+    )
+
+    # --- One occupant who arrives quickly and then stops: speed_scale=7.0
+    # drives progress = min(1, t*7) to 1.0 by t=1/7 (~14% into the clip), so
+    # motion is confined to the first few frames and the agent is static,
+    # in frame, for the remaining ~86% -- "a single brief entry into an
+    # otherwise still scene."
+    scenes.append(
+        Scene(
+            "brief_entry",
+            room,
+            [cam_a, cam_b],
+            [Agent(0, (-3.5, 6.0), (0.3, 6.0), speed_scale=7.0)],
+            furniture,
+            (Condition.SINGLE_PERSON, daylight),
+            frames,
+            fps,
+            "agent walks in over the first ~1/7 of the clip, then stands still",
+            extra={"low_activity": True, "speed_band": "crawl", "path_metres": 3.8},
+        )
+    )
+
+    # --- Brief entry, plus a lights-off transient after the agent has
+    # already settled -- two quiet-adjacent conditions in one clip, neither
+    # masking the other.
+    scenes.append(
+        Scene(
+            "brief_entry_evening",
+            room,
+            [cam_a],
+            [Agent(0, (-3.5, 6.0), (0.3, 6.0), speed_scale=7.0)],
+            furniture,
+            (
+                Condition.SINGLE_PERSON,
+                Condition.LIGHTS_TRANSIENT,
+                Condition.EVENING_ARTIFICIAL,
+            ),
+            frames,
+            fps,
+            "agent settles early, lights cut well after -- two quiet cues, not one",
+            lights_off_from=(2 * frames) // 3,
+            extra={"low_activity": True, "speed_band": "crawl", "path_metres": 3.8},
+        )
+    )
+
+    return scenes
+
+
 def build_scenes(frames: int, fps: float) -> list[Scene]:
     """The scene set: coverage, overlap, a gap, and degenerates."""
     room = (8.0, 3.0, 12.0)
@@ -776,6 +931,22 @@ def build_scenes(frames: int, fps: float) -> list[Scene]:
     ]
 
 
+def _count_moving_frames(agent_xyz: np.ndarray, eps: float = 1e-6) -> int:
+    """How many frames contain real world-space displacement by any agent.
+
+    Was hardcoded to ``scene.frames`` (every clip claimed 100% moving,
+    regardless of what was actually in it) until Day 16, when a dataset
+    whose entire point is to be quiet made that specific dishonesty
+    impossible to carry forward unnoticed. Frame 0 is never "moving": there
+    is no previous frame to have moved from, the same convention
+    :func:`src.data.scorecard.world_motion` uses.
+    """
+    if agent_xyz.shape[1] == 0 or agent_xyz.shape[0] < 2:
+        return 0
+    displacement = np.linalg.norm(np.diff(agent_xyz, axis=0), axis=2)
+    return int(np.sum(np.any(displacement > eps, axis=1)))
+
+
 def _speed_summary(track_uv: np.ndarray, native_width: int) -> dict[str, float]:
     """Per-clip image-plane speed, in gate pixels per frame.
 
@@ -819,8 +990,14 @@ def generate(
             content hashes are cited by ``configs/golden/v2-indoor.golden.json``
             and must keep reproducing byte-for-byte, so it is never edited.
             ``v3`` is the re-authored set whose GT is actually observable.
+            ``v4-gate`` is authored quiet, to measure a motion gate rather
+            than tracking or depth (Day 16).
     """
-    builders = {"v2": build_scenes, "v3": build_scenes_v3}
+    builders = {
+        "v2": build_scenes,
+        "v3": build_scenes_v3,
+        "v4-gate": build_scenes_v4_gate,
+    }
     if scene_set not in builders:
         raise ValueError(
             f"unknown scene_set {scene_set!r}; expected one of "
@@ -879,12 +1056,23 @@ def generate(
                 track_occ.append(occluded)
 
             clip_path = output_root / f"{clip_id}.npz"
+            n_agents = len(scene.agents)
+            # np.asarray on a list of per-frame EMPTY position/uv lists infers
+            # shape (T, 0), not (T, 0, 3)/(T, 0, 2) -- numpy has nothing to
+            # read the trailing dimension from when the axis itself is empty.
+            # Explicit reshape is a no-op when there are agents and fixes the
+            # zero-agent case, which nothing exercised before v4-gate's
+            # empty_room scene.
             payload = {
                 "rgb": np.stack(rgb_stack),
                 "depth_m": np.stack(depth_stack),
                 "instances": np.stack(inst_stack),
-                "agent_xyz": np.asarray(agent_xyz, dtype=np.float32),
-                "track_uv": np.asarray(track_uv, dtype=np.float32),
+                "agent_xyz": np.asarray(agent_xyz, dtype=np.float32).reshape(
+                    scene.frames, n_agents, 3
+                ),
+                "track_uv": np.asarray(track_uv, dtype=np.float32).reshape(
+                    scene.frames, n_agents, 2
+                ),
                 "track_occluded": np.asarray(track_occ, dtype=bool),
                 "intrinsics": np.array(
                     [camera.fx, camera.fy, camera.cx, camera.cy], dtype=np.float64
@@ -892,6 +1080,7 @@ def generate(
                 "extrinsics": camera.extrinsics(),
             }
             np.savez_compressed(clip_path, **payload)
+            moving_frames = _count_moving_frames(payload["agent_xyz"])
 
             records.append(
                 {
@@ -907,7 +1096,7 @@ def generate(
                     "notes": scene.notes,
                     "content_sha": sha256_array(payload["rgb"]),
                     "depth_sha": sha256_array(payload["depth_m"]),
-                    "moving_frames": int(scene.frames),
+                    "moving_frames": moving_frames,
                     "size_bytes": clip_path.stat().st_size,
                     # Image-plane speed decides where the capability envelope
                     # sits (day 7), so a set that does not record its speed
@@ -919,6 +1108,7 @@ def generate(
                         np.asarray(payload["track_uv"]), camera.width
                     ),
                     "hard_coverage": scene.extra.get("hard_camera") == camera.name,
+                    "low_activity": bool(scene.extra.get("low_activity", False)),
                 }
             )
             print(
@@ -1009,6 +1199,7 @@ def write_golden_from_manifest(
             f"(median {record.get('track_speed_gate_px', {}).get('median', 0):.2f} "
             f"gate px/frame) — {record['covers']}",
             hard_coverage=bool(record.get("hard_coverage", False)),
+            low_activity=bool(record.get("low_activity", False)),
         )
         for record in manifest["clips"]
     )
@@ -1019,8 +1210,14 @@ def write_golden_from_manifest(
         clips=clips,
         # What this set replaces as the active instrument. Wrong here is not
         # cosmetic: it is the only record of which set a reader should stop
-        # quoting.
-        supersedes={"v2-indoor": "v1-driving"}.get(version, "v2-indoor"),
+        # quoting. v4-gate supersedes nothing -- it measures a different
+        # capability (the gate) than v2/v3 measure (tracking, depth,
+        # geometry), so it is a parallel instrument, not a successor.
+        supersedes=(
+            None
+            if version == "v4-gate"
+            else {"v2-indoor": "v1-driving"}.get(version, "v2-indoor")
+        ),
         description=(
             "SYNTHETIC-ONLY. Generated by scripts/gen_synthetic_indoor.py "
             "--write-golden. Superseded by Site Zero footage for any product "
@@ -1083,10 +1280,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--scene-set",
         default="v2",
-        choices=["v2", "v3"],
+        choices=["v2", "v3", "v4-gate"],
         help=(
             "which authored scene set to render. v2 is frozen — its bytes are "
-            "cited by a golden manifest — so re-authoring means a new set."
+            "cited by a golden manifest — so re-authoring means a new set. "
+            "v4-gate is authored quiet, to measure a motion gate."
         ),
     )
     parser.add_argument(
@@ -1102,13 +1300,14 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     config = IronConfig.load()
+    dataset_name = DATASET_NAMES.get(args.scene_set, DATASET_NAME)
     output = (
         Path(args.output)
         if args.output
-        else config.paths.resolved_data_dir / "synthetic" / DATASET_NAME
+        else config.paths.resolved_data_dir / "synthetic" / dataset_name
     )
 
-    print(f"Generating {DATASET_NAME} -> {output}")
+    print(f"Generating {dataset_name} -> {output}")
     print("Renderer: analytic primitives (see manifest for why not Kubric)\n")
     manifest = generate(
         output, args.frames, args.fps, args.seed, scene_set=args.scene_set
