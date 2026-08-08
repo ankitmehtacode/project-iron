@@ -78,35 +78,83 @@ bug at the setting the product will actually use, not the one that is fastest to
 
 ## The Synthetic-Evaluability Partition — classify the capability before building the fixture
 
-**Geometry-derived capabilities are synthetically evaluable. Appearance-learned ones are not.**
+**Geometry-derived capabilities are synthetically evaluable. Appearance-learned ones are not.
+Signal-absence capabilities are the hardest to evaluate synthetically at all, and point tracking
+is gated by set composition rather than belonging to either row.**
 
 | | examples | why | fixture |
 |---|---|---|---|
 | Geometry-derived | motion, occlusion topology, coverage, frustum visibility | ground truth is computable from the scene description; the model infers nothing the renderer does not already know | synthetic is **better** than real — exact GT, no annotation |
 | Appearance-learned | depth, semantics, re-ID, detection | the model runs on shading gradients, texture statistics and object recognition | synthetic is **worse** than real — analytic primitives delete exactly those cues |
+| Signal-absence | the motion gate: value is concentrated in frames where nothing happens | the model's job is recognising *absence* correctly, and a renderer's idea of "nothing happening" is perfect, noiseless stillness — not what absence looks like on a real sensor | synthetic is **worst** of the three — see below; even a *correct* renderer still cannot supply the texture of real quiet |
 
-Worked example. v3-indoor carries *exact* ground-truth depth in metres, which made it look like
-an ideal depth fixture. Measured, DA-V2 scored **rank correlation −0.5924** against that ground
-truth — it ordered the pixels backwards — while a scale-and-shift alignment produced a
-respectable-looking **AbsRel 0.1538**. The same weights on real footage produced a 4.44 dynamic
-range with the floor correctly nearer than the ceiling. A flat matte wall at 15 m is not an easy
-depth target; it is an absent one.
+Worked example (appearance-learned). v3-indoor carries *exact* ground-truth depth in metres,
+which made it look like an ideal depth fixture. Measured, DA-V2 scored **rank correlation
+−0.5924** against that ground truth — it ordered the pixels backwards — while a scale-and-shift
+alignment produced a respectable-looking **AbsRel 0.1538**. The same weights on real footage
+produced a 4.44 dynamic range with the floor correctly nearer than the ceiling. A flat matte wall
+at 15 m is not an easy depth target; it is an absent one.
 
 The trap is that **exact GT does not make a set a fixture for that capability.** Ground truth
 answers "what is true"; it says nothing about whether the input carries the signal the model
 needs. Motion survives on primitives because motion *is* geometry. Depth does not, because
 monocular depth is learned appearance.
 
+### Point tracking is not fixed on either side — it is a property of the set, not the capability
+
+Day 16 found point tracking refuses on v3-indoor (corner density 2.34e-04, below the 1e-03
+floor — fast motion blurs the frame, starving the Shi-Tomasi corner detector) and **passes** on
+v4-gate (1.11e-03 — static, unblurred scenes hand the same detector plenty to lock onto). Same
+generator, same primitives, same capability, opposite verdicts. Point tracking's validity gate
+measures local texture/corner availability, and that is a property of what a given set happened
+to render — motion speed, blur, edge density — not a property of the point-tracking capability
+itself the way "appearance-learned" is a property of depth. **A new set must declare its texture
+density (or run the validity gate) before anyone assumes point tracking transfers from a sibling
+set that happened to pass or fail it.** Treating a capability's validity verdict as portable
+across sets in the same family is exactly the mistake this finding closes.
+
+### Signal-absence capabilities: synthetic data's worst case, not just another hard one
+
+The motion gate's entire product is compute saved on frames where nothing worth reporting
+happens — its value is concentrated almost entirely in the *absence* of signal, the opposite of
+every capability above. A renderer's version of "nothing happening" is perfect, bit-identical
+stillness: no sensor noise, no HVAC-driven shadow drift, no autofocus hunt, no compression
+artifact. Real absence is never that clean — those exact effects are what a background-
+subtraction gate reacts to. A synthetic quiet scene is not a smaller-signal version of a real
+quiet scene; it is missing the specific texture the capability is being asked to correctly
+ignore.
+
+Worked example: Day 16 authored v4-gate specifically to contain quiet scenes (empty rooms, a
+motionless occupant, brief entries) and found the generator could not represent stillness at
+all — its articulated agents' leg-gait animation was driven by elapsed clip time rather than by
+whether the agent was moving, so a `speed_scale=0.0` "motionless" occupant rendered a silhouette
+that changed on 38 of 40 frames. Day 17 fixed that specific defect (gait phase now tracks
+distance travelled, not wall-clock time — see `Agent.progress_at`), and the renderer can now
+produce a genuinely bit-identical-across-frames stationary agent. That closes one way this
+generator could not represent absence; it does not close the general problem. **Open question,
+recorded rather than answered: does this generator have a sensor-noise model?** As of Day 17, no
+— an empty room still renders bit-identical frame to frame, not because that is the noise floor
+of nothing happening, but because nothing is modelled at all. Until it does, every quiet-scene
+measurement (any `dataset.moving_frame_fraction` near zero) is optimistic by an unknown margin,
+and the gate cannot be honestly evaluated on synthetic data regardless of how carefully the
+scenes are authored — the ceiling is not the scene design, it is the absence of a noise model.
+
 In practice:
 
-- Classify the capability *before* authoring a fixture, and pick the data source from the class.
+- Classify the capability *before* authoring a fixture, and pick the data source from the class —
+  including whether it is signal-absence, not just geometry-vs-appearance.
 - Every capability gets a **validity gate** that runs before its metric — see
   `src/data/validity.py`. A gate that fails records `unmeasurable_here` with evidence; it never
   emits a blank, a zero, or nothing at all.
+- For point tracking specifically: run the validity gate (or otherwise declare texture density)
+  on every new set. Do not assume a verdict carries over from a sibling set in the same family.
 - Report **band populations alongside band scores, always.** A band holding 95% of pixels sets
   the aggregate by itself while the band you care about scores zero without moving the headline.
 - A validity registry that only ever refuses is indistinguishable from a broken one. Implement
   at least one passing capability so the mechanism is falsifiable.
+- For a signal-absence capability, a synthetic "quiet" measurement is a mechanism check, not a
+  product number, until the generator has a stated noise model — say so on every scorecard it
+  produces, the same way appearance-learned refusals are stated rather than implied.
 
 ## Bounded Nulls — a search result carries its bounds
 
