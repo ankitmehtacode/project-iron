@@ -53,7 +53,12 @@ def test_every_minted_version_is_retained() -> None:
     measured before, and deleting it would erase the instrument that produced
     every number reported against it. v1 is retained on the same grounds.
     """
-    assert set(available_versions(SEEDED)) == {"v1-driving", "v2-indoor", "v3-indoor"}
+    assert set(available_versions(SEEDED)) == {
+        "v1-driving",
+        "v2-indoor",
+        "v3-indoor",
+        "v4-gate",
+    }
 
 
 def test_driving_set_is_legacy_and_refuses_product_use() -> None:
