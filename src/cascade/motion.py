@@ -316,7 +316,11 @@ def _downscale(gray: GrayFrame, target_height: int, target_width: int) -> GrayFr
     usable_h = (height // block_h) * block_h
     usable_w = (width // block_w) * block_w
     cropped = gray[:usable_h, :usable_w].astype(np.float32)
-    pooled = cropped.reshape(
+    # numpy's .mean() stub returns Any for a tuple `axis` -- the array is
+    # concretely float32 at runtime, so this is a type-only annotation, not
+    # a behavior change (see mypy.ini's per-module notes for the general
+    # policy).
+    pooled: npt.NDArray[np.float32] = cropped.reshape(
         usable_h // block_h, block_h, usable_w // block_w, block_w
     ).mean(axis=(1, 3))
     return pooled.astype(np.uint8)
@@ -365,7 +369,10 @@ def _to_gray(frame: npt.NDArray[Any]) -> GrayFrame:
     try:
         import cv2
     except ImportError:
-        return array.mean(axis=2, dtype=np.float32).astype(np.uint8)
+        # Same numpy stub gap as _downscale's pooled mean above: the dtype=
+        # kwarg overload returns Any in the stubs, float32 at runtime.
+        channel_mean: npt.NDArray[np.float32] = array.mean(axis=2, dtype=np.float32)
+        return channel_mean.astype(np.uint8)
 
     # cv2.transform with equal weights computes exactly the channel mean, in C.
     # The numpy equivalent costs 1.0 ms per 320x180 frame against 0.13 ms here,

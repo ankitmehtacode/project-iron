@@ -23,6 +23,7 @@ from dataclasses import dataclass
 from typing import Any, Iterable
 
 import numpy as np
+import numpy.typing as npt
 
 
 @dataclass(frozen=True)
@@ -48,7 +49,9 @@ class DepthPair:
             )
 
 
-def score_pairs(disparity: np.ndarray, pairs: Iterable[DepthPair]) -> dict[str, Any]:
+def score_pairs(
+    disparity: npt.NDArray[np.float64], pairs: Iterable[DepthPair]
+) -> dict[str, Any]:
     """Fraction of annotated pairs the prediction orders correctly.
 
     Args:

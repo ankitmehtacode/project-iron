@@ -47,8 +47,8 @@ FloatArray = npt.NDArray[np.float64]
 
 
 def patch_index_bilinear_weights(
-    x: np.ndarray, y: np.ndarray, grid: tuple[int, int], geometry: FrameGeometry
-) -> tuple[np.ndarray, np.ndarray]:
+    x: FloatArray, y: FloatArray, grid: tuple[int, int], geometry: FrameGeometry
+) -> tuple[npt.NDArray[np.intp], FloatArray]:
     """Bilinear weights over the patch grid for subpixel track coordinates.
 
     Returns:
@@ -86,7 +86,7 @@ def patch_index_bilinear_weights(
 
 
 def tokens_from_encoder_output(
-    features: np.ndarray,
+    features: FloatArray,
     *,
     batch_index: int,
     span: TemporalSpan,
@@ -128,7 +128,7 @@ def tokens_from_encoder_output(
 
 def map_tracks_to_embeddings(
     tokens: PatchTokens,
-    tracks: np.ndarray,
+    tracks: FloatArray,
     *,
     bilinear: bool = True,
 ) -> FloatArray:

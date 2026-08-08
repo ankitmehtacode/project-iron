@@ -33,6 +33,9 @@ from dataclasses import dataclass, field
 from typing import Any, Callable
 
 import numpy as np
+import numpy.typing as npt
+
+FrameArray = npt.NDArray[np.uint8]
 
 
 @dataclass(frozen=True)
@@ -108,7 +111,9 @@ its extrapolator rather than its accuracy."""
 # --- gates -----------------------------------------------------------------
 
 
-def gate_motion_geometry(frames: np.ndarray, **_: Any) -> tuple[bool, str, dict]:
+def gate_motion_geometry(
+    frames: FrameArray, **_: Any
+) -> tuple[bool, str, dict[str, Any]]:
     """Motion is geometry, so a synthetic renderer can score it exactly.
 
     The positive case in this registry, and it is here on purpose: a validity
@@ -128,11 +133,11 @@ def gate_motion_geometry(frames: np.ndarray, **_: Any) -> tuple[bool, str, dict]
 
 
 def gate_depth(
-    frames: np.ndarray,
-    gt_depth: np.ndarray | None = None,
-    predictor: Callable[[np.ndarray], np.ndarray] | None = None,
+    frames: FrameArray,
+    gt_depth: npt.NDArray[np.float64] | None = None,
+    predictor: Callable[[FrameArray], npt.NDArray[np.float64]] | None = None,
     **_: Any,
-) -> tuple[bool, str, dict]:
+) -> tuple[bool, str, dict[str, Any]]:
     """Depth is appearance-learned, so the fixture has to be checked.
 
     Three questions, all of which v3-indoor failed or would have hidden:
@@ -209,7 +214,9 @@ def gate_depth(
     )
 
 
-def gate_appearance_semantics(frames: np.ndarray, **_: Any) -> tuple[bool, str, dict]:
+def gate_appearance_semantics(
+    frames: FrameArray, **_: Any
+) -> tuple[bool, str, dict[str, Any]]:
     """Appearance-learned capabilities need appearance to be present.
 
     Measures what the fixture actually contains rather than assuming: local
@@ -260,7 +267,9 @@ def gate_appearance_semantics(frames: np.ndarray, **_: Any) -> tuple[bool, str, 
     return True, "the frames carry texture and distinguishable materials", evidence
 
 
-def gate_point_tracking(frames: np.ndarray, **_: Any) -> tuple[bool, str, dict]:
+def gate_point_tracking(
+    frames: FrameArray, **_: Any
+) -> tuple[bool, str, dict[str, Any]]:
     """Point tracking needs something to track.
 
     Sits between geometry and appearance. The output is geometric (2D
@@ -322,7 +331,7 @@ def gate_point_tracking(frames: np.ndarray, **_: Any) -> tuple[bool, str, dict]:
     )
 
 
-GATES: dict[str, Callable[..., tuple[bool, str, dict]]] = {
+GATES: dict[str, Callable[..., tuple[bool, str, dict[str, Any]]]] = {
     "motion_geometry": gate_motion_geometry,
     "depth": gate_depth,
     "appearance_semantics": gate_appearance_semantics,

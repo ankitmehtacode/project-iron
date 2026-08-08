@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Any, Protocol, TextIO
 
 import numpy as np
+import numpy.typing as npt
 
 from src.config import IronConfig, apply_runtime_settings
 from src.endurance.gates import (
@@ -43,6 +44,7 @@ from src.endurance.memory import MemorySample, MemorySampler, platform_fidelity_
 from src.provenance import ManifestError, RunManifest
 
 DETERMINISM_COSINE_TOLERANCE = 1e-5
+VideoArray = npt.NDArray[np.float32]
 
 
 class ExitCode(enum.IntEnum):
@@ -66,7 +68,7 @@ class WeightsUnavailable(RuntimeError):
 class Extractor(Protocol):
     """The surface the harness needs from the pipeline under test."""
 
-    def extract(self, video: np.ndarray) -> dict[str, Any]:
+    def extract(self, video: VideoArray) -> dict[str, Any]:
         ...
 
 
@@ -121,7 +123,9 @@ class DeterminismResult:
     detail: str
 
 
-def check_determinism(extractor: Extractor, clip: np.ndarray) -> DeterminismResult:
+def check_determinism(
+    extractor: Extractor, clip: VideoArray
+) -> DeterminismResult:
     """Run one clip through the pipeline twice and compare the embeddings.
 
     Args:
@@ -204,7 +208,7 @@ class RunOutcome:
         return ExitCode.OK
 
 
-def make_synthetic_clip(config: IronConfig, rng: np.random.Generator) -> np.ndarray:
+def make_synthetic_clip(config: IronConfig, rng: np.random.Generator) -> VideoArray:
     """Generate one synthetic clip matching the configured input shape.
 
     Note for whoever extends this: uniform noise exercises no data-dependent

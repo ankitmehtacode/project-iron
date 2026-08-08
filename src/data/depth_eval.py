@@ -31,9 +31,12 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
+import numpy.typing as npt
+
+FloatArray = npt.NDArray[np.float64]
 
 # Distance buckets, metres. One aggregate number hides far-field failure, which
 # is the regime the product actually cares about — a person at the end of a
@@ -61,7 +64,7 @@ class Alignment:
     shift: float
     inliers: int
 
-    def apply_to_depth(self, disparity: np.ndarray) -> np.ndarray:
+    def apply_to_depth(self, disparity: FloatArray) -> FloatArray:
         """Aligned metric depth, in metres, from predicted disparity.
 
         Non-positive aligned disparity is returned as ``inf`` rather than a
@@ -76,7 +79,7 @@ class Alignment:
 
 
 def fit_alignment(
-    disparity: np.ndarray, gt_depth: np.ndarray, valid: np.ndarray
+    disparity: FloatArray, gt_depth: FloatArray, valid: npt.NDArray[np.bool_]
 ) -> Alignment:
     """Least-squares scale/shift in disparity space, Huber re-weighted."""
     usable = valid & np.isfinite(disparity) & (gt_depth > 1e-6)
@@ -103,7 +106,7 @@ def fit_alignment(
 
 
 def depth_metrics(
-    predicted_m: np.ndarray, gt_m: np.ndarray, valid: np.ndarray
+    predicted_m: FloatArray, gt_m: FloatArray, valid: npt.NDArray[np.bool_]
 ) -> dict[str, float]:
     """Standard monocular depth metrics. Protocol, not invention.
 
@@ -146,7 +149,7 @@ def depth_metrics(
 
 
 def static_point_z_std(
-    depths_m: list[np.ndarray], gt_depth: np.ndarray, instances: np.ndarray
+    depths_m: list[FloatArray], gt_depth: FloatArray, instances: npt.NDArray[np.integer[Any]]
 ) -> dict[str, float]:
     """Temporal flicker on points ground truth proves are static.
 
@@ -189,7 +192,7 @@ computed on top is a property of the fit rather than of the model.
 """
 
 
-def rank_correlation(disparity: np.ndarray, gt_depth: np.ndarray) -> float:
+def rank_correlation(disparity: FloatArray, gt_depth: FloatArray) -> float:
     """Spearman correlation between predicted and true disparity.
 
     Alignment-invariant by construction, which is the point: it cannot be
@@ -228,10 +231,10 @@ def score_clip(clip_path: Path, wrapper: Any, frame_stride: int) -> ClipDepthRes
         instances = np.asarray(data["instances"])
 
     indices = list(range(0, rgb.shape[0], frame_stride))
-    aligned_frames: list[np.ndarray] = []
+    aligned_frames: list[FloatArray] = []
     alignments: list[Alignment] = []
-    gt_frames: list[np.ndarray] = []
-    raw_frames: list[np.ndarray] = []
+    gt_frames: list[FloatArray] = []
+    raw_frames: list[FloatArray] = []
 
     for index in indices:
         prediction = wrapper.predict({"image": rgb[index]})["depth"]
@@ -291,7 +294,7 @@ def score_clip(clip_path: Path, wrapper: Any, frame_stride: int) -> ClipDepthRes
 def aggregate(results: list[ClipDepthResult]) -> dict[str, Any]:
     """Pool clip results. Means over clips, so one long clip cannot dominate."""
 
-    def pooled(select) -> dict[str, float]:
+    def pooled(select: Callable[[ClipDepthResult], dict[str, float]]) -> dict[str, float]:
         out: dict[str, float] = {}
         for key in ("absrel", "rmse_m", "delta_1_25", "silog"):
             values = [
@@ -302,14 +305,24 @@ def aggregate(results: list[ClipDepthResult]) -> dict[str, Any]:
             out[key] = float(np.mean(values)) if values else float("nan")
         return out
 
+    def _bucket_selector(
+        name: str,
+    ) -> Callable[[ClipDepthResult], dict[str, float]]:
+        # A closure over a plain lambda default-arg (`lambda r, n=name: ...`)
+        # is a common way to avoid the late-binding loop-variable trap, but
+        # mypy cannot infer the lambda's type against the Callable[[X], Y] it
+        # is passed to here (misc: "Cannot infer type of lambda"). A named
+        # function with an explicit return type sidesteps that inference gap
+        # with no change in behaviour.
+        return lambda r: r.by_bucket.get(name, {})
+
     summary: dict[str, Any] = {
         "clips": len(results),
         "frames_scored": sum(r.frames_scored for r in results),
         "aligned": pooled(lambda r: r.aligned),
         "unaligned": pooled(lambda r: r.unaligned),
         "by_bucket": {
-            name: pooled(lambda r, n=name: r.by_bucket.get(n, {}))
-            for name, _, _ in DISTANCE_BUCKETS
+            name: pooled(_bucket_selector(name)) for name, _, _ in DISTANCE_BUCKETS
         },
     }
 

@@ -71,8 +71,10 @@ quantity it bounds has changed.
 
 
 def world_motion(
-    agent_xyz: np.ndarray, intrinsics: np.ndarray, extrinsics: np.ndarray
-) -> np.ndarray:
+    agent_xyz: npt.NDArray[np.float64],
+    intrinsics: npt.NDArray[np.float64],
+    extrinsics: npt.NDArray[np.float64],
+) -> npt.NDArray[np.bool_]:
     """Did each agent move, in the world, by more than a sensor could resolve?
 
     **The quantity is world displacement**, so it means the same thing from
@@ -119,7 +121,9 @@ def world_motion(
     return moved
 
 
-def gt_moved_from_render(instances: np.ndarray, agents: int) -> np.ndarray:
+def gt_moved_from_render(
+    instances: npt.NDArray[np.integer[Any]], agents: int
+) -> npt.NDArray[np.bool_]:
     """Per frame, per agent: did this agent's rendered silhouette change?
 
     The replacement for :data:`GT_MOTION_THRESHOLD_M`, and derived rather than
@@ -442,7 +446,7 @@ class Observability(IntEnum):
 class Partition:
     """Per-frame observability labels for one clip and one camera."""
 
-    labels: np.ndarray
+    labels: npt.NDArray[np.int8]
     """``Observability`` per frame, over the whole clip including warmup."""
 
     warm: int
@@ -465,7 +469,7 @@ class Partition:
     keep. Same length as ``labels``; slice with ``[warm:]`` the same way.
     """
 
-    def after_warmup(self) -> np.ndarray:
+    def after_warmup(self) -> npt.NDArray[np.int8]:
         return self.labels[self.warm :]
 
 
