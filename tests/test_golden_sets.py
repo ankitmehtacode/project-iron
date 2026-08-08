@@ -58,6 +58,7 @@ def test_every_minted_version_is_retained() -> None:
         "v2-indoor",
         "v3-indoor",
         "v4-gate",
+        "v4.1-gate",
     }
 
 
