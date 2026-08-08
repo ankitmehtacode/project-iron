@@ -303,6 +303,24 @@ class Scorecard:
     omission.
     """
 
+    measurement_environment: dict[str, Any] = field(default_factory=dict)
+    """Interpreter and library versions live at THIS run, not inherited.
+
+    Day 17: ``envelope`` above carries a ``measured_stack`` string, but that
+    is the environment the capability *envelope was calibrated under* —
+    loaded from a file, potentially calibrated days before this run and by a
+    different process. It answered "what stack made the envelope" but was
+    silently read as "what stack made this scorecard," which is a different
+    question with no code path checking the two match. A scorecard produced
+    by a drifted interpreter would have inherited the pinned envelope's
+    string and reported it as if it were its own — exactly the class of
+    defect the Day-16 mypy undercount was. This field is captured fresh by
+    :func:`compute`, every run, from :func:`src.provenance.library_versions`
+    plus the running interpreter's own ``sys.prefix`` — a live fingerprint,
+    not a copied one. So this audit is a query next time, not another
+    investigation.
+    """
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "golden_set_version": self.golden_set_version,
@@ -315,6 +333,7 @@ class Scorecard:
             "capability_gates": self.capability_gates,
             "envelope": self.envelope,
             "per_condition": self.per_condition,
+            "measurement_environment": self.measurement_environment,
         }
 
     def require_comparable(self, other: "Scorecard") -> None:
@@ -826,6 +845,24 @@ def _validate_gate_metric_pairing(metrics: list[Metric]) -> None:
             )
 
 
+def current_measurement_environment() -> dict[str, Any]:
+    """A live fingerprint of the interpreter running RIGHT NOW.
+
+    Distinct from anything loaded from a file: ``sys.prefix`` cannot be
+    inherited from a calibration artifact the way a ``measured_stack``
+    string embedded in one can. See :attr:`Scorecard.measurement_environment`.
+    """
+    import sys
+
+    from src.provenance import library_versions
+
+    return {
+        "library_versions": library_versions(),
+        "sys_prefix": sys.prefix,
+        "sys_executable": sys.executable,
+    }
+
+
 def compute(
     golden: Any, clip_root: Path, gate_config: Any, envelope: Any | None = None
 ) -> Scorecard:
@@ -841,6 +878,7 @@ def compute(
         domain=golden.domain.value,
         clips_scored=0,
         envelope=envelope.provenance(),
+        measurement_environment=current_measurement_environment(),
     )
 
     totals = {

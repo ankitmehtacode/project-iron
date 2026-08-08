@@ -221,6 +221,38 @@ def library_versions() -> dict[str, str]:
     return versions
 
 
+def current_stack_string() -> str:
+    """A live ``"opencv X / numpy Y / python Z"`` fingerprint of THIS process.
+
+    Day 17: ``config.cascade.measured_stack`` (``configs/default.yaml``) is
+    this exact string, but hardcoded — a config value asserting what stack a
+    run happened under, not a measurement of it. ``scripts/cascade_bench.py``
+    printed it as "Measured on" for every run regardless of which
+    interpreter actually executed, which would keep claiming the pinned
+    stack even from a drifted one. This is the live equivalent, called at
+    print time instead of read from config.
+
+    Distribution version, not ``__version__``, for opencv specifically —
+    ``cv2.__version__`` truncates ("4.8.1" for distribution 4.8.1.78); see
+    ``scripts/env_gate.py``'s ``installed_version`` for the same reasoning
+    applied to the full pinned-package check.
+    """
+    from importlib.metadata import PackageNotFoundError, version
+
+    try:
+        import cv2
+
+        try:
+            cv2_version = version("opencv-python-headless")
+        except PackageNotFoundError:
+            cv2_version = version("opencv-python")
+    except ImportError:
+        cv2_version = "not installed"
+
+    versions = library_versions()
+    return f"opencv {cv2_version} / numpy {versions['numpy']} / python {versions['python']}"
+
+
 def cpu_description() -> str:
     """Best available CPU model string for this machine.
 

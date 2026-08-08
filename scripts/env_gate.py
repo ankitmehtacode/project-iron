@@ -7,8 +7,23 @@ confident wrong one — a missing library becomes a skipped test that reads as
 green, and a missing checkpoint becomes a verdict nobody actually observed.
 
 So the gate is a hard stop, checked once, up front, with the whole picture
-printed rather than the first failure. Four rows:
+printed rather than the first failure. Six rows:
 
+0. **Interpreter identity.** Which python is actually running this process,
+   and whether it resolves inside ``.venv-pinned``. Day 16 found the default
+   ``.venv`` had drifted to numpy 2.5.1 against a numpy==1.26.2 pin, and that
+   mypy run through it silently reported 6 of 35 real errors — a wrong
+   interpreter does not fail loudly, it produces a plausible wrong answer.
+   Rows 1-5 below check whether the packages inside SOME environment are
+   correct; this row checks whether the process asking the question is even
+   in that environment, which every other row silently assumes.
+0b. **No stray project venvs on disk.** Two environments on one machine is a
+   coin flip that resolves silently — which one a bare ``python``/``pip``
+   picks up depends on ``$PATH`` order, not on anything this project
+   controls. One pinned environment is a structural guarantee; a second
+   venv sitting on disk, however it got there, is the same latent defect
+   that produced the mypy undercount, waiting for the next command run
+   without ``.venv-pinned`` explicitly on the command line.
 1. **Runtime imports at pinned versions.** Presence is not enough. INT8 kernel
    selection and reduction order differ between OpenVINO releases, so a golden
    vector recorded under one version is not a reference for another.
@@ -18,6 +33,14 @@ printed rather than the first failure. Four rows:
    some import is resolving to a version nothing verified.
 4. **Determinism settings.** Seeds and thread counts actually applied from
    config, since INT8 determinism holds only at a fixed thread count.
+
+A python process outside any project venv at all (the system interpreter, or
+a completely unrelated one such as a miniconda base environment) is not
+caught by row 0b's disk scan — nothing on disk identifies it. Row 0 (the
+interpreter-identity check) is what catches that case: it fails regardless
+of what venvs exist, because it checks the *running* process, not the
+filesystem. Row 0b closes the complementary gap — a second venv that exists
+but was not the one invoked this time.
 
 Exit codes:
     0  every row passed; measurements taken here are attributable
@@ -134,6 +157,87 @@ class GateResult:
     @property
     def parked_failures(self) -> list[Row]:
         return [row for row in self.rows if not row.passed and row.blocks != "all"]
+
+
+PINNED_VENV_NAME = ".venv-pinned"
+
+
+def check_interpreter_identity() -> Row:
+    """Row 0: is the process asking every other question even in the right
+    environment?
+
+    Compared via ``sys.prefix``, not ``sys.executable``. A venv's
+    ``bin/python`` is conventionally a *symlink* to the base interpreter it
+    was created from — that is normal venv construction, not drift — so
+    resolving the executable's symlink (``Path.resolve()``) walks straight
+    past the venv boundary and back to the base install, defeating this
+    check entirely (caught in Day 17's own dry run: it reported the pinned
+    venv as "not pinned" while genuinely running inside it).
+    ``sys.prefix`` is what venv activation actually sets to the venv's own
+    directory regardless of how the executable itself is implemented, and
+    ``sys.base_prefix`` names the base install a venv was created from —
+    the two differing at all is itself the "am I in a venv" signal.
+    """
+    prefix = Path(sys.prefix).resolve()
+    pinned_root = (REPO_ROOT / PINNED_VENV_NAME).resolve()
+    inside_pinned = prefix == pinned_root
+
+    if inside_pinned:
+        return Row(
+            name="interpreter identity",
+            passed=True,
+            detail=f"{sys.executable} (sys.prefix={prefix}, inside {PINNED_VENV_NAME})",
+        )
+    return Row(
+        name="interpreter identity",
+        passed=False,
+        detail=f"{sys.executable} (sys.prefix={prefix}) is NOT {PINNED_VENV_NAME} "
+        "— every check below is being asked of the wrong environment",
+        remedy=f"invoke {PINNED_VENV_NAME}/bin/python explicitly, or "
+        f"`source {PINNED_VENV_NAME}/bin/activate` first. A bare `python`/"
+        "`python3` on $PATH is not this project's environment even when it "
+        "happens to have the same packages installed by coincidence — see "
+        "Day 17: this machine's default `python3` resolves to a miniconda "
+        "base environment carrying its own, third, numpy version, entirely "
+        "independent of this repository's pin.",
+    )
+
+
+def _is_venv_dir(path: Path) -> bool:
+    return path.is_dir() and (path / "pyvenv.cfg").exists()
+
+
+def check_no_stray_venvs() -> Row:
+    """Row 0b: no OTHER venv sits on disk for a bare python/pip to find.
+
+    Deliberately does not exempt distinctly-named ones (``.venv-infinigen``
+    included): a second venv on disk is the risk this row exists to name,
+    regardless of how well-motivated or clearly-labelled it is. Removing or
+    formally re-justifying one that legitimately needs to stay (Infinigen's
+    python 3.11 requirement, Day 11) is a decision for whoever is running
+    the gate to make, not a silent exemption baked into the check.
+    """
+    found = sorted(
+        p.name
+        for p in REPO_ROOT.iterdir()
+        if p.name != PINNED_VENV_NAME and _is_venv_dir(p)
+    )
+    if not found:
+        return Row(
+            name="no stray project venvs",
+            passed=True,
+            detail=f"only {PINNED_VENV_NAME} exists on disk",
+        )
+    return Row(
+        name="no stray project venvs",
+        passed=False,
+        detail=f"{len(found)} other venv(s) on disk: {', '.join(found)}",
+        remedy="delete each one, or if a workflow genuinely needs it "
+        "(e.g. Infinigen's python 3.11 requirement), keep it deliberately "
+        "and re-run with an explicit acknowledgement that this check is "
+        "expected to fail until it is resolved — do not weaken this check "
+        "to tolerate it silently",
+    )
 
 
 def pinned_versions() -> dict[str, str]:
@@ -372,6 +476,8 @@ def check_runtime(config: IronConfig) -> Row:
 
 def run_gate(config: IronConfig) -> tuple[GateResult, dict[str, Any]]:
     result = GateResult()
+    result.rows.append(check_interpreter_identity())
+    result.rows.append(check_no_stray_venvs())
     result.rows.extend(check_imports(pinned_versions()))
     model_rows, fingerprint = check_models(config)
     result.rows.extend(model_rows)

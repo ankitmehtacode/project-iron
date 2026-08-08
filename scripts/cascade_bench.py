@@ -416,8 +416,10 @@ def main(argv: list[str] | None = None) -> int:
     min_speedup = float(np.min(speedups)) if speedups else 0.0
 
     print()
+    from src.provenance import current_stack_string
+
     print(f"Worst stage-0 cost : {worst_cost_share:.2%} of one core per camera")
-    print(f"Measured on        : {config.cascade.measured_stack}")
+    print(f"Measured on        : {current_stack_string()}")
     print(f"PRODUCT BUDGET     : {budget:.2%}  <- what Tier-1 needs")
     print(f"Regression ceiling : {effective_ceiling:.2%}  <- what CI gates on")
     if args.budget_scale != 1.0:

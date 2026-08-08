@@ -179,12 +179,18 @@ def _measure_model(args: Any) -> int:
             }
         )
 
+    from src.provenance import current_stack_string
+
     model = {
         "gate_width": gate_config.gate_width,
         "gate_height": gate_config.gate_height,
         "min_foreground_fraction": gate_config.min_foreground_fraction,
         "derived_foreground_threshold_px": derived,
-        "measured_stack": config.cascade.measured_stack,
+        # Day 17: was config.cascade.measured_stack, a hardcoded config
+        # constant that would keep asserting the pinned stack even if this
+        # specific calibration run executed under a drifted interpreter.
+        # Live now, measured at the moment this file is written.
+        "measured_stack": current_stack_string(),
         "trials_per_size": args.trials,
         "native_shape": [NATIVE_HEIGHT, NATIVE_WIDTH],
         # The area range actually swept. Without it, a speed whose curve never

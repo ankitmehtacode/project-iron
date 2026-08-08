@@ -163,6 +163,38 @@ def test_scorecard_reports_false_negatives_prominently(tmp_path: Path) -> None:
     assert card.clips_scored == 2
 
 
+def test_scorecard_carries_a_live_measurement_environment(tmp_path: Path) -> None:
+    """Day 17: the environment that scored THIS run, not the envelope's.
+
+    ``card.envelope["envelope_measured_stack"]`` is whatever stack calibrated
+    the loaded envelope file, potentially days earlier. A scorecard produced
+    by a different (drifted) interpreter would inherit that string
+    unchanged and report it as if it described itself. This field is
+    captured fresh, every call, from the running process.
+    """
+    import sys
+
+    from src.config import IronConfig
+    from src.data.golden import Domain, GoldenClip, GoldenSet, Status
+    from src.data.scorecard import compute
+
+    manifest = gen.generate(tmp_path, frames=8, fps=12.0, seed=13)
+    clips = tuple(
+        GoldenClip(clip_id=c["clip_id"], content_sha=c["content_sha"])
+        for c in manifest["clips"][:1]
+    )
+    golden = GoldenSet(
+        version="vtest", domain=Domain.INDOOR, status=Status.ACTIVE, clips=clips
+    )
+    card = compute(golden, tmp_path, IronConfig.load().cascade.motion_gate_config())
+
+    env = card.measurement_environment
+    assert env["sys_prefix"] == sys.prefix
+    assert env["sys_executable"] == sys.executable
+    assert env["library_versions"]["numpy"] not in ("", "unknown", "not installed")
+    assert "measurement_environment" in card.as_dict()
+
+
 def test_scorecard_reports_per_condition_wake_fraction(tmp_path: Path) -> None:
     """Objective 3 (Day 15): a single aggregate wake_fraction across mixed
     conditions must not be the headline -- card.per_condition always

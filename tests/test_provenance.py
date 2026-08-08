@@ -147,6 +147,26 @@ def test_library_versions_record_absence_explicitly() -> None:
     assert versions["torch"] == "not installed" or versions["torch"]
 
 
+def test_current_stack_string_is_live_not_a_config_constant() -> None:
+    """Day 17: this must reflect the RUNNING interpreter, not a config default.
+
+    ``configs/default.yaml``'s ``cascade.measured_stack`` is a hardcoded
+    string that ``scripts/cascade_bench.py`` used to print verbatim as
+    "Measured on" regardless of what actually executed the benchmark —
+    exactly the kind of copied, unverified provenance the Day-16 mypy
+    undercount was a different instance of. This checks the live version
+    reports the numpy this test itself is running under, not a fixed
+    string.
+    """
+    import numpy
+
+    from src.provenance import current_stack_string
+
+    stack = current_stack_string()
+    assert "python" in stack and "numpy" in stack and "opencv" in stack
+    assert numpy.__version__ in stack
+
+
 # ---------------------------------------------------------------------------
 # Manifest identity
 # ---------------------------------------------------------------------------
