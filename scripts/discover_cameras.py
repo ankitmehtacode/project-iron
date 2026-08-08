@@ -230,12 +230,24 @@ async def query_stream_profiles(
     return results
 
 
+class ManualEntryUnavailable(RuntimeError):
+    """Raised when the interactive fallback has no terminal to prompt on."""
+
+
 def prompt_manual_entry() -> tuple[str, str | None]:
     """Interactive fallback when a device does not answer ONVIF at all.
 
     Returns ``(rtsp_url, name)``. Used when WS-Discovery finds nothing, or
     when a found device's Media service query fails (some consumer cameras
     advertise ONVIF discovery but implement only a subset of the spec).
+
+    Raises:
+        ManualEntryUnavailable: stdin has no line to read — a dry run or a
+            CI/cron invocation with no camera on the segment and no
+            ``--manual --rtsp-url`` given. This used to surface as a bare
+            ``EOFError`` traceback, which is not "reporting honestly" by
+            this module's own exit-code contract (0 devices found is not a
+            failure); it is a crash standing in for one.
     """
     print(
         "\nNo ONVIF response, or ONVIF query failed. Enter the RTSP URL by "
@@ -243,8 +255,15 @@ def prompt_manual_entry() -> tuple[str, str | None]:
         "path — this script does not guess a vendor's URL pattern).",
         file=sys.stderr,
     )
-    url = input("RTSP URL: ").strip()
-    name = input("Label for this stream (optional): ").strip() or None
+    try:
+        url = input("RTSP URL: ").strip()
+        name = input("Label for this stream (optional): ").strip() or None
+    except EOFError:
+        raise ManualEntryUnavailable(
+            "stdin has no RTSP URL to read (not a terminal, and neither "
+            "--manual nor --rtsp-url was given). Treating this the same as "
+            "zero devices found, not as a failure."
+        )
     return url, name
 
 
@@ -278,7 +297,14 @@ def main(argv: list[str] | None = None) -> int:
         url = args.rtsp_url
         name = None
         if url is None:
-            url, name = prompt_manual_entry()
+            try:
+                url, name = prompt_manual_entry()
+            except ManualEntryUnavailable as exc:
+                print(f"{exc}", file=sys.stderr)
+                args.out.parent.mkdir(parents=True, exist_ok=True)
+                args.out.write_text(json.dumps(manifest, indent=2, sort_keys=True))
+                print(f"\nwritten to {args.out} (0 devices)")
+                return 0
         print(f"manual entry: {mask_credentials(url)}")
         manifest["devices"].append(
             {
@@ -300,10 +326,16 @@ def main(argv: list[str] | None = None) -> int:
                 "manual entry.",
                 file=sys.stderr,
             )
-            url, name = prompt_manual_entry()
-            manifest["devices"].append(
-                {"host": None, "discovery": "manual-fallback", "profiles": [{"name": name, "rtsp_uri": mask_credentials(url)}]}
-            )
+            try:
+                url, name = prompt_manual_entry()
+                manifest["devices"].append(
+                    {"host": None, "discovery": "manual-fallback", "profiles": [{"name": name, "rtsp_uri": mask_credentials(url)}]}
+                )
+            except ManualEntryUnavailable as exc:
+                # 0 devices found and no terminal to prompt on: still "ran
+                # clean and reported honestly" per this module's own exit
+                # contract, not a failure to raise out of.
+                print(f"{exc}", file=sys.stderr)
         for device in found:
             print(f"  {device.host}  xaddr={device.xaddr}")
             try:
@@ -312,7 +344,11 @@ def main(argv: list[str] | None = None) -> int:
                 )
             except Exception as exc:  # noqa: BLE001 — any ONVIF/network failure falls back
                 print(f"    ONVIF query failed ({exc}); falling back to manual entry", file=sys.stderr)
-                url, name = prompt_manual_entry()
+                try:
+                    url, name = prompt_manual_entry()
+                except ManualEntryUnavailable as exc2:
+                    print(f"    {exc2}", file=sys.stderr)
+                    continue
                 manifest["devices"].append(
                     {
                         "host": device.host,
