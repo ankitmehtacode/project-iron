@@ -3334,3 +3334,293 @@ new question rather than resuming Day 3's).
 8. **MEVA licence verification** — still blocked on a human.
 9. **The factor-graph solver**, once there is a measured reason to start
    it — unchanged from Day 13's list.
+
+# Day 16
+
+Branch `foundation/day-16`, off Day 15. Framing: Day 15 found v3-indoor's
+night bucket empty and its occupied bucket at motion density 1.0000 — the
+dataset cannot evaluate the gate because the floor tuned for tracking and
+depth selects against the exact frames a gate exists for. Four objectives:
+fix that, close the mypy debt, make the capture a one-afternoon task, and
+report. No numerical-behaviour changes except where an objective
+authorised one; the STRUCTURAL bar is unchanged.
+
+## Objective 0 — push verification
+
+Already done when this session started: `foundation/day-15`'s tip
+(`2d55c97`, "docs: Day-15 report") matched `origin/foundation/day-15`
+exactly, and `foundation/day-16` already existed locally, branched from
+it. Re-verified rather than assumed: every `foundation/day-1` through
+`foundation/day-15` local branch head matches its `origin/` counterpart
+byte-for-byte; the full local commit graph (`git rev-list --all`, which
+includes fetched remote-tracking refs) and the full remote graph
+(`git rev-list --remotes=origin`) are the same *set* of commits, 0
+difference either direction, not merely the same count. `main` itself
+diverges from `origin/main` — `origin/main` carries a separate,
+unrelated PR history from another collaborator (`Dalbirsm03`: RAG agent,
+vector DB, Gaussian proxy work) that this repository's `foundation/day-N`
+lineage never merged from or into. That divergence pre-dates this
+session, is out of this day's scope, and every one of its commits is
+already present locally (fetched, just not reachable from local `main`)
+— stated plainly rather than left implicit. `foundation/day-16` itself
+is not yet pushed; its three commits from today are new. See Day 17.
+
+## Objective 1 — v4-gate: a set that can evaluate the gate
+
+**Mechanism.** `GoldenClip.low_activity` (`src/data/golden.py`) mirrors
+`hard_coverage`: exempt from the mint-time `>=0.80` observability floor
+and from the aggregate check, reported on its own line. Same tag
+discipline as `hard_coverage` — declared by authoring intent, not
+assigned post hoc because a clip's score came in low; `mint_golden_set`
+still refuses a set of nothing but exemptions (both tags combined count
+toward that refusal now, not just `hard_coverage` alone). 4 new tests in
+`tests/test_mint_acceptance.py`.
+
+**The set.** `build_scenes_v4_gate` (`scripts/gen_synthetic_indoor.py`),
+8 clips: two camera views of a genuinely empty room, one empty room with
+a lights-off transient (untagged `low_activity` — an empty room is
+trivially `NO_MOTION` on every frame, so these three clip the floor on
+their own and are what gives it something to check), two views of one
+occupant present the whole clip at `speed_scale=0.0`, and three
+brief-entry clips (walks in over ~1/7 of the clip, stands still for the
+rest; one also carries a lights-off transient after settling). Per-clip
+`moving_frames/frames` spans 0.0000–0.1500 — inside the ~0.02–0.30 target
+band but not reaching its top edge, because "a single brief entry"
+bounds how much of a short clip can move without becoming a different
+scene. Registered `synthetic-indoor-v4-gate`, lane S, same per-asset
+clearance as v3 (`configs/datasets.yaml`) — same generator, same
+primitives, the SMPL trap does not apply here either.
+
+Authoring it surfaced and fixed two bugs the all-moving v2/v3 sets never
+exercised: the manifest's `moving_frames` field was hardcoded to
+`scene.frames` (every clip claimed 100% moving regardless of content)
+until a dataset whose entire point is to be quiet made that specific
+dishonesty visible; and the `agent_xyz`/`track_uv` payload reshape broke
+on zero agents (`np.asarray` on an empty-per-frame list infers shape
+`(T, 0)`, not `(T, 0, 3)` — nothing had exercised the zero-agent case
+before `empty_room`).
+
+**Validity matrix row.**
+
+| dataset | motion_geometry | depth | appearance_semantics | point_tracking |
+| --- | --- | --- | --- | --- |
+| v3-indoor | PASS | REFUSED | REFUSED | REFUSED |
+| v4-gate | PASS | REFUSED | REFUSED | **PASS** |
+
+`point_tracking` was added as a fourth checked capability today —
+registered in `validity.GATES` since Day 11 (`scripts/eval_tracking.py`
+uses it directly) but never wired into `scripts/validity_matrix.py`, the
+one script whose job is "which capabilities can this project evaluate."
+Closing that gap is what surfaced the one cell that does **not** match
+the pattern this objective assumed going in: v4-gate does not refuse
+point_tracking the way v3 does. v3's representative clip scores corner
+density 2.34e-04 (below the 1e-03 floor, REFUSED); v4-gate's scores
+1.11e-03 (PASS) — confirmed across the full set, not just the sampled
+clip, via `scripts/eval_tracking.py --set v4-gate`: all 8 clips pass,
+vs. v3's 4-of-30. Static, unblurred scenes give a Shi-Tomasi corner
+detector more stable local structure to lock onto than v3's fast-motion
+clips do; reported as measured, not forced to match the assumption.
+
+**Scorecards, side by side** (`docs/day16/motion_gate_v3_rescored.json`,
+`motion_gate_v4_gate.json`; regenerated v3 number, byte-consistent with
+Day 14's `891dd58`):
+
+| metric | v3-indoor | v4-gate |
+| --- | ---: | ---: |
+| `gate.wake_fraction` | 0.9067 (816/900) | 0.1250 (30/240) |
+| `gate.recall_retained` | 0.9340 | 0.0884 |
+| `gate.compute_saved` (estimate) | 1.87 ms/frame | 17.50 ms/frame |
+| `gate.miss_cost` | 57 frames | 134 frames |
+| `dataset.moving_frame_fraction` | 0.9667 | 0.0000 |
+
+**Neither scorecard is the Tier-1 economic claim.** v3 measures the gate
+where motion is near-total; v4-gate measures it on authored quiet
+scenes; the actual claim requires 24 hours of real office footage
+including nights and weekends (`docs/capture_runbook.md`, Objective 3).
+Synthetic quiet is not real quiet — a real empty corridor has sensor
+noise, HVAC-driven shadow drift, and compression artifacts that authored
+stillness lacks, and those are exactly what a background model reacts
+to.
+
+**Headline finding.** `gate.recall_retained`/`gate.miss_cost` for
+v4-gate are not a clean read, and should not be quoted without this:
+`gt_moved_from_render` (Day 9's silhouette-change ground truth, still
+what `motion_gate_metrics` scores recall against) flags ~92% of frames
+as "moved" in `long_static_occupant` — an agent with `speed_scale=0.0`,
+whose `world_motion()` value (the Day-15 world-space signal) is `False`
+on every single frame of the clip. Traced to
+`scripts/gen_synthetic_indoor.py`'s gait animation: leg-swing phase is
+`np.sin(2*pi*(t*4 + agent_id))`, a function of elapsed clip time, not of
+`speed_scale` or `progress`. A "stopped" agent's legs keep swinging, so
+its rendered silhouette never stops differing frame to frame even though
+its world position never moves. The real cascade gate is not fooled —
+the `occupied` condition bucket's wake_fraction is exactly 0.0000, i.e.
+background-subtraction at 320x180 correctly never reacts to a few pixels
+of leg wobble — so this is a ground-truth defect, not a gate defect: the
+gate slept through frames the *scoring* function insists it should have
+woken for, on the strength of a rendering artifact unrelated to real
+motion. **Not fixed today** — SCOPE excludes numerical-behaviour changes
+not authorised by an objective, and this is exactly the class of finding
+Objective 1 asked to be surfaced as a headline rather than engineered
+around. It extends the Day-9 partition (geometry synthetic-scorable,
+appearance not) with a third, distinct failure mode from the one this
+objective's prompt anticipated (missing sensor-noise/shadow-drift
+model, which is also true and separately caveated above): **the
+renderer cannot honestly render a stationary articulated agent either**
+— two independent reasons synthetic data cannot carry the Tier-1 claim,
+not one.
+
+## Objective 2 — mypy strict debt: 35 fixed, 0 excluded
+
+Day 15's report recorded "35 pre-existing errors, unchanged... verified
+both ways via `git stash`." Re-measuring today under `.venv` (the
+default dev venv) reproduced only 6 of the 35 — a materially different,
+wrong number. Root cause: `locking-requirements.txt` pins `numpy==1.26.2`,
+but `.venv` has drifted to `numpy==2.5.1` (`.venv-pinned`, python 3.10,
+correctly holds `numpy==1.26.2`, matching the pin and matching CI's
+stated floor). Under numpy 2.5.1's newer stubs, mypy's generic-args
+check (`disallow_any_generics`, part of `--strict`) stops flagging bare
+`np.ndarray` — so `.venv`'s mypy run silently swallowed 29 of 35 errors,
+not because they were fixed, but because the measuring apparatus had
+quietly changed. Verified in both directions (`git stash` on/off) under
+both venvs before trusting either number. **All numbers in this report,
+and all mypy invocations going forward, use `.venv-pinned`.** This is
+itself the day's `[[check-the-measuring-apparatus]]` finding, on a
+metric that isn't even one of the numerical ones this project usually
+means by that phrase.
+
+All 35, by file:
+
+| file | lines | count | error class |
+| --- | --- | ---: | --- |
+| `src/data/validity.py` | 111, 111, 131, 132, 133, 135, 212, 212, 263, 263, 325 | 11 | `type-arg` (bare `ndarray`/`dict`) |
+| `src/data/depth_eval.py` | 64, 79, 106, 149, 192, 231, 233, 234, 294 | 9 | 8× `type-arg`, 1× `no-untyped-def` |
+| `src/data/scorecard.py` | 74, 75, 122, 445, 468 | 5 | `type-arg` (bare `ndarray`) |
+| `src/semantics/patch_mapping.py` | 50, 51, 89, 131 | 4 | `type-arg` (bare `ndarray`) |
+| `src/endurance/runner.py` | 69, 124, 207 | 3 | `type-arg` (bare `ndarray`) |
+| `src/cascade/motion.py` | 322, 368 | 2 | `no-any-return` |
+| `src/data/da2k_adapter.py` | 51 | 1 | `type-arg` (bare `ndarray`) |
+
+**Fixed: 35. Excluded: 0.** Every site got a real type — `npt.NDArray[...]`
+generic parameters, `dict[str, Any]` instead of bare `dict`, an explicit
+parameter/return annotation where a numpy stub overload returns `Any`,
+and a named closure (`_bucket_selector`) in place of a default-arg lambda
+mypy could not infer against `Callable[[X], Y]`. Zero behaviour change —
+type annotations only, confirmed by the full non-slow suite passing
+unchanged before and after. No `mypy.ini` exclusion was needed, so there
+was no "fix or explicitly exclude, no third option" call to make on any
+of the 35 — the STRUCTURAL bar (`mypy --strict` over the declared scope,
+zero errors) is met by fixing, not by narrowing scope. `mypy.ini` itself
+is unchanged.
+
+## Objective 3 — capture readiness: dry run, runbook, one crash fixed
+
+`scripts/discover_cameras.py` run against the real local subnet: 0
+devices responded (WS-Discovery clean), reported honestly — until the
+manual-entry fallback, which raised a bare, uncaught `EOFError` from
+`input()` on any non-interactive run with no `--manual`/`--rtsp-url`.
+That is a crash standing in for a report, not "runs clean and reports
+honestly" per the module's own documented contract (0 devices is not a
+failure). Fixed at all three fallback call sites: `EOFError` is now
+caught and converted to the same clean, `exit 0` outcome discovery
+already uses when WS-Discovery itself finds nothing.
+
+`scripts/capture_dry_run.py` (new): chains discover → RTSP connect/demux
+(`src.ingest.rtsp.RtspIngestSession`) → decoded frames (`cv2.imdecode`
+on real JPEGs sent MJPEG-over-RTP, a genuine decode of genuine bytes,
+not a stand-in) → content-addressed store → registry entry, lane C →
+Gap records on an induced sequence-number drop → condition tagging →
+consent-record refusal — against
+`tests/fixtures/minimal_rtsp_server.py`, no hardware. All six stages
+pass. This does **not** merge the live-RTSP path and the file-based
+`scripts/ingest_capture.py` path into one production script; that
+bridging is real work a real camera would motivate, not a precondition
+for running the capture, and is named as remaining manual work below.
+
+`docs/capture_runbook.md` (new): placement (the overlapping pair, the
+deliberate coverage gap, the far-field corridor view), the
+overnight/weekend window the Tier-1 claim depends on — flagged as the
+segment most likely to be skipped as boring — condition tags per
+segment, consent collection (still gated on counsel review of
+`docs/site_zero_consent_TEMPLATE.md` §7, unresolved), and the commands
+in order.
+
+**What remains manual, restated plainly:** everything that genuinely
+needs a camera in a room — ordering hardware, placement, cabling, the
+scripted walkthroughs, and leaving the cameras running untouched
+overnight. Discovery, transport, decode, content-addressing, registry
+shape, gap accounting, and condition tagging are all dry-run verified
+against fixtures today; nothing in that list is still code work.
+
+## All five falsification tests, re-run today
+
+| # | Test | Day 15 | Day 16 |
+| --- | --- | --- | --- |
+| 1 | Absence under degraded coverage | PASSES | PASSES (unchanged) |
+| 2 | Retroactive badge resolution | PASSES | PASSES (unchanged) |
+| 3 | Twin re-version | PASSES | PASSES (unchanged) |
+| 4 | Alert explainability | PASSES, single path | PASSES (unchanged; `raise_alert()` is still the un-steered permissive path, per Day 14's open finding) |
+| 5 | Behaviour-query shape | PASSES (type-level) | PASSES (type-level, unchanged) — still blocked on the unimplemented estimator |
+
+`tests/test_falsification.py`: 8 tests, all green, unchanged from Day
+15. Repo-wide (`.venv-pinned`, `not requires_weights and not slow`), run
+after all four commits landed: **1 real failure caught** —
+`test_golden_sets.py::test_every_minted_version_is_retained` hardcodes
+the exact set of versions expected under `configs/golden/`, deliberately,
+so an accidental deletion is caught; minting v4-gate tripped it exactly
+as designed, not a false alarm. Fixed by adding `"v4-gate"` to the
+expected set (separate commit, `31c2ac3`). Final: **745 passed, 1
+skipped, 8 deselected, 0 failures.** `mypy --strict` on the declared
+scope: **0 errors** (down from 35; see Objective 2), verified
+under `.venv-pinned`.
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged today.
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — forensic
+   objective closed unanswered (ADR 0008); still wanted for its own
+   sake.
+2. **MEVA licence verification.**
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7** —
+   blocks real consent collection for Objective 3's capture, not just
+   the erasure-obligation question it was already blocking.
+4. **A physical camera** — the runbook (Objective 3) and the dry run
+   are as far as this can go without one, now 4 days old.
+
+## Day 17, in order
+
+1. **Push `foundation/day-16`** (Objective 0's own pattern: each day's
+   push happens at the start of the next). Verify the remote graph
+   again after.
+2. **Order cameras and run the office capture** per
+   `docs/capture_runbook.md` — the single remaining step before the
+   real Tier-1 wake-fraction number exists. Nothing else on this list
+   outranks it.
+3. **Do not trust v4-gate's `gate.recall_retained`/`gate.miss_cost` at
+   face value** until `gt_moved_from_render`'s gait-animation
+   sensitivity is addressed — either make leg-swing phase a function of
+   `progress`/`speed_scale` so a stopped agent's silhouette actually
+   stops changing, or move recall scoring for near-static clips onto
+   `world_motion()` instead of silhouette-diff. Both are numerical-
+   behaviour changes and need explicit authorisation before either
+   lands.
+4. **The motion-gate precision/selectivity investigation**, now five
+   days deferred — Day 16 investigated *a* discrepancy in the gate's
+   ground truth, not the original one (v3's 57 false negatives).
+5. **Steer callers away from `raise_alert()` toward `emit_alert()`** —
+   still open from Day 14, still nothing in the type system stopping a
+   caller from reaching for the permissive one.
+6. **A canonical `Observation -> hash` function** for
+   `EvidenceCommitment.compute()` (ADR 0007) — still open from Day 13.
+7. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should
+   be replaced** — unchanged ask from Day 14/15, now with a second data
+   point (v4-gate's 17.5 ms/frame estimate) resting on the same
+   unmeasured multiplier as v3's 1.87.
+8. **Bridge the live-RTSP path and `scripts/ingest_capture.py`** into
+   one production capture script — not a blocker for Objective 3's
+   capture (file-based ingest per segment works today), but the
+   obvious next simplification once a camera exists to motivate it.
+9. **MEVA licence verification** — still blocked on a human.
+10. **The factor-graph solver**, once there is a measured reason to
+    start it — unchanged from Day 13's list.
