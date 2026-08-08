@@ -3624,3 +3624,321 @@ Per [[iron-blocked-on-humans]]. Unchanged today.
 9. **MEVA licence verification** — still blocked on a human.
 10. **The factor-graph solver**, once there is a measured reason to
     start it — unchanged from Day 13's list.
+
+# Day 17
+
+Branch `foundation/day-17`, off Day 16. Framing: Day 16 found a drifted
+default `.venv` silently suppressing 29 of 35 mypy errors — the seventh
+time the instrument, not the code, was the defect, and the widest blast
+radius yet, since any measurement taken through that interpreter is
+suspect. Objective 1 removes the possibility structurally and audits
+what it may have contaminated. Day 16 also found the v4-gate renderer
+animates gait against elapsed time rather than agent speed, so the one
+clip authored to be motionless had a moving silhouette. Objectives 2
+and 3 fix and re-measure.
+
+**First line, per this day's own instruction: no headline number in the
+current report rests on the drifted environment.** The provenance audit
+(Objective 1c) found exactly one number that WAS measured under it — Day
+2's cascade cost, 2.97% of one core — and the project caught this itself,
+on Day 3, four days before today: `env_gate.py`'s first run measured the
+same environment directly (numpy 2.5.1, opencv 5.0.0, both against pins)
+and Day 6 re-measured under the pinned stack, landing at 4.57%, BUDGET
+MISSED — not the 2.97% originally reported. Reconfirmed again today: 4.50%
+of one core, same verdict. Nothing today changes what was already true:
+the product budget has been missed since the number was first measured
+honestly, three days into the project's first week.
+
+## Objective 0 — push verification
+
+`git push --all origin`: `foundation/day-16` pushed clean (new branch on
+origin). `git push --tags`: up to date. Verified after: every
+`foundation/day-1` through `foundation/day-17` local branch head matches
+its `origin/` counterpart exactly, and the full commit-object set is
+identical in both directions (`git rev-list --all` vs `git rev-list
+--remotes=origin`, 0 difference either way). `main` still diverges from
+`origin/main` — the same pre-existing, unrelated collaborator history
+(`Dalbirsm03`) documented Day 16, out of this day's scope, not
+force-pushed. Pushed again at the end of the day (below), per this day's
+new standing rule: push at the end of every day, not only the start.
+
+## Objective 1 — environment consolidation and measurement provenance audit
+
+**1a — `.venv` deleted, not repaired.** `.venv-infinigen` (Day 11, python
+3.11 for Infinigen) is untouched — a distinctly-named environment already,
+not the drifted default. Verified the literal suggested check first:
+`python -c "import src"` does **not** fail without a venv activated —
+`src/__init__.py` is deliberately import-free (packaging/CI/mypy must be
+able to touch the package root cheaply), so a bare interpreter satisfies
+it via ordinary CWD-relative import regardless of which environment it is.
+That check tests nothing. The meaningful version — `import
+src.data.scorecard`, which transitively needs numpy — found a worse, still
+-live risk that deleting `.venv` does not fix: this machine's bare
+`python`/`python3` on `$PATH` resolves to a **miniconda base environment**
+with its own numpy (**2.3.1 — a third, distinct version**, neither the
+pin nor the deleted `.venv`'s 2.5.1), and that import succeeds silently
+through it. Documented, not silently worked around — this is exactly why
+1b exists as the actual mitigation rather than the directory deletion
+alone.
+
+**1b — `scripts/env_gate.py`, two new rows, checked first:**
+
+```
+CHECK                        STATUS  DETAIL
+interpreter identity         PASS    .venv-pinned/bin/python (sys.prefix=.../.venv-pinned)
+no stray project venvs       FAIL    1 other venv(s) on disk: .venv-infinigen
+```
+
+`interpreter identity` compares `sys.prefix`, not `sys.executable`. First
+implementation compared `Path(sys.executable).resolve()`, which follows a
+venv's `bin/python` symlink straight back to the base interpreter it was
+built from — ordinary venv construction, not drift — and reported the
+**pinned venv itself as unpinned**. Caught by running the gate against
+itself before trusting it; fixed to `sys.prefix`, which venv activation
+sets to the venv's own directory regardless of how the executable file is
+implemented. `no stray project venvs` scans for any other venv
+(`pyvenv.cfg`) on disk and deliberately does not exempt
+`.venv-infinigen` — a second venv is the risk this row names, however
+well-motivated, so the gate **fails today** until that is resolved or
+formally re-justified. Left failing rather than quietly exempted: exactly
+the discipline the row exists to enforce on everyone else.
+
+**1c — measurement provenance audit.** Full table below; sources of
+truth were embedded scorecard provenance, git-commit timestamps against
+when `.venv` demonstrably diverged (its own filesystem mtime, unchanged
+from 31 Jul 16:35 through today's deletion — whatever was installed then
+is exactly what Day 16 found), and reproducibility itself (a number that
+reproduces bit-identical under `.venv-pinned` is strong evidence its
+first measurement was too, since a genuinely different numpy/opencv
+build changes floating-point behaviour enough that an exact integer
+frame-count match would be a remarkable coincidence otherwise).
+
+| Measurement | Day | Environment | Status |
+| --- | --- | --- | --- |
+| Cascade bench progression (29.5%→22.5%→4.4%) | 1 | `.venv` (unpinned) | verified_drifted; superseded narratively, not a current claim |
+| Cascade cost 2.97% of one core | 2 | `.venv` (unpinned) | verified_drifted — caught by the project itself (Day 3), re-measured Day 6 (4.57%, BUDGET MISSED), reconfirmed today (4.50%, same verdict) |
+| env_gate.py's own first run (numpy 2.5.1, opencv 5.0.0, direct measurement) | 3 | `.venv` (unpinned) — this IS the evidence | verified_drifted (self-documenting) |
+| Golden-vector cosine fix (0.332 → 0.999987) | 3, after 22:10 | `.venv-pinned` | verified_pinned |
+| Cascade cost re-measurement, 4.57%, BUDGET MISSED | 6 | `.venv-pinned` | verified_pinned; reconfirmed today at 4.50% |
+| Envelope calibration (`min_foreground_fraction` 0.002, threshold 115.2px) | 7 | `.venv-pinned` (git-committed well after the Day-3 fix) | verified_pinned by timing; embedded stack string was a static config constant until today's fix (Objective 1c structural change) — not itself proof before today |
+| Depth validity: v3-indoor rank correlation −0.5924, 30 clips/120 frames | 9 | `.venv-pinned` (presumed) | unknown — no live fingerprint recorded; LOW risk, qualitative verdict (refuses) independently reconfirmed via a different single-clip method Day 16 (−0.6309, same refusal) |
+| Appearance validity: texture energy 3.03, material diversity 15.17 | 10 | `.venv-pinned` (presumed) | verified_pinned — reproduced EXACTLY (3.031, 15.168) Day 16 |
+| Point-tracking gate / CoTracker3 pin, v3 refuses | 11 | `.venv-pinned` (presumed) | verified_pinned — refusal pattern reproduced Day 16 |
+| `motion_gate_v3_with_baselines.json` | 12 | `.venv-pinned` (inherited envelope stack only) | unknown at the scoring level — no live fingerprint on the scorecard itself before today's fix |
+| Gate reframe: wake_fraction 0.9067 (816/900), recall_retained 0.9340, miss_cost 57 | 14 | `.venv-pinned` (presumed) | verified_pinned — reproduced BIT-IDENTICAL Day 16 and again today |
+| mypy "35 pre-existing errors, verified both ways via git stash" | 15 | `.venv-pinned` (that day's own claim) | verified_pinned — reproduced EXACTLY (35, same file/line/class) Day 16 and Day 17 |
+| Retrieval-metric sweep, byte-for-byte reproducing Day 12 | 15 | `.venv-pinned` (presumed; reproducibility is the evidence) | verified_pinned |
+| v4-gate scorecards, mypy 35→0, validity matrix, 745 tests | 16 | `.venv-pinned` — direct session evidence | verified_pinned |
+| Transient mypy check showing "6 errors" (never committed) | 16 | `.venv` (unpinned, deleted today) | verified_drifted — caught and corrected within the same session; the finding that triggered today's Objective 1 |
+| Cascade bench re-run (4.50%), env_gate extension, gait fix, v4.1-gate | 17 | `.venv-pinned` — direct session evidence | verified_pinned |
+
+**STRUCTURAL fixes so this audit is a query next time, not another
+investigation:**
+- `src.data.scorecard.Scorecard.measurement_environment` (new field):
+  live `sys.prefix`/`sys.executable`/`library_versions()`, captured fresh
+  inside `compute()`. Distinct from `envelope.envelope_measured_stack`,
+  which is *inherited* from whatever calibrated the loaded envelope file
+  — potentially days earlier, by a different process — and was being read
+  as though it described the scorecard's own run.
+- `src.provenance.current_stack_string()` (new): a live `"opencv X /
+  numpy Y / python Z"` fingerprint, replacing `config.cascade
+  .measured_stack` (a hardcoded config constant) in `cascade_bench.py`'s
+  "Measured on" line and `measure_envelope.py`'s written provenance —
+  both printed the pinned string unconditionally regardless of what
+  interpreter actually executed. Found while building the audit table,
+  not assigned in advance: the exact class of defect this whole objective
+  is about, found a second time, in the tooling meant to report it.
+
+## Objective 2 — gait animation decoupled from elapsed time (AUTHORIZED)
+
+Fixed: `Agent.progress_at(t)` (path-completion fraction, clamped at
+arrival — the same value `position_at(t)` already computed) now drives
+gait phase, in place of `t` directly. A `speed_scale=0.0` agent has
+`progress_at(t) == 0.0` for every frame, so phase is one constant value
+all clip long and the silhouette stops changing; an agent that arrives
+and stops keeps that constant from the moment it stops walking, same as
+a real person.
+
+**Structural test** (`test_stationary_agent_silhouette_is_bit_identical_
+across_frames`): renders `long_static_occupant` directly and asserts
+every frame's rgb/depth_m/instances equals frame 0. Verified to fail
+against the pre-fix formula first (0.182% of pixels differ at frame 1)
+before confirming it passes against the fix — the regression test
+actually regresses.
+
+**Audit for other elapsed-time-driven defects** (idle sway, head turn,
+arm swing, texture scroll): none exist. The agent model has no other
+periodic animation; the room-shell texture is spatial (keyed on pixel
+`xx`/`yy`, not `t`) and generated once per (scene, camera) pair before
+the frame loop, not resampled per frame. Gait phase was the only
+elapsed-time-driven animation in the generator.
+
+**v2/v3 impact: NONE**, verified both mathematically and empirically.
+Neither `build_scenes` (v2) nor `build_scenes_v3` ever overrides
+`Agent.speed_scale` from its default of 1.0 — v3's speed ladder varies
+path length, not `speed_scale`. For `speed_scale=1.0`,
+`progress_at(t) ≡ t` exactly, so phase is bit-for-bit unchanged.
+Confirmed by re-rendering both sets under their **actual recorded
+seeds** (v2: 20260801, the CLI default; v3: 20260808 — not the default,
+caught only by reading `dataset_manifest.json`'s own `seed` field after
+an initial re-render with the wrong seed produced a false "all 30 clips
+changed" result) and diffing every clip's `content_sha` against the
+committed golden manifests: **0 mismatches, both sets, 9 + 30 clips.**
+Neither `set_sha` needs to change.
+
+## Objective 3 — v4.1-gate: the fixed, honest quiet set
+
+Minted `v4.1-gate`: v4-gate's same 8 scenes, same conditions, same
+`low_activity` tags, re-rendered under the fix. `v4-gate` itself
+untouched — the record of what "authored quiet" measured before the fix
+existed, the same way v1 stayed the record after v2 superseded it (this
+is the one case where a new set exists **because the old one's numbers
+were wrong**, not because it measures something new —
+`_supersession_for` records `v4.1-gate` → supersedes → `v4-gate`
+explicitly).
+
+Verified fixed, not just re-rendered: `long_static_occupant`'s
+silhouette-based motion is now **0/40 frames**, down from **38/40** in
+v4-gate — and for the first time agrees with `world_motion()`, which was
+always 0/40. Validity matrix row matches v4-gate exactly (expected: same
+scenes) — PASS motion_geometry, REFUSE depth/appearance, PASS
+point_tracking.
+
+**v3 / v4-gate / v4.1-gate, side by side** (`docs/day17/`):
+
+| metric | v3-indoor | v4-gate | v4.1-gate |
+| --- | ---: | ---: | ---: |
+| `gate.wake_fraction` | 0.9067 | 0.1250 | 0.1250 |
+| `gate.recall_retained` | 0.9340 | **0.0884 — CONTAMINATED, do not quote** | nan (0/0) |
+| `gate.compute_saved` (estimate) | 1.87 ms/frame | 17.50 ms/frame | 17.50 ms/frame |
+| `gate.miss_cost` | 57 | **134 — CONTAMINATED, do not quote** | 0 |
+| `dataset.moving_frame_fraction` | 0.9667 | 0.0000 | 0.0000 |
+
+`wake_fraction` and `compute_saved` are **identical** between v4 and
+v4.1 — direct confirmation of the diagnosis: the real cascade gate
+(background-subtraction on actual pixels) was never fooled by the gait
+artifact, so its own measured behaviour is unchanged by the fix. Only the
+ground-truth-dependent metrics move, from a contaminated-but-plausible
+0.0884/134 to an honest nan/0.
+
+v4.1's nan/0 is a finding in itself, not a clean win: zero frames in the
+whole set are labelled ABOVE_ENVELOPE after warmup, because
+`brief_entry`'s only real motion (frames 1–6) falls entirely inside the
+gate's 10-frame warmup window and is excluded from scoring before
+recall/miss_cost ever see it. v4-gate's contaminated numbers were never
+actually measuring "does the gate wake correctly for a brief entry"
+either — they were measuring the gait artifact throughout. This set's
+recall/miss_cost dimension does not currently exercise that question at
+all. Day-18 item, not fixed today.
+
+**Neither v3, v4-gate, nor v4.1-gate is the Tier-1 economic claim.**
+That requires 24 hours of real office footage including nights and
+weekends (`docs/capture_runbook.md`).
+
+## Objective 4 — synthetic-evaluability partition, two corrections
+
+`.claude/skills/iron-eval-discipline/SKILL.md` updated in place (full
+text there; summarised here):
+
+1. **Point tracking is not fixed on either side.** Refused on v3-indoor
+   (corner density 2.34e-04 — motion blur starves the corner detector),
+   passed on v4-gate (1.11e-03 — static scenes feed it). Same generator,
+   same capability, opposite verdicts: point tracking's validity gate
+   measures a property of the SET (local texture/corner availability),
+   not of the capability. New rule recorded: a set must declare texture
+   density (or run the gate) before assuming a verdict transfers from a
+   sibling set in the same family.
+2. **Third category: signal-absence capabilities** (the motion gate is
+   the type case) — value concentrated in frames where nothing happens,
+   which synthetic data models worst of the three, because a renderer's
+   "nothing happening" is perfect noiseless stillness and real absence
+   never is. Worked example: v4-gate's gait defect (this day's own
+   Objective 2) — the generator could not represent stillness at all
+   until today, and fixed, still lacks a sensor-noise model. **Recorded,
+   not answered:** does the generator have one? As of today, no — an
+   empty room still renders bit-identical frame to frame. Until it does,
+   every quiet-scene measurement is optimistic by an unknown margin, and
+   the gate cannot be honestly evaluated on synthetic data regardless of
+   how the scenes are authored.
+
+## All five falsification tests, re-run today
+
+| # | Test | Day 16 | Day 17 |
+| --- | --- | --- | --- |
+| 1 | Absence under degraded coverage | PASSES | PASSES (unchanged) |
+| 2 | Retroactive badge resolution | PASSES | PASSES (unchanged) |
+| 3 | Twin re-version | PASSES | PASSES (unchanged) |
+| 4 | Alert explainability | PASSES, single path | PASSES (unchanged; `raise_alert()` still un-steered, Day 14's open finding) |
+| 5 | Behaviour-query shape | PASSES (type-level) | PASSES (type-level, unchanged) — still blocked on the unimplemented estimator |
+
+`tests/test_falsification.py`: 8 tests, all green, unchanged. Repo-wide
+(`.venv-pinned`, `not requires_weights and not slow`): **748 passed, 1
+skipped, 8 deselected, 0 failures**, up from Day 16's 745 (+3: the
+`measurement_environment` test, `current_stack_string` test, and the
+stationary-agent structural test). `mypy --strict` on the declared
+scope: **0 errors**, unchanged from Day 16, verified under `.venv-pinned`
+— the only environment any measurement in this report now uses, by
+construction (Objective 1a).
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged today.
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — forensic
+   objective closed unanswered (ADR 0008); still wanted for its own
+   sake.
+2. **MEVA licence verification.**
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7** —
+   blocks real consent collection for the office capture.
+4. **A physical camera** — the runbook and dry run are as far as this
+   can go without one, now 5 days old.
+
+## Objective 0/5 — push, end of day
+
+`git push --all origin`: `foundation/day-17` pushed clean. `git push
+--tags`: up to date. Re-verified: every `foundation/day-N` branch
+matches its remote exactly; commit-object sets identical in both
+directions (0 difference); `main`'s pre-existing divergence unchanged,
+untouched. Per this day's new standing rule, push now happens at the
+start **and** end of every day — the newest work is always the exposed
+work, and a day that ends unpushed is 16 days' pattern broken exactly
+once too often.
+
+## Day 18, in order
+
+1. **`env_gate.py`'s "no stray project venvs" row is failing right
+   now**, on `.venv-infinigen`. Resolve deliberately: delete it if
+   Infinigen work is done, or formally re-justify keeping it (and decide
+   whether the gate should distinguish a justified exception from an
+   accidental one, rather than staying red indefinitely).
+2. **v4.1-gate's recall/miss_cost dimension is currently unexercised** —
+   `brief_entry`'s only real motion falls inside the 10-frame warmup
+   window. Either shorten warmup for this set's purposes, lengthen the
+   entry, or accept that this set answers "does the gate correctly sleep
+   through quiet" and needs a sibling for "does it correctly wake for a
+   brief entry" — a scene-authoring decision, not a code fix.
+3. **The generator has no sensor-noise model** (Objective 4's recorded
+   question, still open). Until it does, `dataset.moving_frame_fraction`
+   near zero is optimistic by an unknown margin on every set that has
+   one. Decide whether to build one or accept that synthetic quiet-scene
+   numbers are permanently mechanism-checks only.
+4. **Order cameras and run the office capture** per
+   `docs/capture_runbook.md` — still the single remaining step before a
+   real Tier-1 wake-fraction number exists, now unchanged in priority
+   since Day 16.
+5. **The motion-gate precision/selectivity investigation**, now six days
+   deferred — Day 17 investigated a different discrepancy in the gate's
+   ground truth than the original one (v3's 57 false negatives).
+6. **Steer callers away from `raise_alert()` toward `emit_alert()`** —
+   still open from Day 14.
+7. **A canonical `Observation -> hash` function** for
+   `EvidenceCommitment.compute()` (ADR 0007) — still open from Day 13.
+8. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+   replaced** — unchanged ask from Day 14/15/16, now with a third data
+   point (v4.1-gate's 17.5 ms/frame estimate, identical to v4-gate's)
+   resting on the same unmeasured multiplier.
+9. **Bridge the live-RTSP path and `scripts/ingest_capture.py`** into
+   one production capture script — not a blocker for the capture itself.
+10. **MEVA licence verification** — still blocked on a human.
+11. **The factor-graph solver**, once there is a measured reason to
+    start it — unchanged from Day 13's list.
