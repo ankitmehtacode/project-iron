@@ -275,6 +275,53 @@ def test_static_background_is_bit_identical_across_frames(tmp_path: Path) -> Non
     )
 
 
+def test_stationary_agent_silhouette_is_bit_identical_across_frames(
+    tmp_path: Path,
+) -> None:
+    """A person standing still does not shimmer either — not just the wall.
+
+    Day 17 STRUCTURAL test. The regression this guards: gait phase was
+    ``sin(2*pi*(t*4 + agent_id))`` -- a function of ELAPSED TIME, so a
+    zero-velocity agent's legs kept swinging every frame even though
+    ``position_at(t)`` never moved it. ``test_static_background_is_bit_
+    identical_across_frames`` above only ever checked pixels no agent
+    touches, so this passed undetected: the one clip v4-gate (Day 16)
+    authored specifically to be motionless
+    (``long_static_occupant``, speed_scale=0.0) rendered a silhouette that
+    changed on ~92% of its frames, and the Day-9 silhouette-diff ground
+    truth (``gt_moved_from_render``) scored it as very nearly always
+    moving. Fixed: gait phase now drives off ``Agent.progress_at(t)``
+    (distance along the path, clamped at arrival) rather than off ``t``
+    directly, so a speed_scale=0.0 agent's phase is the same constant every
+    frame. This asserts the frames touching the agent, not just the
+    background — the region the previous test structurally could not see.
+    """
+    scenes = gen.build_scenes_v4_gate(frames=12, fps=12.0)
+    scene = next(s for s in scenes if s.name == "long_static_occupant")
+    assert scene.agents and scene.agents[0].speed_scale == 0.0, (
+        "long_static_occupant must stay the zero-velocity fixture this test targets"
+    )
+    camera = scene.cameras[0]
+    rng = __import__("numpy").random.default_rng(23)
+    texture = rng.normal(0.0, 3.0, size=(camera.height, camera.width))
+
+    frames = [
+        gen.render_frame(scene, camera, frame, texture)
+        for frame in range(scene.frames)
+    ]
+
+    for key in ("rgb", "depth_m", "instances"):
+        first = frames[0][key]
+        for index, later in enumerate(frames[1:], start=1):
+            np.testing.assert_array_equal(
+                later[key],
+                first,
+                err_msg=f"{key} differs at frame {index} for a speed_scale=0.0 "
+                "agent — its silhouette must be bit-identical to frame 0, "
+                "not just the background's",
+            )
+
+
 def test_content_sha_reproduces_across_processes(tmp_path: Path) -> None:
     """The end-to-end version of the above, run in real subprocesses.
 

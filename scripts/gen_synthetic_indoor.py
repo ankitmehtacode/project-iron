@@ -56,6 +56,7 @@ DATASET_NAMES = {
     "v2": "synthetic-indoor-v1",
     "v3": "synthetic-indoor-v3",
     "v4-gate": "synthetic-indoor-v4-gate",
+    "v4.1-gate": "synthetic-indoor-v4.1-gate",
 }
 """Scene set -> dataset directory and registry name.
 
@@ -66,6 +67,11 @@ v4-gate (Day 16) is a distinct instrument for a different reason: it exists
 to measure a motion gate, not tracking or depth, and its scenes are authored
 quiet on purpose — mixing them into v3's directory would put low-activity
 clips under a dataset name whose own manifest says its agents were authored
+to move. v4.1-gate (Day 17) is v4-gate's scenes, unchanged, re-rendered
+under the gait-phase fix (see build_scenes_v4_gate and Agent.progress_at).
+v4-gate itself is NEVER edited or overwritten — it remains the record of
+what "authored quiet" measured before the fix existed, exactly as v1
+stayed the record after v2 superseded it.
 to move."""
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
@@ -170,9 +176,20 @@ class Agent:
     height_m: float = 1.72
     speed_scale: float = 1.0
 
+    def progress_at(self, t: float) -> float:
+        """Fraction of the start->end path covered by normalised time ``t``.
+
+        Clamped at 1.0: an agent that reaches ``end`` stays there, the same
+        convention :meth:`position_at` uses. Distance travelled is
+        ``progress_at(t) * path length``, a linear function of this value —
+        anything that should advance with MOTION rather than with wall-clock
+        time (Day 17: gait phase) drives off this, not off ``t`` directly.
+        """
+        return min(1.0, t * self.speed_scale)
+
     def position_at(self, t: float) -> np.ndarray:
         """World position (x, y, z) at normalised time ``t`` in [0, 1]."""
-        progress = min(1.0, t * self.speed_scale)
+        progress = self.progress_at(t)
         x = self.start[0] + (self.end[0] - self.start[0]) * progress
         z = self.start[1] + (self.end[1] - self.start[1]) * progress
         return np.array([x, self.height_m / 2.0, z])
@@ -303,7 +320,24 @@ def render_frame(
 
         # Legs swing with a gait phase, so motion is articulated rather than a
         # rigid box sliding — which matters for anything measuring motion.
-        phase = np.sin(2 * np.pi * (t * 4.0 + agent.agent_id))
+        #
+        # Day 17: was `np.sin(2*pi*(t*4.0 + agent_id))` -- driven by ELAPSED
+        # TIME, not by whether the agent was going anywhere. A speed_scale=0.0
+        # agent has t advancing every frame while never moving, so its legs
+        # swung through a full gait cycle every quarter-clip regardless: the
+        # one clip v4-gate authored to be motionless (long_static_occupant)
+        # rendered a silhouette that changed on ~92% of its frames, and
+        # gt_moved_from_render (Day 9's silhouette-diff ground truth) scored
+        # it as in near-constant motion. Driven by `progress_at(t)` instead --
+        # the same [0, 1] path-completion fraction position_at(t) already
+        # uses, clamped once the agent arrives -- so gait phase is a function
+        # of DISTANCE TRAVELLED along the path. A stationary agent
+        # (speed_scale=0.0) has progress_at(t) == 0.0 for every t, so phase is
+        # the same constant every frame and the silhouette stops changing; an
+        # agent that arrives and stops (progress_at(t) saturates at 1.0) stops
+        # swinging its legs the moment it stops walking, the same as a real
+        # person would.
+        phase = np.sin(2 * np.pi * (agent.progress_at(t) * 4.0 + agent.agent_id))
         for part_u, part_v, part_hu, part_hv in (
             (u, v, torso_w / 2, torso_h / 2),
             (u, v - torso_h / 2 - head_r, head_r, head_r),
@@ -991,12 +1025,15 @@ def generate(
             and must keep reproducing byte-for-byte, so it is never edited.
             ``v3`` is the re-authored set whose GT is actually observable.
             ``v4-gate`` is authored quiet, to measure a motion gate rather
-            than tracking or depth (Day 16).
+            than tracking or depth (Day 16). ``v4.1-gate`` is the same
+            scenes re-rendered under the Day-17 gait-phase fix — see
+            :data:`DATASET_NAMES`.
     """
     builders = {
         "v2": build_scenes,
         "v3": build_scenes_v3,
         "v4-gate": build_scenes_v4_gate,
+        "v4.1-gate": build_scenes_v4_gate,
     }
     if scene_set not in builders:
         raise ValueError(
@@ -1166,6 +1203,29 @@ def generate(
     return manifest
 
 
+def _supersession_for(version: str) -> str | None:
+    """Which golden set ``version`` replaces as the active instrument.
+
+    Wrong here is not cosmetic: it is the only record of which set a reader
+    should stop quoting.
+
+    v4-gate supersedes nothing — it measures a different capability (the
+    gate) than v2/v3 measure (tracking, depth, geometry), so it is a
+    parallel instrument, not a successor.
+
+    v4.1-gate (Day 17) DOES supersede v4-gate: same scenes, same capability,
+    re-rendered because v4-gate's gait-animation defect contaminated its own
+    headline metrics — the one case here where a new set exists specifically
+    because the old one should stop being quoted, not because it measures
+    something new.
+    """
+    if version == "v4.1-gate":
+        return "v4-gate"
+    if version == "v4-gate":
+        return None
+    return {"v2-indoor": "v1-driving"}.get(version, "v2-indoor")
+
+
 def write_golden_from_manifest(
     manifest: dict[str, Any], version: str, config: Any, clip_root: Path
 ) -> Path:
@@ -1210,14 +1270,8 @@ def write_golden_from_manifest(
         clips=clips,
         # What this set replaces as the active instrument. Wrong here is not
         # cosmetic: it is the only record of which set a reader should stop
-        # quoting. v4-gate supersedes nothing -- it measures a different
-        # capability (the gate) than v2/v3 measure (tracking, depth,
-        # geometry), so it is a parallel instrument, not a successor.
-        supersedes=(
-            None
-            if version == "v4-gate"
-            else {"v2-indoor": "v1-driving"}.get(version, "v2-indoor")
-        ),
+        # quoting.
+        supersedes=_supersession_for(version),
         description=(
             "SYNTHETIC-ONLY. Generated by scripts/gen_synthetic_indoor.py "
             "--write-golden. Superseded by Site Zero footage for any product "
@@ -1280,11 +1334,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--scene-set",
         default="v2",
-        choices=["v2", "v3", "v4-gate"],
+        choices=["v2", "v3", "v4-gate", "v4.1-gate"],
         help=(
             "which authored scene set to render. v2 is frozen — its bytes are "
             "cited by a golden manifest — so re-authoring means a new set. "
-            "v4-gate is authored quiet, to measure a motion gate."
+            "v4-gate is authored quiet, to measure a motion gate. v4.1-gate "
+            "is v4-gate's scenes re-rendered under the Day-17 gait-phase fix."
         ),
     )
     parser.add_argument(
