@@ -20,6 +20,8 @@ from src.data.scorecard import (
     PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME,
     Metric,
     ScorecardError,
+    Undefined,
+    _gate_rates_from_totals,
     _metric_with_baselines,
     _validate_gate_metric_pairing,
 )
@@ -275,3 +277,131 @@ def test_dataset_moving_frame_fraction_has_a_registered_baseline() -> None:
         "dataset.moving_frame_fraction", 0.97, "fraction", False
     )
     assert metric.baselines  # BaselineMissing would have raised otherwise
+
+
+# ---------------------------------------------------------------------------
+# Day 18, Objective 2 — Undefined, not NaN, for a zero-denominator metric.
+#
+# gate.recall_retained on a genuinely quiet clip is 0 true positives over 0
+# moving frames: arithmetically NaN, and NaN used to satisfy "a value is
+# present" (including the Day-14 co-emission check, which only looks at
+# metric *names*) while carrying no information about why. The same
+# zero-denominator problem existed, less visibly, in gate.wake_fraction,
+# gate.compute_saved, dataset.moving_frame_fraction and
+# coverage.observable_fraction whenever a run scores zero presented frames
+# (a fully content-sha-refused golden set; a real clip shorter than the
+# gate's warmup window) — closed the same way, for the same reason.
+# ---------------------------------------------------------------------------
+
+
+def test_metric_with_baselines_raises_on_a_bare_nan() -> None:
+    """NaN cannot satisfy the co-emission requirement (Day 18).
+
+    The raise fires before a Metric is constructed at all, so a bare NaN
+    can never reach a scorecard — the same discipline BaselineMissing
+    already applies to an unregistered metric name.
+    """
+    with pytest.raises(ScorecardError, match="gate.wake_fraction"):
+        _metric_with_baselines("gate.wake_fraction", float("nan"), "fraction", False)
+
+
+def test_metric_with_baselines_raise_names_the_metric_and_a_likely_cause() -> None:
+    with pytest.raises(ScorecardError, match="zero-frame denominator"):
+        _metric_with_baselines(
+            "gate.recall_retained", float("nan"), "fraction", True
+        )
+
+
+def test_metric_with_baselines_accepts_undefined() -> None:
+    """The escape hatch NaN does not get: an explicit, reasoned sentinel."""
+    metric = _metric_with_baselines(
+        "gate.recall_retained",
+        Undefined(reason="no moving frames in denominator"),
+        "fraction",
+        True,
+    )
+    assert isinstance(metric.value, Undefined)
+    assert metric.value.reason == "no moving frames in denominator"
+    # No number, so no baseline comparison is meaningful either.
+    assert not np.isfinite(metric.margin)
+    assert metric.flagged is False
+    # Baselines are still attached — Undefined is a value problem, not a
+    # reason to skip the "every metric declares a trivial strategy" rule.
+    assert metric.baselines
+
+
+def test_undefined_metric_renders_as_undefined_never_as_a_number() -> None:
+    from src.data.scorecard import Scorecard
+
+    metric = _metric_with_baselines(
+        "gate.recall_retained",
+        Undefined(reason="no moving frames in denominator"),
+        "fraction",
+        True,
+    )
+    card = Scorecard(
+        golden_set_version="vtest",
+        golden_set_sha="deadbeef",
+        domain="indoor",
+        clips_scored=1,
+        metrics=[metric],
+    )
+
+    rendered = card.render()
+    assert "undefined (no moving frames in denominator)" in rendered
+    assert "nan" not in rendered.lower()
+
+    payload = card.as_dict()
+    value = payload["metrics"][0]["value"]
+    assert value == {"undefined": True, "reason": "no moving frames in denominator"}
+
+
+def test_gate_rates_from_totals_recall_retained_is_undefined_with_zero_moving_frames() -> (
+    None
+):
+    """Applied per condition bucket, not only in the aggregate (Day 18):
+
+    a bucket that itself contains zero moving frames must say so even when
+    the set as a whole has plenty — a quiet bucket sitting inside an
+    otherwise-active set is exactly as undefined as a quiet aggregate.
+    """
+    totals = {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 5,
+        "scored_frames": 5,
+        "below_envelope_frames": 0,
+        "envelope_limited_misses": 0,
+        "unobservable_frames": 0,
+        "wakes_outside_envelope": 0,
+        "frames_with_world_motion": 0,
+    }
+    rates = _gate_rates_from_totals(totals)
+
+    assert isinstance(rates["recall_retained"], Undefined)
+    assert rates["recall_retained"].reason == "no moving frames in denominator"
+    # presented > 0 here (5 scored frames), so wake_fraction is a real
+    # number — only recall_retained is undefined, because only recall's
+    # own denominator (moving frames) is zero.
+    assert rates["wake_fraction"] == pytest.approx(0.0)
+
+
+def test_gate_rates_from_totals_recall_retained_is_a_real_number_when_moving_frames_exist() -> (
+    None
+):
+    totals = {
+        "tp": 3,
+        "fp": 0,
+        "fn": 1,
+        "tn": 2,
+        "scored_frames": 6,
+        "below_envelope_frames": 0,
+        "envelope_limited_misses": 0,
+        "unobservable_frames": 0,
+        "wakes_outside_envelope": 0,
+        "frames_with_world_motion": 4,
+    }
+    rates = _gate_rates_from_totals(totals)
+
+    assert rates["recall_retained"] == pytest.approx(0.75)

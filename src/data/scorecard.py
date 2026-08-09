@@ -165,7 +165,63 @@ FIRST_AGENT_INSTANCE_ID = 100
 
 
 class ScorecardError(RuntimeError):
-    """Raised when two scorecards are compared that must not be."""
+    """Raised when two scorecards are compared that must not be, or when a
+    metric would be emitted with a value that cannot honestly represent
+    what happened (see :class:`Undefined`)."""
+
+
+@dataclass(frozen=True)
+class Undefined:
+    """A metric has no meaningful value for this run, stated explicitly.
+
+    Day 18: ``gate.recall_retained`` on a genuinely quiet clip divides zero
+    true positives by zero moving frames. The arithmetic result is NaN, and
+    NaN is where this used to stop — it satisfies "a value is present" (the
+    Day-14 co-emission check just tests for the metric's *name*, not
+    whether its value carries information), while telling a reader nothing
+    about why. A metric is only ``Undefined`` because a caller looked at
+    the zero denominator and said so; it can never be produced by ordinary
+    division, which is the point — see :func:`_metric_with_baselines`,
+    which refuses to construct a ``Metric`` from a bare NaN at all.
+    """
+
+    reason: str
+    """Plain language: why this metric has no value this run (e.g. "no
+    moving frames in denominator"). Rendered next to the metric, never
+    dropped."""
+
+
+MetricValue = float | Undefined
+"""A metric's value is either a real number or an explicit declaration of
+why it has none. Never a bare NaN — see :class:`Undefined`."""
+
+
+def _require_float(value: MetricValue, field_name: str) -> float:
+    """Narrow a :data:`MetricValue` to ``float`` for a field that must
+    never be :class:`Undefined`.
+
+    In ``Scorecard.per_condition``, ``clips``/``presented``/``wake_fraction``/
+    ``moving_frame_fraction`` are always real numbers — only
+    ``recall_retained`` can be undefined. This is the boundary that
+    enforces that split rather than assuming it silently at every call
+    site that formats a row.
+    """
+    if isinstance(value, Undefined):
+        raise ScorecardError(
+            f"{field_name} must never be Undefined, but is: {value.reason}"
+        )
+    return value
+
+
+def _serialize_metric_value(value: MetricValue) -> Any:
+    """JSON-safe form of a :data:`MetricValue`, shared by every serializer
+    that writes one out — currently :meth:`Metric.as_dict` and
+    ``Scorecard.per_condition``. One place so the two cannot drift into
+    representing "undefined" two different ways in the same JSON file.
+    """
+    if isinstance(value, Undefined):
+        return {"undefined": True, "reason": value.reason}
+    return round(value, 6)
 
 
 def clip_content_sha(clip_path: Path) -> str:
@@ -202,7 +258,7 @@ class Metric:
     """
 
     name: str
-    value: float
+    value: MetricValue
     unit: str
     higher_is_better: bool
     detail: str = ""
@@ -213,12 +269,13 @@ class Metric:
     distinguishing the system under test from a trivial strategy. Serialized
     into the scorecard, and rendered next to the metric line, so the
     condition is visible in the report rather than requiring a reader to
-    notice it."""
+    notice it. Always False for an :class:`Undefined` value: there is no
+    number to compare against a baseline."""
 
     def as_dict(self) -> dict[str, Any]:
         return {
             "name": self.name,
-            "value": round(self.value, 6),
+            "value": _serialize_metric_value(self.value),
             "unit": self.unit,
             "higher_is_better": self.higher_is_better,
             "detail": self.detail,
@@ -232,7 +289,7 @@ class Metric:
 
 def _metric_with_baselines(
     name: str,
-    value: float,
+    value: MetricValue,
     unit: str,
     higher_is_better: bool,
     detail: str = "",
@@ -244,18 +301,42 @@ def _metric_with_baselines(
     Raises :class:`~src.eval.baselines.BaselineMissing` when no baseline is
     registered for ``name``. The raise happens BEFORE the ``Metric`` is
     returned, so no unbaseline-checked number can flow into a scorecard.
+
+    Raises :class:`ScorecardError` when ``value`` is a bare NaN (Day 18).
+    NaN satisfies "a value is present" — including the Day-14 co-emission
+    check, which only looks at metric *names* — while carrying no
+    information about why. The likely cause is a zero-frame denominator: no
+    presented frames, or (``gate.recall_retained`` specifically) no moving
+    frames for this set or condition bucket. A caller that hits this must
+    pass an explicit ``Undefined(reason=...)`` instead of letting division
+    produce NaN silently.
     """
     from src.eval.baselines import compute_baselines, margin as _margin
 
+    if isinstance(value, float) and np.isnan(value):
+        raise ScorecardError(
+            f"{name} would be emitted as NaN. That satisfies the presence "
+            "check a reader or the co-emission rule runs, while telling "
+            "them nothing about why there is no number. Likely cause: a "
+            "zero-frame denominator (no presented frames, or — for "
+            "gate.recall_retained — no moving frames in this set or "
+            "condition bucket). Construct this metric's value as "
+            "Undefined(reason=...) instead of letting arithmetic produce "
+            "NaN silently."
+        )
+
     baselines = tuple(compute_baselines(name, **baseline_context))
-    margin_value = _margin(value, list(baselines), higher_is_better=higher_is_better)
-    if higher_is_better:
-        flagged = bool(np.isfinite(margin_value) and margin_value <= 0.0)
+    if isinstance(value, Undefined):
+        margin_value = float("nan")
+        flagged = False
+        metric_value: MetricValue = value
     else:
+        margin_value = _margin(value, list(baselines), higher_is_better=higher_is_better)
         flagged = bool(np.isfinite(margin_value) and margin_value <= 0.0)
+        metric_value = float(value)
     return Metric(
         name=name,
-        value=float(value),
+        value=metric_value,
         unit=unit,
         higher_is_better=higher_is_better,
         detail=detail,
@@ -292,7 +373,7 @@ class Scorecard:
     different questions, and the difference would read as a change in the gate.
     """
 
-    per_condition: dict[str, dict[str, float]] = field(default_factory=dict)
+    per_condition: dict[str, dict[str, MetricValue]] = field(default_factory=dict)
     """gate.wake_fraction (and its required pairing) per condition bucket.
 
     Objective 3, Day 15: a single aggregate wake_fraction across mixed
@@ -301,6 +382,11 @@ class Scorecard:
     always all four even when a bucket has zero clips — an empty bucket is
     a finding (see v3-indoor's empty "night" bucket), not a gap to hide by
     omission.
+
+    Day 18: ``recall_retained`` in each row is :class:`Undefined`, not NaN,
+    on a bucket with zero moving frames — a quiet bucket sitting inside an
+    otherwise-active set is exactly as undefined as a quiet aggregate, and
+    must say so per-bucket rather than only when the whole set is quiet.
     """
 
     measurement_environment: dict[str, Any] = field(default_factory=dict)
@@ -332,7 +418,10 @@ class Scorecard:
             "per_clip": self.per_clip,
             "capability_gates": self.capability_gates,
             "envelope": self.envelope,
-            "per_condition": self.per_condition,
+            "per_condition": {
+                bucket: {k: _serialize_metric_value(v) for k, v in row.items()}
+                for bucket, row in self.per_condition.items()
+            },
             "measurement_environment": self.measurement_environment,
         }
 
@@ -386,10 +475,17 @@ class Scorecard:
                     f"{metric.margin:+.4f}" if np.isfinite(metric.margin) else "n/a"
                 )
             flag = "  !! FLAGGED — margin <= 0" if metric.flagged else ""
-            lines.append(
-                f"{metric.name:<40} {metric.value:>10.4f}  {baseline_str:<28} "
-                f"{margin_str:>10} ({arrow}){flag}"
-            )
+            if isinstance(metric.value, Undefined):
+                value_str = f"undefined ({metric.value.reason})"
+                lines.append(
+                    f"{metric.name:<40} {value_str:>10}  {baseline_str:<28} "
+                    f"{margin_str:>10} ({arrow}){flag}"
+                )
+            else:
+                lines.append(
+                    f"{metric.name:<40} {metric.value:>10.4f}  {baseline_str:<28} "
+                    f"{margin_str:>10} ({arrow}){flag}"
+                )
             if metric.detail:
                 lines.append(f"    {metric.detail}")
         if self.per_condition:
@@ -404,10 +500,24 @@ class Scorecard:
                 ]
             )
             for bucket, row in self.per_condition.items():
+                recall_value = row["recall_retained"]
+                recall_str = (
+                    f"undefined ({recall_value.reason})"
+                    if isinstance(recall_value, Undefined)
+                    else f"{recall_value:.4f}"
+                )
+                clips = _require_float(row["clips"], "per_condition.clips")
+                presented = _require_float(row["presented"], "per_condition.presented")
+                wake_fraction = _require_float(
+                    row["wake_fraction"], "per_condition.wake_fraction"
+                )
+                moving_frame_fraction = _require_float(
+                    row["moving_frame_fraction"], "per_condition.moving_frame_fraction"
+                )
                 lines.append(
-                    f"{bucket:<12} {row['clips']:>6.0f} {row['presented']:>10.0f} "
-                    f"{row['wake_fraction']:>14.4f} {row['recall_retained']:>12.4f} "
-                    f"{row['moving_frame_fraction']:>12.4f}"
+                    f"{bucket:<12} {clips:>6.0f} {presented:>10.0f} "
+                    f"{wake_fraction:>14.4f} {recall_str:>12} "
+                    f"{moving_frame_fraction:>12.4f}"
                 )
         if self.caveats:
             lines.extend(["", "CAVEATS"])
@@ -783,10 +893,15 @@ def _condition_bucket(conditions: "tuple[Any, ...]") -> str:
     return "occupied"
 
 
-def _gate_rates_from_totals(totals: dict[str, int]) -> dict[str, float]:
+def _gate_rates_from_totals(totals: dict[str, int]) -> dict[str, MetricValue]:
     """The gate.* formulas from :func:`compute`, factored so the aggregate
     and each condition bucket compute them identically rather than by two
     copies of the same arithmetic drifting apart.
+
+    Day 18: ``recall_retained`` is :class:`Undefined`, not NaN, when this
+    bucket has zero moving frames in its denominator — applied here so
+    every condition bucket gets the same guard the aggregate does, not
+    only the set as a whole (see :func:`compute`).
     """
     tp, fp, fn = totals["tp"], totals["fp"], totals["fn"]
     presented = (
@@ -796,7 +911,11 @@ def _gate_rates_from_totals(totals: dict[str, int]) -> dict[str, float]:
     )
     wakes_total = tp + fp + totals["wakes_outside_envelope"]
     wake_fraction = wakes_total / presented if presented else float("nan")
-    recall = tp / (tp + fn) if (tp + fn) else float("nan")
+    recall: MetricValue = (
+        tp / (tp + fn)
+        if (tp + fn)
+        else Undefined(reason="no moving frames in denominator")
+    )
     moving_frame_fraction = (
         totals["frames_with_world_motion"] / presented if presented else float("nan")
     )
@@ -948,10 +1067,25 @@ def compute(
         + totals["below_envelope_frames"]
         + totals["unobservable_frames"]
     )
-    recall = tp / (tp + fn) if (tp + fn) else float("nan")
+    # Day 18: every rate below that divides by zero when this run scored no
+    # presentable frames (or, for recall, no moving ones) is Undefined, not
+    # NaN — the same guard applied per-condition in _gate_rates_from_totals.
+    # A totally-refused golden set (every clip fails its content_sha check,
+    # so clips_scored == 0) and a real clip too short to clear the gate's
+    # warmup window are the two ways this has actually happened; both must
+    # still produce a Scorecard, not an exception, so this is Undefined
+    # rather than a raise at the call site.
+    no_presented_frames = Undefined(reason="no presented frames")
+    recall: MetricValue = (
+        tp / (tp + fn)
+        if (tp + fn)
+        else Undefined(reason="no moving frames in denominator")
+    )
     moving_frames = tp + fn
-    moving_frame_fraction = (
-        totals["frames_with_world_motion"] / presented if presented else float("nan")
+    moving_frame_fraction: MetricValue = (
+        totals["frames_with_world_motion"] / presented
+        if presented
+        else no_presented_frames
     )
 
     # -- gate.* — the Day-14 reframe -------------------------------------
@@ -963,13 +1097,14 @@ def compute(
     # not detections made. These four numbers replace that section and are
     # always reported together — see _validate_gate_metric_pairing below.
     wakes_total = tp + fp + totals["wakes_outside_envelope"]
-    wake_fraction = wakes_total / presented if presented else float("nan")
+    wake_fraction: MetricValue = (
+        wakes_total / presented if presented else no_presented_frames
+    )
     frames_suppressed = presented - wakes_total if presented else 0
-    suppressed_fraction = frames_suppressed / presented if presented else float("nan")
-    compute_saved_ms_per_frame = (
-        suppressed_fraction * PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME
-        if np.isfinite(suppressed_fraction)
-        else float("nan")
+    compute_saved_ms_per_frame: MetricValue = (
+        (frames_suppressed / presented) * PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME
+        if presented
+        else no_presented_frames
     )
     max_compute_saved_ms = PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME
 
@@ -1083,7 +1218,11 @@ def compute(
         ),
         _metric_with_baselines(
             "coverage.observable_fraction",
-            (totals["scored_frames"] / presented) if presented else float("nan"),
+            (
+                (totals["scored_frames"] / presented)
+                if presented
+                else no_presented_frames
+            ),
             "fraction",
             True,
             f"{totals['scored_frames']} of {presented} frames carried ground "
