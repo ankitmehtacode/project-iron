@@ -15,12 +15,14 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
+import env_gate  # noqa: E402
 from env_gate import (  # noqa: E402
     REQUIRED_MODULES,
     GateResult,
     Row,
     check_imports,
     check_models,
+    check_no_stray_venvs,
     installed_version,
     module_for,
     pinned_versions,
@@ -179,3 +181,72 @@ def test_unverifiable_version_is_a_failure_not_a_pass() -> None:
     """
     rows = check_imports({"nonexistent-dist": "9.9.9"})
     assert rows, "no rows produced"
+
+
+# ---------------------------------------------------------------------------
+# Stray venv scan (Day 18): the row that stayed red for a week because
+# .venv-infinigen lived in-tree. Now that it has been moved out, this must be
+# a durable guard rather than a manual, one-off verification — the exact
+# thing that let the drifted .venv survive undetected in the first place.
+# ---------------------------------------------------------------------------
+
+
+def test_no_stray_venvs_passes_on_a_healthy_tree(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Only the pinned venv on disk: the row must pass, by construction."""
+    (tmp_path / env_gate.PINNED_VENV_NAME).mkdir()
+    (tmp_path / env_gate.PINNED_VENV_NAME / "pyvenv.cfg").write_text("")
+    monkeypatch.setattr(env_gate, "REPO_ROOT", tmp_path)
+
+    row = check_no_stray_venvs()
+
+    assert row.passed is True
+    assert row.name == "no stray project venvs"
+
+
+def test_no_stray_venvs_fails_on_a_newly_created_stray_venv(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """A second venv anywhere under REPO_ROOT must fail the row, unnamed.
+
+    This is the regression test for the class of defect Day 16 found: a
+    second, unmonitored environment sitting next to the pinned one. It must
+    catch a venv the gate has never seen before, not just a hardcoded name.
+    """
+    (tmp_path / env_gate.PINNED_VENV_NAME).mkdir()
+    (tmp_path / env_gate.PINNED_VENV_NAME / "pyvenv.cfg").write_text("")
+    stray = tmp_path / ".venv-some-future-toolchain"
+    stray.mkdir()
+    (stray / "pyvenv.cfg").write_text("")
+    monkeypatch.setattr(env_gate, "REPO_ROOT", tmp_path)
+
+    row = check_no_stray_venvs()
+
+    assert row.passed is False
+    assert ".venv-some-future-toolchain" in row.detail
+    assert row.remedy, "a failing row must still name a remedy"
+
+
+def test_no_stray_venvs_ignores_directories_without_pyvenv_cfg(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """An ordinary directory is not a venv; only pyvenv.cfg makes it one."""
+    (tmp_path / env_gate.PINNED_VENV_NAME).mkdir()
+    (tmp_path / env_gate.PINNED_VENV_NAME / "pyvenv.cfg").write_text("")
+    (tmp_path / "data").mkdir()
+    monkeypatch.setattr(env_gate, "REPO_ROOT", tmp_path)
+
+    row = check_no_stray_venvs()
+
+    assert row.passed is True
+
+
+def test_no_infinigen_venv_lives_in_this_repo_tree() -> None:
+    """.venv-infinigen was moved outside the repo tree on Day 18.
+
+    Regression guard for the fix itself: if a future session recreates it
+    in-tree (e.g. by following a stale doc reference), this fails loudly
+    instead of the stray-venv row quietly going red again for another week.
+    """
+    assert not (env_gate.REPO_ROOT / ".venv-infinigen").exists()

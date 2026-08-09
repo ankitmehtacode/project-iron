@@ -7,11 +7,12 @@ procedure. Same gates that condemned v2 and v3.
 
 Consumes a directory of Infinigen output prepared by
 ``scripts/infinigen_generate.py`` (which itself runs in the isolated
-``.venv-infinigen`` because Infinigen requires Python 3.11 and depends on
-``bpy``; the pinned measurement env is 3.10 and stays untouched). The prep
-script writes one ``.npz`` per rendered frame with ``rgb`` (``[H, W, 3]``,
-uint8, RGB) and ``depth_metres`` (``[H, W]``, float32) — no OpenEXR reader is
-needed here.
+Infinigen venv because Infinigen requires Python 3.11 and depends on ``bpy``;
+the pinned measurement env is 3.10 and stays untouched — see
+``infinigen_generate.py`` for where that venv now lives, outside this repo as
+of Day 18). The prep script writes one ``.npz`` per rendered frame with
+``rgb`` (``[H, W, 3]``, uint8, RGB) and ``depth_metres`` (``[H, W]``,
+float32) — no OpenEXR reader is needed here.
 
     python scripts/run_infinigen_gate.py --sample data/infinigen_probe/scene_0001
 

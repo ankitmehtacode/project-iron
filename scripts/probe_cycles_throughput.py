@@ -9,9 +9,11 @@ pixels, so the render stage's own cost had never been measured. This probe
 measures it in isolation, cheaply, without running Infinigen at all.
 
 Must run inside a Blender-embedded Python (``bpy`` is not installable via
-pip in general — the project's Infinigen environment provides it):
+pip in general — the project's Infinigen environment provides it). As of
+Day 18 that environment lives outside this repo tree, as a sibling directory
+next to the repo root:
 
-    .venv-infinigen/bin/python scripts/probe_cycles_throughput.py
+    ../project-iron-infinigen-venv/bin/python scripts/probe_cycles_throughput.py
 
 The FIRST render at any sample count includes one-time Cycles kernel
 compilation / Metal shader compilation, which dwarfs every subsequent

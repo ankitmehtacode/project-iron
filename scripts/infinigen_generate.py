@@ -1,11 +1,18 @@
 """Generate one indoor Infinigen sample for the depth validity gate.
 
-Runs in the isolated ``.venv-infinigen`` (Python 3.11, ``bpy==4.2.0``), not the
+Runs in the isolated Infinigen venv (Python 3.11, ``bpy==4.2.0``), not the
 pinned measurement env (Python 3.10). The pinned env stays untouched: Infinigen
 pins ``numpy<2`` and pulls in Blender's Python, and mixing that with the eval
 stack is how a benchmark ends up scoring the wrong library.
 
-    .venv-infinigen/bin/python scripts/infinigen_generate.py \\
+As of Day 18 the Infinigen venv lives outside this repo tree entirely, as a
+sibling directory next to the repo root — it is a separate toolchain (Python
+3.11 against this project's 3.10 pin), not a drift risk, and env_gate.py's
+stray-venv scan should never see it. Create it yourself if it does not exist
+on your machine: ``python3.11 -m venv ../project-iron-infinigen-venv`` from
+the repo root, then install Infinigen's own requirements into it.
+
+    ../project-iron-infinigen-venv/bin/python scripts/infinigen_generate.py \\
         --output data/infinigen_probe/scene_0001 --frames 8 --resolution 320 240
 
 Output layout, consumed by ``scripts/run_infinigen_gate.py``:

@@ -13,10 +13,12 @@
 # it would stop ignoring caches inside src/ and fill git status with them.
 
 # Virtual environments — root only.
+# .venv-infinigen is deliberately absent from this list as of Day 18: that
+# toolchain now lives outside the repo tree (sibling directory), and
+# scripts/env_gate.py's stray-venv scan should never find one in-tree again.
 /venv/
 /.venv/
 /.venv-pinned/
-/.venv-infinigen/
 
 # Editor / IDE state — machine-local, not shared engineering config. Root only.
 /.vscode/

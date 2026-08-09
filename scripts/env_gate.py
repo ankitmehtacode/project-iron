@@ -210,12 +210,16 @@ def _is_venv_dir(path: Path) -> bool:
 def check_no_stray_venvs() -> Row:
     """Row 0b: no OTHER venv sits on disk for a bare python/pip to find.
 
-    Deliberately does not exempt distinctly-named ones (``.venv-infinigen``
-    included): a second venv on disk is the risk this row exists to name,
-    regardless of how well-motivated or clearly-labelled it is. Removing or
-    formally re-justifying one that legitimately needs to stay (Infinigen's
-    python 3.11 requirement, Day 11) is a decision for whoever is running
-    the gate to make, not a silent exemption baked into the check.
+    Deliberately exempts nothing by name: a second venv anywhere under
+    REPO_ROOT is the risk this row exists to name, regardless of how
+    well-motivated or clearly-labelled it would be. A genuinely separate
+    toolchain (Infinigen's Python 3.11 requirement, Day 11) does not get a
+    named carve-out here — it gets moved outside REPO_ROOT entirely (Day 18:
+    ``.venv-infinigen`` relocated to a sibling directory next to the repo),
+    so this scan never has to distinguish a justified stray venv from an
+    unjustified one. If a future toolchain needs to live in-tree for some
+    reason a sibling directory can't satisfy, that is a deliberate exception
+    to re-open this decision for, not a default.
     """
     found = sorted(
         p.name
@@ -232,11 +236,14 @@ def check_no_stray_venvs() -> Row:
         name="no stray project venvs",
         passed=False,
         detail=f"{len(found)} other venv(s) on disk: {', '.join(found)}",
-        remedy="delete each one, or if a workflow genuinely needs it "
-        "(e.g. Infinigen's python 3.11 requirement), keep it deliberately "
-        "and re-run with an explicit acknowledgement that this check is "
-        "expected to fail until it is resolved — do not weaken this check "
-        "to tolerate it silently",
+        remedy="delete each one, or if it is a genuinely separate toolchain "
+        "(e.g. a different Python version a dependency requires — Infinigen's "
+        "Python 3.11 requirement was this exact case until Day 18), move it "
+        "outside the repo tree the way .venv-infinigen was relocated to a "
+        "sibling directory. Keeping a second venv in-tree deliberately is a "
+        "fallback, not a first choice, and this check is expected to fail "
+        "until whichever remedy is chosen is carried out — do not weaken "
+        "this check to tolerate it silently",
     )
 
 
