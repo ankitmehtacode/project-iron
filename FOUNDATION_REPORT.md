@@ -4275,3 +4275,281 @@ start and the end of the day, per the Day-17 standing rule.
     blocker for the capture itself.
 13. **MEVA licence verification** — still blocked on a human.
 14. **The factor-graph solver** — unchanged from Day 13's list.
+
+# Day 19
+
+**After Objective 2: no, there is currently no environment-dependent number
+in this project that is defensible.** The only environment-dependent metric
+family this project has ever quoted — cascade-bench cost, % of one core —
+has five readings spanning 2.97% to 9.28% (a 3.1x range) on identical code,
+and today's session, run specifically to produce a clean sixth reading under
+the new gate built for that purpose, instead produced **five refusals in a
+row**, each for a genuinely different reason, across roughly seven hours of
+real working time on this machine. Day 17's 4.50% remains the last
+trustworthy figure (per Day 18's own conclusion) simply because nothing
+fresher was ever certified — not because today's attempts came close and
+missed. Every wall-clock or CPU-percentage claim in this report should be
+read with that in mind; every accuracy, ratio, and count-based claim is
+unaffected (see the classification in Objective 2).
+
+Framing, from the standing prompt: this is the eighth time an instrument
+rather than the code was the defect, and the widest-reaching one, because it
+touches every compute and latency number the project has ever produced.
+Objective 1 makes the harness refuse to produce a measurement it cannot
+stand behind, structurally rather than by discipline. Objective 2 uses that
+harness today, honestly reports that it could not produce a certified
+reading, and retires nothing new (Day 18 had already retired the two
+contaminated readings) while escalating the finding: even "plug it in" is
+not sufficient, which Objective 3 turns into a hardware decision instead of
+a discipline problem.
+
+## Objective 0 — push, start and end of day; Day-18 suite count closed out
+
+Start of day: `foundation/day-19` branched from `foundation/day-18`
+(`8b3d53d`), pushed clean as a new branch, verified local HEAD matched
+`origin/foundation/day-19` exactly. `git push --all origin`: `main` rejected
+— `[rejected] main -> main (non-fast-forward)`, unchanged since Day 16; see
+Objective 4.
+
+**Day-18's background suite, closed out.** Day 18's report quoted "758
+passed, 1 skipped, 8 deselected" from a full-suite run that was still
+executing in the background when the report was written — a claimed number
+never confirmed, which is exactly the class of thing this project exists to
+catch. It was confirmed before Day 19 began: **758 passed, 1 skipped, 8
+deselected, 0 failures**, exact match. Nothing to correct.
+
+## Objective 1 — benchmark environment gate (`src/bench/environment.py`)
+
+Built `BenchmarkGuard`: `.begin()` captures AC/battery state, OS-reported
+CPU throttle (`pmset -g therm` on macOS, `cpufreq` on Linux), 1/5/15-min
+load average, competing-process count above a CPU threshold, and core
+count, then raises `BenchmarkRefused` naming every failing condition and its
+remedy if any check fails — including when a condition is *undeterminable*,
+which fails closed rather than passing by default. `.end()` re-captures and
+compares against the start snapshot; mid-run throttling, a power-source
+change, or battery drift beyond tolerance marks the run invalid.
+`write_benchmark_artifact` is the only path that writes to disk and
+structurally cannot be reached with an invalid run — every caller must hold
+an `EnvironmentPair`, which only `.end()` produces. `EnvironmentPair.
+require_comparable` raises on a machine-identity mismatch, same pattern as
+`MeasuredEnvelope.require_comparable` and `Scorecard.require_comparable`.
+
+Wired into `scripts/cascade_bench.py` via a new `--artifact PATH` flag:
+supplying it engages the gate end-to-end (refuse-to-start, refuse-to-write-
+if-drifted); omitting it runs exactly as before, unguarded — deliberately,
+because that is the invocation CI's regression-ceiling check uses on a
+GitHub Actions runner with no battery, and gating it on AC power would turn
+CI red on every runner rather than catch a real problem.
+
+**26 new tests** (22 in `tests/test_bench_environment.py`, 4 in
+`tests/test_cascade_bench_artifact_gate.py`): every refusal condition
+individually (battery, throttle, load, competing process, each
+undeterminable-fails-closed case), mid-run throttle/power/battery drift
+invalidating a run, `write_benchmark_artifact` refusing and leaving no file
+on disk, `require_comparable` raising on an invalid or cross-machine pair
+and passing on a matched one, plus script-level tests confirming
+`cascade_bench.py --artifact` actually refuses/invalidates/writes through
+the real wiring and that the unguarded path is untouched. `src/bench` added
+to `mypy.ini`'s strict scope: **0 errors, 49 files** (up from Day 18's 47).
+
+**STRUCTURAL requirement verified live, not just in tests.** Over the
+course of writing and testing this gate today, five real `--artifact`
+invocations were made on this machine, spanning roughly 09:00 to 16:30.
+Every one was refused or invalidated, each for a different real condition,
+and **zero artifacts were written** (`docs/day19/` remains empty,
+confirmed by directory listing after each attempt):
+
+| # | Time | Result | Cause |
+|---|---|---|---|
+| 1 | ~09:13 | REFUSED (start) | 1 competing process ≥20% CPU: `duetexpertd` (macOS system daemon) |
+| 2 | ~09:16 | INVALIDATED (mid-run) | 2 competing processes appeared during the run: `Python`, `knowledgeconstructiond` |
+| 3 | ~09:17 | REFUSED (start) | 1 competing process ≥20% CPU: a versioned helper process |
+| 4 | ~10:04 | REFUSED (start) | `CPU_Speed_Limit=24` (24% of full speed) — **while on AC power, charging at 49%** |
+| 5 | ~16:28 | REFUSED (start) | not on AC power (machine had since been unplugged; 92% battery, discharging) |
+
+Row 4 is the day's sharpest individual finding: Day 18 attributed throttling
+to a low, unplugged battery, which reads as an operator-fixable condition.
+Row 4 shows the same laptop throttled to a quarter speed while plugged in
+and actively charging, from sustained load generated by this project's own
+test and benchmark runs earlier in the session. AC power is necessary but
+not sufficient — the gate checks throttle independently of power source for
+exactly this reason, and today it mattered.
+
+## Objective 2 — classification, re-measurement, and retirement
+
+**Classification.** Swept every measurement `FOUNDATION_REPORT.md` has ever
+quoted (Day 18's 19-row provenance table plus everything cited since).
+Every one of them is either:
+
+- **Environment-independent** (accuracy, ratios, counts, correctness — does
+  not change with CPU speed): golden-vector cosine similarity, envelope
+  calibration thresholds, depth/appearance validity metrics, `gate.
+  wake_fraction` / `gate.recall_retained` / `gate.miss_cost`, mypy error
+  counts, test counts, the retrieval-metric sweep, the stray-venv structural
+  tests. This is the large majority of everything this project has ever
+  quoted, and none of it needed re-measurement today.
+- **Environment-dependent** (wall-clock, CPU%, throughput): cascade-bench
+  stage-0 cost is the *only* one that has ever been asserted as a headline,
+  quotable number. Two others exist but were never load-bearing claims:
+  `docs/day12/infinigen_throughput.md`'s raytracing cycles/s (a Day-11/12
+  scoping measurement for a different, still-blocked data-generation
+  question — out of today's scope; requires the separate Infinigen venv and
+  a real render, and carries its own Day-12 caveats already, unchanged
+  here) and `gate.compute_saved` (1.87 / 17.50 ms/frame), which is not a
+  measurement at all but `wake_fraction` (environment-independent) times
+  `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME`, an acknowledged-unmeasured
+  constant already caveated four times in this report as an estimate — Day
+  18's Day-19 list carried "decide whether it should be replaced" forward
+  unchanged, and it stays unchanged again (Day-20 item below).
+
+**Re-measurement attempts: five, all documented in Objective 1's table
+above.** The only environment-dependent number this project can act on
+today is cascade-bench cost, and every attempt to produce a fresh, gated
+reading was refused or invalidated by real machine state, not by the gate
+being miscalibrated.
+
+**Retired: nothing new.** Day 18 already retired the two contaminated
+readings (5.10%, 9.28%) — there is no third bad reading to retire today,
+because the gate did its job and none was produced. What changes today is
+the status of the *number itself*: it is not merely "last measured N days
+ago," it is **"could not be re-measured today despite five real attempts
+spanning seven hours, using instrumentation built specifically for this
+purpose."** That is a stronger and more useful statement than a stale
+timestamp.
+
+**The cascade-budget history, one table, all nine data points:**
+
+| # | Value | Day | Environment | Status |
+|---|---|---|---|---|
+| 1 | 2.97% | 2 | `.venv` (unpinned) | verified_drifted |
+| 2 | 4.57% | 6 | `.venv-pinned`, quiet AC session | verified_pinned |
+| 3 | 4.50% | 17 | `.venv-pinned`, quiet AC session | verified_pinned — **last trustworthy figure, still standing** |
+| 4 | 5.10% | 18 | `.venv-pinned`, 2 concurrent `pytest` suites | not to be quoted (retired Day 18) |
+| 5 | 9.28% | 18 | `.venv-pinned`, battery 5%, `CPU_Speed_Limit=46` | not to be quoted (retired Day 18) |
+| 6 | REFUSED | 19 | competing process (`duetexpertd`) | no reading produced |
+| 7 | INVALIDATED | 19 | mid-run competing processes appeared | no reading produced |
+| 8 | REFUSED | 19 | competing process (versioned helper) | no reading produced |
+| 9 | REFUSED | 19 | `CPU_Speed_Limit=24` **on AC, charging** | no reading produced |
+| 10 | REFUSED | 19 | not on AC power (unplugged, 92%, discharging) | no reading produced |
+
+**Honest conclusion:** nothing about the gate's compute cost has been
+freshly and defensibly measured since Day 17. The 4.50% figure is not
+"current," it is "the last one that survived scrutiny," and this project
+should stop treating those as the same thing in casual reference. The
+correct fix is not a sixth laptop attempt — it is Objective 3.
+
+## Objective 3 — reference hardware specification
+
+`docs/reference_hardware.md` written in full. Summary:
+
+- **Target:** 8×720p streams (fixed by the Tier-1 sales claim and the
+  `iron-cascade-runtime` skill's budget table). **Declared fps is currently
+  underspecified** — `cascade_bench.py` defaults to 12 fps for synthetic
+  scenarios, but no config field commits to a target fps for real camera
+  ingest. Flagged as an open gap, not resolved here (Day-20 item).
+- **Required before the Tier-1 claim may be made, on the reference box
+  itself:** idle cost per camera at 8 concurrent streams (not extrapolated
+  from one), full-pipeline cost at N active tracks (blocked on stages 1-3
+  leaving stub status), p50/p95/p99 glass-to-alert latency, and **24h
+  sustained thermal behaviour** — the direct structural answer to today's
+  row-4 finding: a burst benchmark cannot see a chassis throttle under
+  sustained real-world load, only a day-scale test can.
+- **Why a laptop cannot substitute:** the nine-row history above, cited
+  directly rather than asserted on principle.
+- **Interim substitutes, bounded:** a pinned-CPU cloud instance (hours,
+  supports relative regression tracking only, not the absolute claim or
+  thermal behaviour) versus a fixed-clock desktop on AC (days or zero if
+  repurposed, supports idle/full-pipeline/latency as provisional numbers,
+  does not support the 24h thermal claim for a NUC-class chassis
+  specifically).
+- **Procurement memo:** recommends ordering a NUC-class box now (~$700-
+  1,200, 1-3 week lead time, the only option that unblocks the Tier-1 claim
+  at all) while standing up the fixed-clock-desktop interim immediately so
+  measurement accumulates during the lead time. One page, decision-ready,
+  five-minute call for whoever holds the budget.
+
+## Objective 4 — main divergence: still Proposed, nothing executed
+
+No approval for ADR 0009's Option B was given in this session's
+instructions. Confirmed the ADR's status is still **Proposed**
+(`docs/adr/0009-repository-history-divergence.md`). Nothing renamed, no
+history rewritten, no force-push. `git push --all origin` rejected `main`
+again today, unchanged since Day 16 — still a five-minute decision waiting
+on a human, not re-investigated.
+
+## All five falsification tests, re-run today
+
+| # | Test | Day 18 | Day 19 |
+|---|---|---|---|
+| 1 | Absence under degraded coverage | PASSES | PASSES (unchanged) |
+| 2 | Retroactive badge resolution | PASSES | PASSES (unchanged) |
+| 3 | Twin re-version | PASSES | PASSES (unchanged) |
+| 4 | Alert explainability | PASSES (unchanged; `raise_alert()` still un-steered) | PASSES (unchanged) |
+| 5 | Behaviour-query shape | PASSES (type-level, unchanged) | PASSES (type-level, unchanged) — still blocked on the unimplemented estimator |
+
+`tests/test_falsification.py`: 8 tests, all green, unchanged.
+
+## Full suite and mypy
+
+Repo-wide (`.venv-pinned`, `not requires_weights and not slow`): **784
+passed, 1 skipped, 8 deselected, 0 failures** — up from Day 18's 758 by
+exactly +26, matching today's 26 new tests (22 in `tests/
+test_bench_environment.py`, 4 in `tests/test_cascade_bench_artifact_gate.py`).
+`mypy` (scoped per `mypy.ini`, now including `src/bench`): **0 errors, 49
+files**, up from Day 18's 47.
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged, plus one addition:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification.**
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 7 days old.
+5. **The `main`/`origin/main` divergence decision (ADR 0009).**
+6. **NEW: reference hardware procurement decision** (`docs/
+   reference_hardware.md`) — order a NUC-class box, approve an interim
+   substitute, or both; today's evidence is that "measure it on the laptop
+   more carefully" is exhausted as a strategy.
+
+## Objective 0/5 — push, end of day
+
+`git push --all origin`: `foundation/day-19` pushed clean, matches origin
+exactly. `main` rejected, unchanged (Objective 4). `git push --tags`: up to
+date.
+
+## Day 20, in order
+
+1. **Reference hardware decision** (`docs/reference_hardware.md`) — order
+   the NUC-class box and/or stand up the fixed-clock-desktop interim.
+   First item: this is what today's five refusals were actually arguing
+   for, not a discipline fix.
+2. **Declare a target fps for real camera ingest.** Found while sizing the
+   reference box: no config field commits to one; `cascade_bench.py`'s 12
+   fps default is a synthetic-scenario convenience, not a product
+   commitment.
+3. **Cascade bench, clean, on interim or reference hardware** — not on this
+   laptop again without a specific reason; five attempts across one day
+   already exhausted that approach.
+4. **Depth validity re-measurement** (`scripts/eval_depth.py`), deferred
+   again — battery-safety concerns recurred today too. LOW risk,
+   independently corroborated, but still not re-confirmed.
+5. **The `main`/`origin/main` decision** (ADR 0009) — a human call.
+6. **v4.1-gate's `recall_retained`/`miss_cost` dimension is still
+   unexercised** — unchanged from Day 17/18.
+7. **The generator has no sensor-noise model** — unchanged.
+8. **Order cameras and run the office capture** — unchanged in priority
+   since Day 16, now 7 days old.
+9. **The motion-gate precision/selectivity investigation** — eight days
+   deferred.
+10. **Steer callers away from `raise_alert()` toward `emit_alert()`** —
+    still open from Day 14.
+11. **A canonical `Observation -> hash` function** (ADR 0007) — still open
+    from Day 13.
+12. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced** — unchanged, now a fifth data point resting on the same
+    unmeasured multiplier.
+13. **Bridge the live-RTSP path and `scripts/ingest_capture.py`** — not a
+    blocker for the capture itself.
+14. **MEVA licence verification** — still blocked on a human.
+15. **The factor-graph solver** — unchanged from Day 13's list.
