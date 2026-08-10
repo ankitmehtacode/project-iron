@@ -37,6 +37,12 @@ from pathlib import Path
 
 import numpy as np
 
+from src.bench.environment import (
+    BenchmarkGuard,
+    BenchmarkInvalidated,
+    BenchmarkRefused,
+    write_benchmark_artifact,
+)
 from src.cascade import MotionGate, MotionGateConfig, StageContext
 from src.config import IronConfig
 
@@ -282,7 +288,35 @@ def main(argv: list[str] | None = None) -> int:
             "unscaled number is always printed."
         ),
     )
+    parser.add_argument(
+        "--artifact",
+        type=Path,
+        default=None,
+        help=(
+            "path to write a certified JSON artifact to. Enables the Day-19 "
+            "benchmark environment gate (src/bench/environment.py): the run "
+            "refuses to start on battery, a throttled CPU, a loaded machine, "
+            "or a competing high-CPU process, and refuses to write the "
+            "artifact if the machine's state drifted mid-run. Without this "
+            "flag the script runs exactly as before (unguarded), which is "
+            "what CI's regression-ceiling check uses — that check compares "
+            "against its own prior CI measurements, not against a claim made "
+            "in a report, and gating it on AC power would just make CI red "
+            "on every runner. Guard the run whenever its cost numbers are "
+            "going to be quoted anywhere outside this script's own regression "
+            "history."
+        ),
+    )
     args = parser.parse_args(argv)
+
+    benchmark_guard = BenchmarkGuard() if args.artifact is not None else None
+    guard_start = None
+    if benchmark_guard is not None:
+        try:
+            guard_start = benchmark_guard.begin()
+        except BenchmarkRefused as exc:
+            print(f"BENCHMARK REFUSED:\n{exc}", file=sys.stderr)
+            return 1
 
     config = IronConfig.load()
     gate_config = config.cascade.motion_gate_config()
@@ -465,6 +499,41 @@ def main(argv: list[str] | None = None) -> int:
             f"full-resolution, below the {MIN_SPEEDUP:.1f}x floor — the "
             "downscale may have been removed or defeated (removal scores 1.00x)"
         )
+
+    if benchmark_guard is not None and guard_start is not None:
+        guard_pair = benchmark_guard.end(guard_start)
+        if not guard_pair.valid:
+            print(
+                f"\nBENCHMARK INVALIDATED: {guard_pair.invalid_reason}\n"
+                "The machine's state changed during this run. No artifact is "
+                "written and none of the cost numbers above may be quoted — "
+                "this is exactly the failure mode that produced Day 18's "
+                "5.10% and 9.28% readings.",
+                file=sys.stderr,
+            )
+            failures.append(f"benchmark environment invalidated: {guard_pair.invalid_reason}")
+        else:
+            payload = {
+                "worst_cost_share": worst_cost_share,
+                "product_budget": budget,
+                "regression_ceiling": effective_ceiling,
+                "budget_scale": args.budget_scale,
+                "min_speedup": min_speedup,
+                "median_speedup": median_speedup,
+                "scenario_speedups": scenario_speedups,
+                "measured_stack": current_stack_string(),
+                "config_sha": config.config_sha(),
+                "gate_resolution": f"{config.cascade.gate_width}x{config.cascade.gate_height}",
+                "source_resolution": f"{args.width}x{args.height}",
+                "fps": args.fps,
+            }
+            try:
+                written = write_benchmark_artifact(args.artifact, payload, guard_pair)
+            except BenchmarkInvalidated as exc:  # pragma: no cover - guard_pair.valid already checked
+                print(f"\nBENCHMARK INVALIDATED: {exc}", file=sys.stderr)
+                failures.append(str(exc))
+            else:
+                print(f"\nCertified artifact written: {written}")
 
     print()
     if small_target_diverged:
