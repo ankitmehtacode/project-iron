@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT / "scripts"))
@@ -298,16 +299,15 @@ def test_stationary_agent_silhouette_is_bit_identical_across_frames(
     """
     scenes = gen.build_scenes_v4_gate(frames=12, fps=12.0)
     scene = next(s for s in scenes if s.name == "long_static_occupant")
-    assert scene.agents and scene.agents[0].speed_scale == 0.0, (
-        "long_static_occupant must stay the zero-velocity fixture this test targets"
-    )
+    assert (
+        scene.agents and scene.agents[0].speed_scale == 0.0
+    ), "long_static_occupant must stay the zero-velocity fixture this test targets"
     camera = scene.cameras[0]
     rng = __import__("numpy").random.default_rng(23)
     texture = rng.normal(0.0, 3.0, size=(camera.height, camera.width))
 
     frames = [
-        gen.render_frame(scene, camera, frame, texture)
-        for frame in range(scene.frames)
+        gen.render_frame(scene, camera, frame, texture) for frame in range(scene.frames)
     ]
 
     for key in ("rgb", "depth_m", "instances"):
@@ -319,6 +319,232 @@ def test_stationary_agent_silhouette_is_bit_identical_across_frames(
                 err_msg=f"{key} differs at frame {index} for a speed_scale=0.0 "
                 "agent — its silhouette must be bit-identical to frame 0, "
                 "not just the background's",
+            )
+
+
+# ---------------------------------------------------------------------------
+# Day 23, Objective 2 -- MultiSegmentAgent / PathSegment
+# ---------------------------------------------------------------------------
+
+
+def test_multi_segment_agent_single_leg_matches_plain_agent() -> None:
+    """A one-segment MultiSegmentAgent must reduce to the same trajectory
+    a plain Agent produces -- the generalisation adds no new behaviour for
+    the case it subsumes."""
+    plain = gen.Agent(0, (0.0, 0.0), (4.0, 8.0), speed_scale=1.0)
+    multi = gen.MultiSegmentAgent(
+        0, (0.0, 0.0), [gen.PathSegment(end=(4.0, 8.0), duration=1.0)]
+    )
+    for t in (0.0, 0.1, 0.37, 0.5, 0.9, 1.0):
+        np.testing.assert_allclose(multi.position_at(t), plain.position_at(t))
+        assert multi.progress_at(t) == pytest.approx(plain.progress_at(t))
+
+
+def test_multi_segment_agent_pause_holds_position_and_progress() -> None:
+    """A zero-length (pause) leg: position AND progress_at (gait phase)
+    must stay exactly constant for its whole duration -- the Day-17
+    invariant, generalised to a multi-leg path (Day 23)."""
+    agent = gen.MultiSegmentAgent(
+        0,
+        (0.0, 0.0),
+        [
+            gen.PathSegment(end=(5.0, 0.0), duration=0.5),
+            gen.PathSegment(end=(5.0, 0.0), duration=0.5),  # pause
+        ],
+    )
+    held_position = agent.position_at(0.5)
+    held_progress = agent.progress_at(0.5)
+    for t in (0.6, 0.7, 0.85, 1.0):
+        np.testing.assert_allclose(agent.position_at(t), held_position)
+        assert agent.progress_at(t) == held_progress
+
+
+def test_multi_segment_agent_progress_is_monotonic_and_reaches_one() -> None:
+    agent = gen.MultiSegmentAgent(
+        0,
+        (0.0, 0.0),
+        [
+            gen.PathSegment(end=(3.0, 0.0), duration=0.3),
+            gen.PathSegment(end=(3.0, 0.0), duration=0.2),  # pause
+            gen.PathSegment(end=(3.0, 5.0), duration=0.5),
+        ],
+    )
+    ts = np.linspace(0.0, 1.0, 50)
+    progress = [agent.progress_at(float(t)) for t in ts]
+    assert progress == sorted(progress)
+    assert progress[0] == 0.0
+    assert progress[-1] == 1.0
+
+
+def test_multi_segment_agent_ease_out_slows_before_stopping() -> None:
+    """Gradual deceleration: displacement over the FINAL fraction of an
+    ease_out leg must be smaller than over an equal-sized earlier
+    fraction -- speed genuinely ramps down, not just reaches the same
+    endpoint on the same schedule as a linear (abrupt) leg."""
+    eased = gen.MultiSegmentAgent(
+        0, (0.0, 0.0), [gen.PathSegment(end=(10.0, 0.0), duration=1.0, ease_out=True)]
+    )
+    early_disp = np.linalg.norm(eased.position_at(0.55) - eased.position_at(0.5))
+    late_disp = np.linalg.norm(eased.position_at(1.0) - eased.position_at(0.95))
+    assert late_disp < early_disp
+
+
+def test_multi_segment_agent_rejects_empty_segments() -> None:
+    try:
+        gen.MultiSegmentAgent(0, (0.0, 0.0), [])
+        raise AssertionError("expected ValueError")
+    except ValueError:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Day 23, Objective 2 -- build_scenes_v5_cessation and its mint-time gate
+# ---------------------------------------------------------------------------
+
+
+def test_v5_cessation_scenes_stay_in_frame_and_unoccluded() -> None:
+    """Every stop event must actually be observable -- geometry that pushes
+    the agent out of frame or behind furniture would make cessation volume
+    that mint_golden_set's observability floor then refuses anyway."""
+    scenes = gen.build_scenes_v5_cessation(24, 12.0)
+    assert len(scenes) >= 15
+    for scene in scenes:
+        camera = scene.cameras[0]
+        agent = scene.agents[0]
+        for frame in range(scene.frames):
+            t = frame / max(1, scene.frames - 1)
+            world = agent.position_at(t)
+            u, v, _z = gen.project(world, camera)
+            in_frame = (
+                np.isfinite(u) and 0 <= u < camera.width and 0 <= v < camera.height
+            )
+            occluded = any(
+                f.occludes(world, np.array(camera.position)) for f in scene.furniture
+            )
+            assert (
+                in_frame and not occluded
+            ), f"{scene.name} frame {frame}: out of frame or occluded"
+
+
+def test_v5_cessation_clears_its_own_volume_requirement() -> None:
+    """The acceptance criterion Objective 2 states explicitly: >=200
+    cessation frames, every non-exempt regime >=30, measured directly from
+    classify_track over every scene's raw track -- not asserted, computed."""
+    from src.estimator.regime import MOTION_REGIMES, classify_track
+
+    scenes = gen.build_scenes_v5_cessation(24, 12.0)
+    counts = {r: 0 for r in MOTION_REGIMES}
+    for scene in scenes:
+        dt_s = 1.0 / scene.fps
+        agent = scene.agents[0]
+        track = np.array(
+            [
+                agent.position_at(f / max(1, scene.frames - 1))
+                for f in range(scene.frames)
+            ]
+        )
+        for regime in classify_track(track, dt_s):
+            counts[regime] += 1
+
+    assert counts["cessation"] >= 200
+    for regime in MOTION_REGIMES:
+        if regime in gen.V5_CESSATION_EXEMPT_REGIMES:
+            continue
+        assert counts[regime] >= 30, f"{regime}: only {counts[regime]} frames"
+
+
+def test_v5_cessation_includes_stop_then_restart_scenes() -> None:
+    scenes = gen.build_scenes_v5_cessation(24, 12.0)
+    names = {s.name for s in scenes}
+    assert "stop_then_restart_radial" in names
+    assert "stop_then_restart_lateral" in names
+    restart_scene = next(s for s in scenes if s.name == "stop_then_restart_radial")
+    assert len(restart_scene.agents[0].segments) == 4  # walk, pause, walk, pause
+
+
+def test_v5_cessation_varies_approach_speed_deceleration_and_distance() -> None:
+    """The day's own required axes of variation, checked directly rather
+    than trusted from the scene names."""
+    scenes = gen.build_scenes_v5_cessation(24, 12.0)
+    by_name = {s.name: s for s in scenes}
+
+    durations = {
+        round(s.agents[0].segments[0].duration * s.frames / s.fps, 1) for s in scenes
+    }
+    assert len(durations) >= 3, "approach durations do not actually vary"
+
+    ease_flags = {s.agents[0].segments[0].ease_out for s in scenes}
+    assert ease_flags == {True, False}, "both deceleration profiles must appear"
+
+    radial_far = by_name["radial_slow_far_gradual"].agents[0].segments[0].end[1]
+    radial_near = by_name["radial_slow_near_abrupt"].agents[0].segments[0].end[1]
+    assert radial_far != radial_near, "radial distance-from-camera does not vary"
+
+
+def test_enforce_regime_volume_passes_on_v5_cessation(tmp_path: Path) -> None:
+    manifest = gen.generate(
+        tmp_path, frames=24, fps=12.0, seed=20260811, scene_set="v5-cessation"
+    )
+    counts = gen.enforce_regime_volume(
+        tmp_path,
+        manifest,
+        min_cessation_frames=200,
+        min_other_regime_frames=30,
+        exempt_regimes=gen.V5_CESSATION_EXEMPT_REGIMES,
+    )
+    assert counts["cessation"] >= 200
+
+
+def test_enforce_regime_volume_refuses_a_set_with_no_cessation(tmp_path: Path) -> None:
+    """v3's own scenes never stop (Day 21/22: constant velocity throughout)
+    -- exactly the set this gate exists to refuse if someone tried to mint
+    it as a cessation source."""
+    manifest = gen.generate(tmp_path, frames=8, fps=12.0, seed=31, scene_set="v3")
+    try:
+        gen.enforce_regime_volume(
+            tmp_path, manifest, min_cessation_frames=200, min_other_regime_frames=30
+        )
+        raise AssertionError("expected RegimeVolumeError")
+    except gen.RegimeVolumeError as exc:
+        assert "cessation" in str(exc)
+
+
+def test_stationary_v5_cessation_agent_silhouette_is_bit_identical() -> None:
+    """The Day-17 stopped-agent bit-identity check, reproduced for
+    v5-cessation's own stop segments (Day 23) -- a paused
+    MultiSegmentAgent must not shimmer any more than a speed_scale=0.0
+    plain Agent does."""
+    scenes = gen.build_scenes_v5_cessation(24, 12.0)
+    scene = next(s for s in scenes if s.name == "radial_long_stop_near")
+    camera = scene.cameras[0]
+    rng = np.random.default_rng(23)
+    texture = rng.normal(0.0, 3.0, size=(camera.height, camera.width))
+
+    # The pause leg is segments[1]; find frames whose normalised time falls
+    # inside it, away from its edges (so easing/finite-difference boundary
+    # effects at the leg transition itself do not confound the assertion).
+    agent = scene.agents[0]
+    cumulative = agent._cumulative_duration_fractions()
+    pause_start, pause_end = cumulative[1], cumulative[2]
+    frames_in_pause = [
+        f
+        for f in range(scene.frames)
+        if pause_start + 0.02 < f / max(1, scene.frames - 1) < pause_end - 0.02
+    ]
+    assert len(frames_in_pause) >= 3, "not enough held frames to test"
+
+    rendered = [
+        gen.render_frame(scene, camera, frame, texture) for frame in frames_in_pause
+    ]
+    for key in ("rgb", "depth_m", "instances"):
+        first = rendered[0][key]
+        for index, later in enumerate(rendered[1:], start=1):
+            np.testing.assert_array_equal(
+                later[key],
+                first,
+                err_msg=f"{key} differs between held frames "
+                f"{frames_in_pause[0]} and {frames_in_pause[index]} -- a "
+                "paused MultiSegmentAgent must not shimmer",
             )
 
 

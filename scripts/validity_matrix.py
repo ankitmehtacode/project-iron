@@ -24,12 +24,25 @@ from src.config import IronConfig  # noqa: E402
 from src.data import validity  # noqa: E402
 from src.data.golden import available_versions, load_golden_set  # noqa: E402
 
-CAPABILITIES = ("motion_geometry", "depth", "appearance_semantics", "point_tracking")
+CAPABILITIES = (
+    "motion_geometry",
+    "state_estimation",
+    "depth",
+    "appearance_semantics",
+    "point_tracking",
+)
 """Day 16: point_tracking was registered in ``validity.GATES`` since Day 11
 (``scripts/eval_tracking.py`` uses it directly) but never appeared in THE
 matrix — the one script whose job is "which capabilities can this project
 evaluate" was answering that question for three of the four registered
-gates. Added here rather than left as a second, parallel evaluator."""
+gates. Added here rather than left as a second, parallel evaluator.
+
+Day 23: the same defect, same shape, caught a second time — ``state_estimation``
+was registered in ``validity.GATES`` since Day 20 (aliased to
+``gate_motion_geometry``; see that function's docstring) and never appeared
+here either, silently for three days, until Day 23 needed to report a
+state_estimation matrix row for v5-cessation and there wasn't one. Fixed the
+same way: added to the tuple, not evaluated by a second script."""
 DEPTH_WEIGHTS = Path("models/weights/depth_anything_v2_small")
 
 

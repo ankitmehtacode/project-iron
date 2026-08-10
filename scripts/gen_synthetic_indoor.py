@@ -57,6 +57,7 @@ DATASET_NAMES = {
     "v3": "synthetic-indoor-v3",
     "v4-gate": "synthetic-indoor-v4-gate",
     "v4.1-gate": "synthetic-indoor-v4.1-gate",
+    "v5-cessation": "synthetic-indoor-v5-cessation",
 }
 """Scene set -> dataset directory and registry name.
 
@@ -72,7 +73,9 @@ under the gait-phase fix (see build_scenes_v4_gate and Agent.progress_at).
 v4-gate itself is NEVER edited or overwritten — it remains the record of
 what "authored quiet" measured before the fix existed, exactly as v1
 stayed the record after v2 superseded it.
-to move."""
+to move. v5-cessation (Day 23) is a third distinct instrument again: it
+exists to supply CESSATION VOLUME specifically (see build_scenes_v5_cessation)
+-- it never touches v3's or v4.1-gate's directories or clips."""
 NANOSECONDS_PER_SECOND = 1_000_000_000
 
 # Every asset in the generation stack, and where its rights come from. This is
@@ -196,6 +199,145 @@ class Agent:
 
 
 @dataclass
+class PathSegment:
+    """One leg of a :class:`MultiSegmentAgent`'s piecewise-linear path
+    (Day 23, v5-cessation).
+
+    Attributes:
+        end: World (x, z) this leg walks to.
+        duration: This leg's share of the agent's total normalised time
+            ``[0, 1]`` — NOT seconds; :func:`_seconds_to_path_fractions`
+            converts a scene's second-denominated timeline into these
+            fractions before construction, the same way ``fps``/``frames``
+            already convert seconds to frame counts elsewhere in this file.
+        ease_out: ``False`` (default) — constant velocity for the whole
+            leg, then an INSTANTANEOUS stop at ``end`` (an abrupt halt).
+            ``True`` — velocity ramps smoothly to zero over the last
+            ``ease_fraction`` of the leg (a gradual deceleration). A
+            zero-length leg (``end`` equal to the previous waypoint) is a
+            PAUSE: position does not change for its whole ``duration``
+            regardless of this flag, which is exactly how stop-duration
+            and stop-then-restart sequences are built — see
+            :func:`build_scenes_v5_cessation`.
+        ease_fraction: Fraction of THIS leg's own duration over which
+            ``ease_out`` ramps speed to zero. Unused when ``ease_out`` is
+            ``False``.
+    """
+
+    end: tuple[float, float]
+    duration: float
+    ease_out: bool = False
+    ease_fraction: float = 0.3
+
+
+@dataclass
+class MultiSegmentAgent:
+    """A person-shaped articulated primitive walking a PIECEWISE-linear
+    path — several straight legs, each with its own duration and speed
+    profile (Day 23, v5-cessation only).
+
+    :class:`Agent` (single start->end leg, used by every existing scene
+    set) is untouched by this class's existence — v3/v4-gate/v4.1-gate's
+    builders never construct one. Duck-typed to the same public interface
+    :func:`render_frame` and :func:`generate` already call polymorphically
+    (``agent_id``, ``height_m``, ``position_at``, ``progress_at``), so
+    v5-cessation's scenes can mix into the same ``Scene.agents`` list and
+    rendering pipeline with no change to either.
+    """
+
+    agent_id: int
+    start: tuple[float, float]
+    segments: list[PathSegment]
+    height_m: float = 1.72
+
+    def __post_init__(self) -> None:
+        if not self.segments:
+            raise ValueError("MultiSegmentAgent needs at least one segment")
+        if sum(s.duration for s in self.segments) <= 0:
+            raise ValueError("segment durations must sum to a positive value")
+
+    def _waypoints(self) -> list[tuple[float, float]]:
+        return [self.start] + [s.end for s in self.segments]
+
+    def _segment_lengths(self) -> list[float]:
+        wp = self._waypoints()
+        return [
+            float(np.hypot(wp[i + 1][0] - wp[i][0], wp[i + 1][1] - wp[i][1]))
+            for i in range(len(self.segments))
+        ]
+
+    def _cumulative_duration_fractions(self) -> list[float]:
+        total = sum(s.duration for s in self.segments)
+        cumulative = [0.0]
+        for segment in self.segments:
+            cumulative.append(cumulative[-1] + segment.duration / total)
+        return cumulative
+
+    def _locate(self, t: float) -> tuple[int, float]:
+        """Which segment ``t`` (normalised full-path time in ``[0, 1]``)
+        falls in, and the local (eased) progress within it."""
+        cumulative = self._cumulative_duration_fractions()
+        t = min(max(t, 0.0), 1.0)
+        index = 0
+        for i in range(len(self.segments)):
+            if t >= cumulative[i]:
+                index = i
+        segment = self.segments[index]
+        span = cumulative[index + 1] - cumulative[index]
+        local_t = 1.0 if span <= 0 else min(1.0, (t - cumulative[index]) / span)
+        if segment.ease_out and local_t > (1.0 - segment.ease_fraction):
+            # Ease-out quadratic over the tail fraction: velocity ramps to
+            # zero smoothly instead of stopping the instant `end` is reached.
+            tail_start = 1.0 - segment.ease_fraction
+            tail_t = (local_t - tail_start) / segment.ease_fraction
+            eased_tail = 1.0 - (1.0 - tail_t) ** 2
+            local_t = tail_start + eased_tail * segment.ease_fraction
+        return index, local_t
+
+    def position_at(self, t: float) -> np.ndarray:
+        index, local_t = self._locate(t)
+        waypoints = self._waypoints()
+        p0, p1 = waypoints[index], waypoints[index + 1]
+        x = p0[0] + (p1[0] - p0[0]) * local_t
+        z = p0[1] + (p1[1] - p0[1]) * local_t
+        return np.array([x, self.height_m / 2.0, z])
+
+    def progress_at(self, t: float) -> float:
+        """Cumulative DISTANCE-based progress (not time-based) along the
+        whole path, in ``[0, 1]``.
+
+        Gait phase drives off this (see :func:`render_frame`), so it must
+        hold exactly flat whenever position is not changing — a pause leg,
+        or the eased tail of a decelerating one once it has effectively
+        stopped. A zero-length (pause) leg contributes zero to the
+        cumulative distance regardless of ``local_t``, which is what makes
+        that invariant hold for free rather than needing special-cased
+        pause handling — the same Day-17 principle
+        :meth:`Agent.progress_at` established, generalised to a
+        multi-leg path.
+        """
+        index, local_t = self._locate(t)
+        lengths = self._segment_lengths()
+        total_length = sum(lengths)
+        if total_length <= 0:
+            return 0.0
+        traveled = sum(lengths[:index]) + lengths[index] * local_t
+        return traveled / total_length
+
+
+def _seconds_to_path_fractions(seconds: list[float]) -> list[float]:
+    """Convert a list of leg durations in SECONDS to the normalised
+    ``duration`` fractions :class:`PathSegment` expects (summing to 1.0
+    over the whole path) — lets :func:`build_scenes_v5_cessation` author
+    walk/stop timing in seconds, the units its own parameters (approach
+    speed, stop duration) are naturally stated in."""
+    total = sum(seconds)
+    if total <= 0:
+        raise ValueError("segment seconds must sum to a positive value")
+    return [s / total for s in seconds]
+
+
+@dataclass
 class Furniture:
     """An axis-aligned box: desk, cabinet or partition."""
 
@@ -240,7 +382,7 @@ class Scene:
     name: str
     room_size: tuple[float, float, float]
     cameras: list[CameraSpec]
-    agents: list[Agent]
+    agents: list[Agent | MultiSegmentAgent]
     furniture: list[Furniture]
     conditions: tuple[Condition, ...]
     frames: int
@@ -689,7 +831,9 @@ def build_scenes_v4_gate(frames: int, fps: float) -> list[Scene]:
     """
     room = (10.0, 3.0, 14.0)
 
-    def cam(name: str, position: tuple[float, float, float], yaw: float, covers: str) -> CameraSpec:
+    def cam(
+        name: str, position: tuple[float, float, float], yaw: float, covers: str
+    ) -> CameraSpec:
         return CameraSpec(name, 1280, 720, 900.0, 900.0, position, yaw, covers, 16.0)
 
     cam_a = cam("cam_a", (-1.6, 2.6, 0.4), 6.0, "left half, looking down-room")
@@ -807,6 +951,349 @@ def build_scenes_v4_gate(frames: int, fps: float) -> list[Scene]:
             "agent settles early, lights cut well after -- two quiet cues, not one",
             lights_off_from=(2 * frames) // 3,
             extra={"low_activity": True, "speed_band": "crawl", "path_metres": 3.8},
+        )
+    )
+
+    return scenes
+
+
+V5_CESSATION_EXEMPT_REGIMES = frozenset({"maneuver"})
+"""v5-cessation's declared scope: cessation volume, not heading changes.
+Genuinely exercising ~30 sustained-motion `maneuver` frames (per
+classify_track's per-frame heading/speed-delta test) needs either dozens
+of separate hand-authored turn events (one classified frame each) or a
+continuously-curved path this file's straight-leg MultiSegmentAgent does
+not model. Rather than contrive either just to clear a number, `maneuver`
+is declared out of scope here — the SAME "declared, not accidental" rule
+:class:`~src.data.golden.GoldenClip`'s `low_activity` flag already
+enforces, extended to a regime instead of a clip. v3-indoor set the
+precedent: "maneuver is empty on both sets by construction, not by
+omission" (Day 21). Its actual count is still measured and reported by
+:func:`enforce_regime_volume` -- declared-out-of-scope is not
+hidden-and-unmeasured."""
+
+
+def _stop_event_scene(
+    scene_name: str,
+    room: tuple[float, float, float],
+    camera: CameraSpec,
+    furniture: list[Furniture],
+    conditions: tuple[Condition, ...],
+    fps: float,
+    start_xz: tuple[float, float],
+    end_xz: tuple[float, float],
+    approach_seconds: float,
+    stop_seconds: float,
+    ease_out: bool,
+    notes: str,
+    restart_end_xz: tuple[float, float] | None = None,
+    restart_seconds: float | None = None,
+    second_stop_seconds: float | None = None,
+) -> Scene:
+    """One agent: walk ``start_xz`` -> ``end_xz`` over ``approach_seconds``,
+    hold at ``end_xz`` for ``stop_seconds``. If ``restart_end_xz`` is given,
+    walk on to it over ``restart_seconds`` and hold there for
+    ``second_stop_seconds`` -- the stop-then-restart shape Day 23,
+    Objective 2 asks for, built from the same primitive as a single stop
+    (one more walk leg, one more pause leg).
+
+    All of the day's varied dimensions are just this function's own
+    parameters, made concrete per call site in
+    :func:`build_scenes_v5_cessation`: ``approach_seconds`` (approach
+    speed, given the leg's distance), ``ease_out`` (deceleration profile),
+    ``stop_seconds`` (stop duration), and ``start_xz``/``end_xz`` relative
+    to ``camera`` (distance and radial-vs-lateral direction).
+    """
+    seconds = [approach_seconds, stop_seconds]
+    is_restart = restart_end_xz is not None
+    if is_restart:
+        assert restart_seconds is not None and second_stop_seconds is not None
+        seconds += [restart_seconds, second_stop_seconds]
+    fractions = _seconds_to_path_fractions(seconds)
+
+    segments = [
+        PathSegment(end=end_xz, duration=fractions[0], ease_out=ease_out),
+        PathSegment(end=end_xz, duration=fractions[1]),  # pause: zero-length leg
+    ]
+    if is_restart:
+        assert restart_end_xz is not None
+        segments += [
+            PathSegment(end=restart_end_xz, duration=fractions[2], ease_out=ease_out),
+            PathSegment(end=restart_end_xz, duration=fractions[3]),  # pause
+        ]
+
+    frame_count = max(2, int(round(sum(seconds) * fps)))
+    agent = MultiSegmentAgent(agent_id=0, start=start_xz, segments=segments)
+
+    path_metres = float(np.hypot(end_xz[0] - start_xz[0], end_xz[1] - start_xz[1]))
+    if is_restart:
+        assert restart_end_xz is not None
+        path_metres += float(
+            np.hypot(restart_end_xz[0] - end_xz[0], restart_end_xz[1] - end_xz[1])
+        )
+
+    return Scene(
+        scene_name,
+        room,
+        [camera],
+        [agent],
+        furniture,
+        conditions,
+        frame_count,
+        fps,
+        notes,
+        extra={
+            "speed_band": "cessation-varied",
+            "path_metres": round(path_metres, 2),
+        },
+    )
+
+
+def build_scenes_v5_cessation(frames: int, fps: float) -> list[Scene]:
+    """The v5-cessation scene set: cessation volume, on purpose (Day 23).
+
+    Day 21's cessation diagnosis and Day 22's four-way comparison both
+    rested on v4.1-gate's ``brief_entry`` family — three clips sharing, in
+    substance, two distinct GT trajectories (two of the three are
+    identical GT, differing only in lighting). Day 23 Objective 1 fixed
+    the regime LABEL (the recovery tail was hiding inside "static"), which
+    raised v4.1-gate's own cessation count from 3 to 39 frames -- but 39
+    frames from ~2 underlying stop events is a labeling fix, not
+    behavioral diversity. This set supplies the diversity: walk-then-stop
+    repeated at volume, varying approach speed, deceleration profile
+    (abrupt vs gradual, :class:`PathSegment`'s ``ease_out``), stop
+    duration, distance from camera, and direction relative to the optical
+    axis (radial vs lateral -- these stress the measurement model
+    differently: a radial approach changes distance-from-camera, and
+    therefore R, throughout the walk; a lateral crossing at fixed depth
+    does not), plus stop-then-restart sequences. ``frames``, the value
+    every other builder in this file takes uniformly from the CLI, is
+    accepted for signature parity but not used uniformly here -- each
+    scene is sized in SECONDS (via :func:`_stop_event_scene`) to fit its
+    own walk/stop timing, since a fixed global frame count cannot fit a
+    1.2s fast approach and a 4s stop hold in the same clip without either
+    truncating the stop or padding the approach.
+
+    ``frames`` in :func:`generate`'s CLI is a MINIMUM only here, unused by
+    any call in this function directly (every clip supplies its own).
+    """
+    room = (10.0, 3.0, 14.0)
+    daylight = Condition.DAYLIGHT
+    far = Condition.FAR_FIELD
+
+    cam_radial = CameraSpec(
+        "cam_radial",
+        1280,
+        720,
+        900.0,
+        900.0,
+        (0.0, 2.6, 0.4),
+        0.0,
+        "looking straight down-room; radial approach/retreat view",
+        16.0,
+    )
+    # yaw=-90 rotates this camera's view axis onto world +x -- so, exactly
+    # like cam_radial's own axis (world +z) above, DEPTH from cam_lateral
+    # is a function of X, and its HORIZONTAL image axis is a function of Z.
+    # A genuine lateral crossing (perpendicular to THIS camera's optical
+    # axis) therefore varies Z at roughly fixed X, not the other way
+    # around -- verified empirically (project() swept across the room)
+    # before picking the coordinates below, the same way cam_radial's own
+    # near-distance floor (z >= ~3m; closer clips the frame given this
+    # room's fixed camera height/pitch) was found empirically rather than
+    # assumed.
+    cam_lateral = CameraSpec(
+        "cam_lateral",
+        1280,
+        720,
+        900.0,
+        900.0,
+        (-6.5, 2.6, 6.0),
+        -90.0,
+        "mounted on the side wall, looking across the room width; lateral view",
+        14.0,
+    )
+    # Off the primary radial (x~0) and lateral (z~3-9) traversal lanes, so
+    # it adds occlusion realism without accidentally blocking the very
+    # events this set exists to render.
+    furniture = [Furniture("desk", (4.3, 0.4, 2.0), (1.2, 0.8, 0.8))]
+
+    def person(*extra: Condition) -> tuple[Condition, ...]:
+        return (Condition.SINGLE_PERSON, daylight, *extra)
+
+    scenes: list[Scene] = []
+
+    # --- Radial: walking toward/away from cam_radial along z (camera at
+    # z=0.4). z >= ~3.5m throughout keeps the agent in frame at this
+    # camera's fixed height/pitch -- verified empirically, see above.
+    radial_specs = [
+        # (name, start, end, approach_s, stop_s, ease_out, extra_conditions)
+        ("radial_slow_near_abrupt", (0.3, 10.5), (0.3, 4.5), 3.0, 1.5, False, ()),
+        ("radial_slow_far_gradual", (0.3, 4.5), (0.3, 11.0), 3.0, 1.5, True, (far,)),
+        ("radial_medium_near_gradual", (-0.5, 9.5), (-0.5, 4.0), 2.0, 2.0, True, ()),
+        (
+            "radial_medium_far_abrupt",
+            (-0.5, 4.0),
+            (-0.5, 10.5),
+            2.0,
+            2.0,
+            False,
+            (far,),
+        ),
+        ("radial_fast_near_abrupt", (0.8, 8.5), (0.8, 4.2), 1.2, 1.5, False, ()),
+        ("radial_fast_far_gradual", (0.8, 4.2), (0.8, 9.8), 1.2, 1.5, True, (far,)),
+        ("radial_long_stop_near", (-0.2, 9.8), (-0.2, 4.3), 2.2, 4.0, False, ()),
+        ("radial_long_stop_far", (-0.2, 4.3), (-0.2, 10.8), 2.2, 4.0, True, (far,)),
+    ]
+    for name, start, end, approach_s, stop_s, ease, extra in radial_specs:
+        scenes.append(
+            _stop_event_scene(
+                name,
+                room,
+                cam_radial,
+                furniture,
+                person(*extra),
+                fps,
+                start,
+                end,
+                approach_s,
+                stop_s,
+                ease,
+                f"radial {'gradual' if ease else 'abrupt'} stop, "
+                f"approach {approach_s}s, hold {stop_s}s",
+            )
+        )
+
+    # --- Lateral: crossing cam_lateral's view along z, at fixed x (which
+    # sets distance from the camera -- NEAR_X/FAR_X below, both verified
+    # to keep depth >= ~3m, the same floor cam_radial's z needs).
+    NEAR_X, FAR_X = -1.5, 3.2
+    lateral_specs = [
+        ("lateral_slow_near_abrupt", (NEAR_X, 3.0), (NEAR_X, 8.5), 3.0, 1.5, False, ()),
+        (
+            "lateral_slow_far_gradual",
+            (FAR_X, 3.0),
+            (FAR_X, 8.5),
+            3.0,
+            1.5,
+            True,
+            (far,),
+        ),
+        (
+            "lateral_medium_near_gradual",
+            (NEAR_X, 8.5),
+            (NEAR_X, 3.5),
+            2.0,
+            2.0,
+            True,
+            (),
+        ),
+        (
+            "lateral_medium_far_abrupt",
+            (FAR_X, 8.5),
+            (FAR_X, 3.5),
+            2.0,
+            2.0,
+            False,
+            (far,),
+        ),
+        ("lateral_fast_near_gradual", (NEAR_X, 3.5), (NEAR_X, 8.0), 1.2, 1.5, True, ()),
+        (
+            "lateral_fast_far_abrupt",
+            (FAR_X, 3.5),
+            (FAR_X, 8.0),
+            1.2,
+            1.5,
+            False,
+            (far,),
+        ),
+        (
+            "lateral_long_stop_near",
+            (NEAR_X, 8.5),
+            (NEAR_X, 3.2),
+            2.2,
+            4.0,
+            False,
+            (),
+        ),
+        ("lateral_long_stop_far", (FAR_X, 8.5), (FAR_X, 3.2), 2.2, 4.0, True, (far,)),
+    ]
+    for name, start, end, approach_s, stop_s, ease, extra in lateral_specs:
+        scenes.append(
+            _stop_event_scene(
+                name,
+                room,
+                cam_lateral,
+                furniture,
+                person(*extra),
+                fps,
+                start,
+                end,
+                approach_s,
+                stop_s,
+                ease,
+                f"lateral {'gradual' if ease else 'abrupt'} crossing-stop, "
+                f"approach {approach_s}s, hold {stop_s}s",
+            )
+        )
+
+    # --- Stop-then-restart: a second cessation event per clip, the shape
+    # Objective 2 explicitly asks for.
+    scenes.append(
+        _stop_event_scene(
+            "stop_then_restart_radial",
+            room,
+            cam_radial,
+            furniture,
+            person(),
+            fps,
+            (0.5, 10.5),
+            (0.5, 6.0),
+            2.0,
+            1.5,
+            False,
+            "radial: walk, stop, restart further in, stop again",
+            restart_end_xz=(0.5, 4.0),
+            restart_seconds=1.5,
+            second_stop_seconds=1.0,
+        )
+    )
+    scenes.append(
+        _stop_event_scene(
+            "stop_then_restart_lateral",
+            room,
+            cam_lateral,
+            furniture,
+            person(),
+            fps,
+            (NEAR_X, 3.5),
+            (NEAR_X, 7.5),
+            1.8,
+            1.5,
+            True,
+            "lateral: walk, stop, restart the other way, stop again",
+            restart_end_xz=(NEAR_X, 5.0),
+            restart_seconds=1.6,
+            second_stop_seconds=1.0,
+        )
+    )
+    scenes.append(
+        _stop_event_scene(
+            "double_stop_radial",
+            room,
+            cam_radial,
+            furniture,
+            person(),
+            fps,
+            (-0.3, 9.5),
+            (-0.3, 6.5),
+            1.5,
+            1.2,
+            False,
+            "radial: walk, brief stop, walk on, long final stop",
+            restart_end_xz=(-0.3, 4.3),
+            restart_seconds=1.3,
+            second_stop_seconds=3.0,
         )
     )
 
@@ -1034,6 +1521,7 @@ def generate(
         "v3": build_scenes_v3,
         "v4-gate": build_scenes_v4_gate,
         "v4.1-gate": build_scenes_v4_gate,
+        "v5-cessation": build_scenes_v5_cessation,
     }
     if scene_set not in builders:
         raise ValueError(
@@ -1218,16 +1706,118 @@ def _supersession_for(version: str) -> str | None:
     headline metrics — the one case here where a new set exists specifically
     because the old one should stop being quoted, not because it measures
     something new.
+
+    v5-cessation (Day 23) supersedes nothing, the same reason v4-gate does
+    not: it measures a different thing (cessation-regime volume) than
+    v3/v4.1-gate measure, so it is a parallel instrument, not a successor.
     """
     if version == "v4.1-gate":
         return "v4-gate"
     if version == "v4-gate":
         return None
+    if version == "v5-cessation":
+        return None
     return {"v2-indoor": "v1-driving"}.get(version, "v2-indoor")
 
 
+class RegimeVolumeError(RuntimeError):
+    """Raised when a golden set cannot support the per-regime frame counts
+    it exists to score — see :func:`enforce_regime_volume`."""
+
+
+def enforce_regime_volume(
+    clip_root: Path,
+    manifest: dict[str, Any],
+    min_cessation_frames: int,
+    min_other_regime_frames: int = 30,
+    exempt_regimes: frozenset[str] = frozenset(),
+) -> dict[str, int]:
+    """Refuse to mint a golden set whose own purpose (a specific motion
+    regime, in volume) it cannot actually support — the same mechanism as
+    :data:`src.data.golden.MIN_OBSERVABLE_FRACTION`'s floor and the
+    ``low_activity`` exemption: acceptance is MEASURED from the bytes just
+    written, not asserted, and a set that fails is refused rather than
+    minted with a caveat.
+
+    Regime counts are computed on every RAW frame of every agent track in
+    the manifest (:func:`~src.estimator.regime.classify_track`) — the
+    dataset's own composition, not ``scripts/eval_estimator.py``'s later
+    SCORED subset (which additionally drops each track's first two frames
+    to give every compared baseline a fair, non-circular start — see that
+    script's module docstring). This check answers "does this dataset
+    contain the phenomenon", not "how many frames will a specific
+    evaluation protocol score" — the two numbers are related but not
+    identical, and a reader comparing them should expect the raw count
+    here to run slightly ahead of eval_estimator.py's reported one.
+
+    Args:
+        min_cessation_frames: The volume floor cessation specifically must
+            clear — this function's whole reason to exist (Day 23,
+            Objective 2): a set authored for cessation volume that does
+            not actually reach it has failed at its own purpose.
+        min_other_regime_frames: Floor every OTHER non-exempt regime must
+            clear, so a set built for one regime's volume does not ship
+            silently thin everywhere else.
+        exempt_regimes: Regimes explicitly declared out of scope for this
+            set's design — e.g. ``maneuver`` for a cessation-focused set
+            with no authored heading changes. Declared by the CALLER
+            (scene-authoring intent, not a post-hoc excuse for a set that
+            merely came out thin) — the same discipline
+            :class:`~src.data.golden.GoldenClip`'s ``low_activity`` flag
+            already requires, extended from clip-level to regime-level.
+
+    Returns:
+        The measured per-regime frame counts, for the manifest/report to
+        cite — reported even when the check passes, never computed and
+        then thrown away.
+
+    Raises:
+        RegimeVolumeError: if cessation, or any non-exempt regime, falls
+            below its floor.
+    """
+    from src.estimator.regime import MOTION_REGIMES, classify_track
+
+    counts: dict[str, int] = {regime: 0 for regime in MOTION_REGIMES}
+    for record in manifest["clips"]:
+        clip_path = clip_root / f"{record['clip_id']}.npz"
+        with np.load(clip_path) as data:
+            agent_xyz = np.asarray(data["agent_xyz"], dtype=np.float64)
+        dt_s = 1.0 / float(record["fps"])
+        for agent_index in range(agent_xyz.shape[1]):
+            track = agent_xyz[:, agent_index, :]
+            for regime in classify_track(track, dt_s):
+                counts[regime] += 1
+
+    failures = []
+    if counts.get("cessation", 0) < min_cessation_frames:
+        failures.append(
+            f"cessation: {counts.get('cessation', 0)} frames, needs "
+            f">= {min_cessation_frames}"
+        )
+    for regime in MOTION_REGIMES:
+        if regime == "cessation" or regime in exempt_regimes:
+            continue
+        if counts.get(regime, 0) < min_other_regime_frames:
+            failures.append(
+                f"{regime}: {counts.get(regime, 0)} frames, needs "
+                f">= {min_other_regime_frames}"
+            )
+    if failures:
+        raise RegimeVolumeError(
+            "regime volume requirement not met -- this set cannot score "
+            "the criterion it exists for and must not mint:\n  "
+            + "\n  ".join(failures)
+            + f"\nmeasured counts: {counts}"
+        )
+    return counts
+
+
 def write_golden_from_manifest(
-    manifest: dict[str, Any], version: str, config: Any, clip_root: Path
+    manifest: dict[str, Any],
+    version: str,
+    config: Any,
+    clip_root: Path,
+    regime_volume: dict[str, Any] | None = None,
 ) -> Path:
     """Mint a golden set from a freshly generated manifest.
 
@@ -1236,7 +1826,22 @@ def write_golden_from_manifest(
     pasting them. Overwrite is permitted here only because a synthetic set is
     regenerable by definition; a set containing captured footage is immutable
     and must go through ``GoldenSet.with_clips`` under a new version.
+
+    Args:
+        regime_volume: When set, keyword arguments forwarded to
+            :func:`enforce_regime_volume` — the check runs BEFORE
+            ``mint_golden_set``, so a set that fails it is refused before
+            the observability floor is even measured. ``None`` (the
+            default, and every pre-Day-23 caller's behavior) skips it
+            entirely — v3/v4-gate/v4.1-gate never gain a check they were
+            never designed against.
     """
+    if regime_volume is not None:
+        measured_regime_counts = enforce_regime_volume(
+            clip_root, manifest, **regime_volume
+        )
+        manifest["regime_counts"] = measured_regime_counts
+
     from src.data.golden import (
         Condition,
         Domain,
@@ -1287,9 +1892,19 @@ def write_golden_from_manifest(
     for record in manifest["clips"]:
         record["observable_fraction"] = round(observable[record["clip_id"]], 4)
 
-    return mint_golden_set(
+    result = mint_golden_set(
         config.paths.project_root / "configs" / "golden", golden, observable, True
     )
+    if regime_volume is not None:
+        # Persist regime_counts (and observable_fraction, already computed
+        # above) back to the manifest this specific caller opted into the
+        # extra check for -- v3/v4-gate/v4.1-gate's manifests are
+        # unaffected, since they never pass regime_volume and this branch
+        # never runs for them.
+        (clip_root / "dataset_manifest.json").write_text(
+            json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+        )
+    return result
 
 
 def measure_observable_fractions(
@@ -1334,12 +1949,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--scene-set",
         default="v2",
-        choices=["v2", "v3", "v4-gate", "v4.1-gate"],
+        choices=["v2", "v3", "v4-gate", "v4.1-gate", "v5-cessation"],
         help=(
             "which authored scene set to render. v2 is frozen — its bytes are "
             "cited by a golden manifest — so re-authoring means a new set. "
             "v4-gate is authored quiet, to measure a motion gate. v4.1-gate "
-            "is v4-gate's scenes re-rendered under the Day-17 gait-phase fix."
+            "is v4-gate's scenes re-rendered under the Day-17 gait-phase fix. "
+            "v5-cessation is authored for cessation-regime volume (Day 23)."
         ),
     )
     parser.add_argument(
@@ -1372,7 +1988,18 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Manifest: {output / 'dataset_manifest.json'}")
 
     if args.write_golden:
-        path = write_golden_from_manifest(manifest, args.write_golden, config, output)
+        regime_volume = (
+            {
+                "min_cessation_frames": 200,
+                "min_other_regime_frames": 30,
+                "exempt_regimes": V5_CESSATION_EXEMPT_REGIMES,
+            }
+            if args.scene_set == "v5-cessation"
+            else None
+        )
+        path = write_golden_from_manifest(
+            manifest, args.write_golden, config, output, regime_volume=regime_volume
+        )
         print(f"Golden set {args.write_golden}: {path}")
     print(
         "\nSYNTHETIC-ONLY BASELINE. Real Site Zero footage supersedes this for "

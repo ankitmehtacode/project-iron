@@ -1,0 +1,248 @@
+{
+  "clip_count": 19,
+  "clips": [
+    {
+      "clip_id": "radial_slow_near_abrupt__cam_radial",
+      "conditions": [
+        "single_person",
+        "daylight"
+      ],
+      "content_sha": "b6d0d7b9aaf534de557e74a4581ef8a3b0079b9c9556e2582a8e6d8614351e0c",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_radial 1280x720, 1 agents, speed cessation-varied (median 0.90 gate px/frame) \u2014 looking straight down-room; radial approach/retreat view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "radial_slow_far_gradual__cam_radial",
+      "conditions": [
+        "single_person",
+        "daylight",
+        "far_field"
+      ],
+      "content_sha": "e9cd4c1a9dc37d8d15cfe129fbfca0451f88e809ec498f2b0b91b3ab91067ff7",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_radial 1280x720, 1 agents, speed cessation-varied (median 1.03 gate px/frame) \u2014 looking straight down-room; radial approach/retreat view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "radial_medium_near_gradual__cam_radial",
+      "conditions": [
+        "single_person",
+        "daylight"
+      ],
+      "content_sha": "8ea6428521e84dd6cbf2efa4ee006abdeb27fd0d5ca98c3081efd3cd94c1b574",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_radial 1280x720, 1 agents, speed cessation-varied (median 0.22 gate px/frame) \u2014 looking straight down-room; radial approach/retreat view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "radial_medium_far_abrupt__cam_radial",
+      "conditions": [
+        "single_person",
+        "daylight",
+        "far_field"
+      ],
+      "content_sha": "f16e02ceb0e398e23d111683c8b6dc1aa2d26bb800641159c93409e5d3fc451d",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_radial 1280x720, 1 agents, speed cessation-varied (median 0.55 gate px/frame) \u2014 looking straight down-room; radial approach/retreat view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "radial_fast_near_abrupt__cam_radial",
+      "conditions": [
+        "single_person",
+        "daylight"
+      ],
+      "content_sha": "2d77429075e98160e432dc87cce5a28f3240cfba07aac989cbd0f277bfc4189f",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_radial 1280x720, 1 agents, speed cessation-varied (median 0.00 gate px/frame) \u2014 looking straight down-room; radial approach/retreat view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "radial_fast_far_gradual__cam_radial",
+      "conditions": [
+        "single_person",
+        "daylight",
+        "far_field"
+      ],
+      "content_sha": "2ac761ae78258d13e4ddd36a3e46e0e8462626f9f8be8d56856786fb0e4f3b10",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_radial 1280x720, 1 agents, speed cessation-varied (median 0.00 gate px/frame) \u2014 looking straight down-room; radial approach/retreat view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "radial_long_stop_near__cam_radial",
+      "conditions": [
+        "single_person",
+        "daylight"
+      ],
+      "content_sha": "191311078d385fe1194900d62a77589c9c3f46391f0f1fe1923f46f26129fd1c",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_radial 1280x720, 1 agents, speed cessation-varied (median 0.00 gate px/frame) \u2014 looking straight down-room; radial approach/retreat view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "radial_long_stop_far__cam_radial",
+      "conditions": [
+        "single_person",
+        "daylight",
+        "far_field"
+      ],
+      "content_sha": "ba88247e79287cddb1ff01fcae71875e8c6cbfb96e9e4b5b29fbab38a951d3ae",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_radial 1280x720, 1 agents, speed cessation-varied (median 0.00 gate px/frame) \u2014 looking straight down-room; radial approach/retreat view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "lateral_slow_near_abrupt__cam_lateral",
+      "conditions": [
+        "single_person",
+        "daylight"
+      ],
+      "content_sha": "e2c41ff05b3ed5e1f19125a6099fbc97bfeb0a26fe6e80ede62940d1c39008f5",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_lateral 1280x720, 1 agents, speed cessation-varied (median 6.64 gate px/frame) \u2014 mounted on the side wall, looking across the room width; lateral crossing view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "lateral_slow_far_gradual__cam_lateral",
+      "conditions": [
+        "single_person",
+        "daylight",
+        "far_field"
+      ],
+      "content_sha": "d2b33f14afd970634bd30f86e95e9dc4ec0db9075f978763396fcb803756a270",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_lateral 1280x720, 1 agents, speed cessation-varied (median 3.56 gate px/frame) \u2014 mounted on the side wall, looking across the room width; lateral crossing view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "lateral_medium_near_gradual__cam_lateral",
+      "conditions": [
+        "single_person",
+        "daylight"
+      ],
+      "content_sha": "7d00e5b4aaa721bfb18c2a611032e5ebaf633127898aaa0699a319bfa11a9ff5",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_lateral 1280x720, 1 agents, speed cessation-varied (median 0.32 gate px/frame) \u2014 mounted on the side wall, looking across the room width; lateral crossing view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "lateral_medium_far_abrupt__cam_lateral",
+      "conditions": [
+        "single_person",
+        "daylight",
+        "far_field"
+      ],
+      "content_sha": "49c2bc5b6b6f0c93d4ea448793cbaa82e4ae86b311a272545e8a34a690cff023",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_lateral 1280x720, 1 agents, speed cessation-varied (median 2.43 gate px/frame) \u2014 mounted on the side wall, looking across the room width; lateral crossing view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "lateral_fast_near_gradual__cam_lateral",
+      "conditions": [
+        "single_person",
+        "daylight"
+      ],
+      "content_sha": "edc6aec1ce3b73741820cb97337960980d65803e924e78f0766dceb9ac90aeee",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_lateral 1280x720, 1 agents, speed cessation-varied (median 0.00 gate px/frame) \u2014 mounted on the side wall, looking across the room width; lateral crossing view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "lateral_fast_far_abrupt__cam_lateral",
+      "conditions": [
+        "single_person",
+        "daylight",
+        "far_field"
+      ],
+      "content_sha": "609bfa08a20d20d85a42d297249edca81a2761ce771930e87f8d9fd8a7c5f62a",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_lateral 1280x720, 1 agents, speed cessation-varied (median 0.00 gate px/frame) \u2014 mounted on the side wall, looking across the room width; lateral crossing view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "lateral_long_stop_near__cam_lateral",
+      "conditions": [
+        "single_person",
+        "daylight"
+      ],
+      "content_sha": "80e05436174ae6706ea122c4cd6fd136e8290ac4fe09c3ab0ce26d0516cf42be",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_lateral 1280x720, 1 agents, speed cessation-varied (median 0.00 gate px/frame) \u2014 mounted on the side wall, looking across the room width; lateral crossing view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "lateral_long_stop_far__cam_lateral",
+      "conditions": [
+        "single_person",
+        "daylight",
+        "far_field"
+      ],
+      "content_sha": "2da2d24eebe8e599e8736e7775e019507aa2a353e2920913e821c4d5aeeb211b",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_lateral 1280x720, 1 agents, speed cessation-varied (median 0.00 gate px/frame) \u2014 mounted on the side wall, looking across the room width; lateral crossing view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "stop_then_restart_radial__cam_radial",
+      "conditions": [
+        "single_person",
+        "daylight"
+      ],
+      "content_sha": "544817d93ec4ca57c67c3656a9d947954fa1deb2aa5d6782c6c4aeabd5f01a7c",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_radial 1280x720, 1 agents, speed cessation-varied (median 0.92 gate px/frame) \u2014 looking straight down-room; radial approach/retreat view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "stop_then_restart_lateral__cam_lateral",
+      "conditions": [
+        "single_person",
+        "daylight"
+      ],
+      "content_sha": "1378d3e1c44d73aae303972a668006f1fce1ef11982882f7258eb14041d880bc",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_lateral 1280x720, 1 agents, speed cessation-varied (median 4.98 gate px/frame) \u2014 mounted on the side wall, looking across the room width; lateral crossing view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    },
+    {
+      "clip_id": "double_stop_radial__cam_radial",
+      "conditions": [
+        "single_person",
+        "daylight"
+      ],
+      "content_sha": "e40fd75feb1bde0f5e371befb741264bc6c53102091064a388820d7e489e0e8a",
+      "hard_coverage": false,
+      "low_activity": false,
+      "notes": "cam_radial 1280x720, 1 agents, speed cessation-varied (median 0.00 gate px/frame) \u2014 looking straight down-room; radial approach/retreat view",
+      "source_dataset": "synthetic-indoor-v5-cessation"
+    }
+  ],
+  "description": "SYNTHETIC-ONLY. Generated by scripts/gen_synthetic_indoor.py --write-golden. Superseded by Site Zero footage for any product claim; scores from it must not be quoted externally.",
+  "domain": "indoor",
+  "schema_version": "1.0",
+  "set_sha": "25b74e47498e55e9eda31dcf2e3281427c6341bc21268052f548e4801b4cd76d",
+  "status": "active",
+  "supersedes": null,
+  "version": "v5-cessation"
+}
