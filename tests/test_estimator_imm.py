@@ -292,6 +292,44 @@ def test_estimate_carries_imm_config_sha_and_mode_probabilities() -> None:
     assert estimate.mode_probabilities is not None
 
 
+def test_dominant_mode_matches_the_highest_probability() -> None:
+    graph = StateGraph()
+    config = default_imm_config()
+    observations = _walk_then_stop(n_walk=15, n_static=0, step_m=1.5)
+    run_imm_filter(
+        graph, observations, config, measurement_model_for("cam-1"), manifest_sha="m"
+    )
+    query = StateQuery(
+        at_ts_ns=observations[-1].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev
+    )
+    estimate = solve_state(query, graph)
+    dominant = estimate.dominant_mode()
+    assert dominant is not None
+    name, prob = dominant
+    probs = dict(estimate.mode_probabilities)  # type: ignore[arg-type]
+    assert prob == max(probs.values())
+    assert name == "constant_velocity"  # a clear, fast walk
+
+
+def test_dominant_mode_is_none_for_single_model_estimate() -> None:
+    from src.estimator.filter import run_single_entity_filter
+
+    graph = StateGraph()
+    observations = _walk_then_stop(n_walk=5, n_static=0)
+    run_single_entity_filter(
+        graph,
+        observations,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+    )
+    query = StateQuery(
+        at_ts_ns=observations[-1].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev
+    )
+    estimate = solve_state(query, graph)
+    assert estimate.dominant_mode() is None
+
+
 def test_residuals_include_combined_and_per_mode_nis() -> None:
     graph = StateGraph()
     config = default_imm_config()

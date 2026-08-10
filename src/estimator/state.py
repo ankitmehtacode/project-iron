@@ -112,7 +112,29 @@ class StateEstimate:
         mode_probabilities: ``None`` for a single-model estimate.
             ``((mode_name, probability), ...)`` for an IMM estimate,
             summing to 1.0 — the IMM's own directly-useful output (Day 21
-            Objective 5), not just an internal quantity.
+            Objective 5), not just an internal quantity used to compute
+            the combined mean/cov and then discarded.
+
+            **Documented, not yet wired to, downstream consumers** (Day 21
+            Objective 5 — intentionally documentation only): a high
+            probability on a ``static``-family mode over a sustained span
+            is the raw signal a POSE verb ("sat", "stood") or dwell
+            detection would key off; a shift away from a ``static``-family
+            mode is the raw signal motion-onset event triggering would key
+            off; and the same aggregate is exactly what the motion gate
+            scorecard's existing ``low_activity`` classification
+            (``src/data/golden.py``, Day 15/16) is already trying to
+            characterize from the outside, without the estimator's own
+            view of it. None of these are implemented today.
+
+            **Uncalibrated.** A mode probability is the IMM's own internal
+            belief, not a validated confidence — Day 21 measured that the
+            *combined estimate's* covariance is itself measurably
+            overconfident in some regimes (see the Day-21 report), and
+            mode probability has not been checked against real motion
+            labels at all. Treat it as a strong hint for triage, not as a
+            number safe to threshold and alert on, until that validation
+            — which is its own, separate objective — has happened.
     """
 
     ts_ns: int
@@ -237,3 +259,17 @@ class StateEstimate:
 
     def velocity_mps(self) -> FloatArray:
         return self.mean_array()[3:]
+
+    def dominant_mode(self) -> tuple[str, float] | None:
+        """The IMM mode with the highest probability, or ``None`` for a
+        single-model estimate (``mode_probabilities is None``).
+
+        A convenience for the documented-but-unwired consumers described
+        on :attr:`mode_probabilities` — most of them want "which mode is
+        this, right now", not the full distribution. Still uncalibrated;
+        see that attribute's docstring before using this for anything
+        alerting-adjacent.
+        """
+        if self.mode_probabilities is None:
+            return None
+        return max(self.mode_probabilities, key=lambda pair: pair[1])
