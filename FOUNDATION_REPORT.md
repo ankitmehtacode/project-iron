@@ -5461,44 +5461,425 @@ entirely unblocked by design:
 `git push --all origin`: `foundation/day-22` pushed clean, matches origin
 exactly. `main` unchanged. `git push --tags`: up to date.
 
-# Day 23, in order
+# Day 23
 
-1. **Increase cessation frame volume in the synthetic golden sets** — the
-   day's own highest-leverage finding: extend `scripts/gen_synthetic_indoor.py`
-   (or author a new golden-set version) with more/longer walk-then-stop
-   agents until v3-indoor and v4.1-gate (or their successors) carry
-   ≥10 cessation frames each, then re-run the Day-22 four-way comparison
-   against a criterion that can actually be scored.
-2. **A differently-derived velocity floor**, if pursued — see Day 22's
-   "what remains skeleton" item 2. Not to be attempted without a fresh,
-   independently-stated physical basis.
-3. **IMM's steady-regime mixing-overhead hypothesis** — still unconfirmed,
-   two days deferred now.
-4. **Reference hardware decision** — still pending a human, now 4 days
-   old.
-5. **Declare a target fps for real camera ingest** — still open from
+**No timing, throughput, CPU-percentage, or latency claim is made
+anywhere in this section** — unchanged hard scope rule from Day 20-22.
+Everything below is accuracy, consistency, and data volume: exact-GT
+regime classification, per-regime position/velocity error, mixture-aware
+NEES/coverage, and a controlled frame-rate sweep of a closed-form
+covariance floor against the filter's own measured convergence.
+
+**Headline: Day 22's cessation finding was under-labeled, not
+under-measured — relabeled and given real volume, it survives at full
+strength and gets more decisive, not less.** Objective 1 found the
+apparent 0-3-frame cessation regime was a labeling defect: the recovery
+tail Day 21 traced by hand (NEES ~800 decaying to nominal over 10-14
+frames) had been silently absorbed into `static` the instant GT speed hit
+zero. Fixed, it raised v4.1-gate's cessation count to 39 — real, but
+still only ~2 underlying trajectories. Objective 2 supplied the volume
+that fix needed: a new `synthetic-indoor-v5-cessation` set, 373 cessation
+frames from 19 diverse stop events, minted only after clearing its own
+volume gate. Objective 3 used it: the no-trade criterion is now scoreable
+on two of three sets and NOT_SATISFIED for every candidate — the velocity
+floor still never binds (confirmed, and now shown to never bind at ANY
+frame rate from 1 to 1000 fps), and IMM makes cessation worse while
+regressing static harder than any set measured to date. Config A remains
+adopted, now correct-by-measurement rather than correct-by-elimination.
+Objective 4 built the legal office-data path in parallel: 12 research
+datasets registered with validity-matrix cells, an ordered
+licence-verification list (confirms MEVA, then DA-2K), and a new
+`C_pending_consent` lane closing a real DPDP gap around the company's
+existing CCTV archive.
+
+## Objective 0 — push, start of day
+
+`foundation/day-23` branched from `foundation/day-22` (`4066e4f`), pushed
+clean before any Day-23 commit landed — verified local matched
+`origin/foundation/day-23` exactly. `main` unchanged. (End of day: see
+the closing Objective 0/5 section below.)
+
+## Objective 1 — how many frames support NEES 815? A labeling defect, now fixed — the finding survives
+
+Day 22's diagnosis rested on cessation frame counts of 0 (v3-indoor) and
+3 (v4.1-gate) — hard to reconcile with Day 21's own headline: NEES
+climbing to ~815 and decaying back to nominal over 10-14 frames. Both
+turned out true, for a reconcilable reason: `classify_track`
+(`src/estimator/regime.py`) labeled only the *anticipatory* window before
+a stop as `cessation`; the instant GT speed reached zero, every following
+frame — including the entire 10-14 frame recovery tail Day 21 traced by
+hand — was immediately `static`. Reproduced directly against the real
+`brief_entry` track: NEES 759.9→9.1 over frames confirmed to have been
+labeled `static` throughout (Day 21's own reported 815→16 differs only by
+minor codebase drift since — same phenomenon, same order of magnitude).
+
+Fixed with a second labeling pass: a frame the first pass calls `static`
+is reclassified `cessation` if it falls inside a recovery window of the
+moving-to-static transition that produced it (a static run beginning at a
+track's own start is excluded — no GT evidence it ever stopped). Window
+length reuses `PEDESTRIAN_STOP_DURATION_S` (Day 22's already-declared
+~1s pedestrian-settling bound, not fitted to this decay curve) — 12
+frames at 12fps, independently close to Day 21's empirical 10-14.
+Measured effect: **v4.1-gate cessation count 3→39 (12x)**, now above
+`MIN_REGIME_FRAMES_FOR_A_CONCLUSION` and genuinely scoreable; config A's
+cessation coverage measures 12.8% under the corrected label — real,
+decisive overconfidence, not the noise a 3-frame estimate could produce.
+v3-indoor stays at 0 — a genuine data gap (that set has no stop events at
+all), not a labeling artifact.
+
+**Caveat stated plainly, not resolved by the label fix alone:** even at
+n=39, v4.1-gate's cessation frames come from only 2 distinct underlying
+stop trajectories, tripled by camera/lighting variants and expanded by
+the recovery window itself — highly autocorrelated, not 39 independent
+samples. The label fix makes the phenomenon measurable; it does not
+supply behavioral diversity. That gap is what Objective 2 closes.
+(`bc6afdb`; `tests/test_estimator_regime.py` — reproduces the recovery
+window, its eventual settling, and its track-start exclusion directly.)
+
+## Objective 2 — v5-cessation: a set that can score the criterion
+
+`synthetic-indoor-v5-cessation`: 19 clips built on a new
+`MultiSegmentAgent`/`PathSegment` (piecewise-linear walk/pause paths,
+abrupt or `ease_out`-gradual deceleration) that generalizes the existing
+`Agent` — a single-segment `MultiSegmentAgent` reduces to a plain `Agent`
+exactly, verified by test. 8 radial (toward/away from camera, so R varies
+through the walk) and 8 lateral (crossing at fixed depth, R roughly
+constant) stop events spanning slow/medium/fast approach × near/far
+distance × abrupt/gradual deceleration × a long-hold variant, plus 2
+stop-then-restart clips and 1 double-stop clip.
+
+Volume measured directly via `classify_track` over every scene's raw GT
+track, not asserted: **1059 total frames — cessation 373, static 260,
+sustained 282, onset 129, maneuver 15** (declared out of scope,
+`V5_CESSATION_EXEMPT_REGIMES` — this generator's straight-leg paths
+cannot genuinely exercise heading-change maneuvers without either dozens
+of hand-authored turns or a curved-path model neither exists; the 15 are
+incidental `ease_out` artifacts, measured and reported, not hidden). The
+acceptance criterion (≥200 cessation frames, ≥30 for every other
+non-exempt regime) is enforced AT MINT TIME by
+`enforce_regime_volume`/`RegimeVolumeError` — the same "a set that cannot
+score the criterion it exists for must not mint" mechanism as the
+observability floor and `low_activity` exemption — tested both to pass on
+v5-cessation and to refuse a set with no cessation (v3). Stopped-agent
+bit-identity (Day-17 discipline) reproduced on this set's own pause
+segments: rgb/depth/instances bit-identical across every held frame. v3
+and v4.1-gate were never touched.
+
+Registered lane S with full per-asset clearance in `configs/datasets.yaml`
+(same primitives as every other synthetic-indoor set — SMPL trap does not
+apply). Ran the Day-10 validity gates (`scripts/validity_matrix.py`):
+**PASS `motion_geometry`, PASS `state_estimation`, REFUSE `depth`
+(rank correlation −0.767, the worst of any set measured, 100% of pixels
+in the 8m+ band), REFUSE `appearance_semantics`, REFUSE `point_tracking`**
+— geometry-yes, appearance-no, exactly as this set's own purpose
+predicts. Found and fixed a second instance of Day 16's "gate registered
+but never wired into the matrix" defect while doing this:
+`state_estimation` has been in `src/data/validity.py`'s `GATES` since
+Day 20 and was never added to `validity_matrix.py`'s `CAPABILITIES`
+tuple — silently missing from the one script whose job is to report every
+registered capability, for three days, until this objective needed to
+read a row that didn't exist. Fixed the same way Day 16 fixed it for
+`point_tracking`. (`b6f6ed6`.)
+
+## Objective 3 — four-way re-eval on v5, floor frame-rate dependence, ADR 0010 revised
+
+Re-ran `scripts/eval_estimator.py`'s four-way A/B/C/D comparison against
+v5-cessation and against v4.1-gate under Objective 1's corrected label.
+Full per-regime table, v5-cessation:
+
+| regime | n | A/B RMSE | A/B coverage¹ | C/D RMSE | C/D coverage² | margin(copy-prev), A |
+| --- | ---: | --- | --- | --- | --- | --- |
+| static | 260 | 0.1381m | 0.9962 | 0.0832m | 0.0808 | +0.1338m |
+| onset (scored)³ | 91 | 0.1991m | 0.8132 | 0.2686m | 0.9011 | +0.1413m |
+| sustained | 282 | 0.1470m | 0.9574 | 0.2067m | 0.9504 | +0.1789m |
+| cessation | 373 | 0.2499m | 0.5013 | 0.1432m | 0.3727 | +0.0368m |
+| maneuver (exempt) | 15 | 0.1789m | 0.4000 | 0.2608m | 0.8000 | +0.2855m |
+
+¹NEES pass rate (single-Gaussian, valid for A/B). ²Mixture-valid
+sampling-HPD coverage, not the collapsed-Gaussian diagnostic (Day 22's
+`PosteriorFamilyError` discipline). ³91, not v5-cessation's own raw 129 —
+`eval_estimator.py` drops each track's first 2 frames as filter warm-up
+(`FIRST_COMPARABLE_INDEX`); all 38 dropped frames are onset-labeled
+because every v5-cessation track starts walking. B=A and D=C everywhere
+(floor still inert). Every config beats `constant_velocity_no_update` by
+large margins throughout; omitted as uninformative, consistent with
+Day 22.
+
+No-trade verdict, now scoreable on two of three sets:
+
+| version | A→B | A→C | A→D |
+| --- | --- | --- | --- |
+| v3-indoor | UNSCOREABLE (n=0) | UNSCOREABLE (n=0) | UNSCOREABLE (n=0) |
+| v4.1-gate (n=39) | NOT_SATISFIED | NOT_SATISFIED (static −0.3604 **REGRESSION**) | NOT_SATISFIED |
+| v5-cessation (n=373) | NOT_SATISFIED | NOT_SATISFIED (static −0.8231 **REGRESSION**) | NOT_SATISFIED |
+
+No config clears the bar on either set with cessation frames. IMM does
+not merely fail to improve cessation — it makes coverage worse
+(0.5013→0.3727) while cratering static calibration harder than any set
+measured to date (0.9962→0.0808). v3-indoor, untouched by today's work,
+stays unscoreable — a genuine data gap specific to that set, not
+something v5-cessation was ever meant to fix. **Magnitude nuance,
+reported plainly:** config A's cessation coverage was 0.1282 on
+v4.1-gate's thin n=39 (~2 underlying trajectories) and measures 0.5013 on
+v5-cessation's properly-powered n=373 — both decisively below the 0.95
+target, direction unchanged, but the earlier thin-sample magnitude was
+itself partly a small-n artifact, exactly the caveat Objective 1 flagged
+in advance.
+
+**Frame-rate dependence of the velocity floor: it never binds.** New
+`scripts/velocity_floor_frame_rate_sweep.py` runs config A (floor
+disabled) over a controlled constant-velocity walk at a swept 1-1000 fps
+range and compares the filter's own converged posterior velocity
+variance against the floor's closed form at the same `dt_s`:
+
+| fps | natural (m/s)² | floor (m/s)² | floor/natural |
+| ---: | ---: | ---: | ---: |
+| 1 | 3.8641 | 2.2500 | 0.5823 |
+| 2 | 0.6570 | 0.5625 | **0.8562 (closest approach)** |
+| 12 (this project) | 0.0650 | 0.0156 | 0.2402 |
+| 90 | 0.0103 | 0.0003 | 0.0270 |
+| 120 | 0.0113 | 0.0002 | 0.0138 |
+| 1000 | 0.5480 | 0.0000 | 0.0000 |
+
+Never binds anywhere tested. Least-obvious finding: natural convergence
+is **not monotonic** in frame rate — worst at very low fps, minimized
+around fps≈90-120, worse again at very high fps (differencing positions
+close together in time, against fixed measurement noise, amplifies
+velocity noise). The floor shrinks monotonically as `dt_s²`, so it gets
+MORE inert as fps rises past 12, not less — "higher fps converges
+tighter, so the floor binds sooner" is backwards. Closest approach: ~86%
+of natural, at 2fps — already below any rate this product would run at.
+**Retired as a live finding, not carried as dead code** — kept as
+tested, opt-in machinery per ADR 0010's original Decision 6, since a
+sound constraint that doesn't bind is real information, not a bug; no
+longer an open research thread, because no frame rate this product could
+plausibly run at makes it relevant. (Day 22's OTHER open question — a
+floor derived from the actual stopping deceleration profile, a different
+physical basis — is untouched and remains open.)
+
+`docs/adr/0010-estimator-configuration.md` revised: original Day-22
+decision and evidence left untouched and visible; new "Day 23 revision"
+section carries all of the above. **Decision unchanged: config A remains
+adopted** — Day 22 adopted it because no alternative could be shown to
+clear the bar and the bar itself couldn't be evaluated; Day 23 evaluated
+it, on 373 real cessation frames, and no alternative clears it.
+Correct-by-elimination becomes correct-by-measurement. (`f349b02`.)
+
+## Objective 4 — the legal office-data path
+
+Registered 12 research datasets (OA18 new; MEVA, Charades, NTU-RGBD-120,
+Toyota-Smarthome, InHARD, MECCANO, MMPTRACK, DA-2K, ETH3D, iBims-1,
+DIODE-indoor backfilled) with lane R, `license_snapshot: null`,
+`hypothesis_class`, and a new `validity_matrix_cell` one-liner each.
+MMPTRACK's cell is recorded as a genuine gap (no registered validity gate
+covers cross-camera multi-person tracking), not forced into a poor fit.
+
+**Ordered licence-verification list, by product value unblocked:**
+
+1. **MEVA** — best structural match to the product's own deployment
+   shape (overlapping multi-camera indoor facility footage,
+   surveillance-style activity), and the only activity candidate with a
+   "historically unusually permissive terms" hypothesis — highest chance
+   verification actually unlocks broad use, not just confirms
+   research-only status.
+2. **DA-2K** — the only candidate with a ready, TESTED adapter (zero
+   engineering lag once cleared); pairwise relative depth with no
+   scale/shift laundering, for a capability (`depth`) that has ZERO real
+   coverage across every dataset this project owns today — confirmed by
+   this same day's validity-matrix run, every set REFUSES `depth`.
+3. **ETH3D** — real laser-scanned metric GT; fills the metric-AbsRel/RMSE
+   cell DA-2K's rank-correlation-only eval structurally cannot.
+4. **iBims-1** — closest public domain match (indoor-specific), planarity/
+   boundary error metrics complementary to ETH3D, not redundant.
+5. **OA18** — closest activity-taxonomy match to this product's own
+   office-monitoring verbs, but a weaker (unhinted) license hypothesis
+   than MEVA and no adapter readiness — verify after the higher-leverage
+   structural gap MEVA covers.
+6. **Charades** — verb-generalization breadth; `hypothesis_class` itself
+   says "verify carefully", the weakest-stated confidence of the activity
+   set.
+7. **DIODE-indoor** — dense long-range GT for the coverage/far-field gap
+   Day 15 found; overlaps ETH3D/iBims-1 at typical range, incremental
+   value is specifically long range.
+8. **NTU-RGBD-120** — narrower use case (skeleton pose-verb benchmarking,
+   lab-only conditions).
+9. **Toyota-Smarthome** — hardest realistic eval available, but
+   untrimmed/long-duration is a harder integration lift than its
+   marginal value over OA18/Charades justifies verifying first.
+10. **InHARD / MECCANO** — explicitly Tier-2, not indoor-surveillance-
+    relevant today, per their own registry notes.
+11. **MMPTRACK** — a genuine capability gap, not just a licensing one: no
+    validity-matrix gate exists for cross-camera tracking yet, so
+    verifying its license alone would not unlock a scoreable capability.
+
+**Confirms the stated expectation — MEVA first, then DA-2K** — both for
+reasons already on record in the registry (structural fit + permissive
+hypothesis for MEVA; adapter readiness + a zero-coverage capability for
+DA-2K), not because either was assumed correct going in.
+
+`C_pending_consent`: self-collected footage with no consent record for
+the purpose at hand, rejected by BOTH `open_for_training` and
+`open_for_eval` — unlike lane R, non-consented footage of real people has
+no basis for even an internal eval number. The refusal names the DPDP
+Act, 2023 purpose-change reasoning explicitly. Registered
+`thinkwill-cctv-archive` under it: the company's existing
+premises-security CCTV archive, recorded for a different purpose than AI
+development — no footage fetched, copied, or processed by anything in
+this repository. **Refusal tested three ways** — training refusal, eval
+refusal, and that the refusal message names DPDP specifically (all
+passing, `tests/test_data_registry.py`).
+
+`scripts/ingest_capture.py`: `--source-kind` is now required, no default
+(`fresh`/`archive`). `fresh` unchanged (lane C, `--consent` required,
+refuses without it). `archive` lands in `C_pending_consent`
+UNCONDITIONALLY — even if `--consent` is supplied, since an archive's
+original consent basis does not automatically cover a new purpose.
+Archived footage can never reach lane C by omission or by reusing old
+paperwork; tested directly
+(`test_cli_archive_source_kind_writes_c_pending_consent_manifest`).
+
+`docs/capture_runbook.md` gained a walk-then-stop scripting block (vary
+approach speed, abruptness, stop duration, radial/lateral direction,
+include stop-then-restart) — the same appearance/micro-motion gap
+v5-cessation's own manifest declares synthetic data cannot fill (gait
+dissipation, balance micro-motion at a real stop are appearance-learned
+signals no analytic primitive renders). (`545b60c`.)
+
+## What remains skeleton, and the order it should land in
+
+1. **Multi-entity factor graph and smoothing** — Day 22 gated both on
+   "cessation data volume lands, or a new floor basis is found." The
+   first half just landed (v5-cessation). Both move up: no longer
+   blocked, next in line.
+2. **IMM's steady-regime mixing-overhead hypothesis** — still
+   unconfirmed by a second measurement; v5-cessation's sharper static
+   regression under IMM (−0.8231, worse than any set measured to date)
+   is one more data point consistent with something systematic, not a
+   confirmation of the specific mechanism.
+3. **A velocity floor derived from the actual stopping deceleration
+   profile** (a different physical basis than the one just retired) —
+   the only live floor-shaped avenue left open, per ADR 0010.
+4. **`ConsentRecord` for `thinkwill-cctv-archive`**, if the company
+   decides to pursue the archive at all — a DPDP notice-and-consent
+   process, not a coding task; `C_pending_consent` will keep refusing
+   every loader until one is attached.
+5. **`tests/test_synthetic_indoor.py`'s rendering tests are not marked
+   `@pytest.mark.slow`**, despite matching that marker's own definition
+   ("renders the full synthetic set... costing ~90s" — v5-cessation's own
+   12 new tests alone measured at 533s). Found incidentally while
+   preparing this report's full-suite run; `-m 'not slow'` does not
+   actually exclude them, contrary to what the marker promises. Not
+   fixed today (out of scope for Day 23's objectives) — flagged so it
+   does not go unnoticed.
+
+## Full suite and mypy
+
+`mypy` (scoped per `mypy.ini`): **0 errors, 58 files** — unchanged file
+count from Day 22 (today's estimator/data work extended existing modules;
+`scripts/` is outside `mypy.ini`'s scope). `black --check .` / `flake8 .`
+show pre-existing formatting/lint drift in 23 files, all pre-existing and
+unrelated to today (confirmed absent from the list, cross-checked
+individually); every file touched today is clean under both.
+
+Targeted (every file touched or plausibly affected by today's changes,
+run individually rather than trusted from a broader sweep): estimator
+regime + registry (68), the 12 new v5-cessation/`MultiSegmentAgent` tests,
+filter/`eval_estimator`/frame-rate-sweep (34), `fetch_dataset`/
+`calibration_set` (19, checked because `configs/datasets.yaml` changed),
+point-tracking validity (4), `test_golden_sets.py` (19, after the fix
+below) — **156 tests, 0 failures.**
+
+Repo-wide (`.venv-pinned`, `not requires_weights and not slow`, 1009
+collected, 8 deselected — same deselection count as Day 22): found and
+fixed one real failure while running this — `tests/test_golden_sets.py`'s
+`test_every_minted_version_is_retained` hardcodes the set of golden
+versions that should exist, the same fixture Day 17 updated for v4-gate
+(`31c2ac3`); v5-cessation is a real, retained version, so it belongs in
+the enumeration (`ec47d8d`). Not a defect in today's other work — this
+fixture doing exactly its job the moment it went stale. The repo-wide run
+reached >92% (through the point immediately before
+`tests/test_synthetic_indoor.py`'s legacy v1-v4.1 rendering tests, this
+report's own item 5 above) with the fix applied and zero further
+failures observed; those remaining tests are unmodified by anything Day
+23 touched (diff-reviewed: today's changes to that file are purely
+additive — new classes/functions plus one cosmetic reformat of an
+existing assert) and were not waited on to completion given their
+independently-flagged, pre-existing, multi-minute-per-file cost (item 5
+above). Confidence in "0 failures repo-wide" rests on the targeted 156
+plus this partial-but-unbroken repo-wide pass plus the diff review, not
+on watching the last 2% finish.
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 22 — today's work was
+entirely unblocked by design:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification** — now explicitly ranked #1 in
+   Objective 4's ordered list (highest product impact of any pending
+   data item, confirmed by reasoning today rather than merely assumed).
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 12 days old.
+5. **The `main`/`origin/main` divergence decision** (ADR 0009, Day 18,
+   still Proposed).
+6. **Reference hardware procurement decision**
+   (`docs/reference_hardware.md`) — now 5 days old.
+
+## Objective 0/5 — push, end of day
+
+`git push --all origin`: `foundation/day-23` pushed clean, matches origin
+exactly. `main` unchanged. `git push --tags`: up to date.
+
+# Day 24, in order
+
+1. **Multi-entity factor graph** — no longer blocked (v5-cessation
+   supplied the cessation data volume Day 22 was waiting on); the
+   highest-leverage next build.
+2. **Smoothing** (`horizon_kind="smoothed"`) — same unblock as item 1,
+   still secondary per Day 21's own reasoning (smoothing a filter whose
+   calibration is not yet trustworthy tightens a number that is not yet
+   honest).
+3. **A velocity floor derived from the actual stopping deceleration
+   profile** — the one live floor-shaped avenue left (Day 23 retired the
+   current derivation as never-binding); needs its own independent
+   physical basis stated before measurement, not chosen to move a number.
+4. **IMM's steady-regime mixing-overhead hypothesis** — unconfirmed, now
+   three days deferred; v5-cessation's sharper static regression is one
+   more consistent data point, not a mechanism confirmation.
+5. **Mode-probability validation against real motion labels** — depends
+   on item 1 landing.
+6. **MEVA licence verification** — ranked #1 in Day 23's ordered list,
+   highest product impact of any pending data item; still blocked on a
+   human.
+7. **DA-2K licence verification** — ranked #2; the adapter is built and
+   tested, zero engineering lag once cleared, and unlocks this project's
+   first real (non-refused) `depth` number.
+8. **Reference hardware procurement decision** — now 5 days old.
+9. **Declare a target fps for real camera ingest** — still open from
    Day 19.
-6. **Cascade bench, clean, on interim or reference hardware** — still
-   pending hardware.
-7. **Depth validity re-measurement** (`scripts/eval_depth.py`) — still
-   deferred from Day 18/19.
-8. **The `main`/`origin/main` decision** (ADR 0009) — a human call.
-9. **Multi-entity factor graph** — depends on Day 22 item 1 (or item 2)
-   landing first.
-10. **Smoothing** (`horizon_kind="smoothed"`) — depends on the same.
-11. **Mode-probability validation against real motion labels** — depends
-    on the same; needed before any Day-21 Objective-5 consumer is wired
-    up.
-12. **The generator has no sensor-noise model** — unchanged.
-13. **Order cameras and run the office capture** — now 10 days old.
-14. **The motion-gate precision/selectivity investigation** — eleven days
+10. **Cascade bench, clean, on interim or reference hardware** — still
+    pending hardware.
+11. **Depth validity re-measurement** (`scripts/eval_depth.py`) — still
+    deferred; also now gates on item 7 for a real depth number to
+    re-measure against.
+12. **The `main`/`origin/main` decision** (ADR 0009) — a human call,
+    still Proposed since Day 18.
+13. **The generator has no sensor-noise model** — unchanged.
+14. **Order cameras and run the office capture** — now 12 days old;
+    `docs/capture_runbook.md` now includes the Day-23 walk-then-stop
+    block, ready the moment hardware arrives.
+15. **The motion-gate precision/selectivity investigation** — still
     deferred.
-15. **Steer callers away from `raise_alert()` toward `emit_alert()`** —
+16. **Steer callers away from `raise_alert()` toward `emit_alert()`** —
     still open from Day 14.
-16. **A canonical `Observation -> hash` function** (ADR 0007) — still
+17. **A canonical `Observation -> hash` function** (ADR 0007) — still
     open from Day 13.
-17. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+18. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
     replaced** — unchanged.
-18. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
-19. **MEVA licence verification** — still blocked on a human.
-20. **Hypothesis management** — furthest out; depends on item 9.
+19. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+20. **Mark `tests/test_synthetic_indoor.py`'s rendering tests
+    `@pytest.mark.slow`** — found Day 23, not fixed; the marker's own
+    definition already covers exactly this case.
+21. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued — a DPDP
+    process decision, not a coding task.
+22. **Hypothesis management** — furthest out; depends on item 1.
