@@ -95,6 +95,21 @@ from src.model.ulid import generate_ulid
 
 FilterKind = Literal["single_model", "imm"]
 
+CONFIG_SPECS: dict[str, tuple[FilterKind, bool]] = {
+    "A": ("single_model", False),
+    "B": ("single_model", True),
+    "C": ("imm", False),
+    "D": ("imm", True),
+}
+"""Day 22, Objective 3's four configs: (filter_kind, velocity_covariance_floor)."""
+
+CONFIG_DESCRIPTIONS: dict[str, str] = {
+    "A": "single model (Day 20, current)",
+    "B": "single model + velocity covariance floor (Day 22)",
+    "C": "IMM (Day 21)",
+    "D": "IMM + velocity covariance floor (Day 22)",
+}
+
 FloatArray = npt.NDArray[np.float64]
 
 EVAL_SEED = 20260731
@@ -487,7 +502,9 @@ def _mixture_coverage_stats(records: list[FrameRecord]) -> dict[str, Any]:
     mixture_nees_coverage = (
         1.0 - fraction_outside if not np.isnan(fraction_outside) else float("nan")
     )
-    sampled = [r.covered_by_sampling for r in records if r.covered_by_sampling is not None]
+    sampled = [
+        r.covered_by_sampling for r in records if r.covered_by_sampling is not None
+    ]
     return {
         "n": len(sampled),
         "mixture_nees_pass_rate_within_95": (
@@ -543,6 +560,7 @@ def _score_golden_set(
     config: IronConfig,
     filter_kind: FilterKind = "single_model",
     imm_config: ImmConfig | None = None,
+    velocity_covariance_floor: bool = False,
 ) -> dict[str, Any] | None:
     try:
         golden = load_golden_set(root, version)
@@ -577,8 +595,12 @@ def _score_golden_set(
             return {"version": version, "refused": True, "reason": verdict.reason}
 
     if filter_kind == "imm" and imm_config is None:
-        imm_config = default_imm_config()
-    motion_model = motion_model_for("person")
+        imm_config = default_imm_config(
+            velocity_covariance_floor=velocity_covariance_floor
+        )
+    motion_model = motion_model_for(
+        "person", velocity_covariance_floor=velocity_covariance_floor
+    )
     measurement_model = measurement_model_for(
         sensor=version, capability="state_estimation"
     )
@@ -724,6 +746,7 @@ def _score_golden_set(
     return {
         "version": version,
         "filter_kind": filter_kind,
+        "velocity_covariance_floor": velocity_covariance_floor,
         "refused": False,
         "tracks_scored": tracks_scored,
         "clips_with_no_agents": clips_with_no_agents,
@@ -887,130 +910,164 @@ def _print_report(report: dict[str, Any]) -> None:
         )
 
 
-NO_TRADE_TRANSIENT_REGIMES = ("onset", "cessation", "maneuver")
+NO_TRADE_CESSATION_REGIME = "cessation"
+"""Day 22 Objective 3 restates the criterion around cessation specifically
+-- Day 21/22's diagnosis pinned the actual failure there (onset was
+already well-calibrated under the single model; maneuver has zero frames
+in either golden set by construction). Checking "any transient regime"
+the way Day 21 did would let an unrelated onset wiggle satisfy a
+criterion meant to certify a cessation fix."""
 NO_TRADE_STEADY_REGIMES = ("static", "sustained")
 NO_TRADE_MATERIAL_IMPROVEMENT = 0.05
-"""A transient regime's empirical coverage must close its gap to the 0.95
-nominal by at least this much (in coverage points) for IMM to count as
+"""Cessation's empirical coverage must close its gap to the 0.95 nominal
+by at least this much (in coverage points) for a config to count as
 having "moved materially toward nominal" there. Declared, not fitted."""
 NO_TRADE_DEGRADATION_TOLERANCE = 0.02
 """A steady regime's coverage may move at most this much FURTHER from
-nominal under IMM before it counts as "degraded" -- allows for sampling
-noise between two runs on the same (identical, same-seed) observations
-without calling every microscopic wiggle a regression."""
+nominal before it counts as "degraded" -- allows for sampling noise
+between two runs on the same (identical, same-seed) observations without
+calling every microscopic wiggle a regression."""
 
 
-def _print_comparison(
-    single_report: dict[str, Any], imm_report: dict[str, Any]
+def _regime_coverage(block: dict[str, Any]) -> float:
+    """The one coverage figure to judge a regime by: the mixture-VALID
+    sampling-based coverage when present (an IMM config's block), else the
+    NEES-based coverage (valid as-is for a genuinely single-Gaussian
+    posterior -- configs A and B)."""
+    mixture = block.get("consistency_mixture")
+    if mixture is not None:
+        value = mixture.get("empirical_coverage_by_sampling_95", float("nan"))
+        return float(value)
+    return float(
+        block.get("consistency", {}).get("empirical_coverage_95", float("nan"))
+    )
+
+
+def _no_trade_verdict(
+    baseline_label: str,
+    baseline_report: dict[str, Any],
+    candidate_label: str,
+    candidate_report: dict[str, Any],
 ) -> dict[str, Any]:
-    """Objective 4: single-model vs IMM, per regime, plus the no-trade verdict.
-
-    Returns the verdict as data (not just printed text) since Objective 6's
-    report needs to cite it precisely.
+    """Objective 3: the no-trade criterion, generalized to ANY config
+    against the baseline (config A, Day 20's filter) -- cessation coverage
+    must move materially toward nominal AND static/sustained must not
+    degrade. Returns the verdict as data, including a THIRD state
+    ("unscoreable") for when cessation itself does not have enough frames
+    to support any conclusion -- silently defaulting to pass or fail on
+    thin evidence would be exactly the kind of bounded-null-read-as-limit
+    mistake this project has caught before.
     """
-    version = single_report["version"]
-    print("=" * 78)
-    print(f"SINGLE-MODEL vs IMM, per regime: {version}")
-    print("=" * 78)
+    baseline_regimes = baseline_report.get("by_regime", {})
+    candidate_regimes = candidate_report.get("by_regime", {})
 
-    verdict: dict[str, Any] = {"version": version, "regimes": {}}
-    any_transient_improved = False
+    cessation_baseline = baseline_regimes.get(NO_TRADE_CESSATION_REGIME, {})
+    cessation_candidate = candidate_regimes.get(NO_TRADE_CESSATION_REGIME, {})
+    n_cessation = min(cessation_baseline.get("n", 0), cessation_candidate.get("n", 0))
+    cessation_scoreable = n_cessation >= MIN_REGIME_FRAMES_FOR_A_CONCLUSION
+
+    cessation_delta = float("nan")
+    if cessation_scoreable:
+        base_cov = _regime_coverage(cessation_baseline)
+        cand_cov = _regime_coverage(cessation_candidate)
+        if not (np.isnan(base_cov) or np.isnan(cand_cov)):
+            cessation_delta = abs(base_cov - 0.95) - abs(cand_cov - 0.95)
+    cessation_improved = (
+        cessation_scoreable
+        and not np.isnan(cessation_delta)
+        and cessation_delta >= NO_TRADE_MATERIAL_IMPROVEMENT
+    )
+
+    steady_deltas: dict[str, float] = {}
     any_steady_degraded = False
-
-    for name in MOTION_REGIMES:
-        single_block = single_report.get("by_regime", {}).get(name, {})
-        imm_block = imm_report.get("by_regime", {}).get(name, {})
-        n_single = single_block.get("n", 0)
-        n_imm = imm_block.get("n", 0)
-        if n_single == 0 and n_imm == 0:
-            print(f"  {name:12} n=0 in both (empty)")
+    for name in NO_TRADE_STEADY_REGIMES:
+        base_cov = _regime_coverage(baseline_regimes.get(name, {}))
+        cand_cov = _regime_coverage(candidate_regimes.get(name, {}))
+        if np.isnan(base_cov) or np.isnan(cand_cov):
             continue
-
-        single_cov = single_block.get("consistency", {}).get(
-            "empirical_coverage_95", float("nan")
-        )
-        # Day 22, Objective 1: IMM's coverage figure here is the
-        # mixture-VALID sampling-based one (compare against a
-        # single-Gaussian's chi-square-based coverage on the single-model
-        # side, since that posterior genuinely is Gaussian) -- not the
-        # collapsed-Gaussian diagnostic Day 21 used, which is retained
-        # elsewhere in the report but not used to drive this verdict.
-        imm_cov = imm_block.get("consistency_mixture", {}).get(
-            "empirical_coverage_by_sampling_95", float("nan")
-        )
-        single_dev = (
-            abs(single_cov - 0.95) if not np.isnan(single_cov) else float("nan")
-        )
-        imm_dev = abs(imm_cov - 0.95) if not np.isnan(imm_cov) else float("nan")
-        delta = (
-            single_dev - imm_dev
-            if not (np.isnan(single_dev) or np.isnan(imm_dev))
-            else float("nan")
-        )  # positive = IMM closer to nominal than single-model was
-
-        regime_kind = "transient" if name in NO_TRADE_TRANSIENT_REGIMES else "steady"
-        print(
-            f"  {name:12} n={n_single:5}->{n_imm:<5}  "
-            f"coverage: single {single_cov:.4f} -> IMM {imm_cov:.4f}  "
-            f"(delta-toward-nominal {delta:+.4f})  [{regime_kind}]"
-        )
-        single_pos = single_block.get("filter_rmse_m", float("nan"))
-        imm_pos = imm_block.get("filter_rmse_m", float("nan"))
-        print(
-            f"               position RMSE: single {single_pos:.4f} m -> "
-            f"IMM {imm_pos:.4f} m"
-        )
-
-        verdict["regimes"][name] = {
-            "n_single": n_single,
-            "n_imm": n_imm,
-            "single_coverage": single_cov,
-            "imm_coverage": imm_cov,
-            "delta_toward_nominal": delta,
-            "kind": regime_kind,
-            "single_position_rmse_m": single_pos,
-            "imm_position_rmse_m": imm_pos,
-        }
-
-        if (
-            regime_kind == "transient"
-            and not np.isnan(delta)
-            and delta >= NO_TRADE_MATERIAL_IMPROVEMENT
-        ):
-            any_transient_improved = True
-        if (
-            regime_kind == "steady"
-            and not np.isnan(delta)
-            and delta < -NO_TRADE_DEGRADATION_TOLERANCE
-        ):
+        delta = abs(base_cov - 0.95) - abs(cand_cov - 0.95)
+        steady_deltas[name] = delta
+        if delta < -NO_TRADE_DEGRADATION_TOLERANCE:
             any_steady_degraded = True
-            print(
-                f"    ** REGRESSION: {name} moved {abs(delta):.4f} FURTHER "
-                "from nominal coverage under IMM **"
-            )
 
-    no_trade_satisfied = any_transient_improved and not any_steady_degraded
-    verdict["any_transient_improved"] = any_transient_improved
-    verdict["any_steady_degraded"] = any_steady_degraded
-    verdict["no_trade_satisfied"] = no_trade_satisfied
+    if not cessation_scoreable:
+        status = "unscoreable"
+    elif cessation_improved and not any_steady_degraded:
+        status = "satisfied"
+    else:
+        status = "not_satisfied"
 
-    print()
-    if no_trade_satisfied:
+    return {
+        "baseline": baseline_label,
+        "candidate": candidate_label,
+        "n_cessation": n_cessation,
+        "cessation_scoreable": cessation_scoreable,
+        "cessation_delta_toward_nominal": cessation_delta,
+        "cessation_improved": cessation_improved,
+        "steady_deltas_toward_nominal": steady_deltas,
+        "any_steady_degraded": any_steady_degraded,
+        "status": status,
+    }
+
+
+def _print_no_trade_verdict(version: str, verdict: dict[str, Any]) -> None:
+    baseline, candidate = verdict["baseline"], verdict["candidate"]
+    print(f"  {baseline} -> {candidate} ({version}):")
+    if not verdict["cessation_scoreable"]:
         print(
-            "NO-TRADE CRITERION: SATISFIED -- a transient regime improved "
-            "materially toward nominal coverage, and no steady regime degraded."
+            f"    UNSCOREABLE -- cessation has only {verdict['n_cessation']} frame(s) "
+            f"in common (< {MIN_REGIME_FRAMES_FOR_A_CONCLUSION} floor); no conclusion "
+            "can be drawn about the regime this criterion is actually about"
         )
     else:
-        print("NO-TRADE CRITERION: NOT SATISFIED.")
-        if not any_transient_improved:
-            print(
-                "  - no transient regime (onset/cessation/maneuver) improved "
-                "materially toward nominal coverage"
+        print(
+            f"    cessation delta-toward-nominal: "
+            f"{verdict['cessation_delta_toward_nominal']:+.4f} "
+            f"(n={verdict['n_cessation']}, "
+            f"{'IMPROVED' if verdict['cessation_improved'] else 'not improved'})"
+        )
+    for name, delta in verdict["steady_deltas_toward_nominal"].items():
+        flag = " ** REGRESSION **" if delta < -NO_TRADE_DEGRADATION_TOLERANCE else ""
+        print(f"    {name} delta-toward-nominal: {delta:+.4f}{flag}")
+    print(f"    NO-TRADE CRITERION: {verdict['status'].upper()}")
+
+
+def _print_four_way_summary(
+    version: str, per_config: dict[str, dict[str, Any]]
+) -> None:
+    """Objective 3: all scored configs side by side, per regime -- position
+    RMSE, coverage (mixture-valid where applicable), NEES/NIS pass rate,
+    both trivial-baseline margins, and the frame count every number here
+    is conditioned on."""
+    print("=" * 78)
+    print(f"FOUR-WAY SUMMARY, per regime: {version}")
+    print("=" * 78)
+    labels = [label for label in ("A", "B", "C", "D") if label in per_config]
+    for regime_name in MOTION_REGIMES:
+        print(f"  {regime_name}:")
+        any_frames = False
+        for label in labels:
+            block = per_config[label].get("by_regime", {}).get(regime_name, {})
+            n = block.get("n", 0)
+            if n == 0:
+                print(f"    {label}: n=0 (empty)")
+                continue
+            any_frames = True
+            coverage = _regime_coverage(block)
+            nees_pass = block.get("consistency", {}).get(
+                "nees_pass_rate_within_95", float("nan")
             )
-        if any_steady_degraded:
-            print("  - at least one steady regime (static/sustained) degraded")
+            thin = " [THIN EVIDENCE]" if block.get("thin_evidence") else ""
+            print(
+                f"    {label}: n={n:5}  RMSE {block['filter_rmse_m']:.4f} m  "
+                f"coverage {coverage:.4f}  NEES/NIS pass {nees_pass:.4f}  "
+                f"margin(copy-prev) {block['margin_vs_copy_previous_m']:+.4f}  "
+                f"margin(CV-dead-reckon) {block['margin_vs_constant_velocity_m']:+.4f}"
+                f"{thin}"
+            )
+        if not any_frames:
+            print("    (empty in every config)")
     print()
-    return verdict
 
 
 def _nan_to_none(value: Any) -> Any:
@@ -1040,10 +1097,14 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", default=None)
     parser.add_argument("--artifact-dir", default=None, type=Path)
     parser.add_argument(
-        "--filter",
-        choices=("single_model", "imm", "both"),
-        default="both",
-        help="which filter(s) to score; 'both' also prints the per-regime comparison",
+        "--config",
+        action="append",
+        choices=sorted(CONFIG_SPECS),
+        default=None,
+        help=(
+            "which config(s) to score, repeatable (A=single model, "
+            "B=single model+floor, C=IMM, D=IMM+floor); default: all four"
+        ),
     )
     args = parser.parse_args(argv)
 
@@ -1054,34 +1115,53 @@ def main(argv: list[str] | None = None) -> int:
         else config.paths.resolve(config.eval.golden_sets_dir)
     )
     versions = args.version or ["v3-indoor", "v4.1-gate"]
-    if args.filter == "both":
-        kinds: list[FilterKind] = ["single_model", "imm"]
-    else:
-        kinds = [args.filter]
+    labels = args.config or sorted(CONFIG_SPECS)
 
     reports = []
-    comparisons = []
+    verdicts = []
     any_refused_or_failed = False
     for version in versions:
-        per_kind: dict[str, dict[str, Any]] = {}
-        for kind in kinds:
-            report = _score_golden_set(version, root, config, filter_kind=kind)
+        per_config: dict[str, dict[str, Any]] = {}
+        for label in labels:
+            filter_kind, floor = CONFIG_SPECS[label]
+            report = _score_golden_set(
+                version,
+                root,
+                config,
+                filter_kind=filter_kind,
+                velocity_covariance_floor=floor,
+            )
             if report is None:
                 print(
                     f"Available: {available_versions(root) or 'none'}", file=sys.stderr
                 )
                 any_refused_or_failed = True
                 continue
+            report["config"] = label
             reports.append(report)
-            per_kind[kind] = report
+            per_config[label] = report
+            print(f"[config {label}: {CONFIG_DESCRIPTIONS[label]}]")
             _print_report(report)
             print()
             if report.get("refused"):
                 any_refused_or_failed = True
 
-        if "single_model" in per_kind and "imm" in per_kind:
-            verdict = _print_comparison(per_kind["single_model"], per_kind["imm"])
-            comparisons.append(verdict)
+        if len(per_config) > 1:
+            _print_four_way_summary(version, per_config)
+
+        if "A" in per_config:
+            print("=" * 78)
+            print(f"NO-TRADE VERDICTS vs config A, {version}")
+            print("=" * 78)
+            for candidate_label in ("B", "C", "D"):
+                if candidate_label not in per_config:
+                    continue
+                verdict = _no_trade_verdict(
+                    "A", per_config["A"], candidate_label, per_config[candidate_label]
+                )
+                _print_no_trade_verdict(version, verdict)
+                verdicts.append({"version": version, **verdict})
+            print()
 
     if args.artifact_dir:
         args.artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -1090,7 +1170,7 @@ def main(argv: list[str] | None = None) -> int:
         # misses a spot, this raises instead of silently writing invalid
         # JSON, the same way scorecard.py refuses a bare NaN at emission.
         payload = json.dumps(
-            _nan_to_none({"reports": reports, "comparisons": comparisons}),
+            _nan_to_none({"reports": reports, "no_trade_verdicts": verdicts}),
             indent=2,
             sort_keys=True,
             allow_nan=False,

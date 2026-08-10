@@ -128,3 +128,167 @@ def test_score_golden_set_handles_missing_version_gracefully(tmp_path: Path) -> 
     config = IronConfig.load()
     report = ee._score_golden_set("does-not-exist-version", tmp_path, config)
     assert report is None
+
+
+# ---------------------------------------------------------------------------
+# Day 22, Objective 3 -- the generalized no-trade verdict
+# ---------------------------------------------------------------------------
+
+
+def _regime_block(
+    n: int,
+    coverage_95: float,
+    mixture_coverage: float | None = None,
+    nees_pass: float | None = None,
+) -> dict:
+    block = {
+        "n": n,
+        "filter_rmse_m": 0.1,
+        "margin_vs_copy_previous_m": 0.05,
+        "margin_vs_constant_velocity_m": 1.0,
+        "thin_evidence": n < ee.MIN_REGIME_FRAMES_FOR_A_CONCLUSION,
+        "consistency": {
+            "empirical_coverage_95": coverage_95,
+            "nees_pass_rate_within_95": (
+                nees_pass if nees_pass is not None else coverage_95
+            ),
+        },
+    }
+    if mixture_coverage is not None:
+        block["consistency_mixture"] = {
+            "empirical_coverage_by_sampling_95": mixture_coverage,
+            "mixture_nees_coverage_95": mixture_coverage,
+        }
+    return block
+
+
+def _fake_report(by_regime: dict) -> dict:
+    return {"version": "v-test", "refused": False, "by_regime": by_regime}
+
+
+def test_regime_coverage_prefers_mixture_when_present() -> None:
+    block = _regime_block(20, coverage_95=0.5, mixture_coverage=0.9)
+    assert ee._regime_coverage(block) == pytest.approx(0.9)
+
+
+def test_regime_coverage_falls_back_to_nees_when_no_mixture() -> None:
+    block = _regime_block(20, coverage_95=0.85)
+    assert ee._regime_coverage(block) == pytest.approx(0.85)
+
+
+def test_no_trade_unscoreable_when_cessation_too_thin() -> None:
+    baseline = _fake_report(
+        {
+            "cessation": _regime_block(3, 0.0),
+            "static": _regime_block(50, 0.95),
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    candidate = _fake_report(
+        {
+            "cessation": _regime_block(3, 0.9),
+            "static": _regime_block(50, 0.95),
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    verdict = ee._no_trade_verdict("A", baseline, "C", candidate)
+    assert verdict["status"] == "unscoreable"
+    assert verdict["cessation_scoreable"] is False
+
+
+def test_no_trade_satisfied_when_cessation_improves_and_steady_holds() -> None:
+    baseline = _fake_report(
+        {
+            "cessation": _regime_block(20, 0.0, mixture_coverage=None),
+            "static": _regime_block(50, 0.95),
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    candidate = _fake_report(
+        {
+            "cessation": _regime_block(20, 0.5, mixture_coverage=0.8),
+            "static": _regime_block(50, 0.95),
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    verdict = ee._no_trade_verdict("A", baseline, "D", candidate)
+    assert verdict["cessation_scoreable"] is True
+    assert verdict["cessation_improved"] is True
+    assert verdict["any_steady_degraded"] is False
+    assert verdict["status"] == "satisfied"
+
+
+def test_no_trade_not_satisfied_when_steady_regime_degrades() -> None:
+    baseline = _fake_report(
+        {
+            "cessation": _regime_block(20, 0.0),
+            "static": _regime_block(50, 0.95),
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    candidate = _fake_report(
+        {
+            "cessation": _regime_block(20, 0.9, mixture_coverage=0.9),
+            "static": _regime_block(50, 0.5, mixture_coverage=0.5),  # degraded
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    verdict = ee._no_trade_verdict("A", baseline, "C", candidate)
+    assert verdict["cessation_improved"] is True
+    assert verdict["any_steady_degraded"] is True
+    assert verdict["status"] == "not_satisfied"
+
+
+def test_no_trade_not_satisfied_when_cessation_does_not_improve_materially() -> None:
+    baseline = _fake_report(
+        {
+            "cessation": _regime_block(20, 0.90),
+            "static": _regime_block(50, 0.95),
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    candidate = _fake_report(
+        {
+            "cessation": _regime_block(20, 0.91, mixture_coverage=0.91),
+            "static": _regime_block(50, 0.95),
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    verdict = ee._no_trade_verdict("A", baseline, "C", candidate)
+    assert verdict["cessation_improved"] is False
+    assert verdict["status"] == "not_satisfied"
+
+
+def test_no_trade_degradation_tolerance_absorbs_small_wiggle() -> None:
+    """A steady regime moving slightly further from nominal, within
+    NO_TRADE_DEGRADATION_TOLERANCE, must not count as a regression."""
+    baseline = _fake_report(
+        {
+            "cessation": _regime_block(20, 0.0),
+            "static": _regime_block(50, 0.95),
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    candidate = _fake_report(
+        {
+            "cessation": _regime_block(20, 0.9, mixture_coverage=0.9),
+            "static": _regime_block(50, 0.94, mixture_coverage=0.94),  # tiny wiggle
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    verdict = ee._no_trade_verdict("A", baseline, "C", candidate)
+    assert verdict["any_steady_degraded"] is False
+    assert verdict["status"] == "satisfied"
+
+
+# ---------------------------------------------------------------------------
+# Day 22, Objective 3 -- CONFIG_SPECS
+# ---------------------------------------------------------------------------
+
+
+def test_config_specs_cover_all_four_configs() -> None:
+    assert set(ee.CONFIG_SPECS) == {"A", "B", "C", "D"}
+    assert ee.CONFIG_SPECS["A"] == ("single_model", False)
+    assert ee.CONFIG_SPECS["B"] == ("single_model", True)
+    assert ee.CONFIG_SPECS["C"] == ("imm", False)
+    assert ee.CONFIG_SPECS["D"] == ("imm", True)
