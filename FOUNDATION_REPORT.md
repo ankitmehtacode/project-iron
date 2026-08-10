@@ -4890,3 +4890,338 @@ exactly. `main` rejected, unchanged. `git push --tags`: up to date.
 16. **MEVA licence verification** — still blocked on a human.
 17. **Hypothesis management** — furthest out; depends on item 5.
 
+# Day 21
+
+**No timing, throughput, CPU-percentage, or latency claim is made anywhere
+in this section** — unchanged hard scope rule from Day 20. Everything
+below is accuracy and consistency: position/velocity error against exact
+GT, NIS/NEES, innovation whiteness, and IMM mode probabilities.
+
+**Headline: IMM was built on solid diagnostic evidence, and today's
+specific configuration does not clear the bar to replace the Day-20
+single-model filter.** Its pooled NEES coverage is *worse* than the
+single model on both golden sets — not a regression hidden behind an
+improving aggregate (the pattern this project has caught four times
+before: constant depth on the dominant plane, position-only retrieval,
+always-wake gate parity, bounded nulls read as physical limits), but a
+regression the aggregate itself already shows, before any per-regime
+breakdown. On v3-indoor's sustained regime specifically — the one regime
+Day 20/21 already knew the single model handled well — IMM makes *both*
+accuracy and calibration worse. It also roughly quarters position error
+in v4.1-gate's static frames while making their calibration worse. The
+diagnosis that motivated building IMM (§ Objective 2 below) stands;
+today's mode set and transition matrix do not yet deliver it. The Day-20
+single-model filter remains what should be used until this is resolved
+— see Day 22, item 1.
+
+## Objective 0 — push, start and end of day
+
+Start of day: `foundation/day-21` branched from `foundation/day-20`
+(`777b7a9`), pushed clean, verified local HEAD matched
+`origin/foundation/day-21` exactly. `main` rejected, unchanged since Day
+16.
+
+## Objective 1 — the missing baseline margin: found, closed
+
+Day 20's report showed the pooled and per-distance-bucket margin
+(`estimator.position_rmse_m` vs `copy_previous_position` and
+`constant_velocity_no_update`), but the distance-bucket table itself only
+carried the *filter's* RMSE, not the baselines' — so a reader could not
+see the margin *within* a bucket, only pooled across the whole set. That
+was a real gap, not a task: the code already collected everything needed,
+it just was not surfaced. `scripts/eval_estimator.py` now reports filter /
+copy-previous / constant-velocity-no-update RMSE and both margins per
+distance bucket **and** per motion regime (the latter only became possible
+once Objective 2's regime classifier existed). Pooled margins were, and
+remain, clearly positive on both sets (v3-indoor +0.105 m vs
+copy-previous, +2.85 m/s vs constant-velocity; v4.1-gate +0.026 m /
++4.07 m/s) — the earlier finding stands, now with the bucket-level
+evidence to back it instead of just the pooled number.
+
+## Objective 2 — regime diagnosis, confirmed by innovation whiteness
+
+**Regime frame counts** (GT-classified, `src/estimator/regime.py`,
+static > onset > cessation > maneuver > sustained priority):
+
+| set | static | onset | sustained | cessation | maneuver |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| v3-indoor | 38 | 284 | 2414 | 0 | 0 |
+| v4.1-gate | 175 | 12 | 0 | 3 | 0 |
+
+`maneuver` is empty on both sets by construction, not by omission: every
+v3-indoor/v4.1-gate agent walks one straight line at one constant speed
+(`scripts/gen_synthetic_indoor.py`'s `Agent.position_at`) — there is no
+heading or speed change mid-path anywhere in this dataset for the
+classifier to find. Only real (Site Zero) footage can exercise that
+regime. `cessation` (n=3) and `sustained` on v4.1-gate (n=0) are both too
+thin to support a conclusion on their own and are reported flagged, not
+hidden.
+
+**Per-regime NEES coverage** (single model, target 0.95):
+
+| set | regime | n | coverage | reading |
+| --- | --- | ---: | ---: | --- |
+| v3-indoor | static | 38 | 1.0000 | — |
+| v3-indoor | onset | 284 | 0.9648 | well-calibrated |
+| v3-indoor | sustained | 2414 | 0.9938 | well-calibrated |
+| v4.1-gate | static | 175 | 0.8171 | overconfident |
+| v4.1-gate | onset | 12 | 0.8333 | overconfident (thin) |
+| v4.1-gate | cessation | 3 | 0.0000 | overconfident (very thin) |
+
+**The prediction under test was that onset and maneuver would fail high.
+The data does not agree with that attribution, though it agrees a real
+failure exists.** v3-indoor's onset is well-calibrated (96.5%, white
+innovations — see below). Tracing one `brief_entry` track frame by frame
+pinned the actual mechanism precisely:
+
+```
+frame  regime      NEES     bound   within
+ 0-3   onset       0.8-2.2  12.59   True        <- fine
+ 4     cessation   165.6    12.59   False       <- the stop itself
+ 5-14  static      815->16  12.59   False (all) <- decaying tail
+15+    static      <10      12.59   True        <- settled
+```
+
+NEES decays roughly exponentially over ~10-14 frames after the stop,
+before the filter's covariance — tight from the preceding walk — catches
+up to the fact that velocity has actually gone to zero. **The failure is
+specifically the frames following cessation, not onset.** Onset was
+already fine under the single `constant_velocity` model.
+
+**Innovation whiteness — the deciding evidence** (pooled, track-boundary-
+respecting lag-1 autocorrelation, Bartlett's 95% bound):
+
+| set | scope | lag1 autocorr | bound | verdict |
+| --- | --- | ---: | ---: | --- |
+| v3-indoor | pooled | −0.108 | ±0.038 | NOT WHITE |
+| v3-indoor | sustained only | −0.119 | ±0.041 | NOT WHITE (mild) |
+| v3-indoor | onset only | +0.037 | ±0.134 | WHITE |
+| v3-indoor | static only | −0.295 | ±0.322 | WHITE (n too small to reject) |
+| v4.1-gate | pooled | +0.837 | ±0.144 | NOT WHITE (severe) |
+| v4.1-gate | static only | +0.850 | ±0.150 | NOT WHITE (severe) |
+
+A correctly-specified-but-mistuned filter still produces white
+innovations — only the calibration would be off, not the correlation
+structure. Both sets show real, non-white structure (v4.1-gate severely
+so), which is direct evidence of **model mis-specification**, not a
+tuning problem. Per the day's own hard constraint, no Q was retuned to
+chase this. **Diagnosis confirmed → proceed to Objective 3.**
+
+v3-indoor's sustained regime showing mild negative autocorrelation is
+itself informative and is not the failure being chased here: v3-indoor's
+walkers move in a mathematically exact straight line at exact constant
+velocity (zero true process noise), while the single model's `person`
+`Q` assumes nonzero acceleration noise — a small, expected mismatch
+between an idealized synthetic track and a Q sized for a real pedestrian,
+not the maneuvering-target problem this day is about.
+
+## Objective 3 — IMM: built
+
+`src/estimator/imm.py`. Three modes — `static`, `constant_velocity`
+(Day 20's `person` model, unchanged), `maneuvering` (new, high-Q) — sized
+to what was actually measured: onset needed nothing (already fine), so a
+fourth mode for it would have solved a problem the data did not show.
+Standard IMM cycle (mixing → mode-matched filtering → mode-probability
+update → combination), config-driven and versioned transition matrix
+(`ImmConfig.sha`). `StateEstimate` gained `imm_config_sha` and
+`mode_probabilities` (both optional, backward compatible;
+`require_comparable` extended to a four-way key when set). §17's prior
+firewall re-tested on the new code path (`inspect.signature`, no
+parameter carries a prior; mode probabilities derive only from
+observation likelihoods, starting uniform at bootstrap).
+
+**A real bug found and fixed before this landed.** The first `static`
+mode reused `asset_static`'s tight-Q *constant-velocity* model — which
+shares the identical velocity-to-position `F` with every other mode, so
+any velocity mixed in from another mode kept propagating just as well as
+under `constant_velocity`. It only claimed a *tighter* covariance while
+doing so, which let it win the mode-probability contest on covariance
+width alone, including during a clean, noiseless, pure 0.5 m/s walk
+(99.97% "static" by the last frame — a filter this cheap to fool would
+say more about the mode contest than the target). Fixed with
+`NearlyConstantPositionMotionModel`: no velocity-to-position coupling in
+`F` at all — position genuinely does not move in this mode, however
+confident or not that claim is. This is exactly the kind of thing a
+"measure before rebuilding" day is supposed to catch before it ships, not
+after.
+
+## Objective 4 — re-evaluated per regime: no-trade criterion NOT satisfied
+
+Same observations for both filters (identical seed, identical draw
+order) so the comparison is about the filter, not about which noise draw
+each one got.
+
+**Pooled NEES coverage, single-model vs IMM:**
+
+| set | single-model | IMM | reading |
+| --- | ---: | ---: | --- |
+| v3-indoor | 0.9909 | 0.6886 | **worse** |
+| v4.1-gate | 0.8053 | 0.4632 | **worse** |
+
+This is stated first because it means the per-regime table below is not
+a case of "the aggregate looks fine but hides a regression" — the
+aggregate itself already fails on both sets.
+
+**Per regime, single-model → IMM:**
+
+| set | regime | n | coverage: single → IMM | position RMSE: single → IMM |
+| --- | --- | ---: | --- | --- |
+| v3-indoor | static | 38 | 1.0000 → 1.0000 | 0.085 m → 0.044 m |
+| v3-indoor | onset | 284 | 0.9648 → 0.9014 | 0.156 m → 0.147 m |
+| v3-indoor | sustained | 2414 | **0.9938 → 0.6587** | **0.114 m → 0.205 m** |
+| v4.1-gate | static | 175 | **0.8171 → 0.4343** | 0.237 m → 0.060 m |
+| v4.1-gate | onset | 12 | 0.8333 → 0.9167 | 0.190 m → 0.194 m |
+| v4.1-gate | cessation | 3 (thin) | 0.0000 → 0.3333 | 0.159 m → 0.143 m |
+
+**Acceptance criterion, stated in advance: onset/maneuver coverage moves
+materially toward nominal AND static/sustained do not degrade. Evaluated
+explicitly, both sets: NOT SATISFIED.**
+
+- v3-indoor: no transient regime improved materially (onset actually
+  moved *away* from nominal, 96.5%→90.1%), and sustained — a steady
+  regime — degraded severely (99.4%→65.9% coverage, RMSE nearly doubled).
+- v4.1-gate: static — a steady regime — degraded severely (81.7%→43.4%),
+  even though its accuracy improved a great deal (0.237m→0.060m).
+
+**The v4.1-gate static result is the sharpest, most important number
+today and deserves its own sentence: IMM cut position error to roughly a
+quarter while making the filter's own stated confidence in that estimate
+measurably less honest.** The mechanism is legible: `NearlyConstantPositionMotionModel`'s
+process noise is tight enough to genuinely improve raw accuracy once IMM
+locks onto the static mode, but the combined covariance shrinks faster
+than the actual residual distribution's tails, so the reported
+uncertainty band no longer covers the real error as often as it claims
+to. Accuracy and calibration are not the same axis, and this is a clean
+demonstration that they can move in opposite directions from the same
+change.
+
+**Why sustained got worse under IMM (v3-indoor) is the more concerning
+result, because that regime needed no fix.** The most likely mechanism:
+`ImmConfig`'s transition matrix keeps re-mixing a small, constant share
+(2.5% each, at `persistence_probability=0.95`) of the `static` and
+`maneuvering` modes' less-accurate predictions into the combined output
+on *every* step, even once mode probability has converged strongly
+toward `constant_velocity` — a standing tax on a regime that already had
+none of the disease. This is stated as the likely mechanism, not
+confirmed by a second measurement — an actual test of it (e.g. a stickier
+matrix, or a probability floor before blending) is Day 22's first item,
+not something to chase today per the day's own instruction against
+iterating a model to force a target number.
+
+**Day-10 validity gate:** re-run, **PASSED** on both sets (unchanged —
+gating logic does not depend on which filter scored the set).
+**Falsification test 5:** re-run, still **PASSES/PARTIAL** exactly as Day
+20 left it (`tests/test_falsification.py`, 8/8 green) — it exercises the
+single-model path, which is unaffected by anything built today.
+
+## Objective 5 — mode probability: documented as a product output, not wired in
+
+`StateEstimate.mode_probabilities` (built in Objective 3) is the IMM's
+directly-useful output, not an internal quantity — documented, along with
+a new `dominant_mode()` convenience accessor, with its actual intended
+consumers named directly in the docstring: POSE verbs ("sat", "stood")
+and dwell detection keyed off a sustained `static`-family mode; motion-
+onset event triggering keyed off a shift away from one; and the motion
+gate scorecard's existing `low_activity` classification
+(`src/data/golden.py`, Day 15/16), which already tries to characterize
+the same thing from outside the estimator's own view of it.
+
+**Not wired into the event compiler today, and stated as uncalibrated in
+the docstring itself** — Objective 4 just measured that the *combined
+estimate's* covariance is overconfident in some regimes, and mode
+probability has never been checked against real motion labels at all.
+Validating it is its own future objective, not assumed by exposing the
+field.
+
+## What remains skeleton, and the order it should land in
+
+1. **IMM's mixing overhead on steady regimes** (new finding, today) — the
+   most urgent gap, ahead of everything below: shipping IMM without
+   understanding why it degrades an already-good regime would repeat
+   Day 20's own mistake in a new shape.
+2. **Multi-entity factor graph.** Unchanged from Day 20 — still needed
+   before `asset_carried`'s rigid-coupling interface does anything.
+3. **Smoothing** (`horizon_kind="smoothed"`). Still secondary — smoothing
+   a filter whose calibration is not yet trustworthy tightens a number
+   that is not yet honest, rather than making it more honest.
+4. **Hypothesis management.** Furthest out; depends on multi-entity
+   association existing first.
+5. **Mode-probability validation against real motion labels** (new, from
+   Objective 5) — required before any of Objective 5's documented
+   consumers (POSE verbs, dwell detection, motion-onset triggering,
+   `low_activity`) may actually be wired up.
+
+## Full suite and mypy
+
+`mypy` (scoped per `mypy.ini`, unchanged file list — `src/estimator`
+already covered every new Day-21 module): **0 errors, 58 files**, up from
+Day 20's 55. Repo-wide (`.venv-pinned`, `not requires_weights and not
+slow`): **918 passed, 1 skipped, 8 deselected, 0 failures** — up from Day
+20's 871 (+47: regime classification, innovation diagnostics, IMM
+structural/behavioural tests, the eval-script comparison harness, and the
+`dominant_mode()` accessor). `black --check .` / `flake8 .` show
+pre-existing formatting/lint drift in ~25 files from earlier days,
+unrelated to anything touched today (confirmed by diff — none are files
+this session modified); every file touched today is clean under both.
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 20 — today's work was
+entirely unblocked by design, same as Day 20:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification.**
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 9 days old.
+5. **The `main`/`origin/main` divergence decision (ADR 0009).**
+6. **Reference hardware procurement decision** (`docs/reference_hardware.md`)
+   — unchanged since Day 19.
+
+## Objective 0/6 — push, end of day
+
+`git push --all origin`: `foundation/day-21` pushed clean, matches origin
+exactly. `main` rejected, unchanged. `git push --tags`: up to date.
+
+## Day 22, in order
+
+1. **Investigate IMM's mixing overhead on steady regimes** — why does a
+   3% (approx.) standing mixture of `static`/`maneuvering` modes measurably
+   degrade `constant_velocity`'s already-good calibration on v3-indoor's
+   sustained frames? Candidate fixes to *measure*, not assume: a stickier
+   transition matrix (higher `persistence_probability`), a minimum
+   mode-probability floor before a mode contributes to the combination,
+   or reconsidering whether `maneuvering`'s Q is simply too wide relative
+   to what a converged `constant_velocity` estimate needs protecting
+   from. Re-run `scripts/eval_estimator.py --filter both` against the
+   same acceptance criterion — do not consider IMM ready until it passes.
+2. **Investigate v4.1-gate static's accuracy/calibration trade** —
+   confirm the "covariance shrinks faster than the tail" mechanism with a
+   second measurement (e.g. the empirical error distribution's kurtosis
+   in that regime) before deciding whether `NearlyConstantPositionMotionModel`'s
+   process noise needs a floor.
+3. **Reference hardware decision** — still pending a human, now 3 days
+   old.
+4. **Declare a target fps for real camera ingest** — still open from Day
+   19.
+5. **Cascade bench, clean, on interim or reference hardware** — still
+   pending hardware.
+6. **Depth validity re-measurement** (`scripts/eval_depth.py`) — still
+   deferred from Day 18/19.
+7. **The `main`/`origin/main` decision** (ADR 0009) — a human call.
+8. **Multi-entity factor graph** — depends on item 1 landing first.
+9. **Smoothing (`horizon_kind="smoothed"`)** — depends on item 1.
+10. **Mode-probability validation against real motion labels** — depends
+    on item 1/2; needed before any Objective-5 consumer is wired up.
+11. **The generator has no sensor-noise model** — unchanged.
+12. **Order cameras and run the office capture** — now 9 days old.
+13. **The motion-gate precision/selectivity investigation** — ten days
+    deferred.
+14. **Steer callers away from `raise_alert()` toward `emit_alert()`** —
+    still open from Day 14.
+15. **A canonical `Observation -> hash` function** (ADR 0007) — still
+    open from Day 13.
+16. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced** — unchanged.
+17. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+18. **MEVA licence verification** — still blocked on a human.
+19. **Hypothesis management** — furthest out; depends on item 8.
