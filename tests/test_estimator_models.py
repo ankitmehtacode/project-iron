@@ -204,9 +204,7 @@ def test_velocity_covariance_floor_enabled_for_person() -> None:
     )
 
 
-def test_velocity_covariance_floor_for_asset_carried_uses_person_bound_not_its_own_sigma() -> (
-    None
-):
+def test_asset_carried_floor_uses_person_bound_not_its_own_sigma() -> None:
     """asset_carried 'inherits its carrier's bound' (Day 22 Objective 2):
     the floor must come from PERSON_SIGMA_A_MPS2, not asset_carried's own
     (larger) ASSET_CARRIED_SIGMA_A_MPS2 process-noise density."""

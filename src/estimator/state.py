@@ -250,7 +250,8 @@ class StateEstimate:
                 "checks (Day 22) have nothing to compute against"
             )
         if self.mode_states is not None:
-            prob_names = {name for name, _ in self.mode_probabilities}  # type: ignore[union-attr]
+            assert self.mode_probabilities is not None  # checked just above
+            prob_names = {name for name, _ in self.mode_probabilities}
             state_names = {name for name, _, _ in self.mode_states}
             if prob_names != state_names:
                 raise StateEstimateError(

@@ -182,7 +182,10 @@ def compute_collapsed_gaussian_nees_diagnostic(
         dof=residual.dof,
         chi2_bound=residual.chi2_bound,
         within_bound=residual.within_bound,
-        note="diagnostic only: mixture collapsed to (mean, cov), then tested as Gaussian",
+        note=(
+            "diagnostic only: mixture collapsed to (mean, cov), then "
+            "tested as Gaussian"
+        ),
     )
 
 
