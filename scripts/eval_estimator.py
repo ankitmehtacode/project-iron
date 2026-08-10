@@ -35,12 +35,18 @@ needs only one prior observation. Comparing them from frame 1 would let
 ``constant_velocity_no_update`` score using observation 1 as its own
 "prediction" of observation 1 — a walkover, not a baseline.
 
-Day 21 adds two things per scored frame: a GT motion regime (classified
+Day 21 adds three things. Per scored frame: a GT motion regime (classified
 from exact GT alone, never from the filter's own estimate — see
-:mod:`src.estimator.regime`) and a standardized innovation (for the
-whiteness diagnostic, :mod:`src.estimator.diagnostics`), reconstructed by
-replaying the same predict step the filter itself took, using only the
-filter's public ``F``/``Q``/``H``/``R`` interface.
+:mod:`src.estimator.regime`) and, for the single-model filter, a
+standardized innovation (for the whiteness diagnostic,
+:mod:`src.estimator.diagnostics`), reconstructed by replaying the same
+predict step the filter itself took, using only the filter's public
+``F``/``Q``/``H``/``R`` interface. And per golden set: the same evaluation
+re-run with :mod:`src.estimator.imm` in place of the single-model filter
+(``--filter both``, the default), so the two can be compared per regime —
+innovation whiteness is not recomputed for IMM (it has no single innovation
+sequence — it has one per mode — and was not the requested comparison;
+IMM's per-mode NIS is already attached to every estimate it produces).
 
 Exit codes:
     0  every requested set was scored (or cleanly empty)
@@ -55,7 +61,7 @@ import json
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -69,6 +75,7 @@ from src.eval.baselines import compute_baselines, margin, require_baseline
 from src.estimator.consistency import compute_nees, fraction_outside_bound
 from src.estimator.diagnostics import is_white
 from src.estimator.filter import run_single_entity_filter
+from src.estimator.imm import ImmConfig, default_imm_config, run_imm_filter
 from src.estimator.measurement_model import MeasurementModel, measurement_model_for
 from src.estimator.motion_model import MotionModel, motion_model_for
 from src.estimator.regime import MOTION_REGIMES, MotionRegime, classify_track
@@ -79,6 +86,8 @@ from src.model.measurement import WorldPositionMeasurement
 from src.model.observation import Observation
 from src.model.uncertainty import Uncertainty
 from src.model.ulid import generate_ulid
+
+FilterKind = Literal["single_model", "imm"]
 
 FloatArray = npt.NDArray[np.float64]
 
@@ -299,6 +308,101 @@ def _evaluate_track(
     return result
 
 
+def _evaluate_track_imm(
+    track_xyz: FloatArray,
+    extrinsics: FloatArray,
+    sensor_id: str,
+    fps: float,
+    imm_config: ImmConfig,
+    measurement_model: MeasurementModel,
+    rng: np.random.Generator,
+) -> TrackResult | None:
+    """The IMM counterpart of :func:`_evaluate_track`.
+
+    Same observations (same ``rng`` draw sequence -- a caller evaluating
+    both filters on the same track should construct a fresh ``rng`` at the
+    same seed for each, so both see IDENTICAL noisy observations; see
+    :func:`_score_golden_set`), same regimes, same baselines, same NEES.
+    Innovation whiteness is not computed here — IMM has no single
+    innovation sequence (see module docstring) — every ``FrameRecord``
+    carries ``standardized_innovation_x=None``.
+    """
+    frames = track_xyz.shape[0]
+    if frames <= FIRST_COMPARABLE_INDEX:
+        return None
+
+    observations = _make_observations(
+        track_xyz, extrinsics, measurement_model, fps, sensor_id, rng
+    )
+    camera_position = _camera_position_world(extrinsics)
+
+    graph = StateGraph()
+    run_imm_filter(
+        graph,
+        observations,
+        imm_config,
+        measurement_model,
+        manifest_sha="scripts/eval_estimator.py",
+        sensor_origin_m=tuple(camera_position.tolist()),  # type: ignore[arg-type]
+    )
+
+    dt_s = 1.0 / fps
+    gt_velocity = np.zeros_like(track_xyz)
+    gt_velocity[1:] = (track_xyz[1:] - track_xyz[:-1]) / dt_s
+    gt_velocity[0] = gt_velocity[1]
+
+    regimes = classify_track(track_xyz, dt_s)
+
+    obs_xyz = np.array([_xyz(o) for o in observations])
+    cv_velocity = (obs_xyz[1] - obs_xyz[0]) / dt_s
+    cv_position = obs_xyz[1].copy()
+
+    result = TrackResult()
+    for t in range(1, frames):
+        if t >= 2:
+            cv_position = cv_position + cv_velocity * dt_s
+
+        query = StateQuery(
+            at_ts_ns=observations[t].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev
+        )
+        estimate = solve_state(query, graph)
+
+        gt_pos = track_xyz[t]
+        distance = _camera_depth_m(gt_pos, extrinsics)
+
+        if t < FIRST_COMPARABLE_INDEX:
+            continue
+
+        pos_err = estimate.position_m() - gt_pos
+        vel_err = estimate.velocity_mps() - gt_velocity[t]
+        full_gt = np.concatenate([gt_pos, gt_velocity[t]])
+        error6 = estimate.mean_array() - full_gt
+
+        prev_obs = obs_xyz[t - 1]
+        copy_previous_err = prev_obs - gt_pos
+        cv_err = cv_position - gt_pos
+        cv_vel_err = cv_velocity - gt_velocity[t]
+
+        result.frames.append(
+            FrameRecord(
+                regime=regimes[t],
+                distance_m=distance,
+                position_sq_error=float(np.dot(pos_err, pos_err)),
+                axis_sq_error=pos_err**2,
+                velocity_sq_error=float(np.dot(vel_err, vel_err)),
+                nees=compute_nees(error6, estimate.cov_array()),
+                standardized_innovation_x=None,
+                copy_previous_sq_error=float(
+                    np.dot(copy_previous_err, copy_previous_err)
+                ),
+                cv_no_update_sq_error=float(np.dot(cv_err, cv_err)),
+                cv_no_update_velocity_sq_error=float(np.dot(cv_vel_err, cv_vel_err)),
+            )
+        )
+
+    return result
+
+
 def _rmse(sq_errors: list[float]) -> float:
     return float(np.sqrt(np.mean(sq_errors))) if sq_errors else float("nan")
 
@@ -355,7 +459,11 @@ def _innovation_block(records: list[list[float]]) -> dict[str, Any]:
 
 
 def _score_golden_set(
-    version: str, root: Path, config: IronConfig
+    version: str,
+    root: Path,
+    config: IronConfig,
+    filter_kind: FilterKind = "single_model",
+    imm_config: ImmConfig | None = None,
 ) -> dict[str, Any] | None:
     try:
         golden = load_golden_set(root, version)
@@ -389,10 +497,15 @@ def _score_golden_set(
             print("  No accuracy metric is emitted. The refusal IS the result.")
             return {"version": version, "refused": True, "reason": verdict.reason}
 
+    if filter_kind == "imm" and imm_config is None:
+        imm_config = default_imm_config()
     motion_model = motion_model_for("person")
     measurement_model = measurement_model_for(
         sensor=version, capability="state_estimation"
     )
+    # Same seed regardless of filter_kind: both filters must see IDENTICAL
+    # noisy observations for the Objective-4 comparison to be about the
+    # filter, not about which draw of noise each one happened to get.
     rng = np.random.default_rng(EVAL_SEED)
 
     tracks_scored = 0
@@ -419,15 +532,27 @@ def _score_golden_set(
 
         for agent_index in range(n_agents):
             track = agent_xyz[:, agent_index, :]
-            result = _evaluate_track(
-                track,
-                extrinsics,
-                clip.clip_id,
-                fps,
-                motion_model,
-                measurement_model,
-                rng,
-            )
+            if filter_kind == "imm":
+                assert imm_config is not None
+                result = _evaluate_track_imm(
+                    track,
+                    extrinsics,
+                    clip.clip_id,
+                    fps,
+                    imm_config,
+                    measurement_model,
+                    rng,
+                )
+            else:
+                result = _evaluate_track(
+                    track,
+                    extrinsics,
+                    clip.clip_id,
+                    fps,
+                    motion_model,
+                    measurement_model,
+                    rng,
+                )
             if result is None:
                 continue
             tracks_scored += 1
@@ -509,12 +634,14 @@ def _score_golden_set(
 
     return {
         "version": version,
+        "filter_kind": filter_kind,
         "refused": False,
         "tracks_scored": tracks_scored,
         "clips_with_no_agents": clips_with_no_agents,
         "points_scored": len(all_records),
         "motion_model_sha": motion_model.sha,
         "measurement_model_sha": measurement_model.sha,
+        "imm_config_sha": imm_config.sha if imm_config is not None else None,
         "position": {
             "rmse_m": position_rmse,
             "axis_rmse_m_xyz": axis_rmse,
@@ -643,6 +770,126 @@ def _print_report(report: dict[str, Any]) -> None:
     )
 
 
+NO_TRADE_TRANSIENT_REGIMES = ("onset", "cessation", "maneuver")
+NO_TRADE_STEADY_REGIMES = ("static", "sustained")
+NO_TRADE_MATERIAL_IMPROVEMENT = 0.05
+"""A transient regime's empirical coverage must close its gap to the 0.95
+nominal by at least this much (in coverage points) for IMM to count as
+having "moved materially toward nominal" there. Declared, not fitted."""
+NO_TRADE_DEGRADATION_TOLERANCE = 0.02
+"""A steady regime's coverage may move at most this much FURTHER from
+nominal under IMM before it counts as "degraded" -- allows for sampling
+noise between two runs on the same (identical, same-seed) observations
+without calling every microscopic wiggle a regression."""
+
+
+def _print_comparison(
+    single_report: dict[str, Any], imm_report: dict[str, Any]
+) -> dict[str, Any]:
+    """Objective 4: single-model vs IMM, per regime, plus the no-trade verdict.
+
+    Returns the verdict as data (not just printed text) since Objective 6's
+    report needs to cite it precisely.
+    """
+    version = single_report["version"]
+    print("=" * 78)
+    print(f"SINGLE-MODEL vs IMM, per regime: {version}")
+    print("=" * 78)
+
+    verdict: dict[str, Any] = {"version": version, "regimes": {}}
+    any_transient_improved = False
+    any_steady_degraded = False
+
+    for name in MOTION_REGIMES:
+        single_block = single_report.get("by_regime", {}).get(name, {})
+        imm_block = imm_report.get("by_regime", {}).get(name, {})
+        n_single = single_block.get("n", 0)
+        n_imm = imm_block.get("n", 0)
+        if n_single == 0 and n_imm == 0:
+            print(f"  {name:12} n=0 in both (empty)")
+            continue
+
+        single_cov = single_block.get("consistency", {}).get(
+            "empirical_coverage_95", float("nan")
+        )
+        imm_cov = imm_block.get("consistency", {}).get(
+            "empirical_coverage_95", float("nan")
+        )
+        single_dev = (
+            abs(single_cov - 0.95) if not np.isnan(single_cov) else float("nan")
+        )
+        imm_dev = abs(imm_cov - 0.95) if not np.isnan(imm_cov) else float("nan")
+        delta = (
+            single_dev - imm_dev
+            if not (np.isnan(single_dev) or np.isnan(imm_dev))
+            else float("nan")
+        )  # positive = IMM closer to nominal than single-model was
+
+        regime_kind = "transient" if name in NO_TRADE_TRANSIENT_REGIMES else "steady"
+        print(
+            f"  {name:12} n={n_single:5}->{n_imm:<5}  "
+            f"coverage: single {single_cov:.4f} -> IMM {imm_cov:.4f}  "
+            f"(delta-toward-nominal {delta:+.4f})  [{regime_kind}]"
+        )
+        single_pos = single_block.get("filter_rmse_m", float("nan"))
+        imm_pos = imm_block.get("filter_rmse_m", float("nan"))
+        print(
+            f"               position RMSE: single {single_pos:.4f} m -> "
+            f"IMM {imm_pos:.4f} m"
+        )
+
+        verdict["regimes"][name] = {
+            "n_single": n_single,
+            "n_imm": n_imm,
+            "single_coverage": single_cov,
+            "imm_coverage": imm_cov,
+            "delta_toward_nominal": delta,
+            "kind": regime_kind,
+            "single_position_rmse_m": single_pos,
+            "imm_position_rmse_m": imm_pos,
+        }
+
+        if (
+            regime_kind == "transient"
+            and not np.isnan(delta)
+            and delta >= NO_TRADE_MATERIAL_IMPROVEMENT
+        ):
+            any_transient_improved = True
+        if (
+            regime_kind == "steady"
+            and not np.isnan(delta)
+            and delta < -NO_TRADE_DEGRADATION_TOLERANCE
+        ):
+            any_steady_degraded = True
+            print(
+                f"    ** REGRESSION: {name} moved {abs(delta):.4f} FURTHER "
+                "from nominal coverage under IMM **"
+            )
+
+    no_trade_satisfied = any_transient_improved and not any_steady_degraded
+    verdict["any_transient_improved"] = any_transient_improved
+    verdict["any_steady_degraded"] = any_steady_degraded
+    verdict["no_trade_satisfied"] = no_trade_satisfied
+
+    print()
+    if no_trade_satisfied:
+        print(
+            "NO-TRADE CRITERION: SATISFIED -- a transient regime improved "
+            "materially toward nominal coverage, and no steady regime degraded."
+        )
+    else:
+        print("NO-TRADE CRITERION: NOT SATISFIED.")
+        if not any_transient_improved:
+            print(
+                "  - no transient regime (onset/cessation/maneuver) improved "
+                "materially toward nominal coverage"
+            )
+        if any_steady_degraded:
+            print("  - at least one steady regime (static/sustained) degraded")
+    print()
+    return verdict
+
+
 def _nan_to_none(value: Any) -> Any:
     """NaN is not valid JSON (Day 18: ``src.data.scorecard``'s ``Undefined``
     exists for exactly this reason). An empty distance bucket or an
@@ -669,6 +916,12 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--root", default=None)
     parser.add_argument("--artifact-dir", default=None, type=Path)
+    parser.add_argument(
+        "--filter",
+        choices=("single_model", "imm", "both"),
+        default="both",
+        help="which filter(s) to score; 'both' also prints the per-regime comparison",
+    )
     args = parser.parse_args(argv)
 
     config = IronConfig.load()
@@ -678,20 +931,34 @@ def main(argv: list[str] | None = None) -> int:
         else config.paths.resolve(config.eval.golden_sets_dir)
     )
     versions = args.version or ["v3-indoor", "v4.1-gate"]
+    if args.filter == "both":
+        kinds: list[FilterKind] = ["single_model", "imm"]
+    else:
+        kinds = [args.filter]
 
     reports = []
+    comparisons = []
     any_refused_or_failed = False
     for version in versions:
-        report = _score_golden_set(version, root, config)
-        if report is None:
-            print(f"Available: {available_versions(root) or 'none'}", file=sys.stderr)
-            any_refused_or_failed = True
-            continue
-        reports.append(report)
-        _print_report(report)
-        print()
-        if report.get("refused"):
-            any_refused_or_failed = True
+        per_kind: dict[str, dict[str, Any]] = {}
+        for kind in kinds:
+            report = _score_golden_set(version, root, config, filter_kind=kind)
+            if report is None:
+                print(
+                    f"Available: {available_versions(root) or 'none'}", file=sys.stderr
+                )
+                any_refused_or_failed = True
+                continue
+            reports.append(report)
+            per_kind[kind] = report
+            _print_report(report)
+            print()
+            if report.get("refused"):
+                any_refused_or_failed = True
+
+        if "single_model" in per_kind and "imm" in per_kind:
+            verdict = _print_comparison(per_kind["single_model"], per_kind["imm"])
+            comparisons.append(verdict)
 
     if args.artifact_dir:
         args.artifact_dir.mkdir(parents=True, exist_ok=True)
@@ -700,7 +967,10 @@ def main(argv: list[str] | None = None) -> int:
         # misses a spot, this raises instead of silently writing invalid
         # JSON, the same way scorecard.py refuses a bare NaN at emission.
         payload = json.dumps(
-            _nan_to_none(reports), indent=2, sort_keys=True, allow_nan=False
+            _nan_to_none({"reports": reports, "comparisons": comparisons}),
+            indent=2,
+            sort_keys=True,
+            allow_nan=False,
         )
         out.write_text(payload + "\n")
         print(f"Written: {out}")

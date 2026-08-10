@@ -89,10 +89,10 @@ def test_evaluate_track_on_a_straight_line_walker() -> None:
     )
 
     assert result is not None
-    assert len(result.position_sq_errors) == frames - ee.FIRST_COMPARABLE_INDEX
-    filter_rmse = ee._rmse(result.position_sq_errors)
-    copy_previous_rmse = ee._rmse(result.copy_previous_sq_errors)
-    cv_rmse = ee._rmse(result.cv_no_update_sq_errors)
+    assert len(result.frames) == frames - ee.FIRST_COMPARABLE_INDEX
+    filter_rmse = ee._rmse([r.position_sq_error for r in result.frames])
+    copy_previous_rmse = ee._rmse([r.copy_previous_sq_error for r in result.frames])
+    cv_rmse = ee._rmse([r.cv_no_update_sq_error for r in result.frames])
 
     # On a genuinely constant-velocity track with small measurement noise,
     # the filter should be competitive with (not necessarily always beat --
@@ -104,7 +104,7 @@ def test_evaluate_track_on_a_straight_line_walker() -> None:
     # for -- this just confirms the baseline computed something sane, not a
     # NaN or a wildly divergent number.
     assert np.isfinite(cv_rmse)
-    assert all(0.0 <= d for d in result.distances_m)
+    assert all(0.0 <= r.distance_m for r in result.frames)
 
 
 def test_evaluate_track_too_short_returns_none() -> None:

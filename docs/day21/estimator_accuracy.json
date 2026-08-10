@@ -1,0 +1,822 @@
+{
+  "comparisons": [
+    {
+      "any_steady_degraded": true,
+      "any_transient_improved": false,
+      "no_trade_satisfied": false,
+      "regimes": {
+        "onset": {
+          "delta_toward_nominal": -0.033802816901408295,
+          "imm_coverage": 0.9014084507042254,
+          "imm_position_rmse_m": 0.1465673837971037,
+          "kind": "transient",
+          "n_imm": 284,
+          "n_single": 284,
+          "single_coverage": 0.9647887323943662,
+          "single_position_rmse_m": 0.15633195649720305
+        },
+        "static": {
+          "delta_toward_nominal": 0.0,
+          "imm_coverage": 1.0,
+          "imm_position_rmse_m": 0.04360936746776896,
+          "kind": "steady",
+          "n_imm": 38,
+          "n_single": 38,
+          "single_coverage": 1.0,
+          "single_position_rmse_m": 0.08456529530660617
+        },
+        "sustained": {
+          "delta_toward_nominal": -0.24755592377796176,
+          "imm_coverage": 0.6586578293289147,
+          "imm_position_rmse_m": 0.20460167997494577,
+          "kind": "steady",
+          "n_imm": 2414,
+          "n_single": 2414,
+          "single_coverage": 0.9937862468931234,
+          "single_position_rmse_m": 0.1141833117340123
+        }
+      },
+      "version": "v3-indoor"
+    },
+    {
+      "any_steady_degraded": true,
+      "any_transient_improved": true,
+      "no_trade_satisfied": false,
+      "regimes": {
+        "cessation": {
+          "delta_toward_nominal": 0.33333333333333337,
+          "imm_coverage": 0.33333333333333337,
+          "imm_position_rmse_m": 0.14297894377870585,
+          "kind": "transient",
+          "n_imm": 3,
+          "n_single": 3,
+          "single_coverage": 0.0,
+          "single_position_rmse_m": 0.1593411627132884
+        },
+        "onset": {
+          "delta_toward_nominal": 0.08333333333333326,
+          "imm_coverage": 0.9166666666666666,
+          "imm_position_rmse_m": 0.19348900294325855,
+          "kind": "transient",
+          "n_imm": 12,
+          "n_single": 12,
+          "single_coverage": 0.8333333333333334,
+          "single_position_rmse_m": 0.1898774537958938
+        },
+        "static": {
+          "delta_toward_nominal": -0.3828571428571429,
+          "imm_coverage": 0.4342857142857143,
+          "imm_position_rmse_m": 0.06034278501916427,
+          "kind": "steady",
+          "n_imm": 175,
+          "n_single": 175,
+          "single_coverage": 0.8171428571428572,
+          "single_position_rmse_m": 0.23649537578114072
+        }
+      },
+      "version": "v4.1-gate"
+    }
+  ],
+  "reports": [
+    {
+      "by_distance_bucket": {
+        "0-3m": {
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0
+        },
+        "3-8m": {
+          "constant_velocity_no_update_rmse_m": 6.1030168634896595,
+          "copy_previous_rmse_m": 0.21294472116197308,
+          "filter_rmse_m": 0.11397469185376052,
+          "margin_vs_constant_velocity_m": 5.989042171635899,
+          "margin_vs_copy_previous_m": 0.09897002930821255,
+          "n": 2528
+        },
+        "8m+": {
+          "constant_velocity_no_update_rmse_m": 7.351714396246102,
+          "copy_previous_rmse_m": 0.33204634269647954,
+          "filter_rmse_m": 0.16765684829912905,
+          "margin_vs_constant_velocity_m": 7.184057547946973,
+          "margin_vs_copy_previous_m": 0.16438949439735048,
+          "n": 208
+        }
+      },
+      "by_regime": {
+        "cessation": {
+          "consistency": {
+            "empirical_coverage_95": null,
+            "n": 0,
+            "nees_pass_rate_within_95": null
+          },
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0,
+          "thin_evidence": true
+        },
+        "maneuver": {
+          "consistency": {
+            "empirical_coverage_95": null,
+            "n": 0,
+            "nees_pass_rate_within_95": null
+          },
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0,
+          "thin_evidence": true
+        },
+        "onset": {
+          "consistency": {
+            "empirical_coverage_95": 0.9647887323943662,
+            "n": 284,
+            "nees_pass_rate_within_95": 0.9647887323943662
+          },
+          "constant_velocity_no_update_rmse_m": 0.9068466648046496,
+          "copy_previous_rmse_m": 0.21106441150609354,
+          "filter_rmse_m": 0.15633195649720305,
+          "innovation": {
+            "lag1_autocorrelation": 0.03735582650923635,
+            "n_pairs": 213,
+            "white": true,
+            "white_noise_bound_95": 0.13429451938754278
+          },
+          "margin_vs_constant_velocity_m": 0.7505147083074466,
+          "margin_vs_copy_previous_m": 0.054732455008890485,
+          "n": 284,
+          "thin_evidence": false
+        },
+        "static": {
+          "consistency": {
+            "empirical_coverage_95": 1.0,
+            "n": 38,
+            "nees_pass_rate_within_95": 1.0
+          },
+          "constant_velocity_no_update_rmse_m": 4.696320059522518,
+          "copy_previous_rmse_m": 0.18428910144432042,
+          "filter_rmse_m": 0.08456529530660617,
+          "innovation": {
+            "lag1_autocorrelation": -0.2954222563967561,
+            "n_pairs": 37,
+            "white": true,
+            "white_noise_bound_95": 0.32221609421335784
+          },
+          "margin_vs_constant_velocity_m": 4.611754764215911,
+          "margin_vs_copy_previous_m": 0.09972380613771425,
+          "n": 38,
+          "thin_evidence": false
+        },
+        "sustained": {
+          "consistency": {
+            "empirical_coverage_95": 0.9937862468931234,
+            "n": 2414,
+            "nees_pass_rate_within_95": 0.9937862468931234
+          },
+          "constant_velocity_no_update_rmse_m": 6.574101577565636,
+          "copy_previous_rmse_m": 0.22629910571439737,
+          "filter_rmse_m": 0.1141833117340123,
+          "innovation": {
+            "lag1_autocorrelation": -0.11900769758382711,
+            "n_pairs": 2343,
+            "white": false,
+            "white_noise_bound_95": 0.04049132110996257
+          },
+          "margin_vs_constant_velocity_m": 6.459918265831623,
+          "margin_vs_copy_previous_m": 0.11211579398038507,
+          "n": 2414,
+          "thin_evidence": false
+        }
+      },
+      "clips_with_no_agents": 0,
+      "consistency": {
+        "empirical_coverage_95": 0.9908625730994152,
+        "n": 2736,
+        "nees_pass_rate_within_95": 0.9908625730994152
+      },
+      "filter_kind": "single_model",
+      "imm_config_sha": null,
+      "innovation": {
+        "lag1_autocorrelation": -0.10804796545046307,
+        "n_pairs": 2664,
+        "white": false,
+        "white_noise_bound_95": 0.03797353087095147
+      },
+      "measurement_model_sha": "b60502fa2d6948261ba3934dd9afa0da92ad38e41c249dc8ae497cf4183b06fc",
+      "motion_model_sha": "e9a290f22b04d8898134b2c63184d43e4c1d56e62c12fc0a07114ae2b759b69d",
+      "points_scored": 2736,
+      "position": {
+        "axis_rmse_m_xyz": [
+          0.0698793429223467,
+          0.06926765463011947,
+          0.06677174707475528
+        ],
+        "baselines": [
+          {
+            "description": "predict the previous observation's position, zero velocity",
+            "flag_worthy": true,
+            "name": "copy_previous_position",
+            "value": 0.224232
+          },
+          {
+            "description": "velocity from the first two observations, then coast with no further measurement correction",
+            "flag_worthy": true,
+            "name": "constant_velocity_no_update",
+            "value": 6.206777
+          }
+        ],
+        "margin_m": 0.10532216668746779,
+        "rmse_m": 0.1189100363831057
+      },
+      "refused": false,
+      "tracks_scored": 72,
+      "velocity": {
+        "baselines": [
+          {
+            "description": "velocity from the first two observations, held constant with no further measurement correction",
+            "flag_worthy": true,
+            "name": "constant_velocity_no_update",
+            "value": 3.251487
+          }
+        ],
+        "margin_mps": 2.8477271678042446,
+        "rmse_mps": 0.4037600203639516
+      },
+      "version": "v3-indoor"
+    },
+    {
+      "by_distance_bucket": {
+        "0-3m": {
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0
+        },
+        "3-8m": {
+          "constant_velocity_no_update_rmse_m": 6.1030168634896595,
+          "copy_previous_rmse_m": 0.21294472116197308,
+          "filter_rmse_m": 0.1949823087752383,
+          "margin_vs_constant_velocity_m": 5.908034554714421,
+          "margin_vs_copy_previous_m": 0.017962412386734766,
+          "n": 2528
+        },
+        "8m+": {
+          "constant_velocity_no_update_rmse_m": 7.351714396246102,
+          "copy_previous_rmse_m": 0.33204634269647954,
+          "filter_rmse_m": 0.23119563846882088,
+          "margin_vs_constant_velocity_m": 7.1205187577772815,
+          "margin_vs_copy_previous_m": 0.10085070422765866,
+          "n": 208
+        }
+      },
+      "by_regime": {
+        "cessation": {
+          "consistency": {
+            "empirical_coverage_95": null,
+            "n": 0,
+            "nees_pass_rate_within_95": null
+          },
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0,
+          "thin_evidence": true
+        },
+        "maneuver": {
+          "consistency": {
+            "empirical_coverage_95": null,
+            "n": 0,
+            "nees_pass_rate_within_95": null
+          },
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0,
+          "thin_evidence": true
+        },
+        "onset": {
+          "consistency": {
+            "empirical_coverage_95": 0.9014084507042254,
+            "n": 284,
+            "nees_pass_rate_within_95": 0.9014084507042254
+          },
+          "constant_velocity_no_update_rmse_m": 0.9068466648046496,
+          "copy_previous_rmse_m": 0.21106441150609354,
+          "filter_rmse_m": 0.1465673837971037,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": 0.7602792810075458,
+          "margin_vs_copy_previous_m": 0.06449702770898982,
+          "n": 284,
+          "thin_evidence": false
+        },
+        "static": {
+          "consistency": {
+            "empirical_coverage_95": 1.0,
+            "n": 38,
+            "nees_pass_rate_within_95": 1.0
+          },
+          "constant_velocity_no_update_rmse_m": 4.696320059522518,
+          "copy_previous_rmse_m": 0.18428910144432042,
+          "filter_rmse_m": 0.04360936746776896,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": 4.6527106920547485,
+          "margin_vs_copy_previous_m": 0.14067973397655148,
+          "n": 38,
+          "thin_evidence": false
+        },
+        "sustained": {
+          "consistency": {
+            "empirical_coverage_95": 0.6586578293289147,
+            "n": 2414,
+            "nees_pass_rate_within_95": 0.6586578293289147
+          },
+          "constant_velocity_no_update_rmse_m": 6.574101577565636,
+          "copy_previous_rmse_m": 0.22629910571439737,
+          "filter_rmse_m": 0.20460167997494577,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": 6.36949989759069,
+          "margin_vs_copy_previous_m": 0.021697425739451603,
+          "n": 2414,
+          "thin_evidence": false
+        }
+      },
+      "clips_with_no_agents": 0,
+      "consistency": {
+        "empirical_coverage_95": 0.6885964912280702,
+        "n": 2736,
+        "nees_pass_rate_within_95": 0.6885964912280702
+      },
+      "filter_kind": "imm",
+      "imm_config_sha": "9c21aec02a8da9f3174450ad01de601b5cbc846edd71c7e28bef34736db7d14f",
+      "innovation": {
+        "lag1_autocorrelation": null,
+        "n_pairs": 0,
+        "white": false,
+        "white_noise_bound_95": null
+      },
+      "measurement_model_sha": "b60502fa2d6948261ba3934dd9afa0da92ad38e41c249dc8ae497cf4183b06fc",
+      "motion_model_sha": "e9a290f22b04d8898134b2c63184d43e4c1d56e62c12fc0a07114ae2b759b69d",
+      "points_scored": 2736,
+      "position": {
+        "axis_rmse_m_xyz": [
+          0.1380322442788926,
+          0.058854034428607614,
+          0.12913054026995618
+        ],
+        "baselines": [
+          {
+            "description": "predict the previous observation's position, zero velocity",
+            "flag_worthy": true,
+            "name": "copy_previous_position",
+            "value": 0.224232
+          },
+          {
+            "description": "velocity from the first two observations, then coast with no further measurement correction",
+            "flag_worthy": true,
+            "name": "constant_velocity_no_update",
+            "value": 6.206777
+          }
+        ],
+        "margin_m": 0.026264038307643983,
+        "rmse_m": 0.1979681647629295
+      },
+      "refused": false,
+      "tracks_scored": 72,
+      "velocity": {
+        "baselines": [
+          {
+            "description": "velocity from the first two observations, held constant with no further measurement correction",
+            "flag_worthy": true,
+            "name": "constant_velocity_no_update",
+            "value": 3.251487
+          }
+        ],
+        "margin_mps": 0.9613679552238885,
+        "rmse_mps": 2.2901192329443076
+      },
+      "version": "v3-indoor"
+    },
+    {
+      "by_distance_bucket": {
+        "0-3m": {
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0
+        },
+        "3-8m": {
+          "constant_velocity_no_update_rmse_m": 9.273381887540447,
+          "copy_previous_rmse_m": 0.2590507085060819,
+          "filter_rmse_m": 0.23279278307621934,
+          "margin_vs_constant_velocity_m": 9.040589104464228,
+          "margin_vs_copy_previous_m": 0.026257925429862577,
+          "n": 190
+        },
+        "8m+": {
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0
+        }
+      },
+      "by_regime": {
+        "cessation": {
+          "consistency": {
+            "empirical_coverage_95": 0.0,
+            "n": 3,
+            "nees_pass_rate_within_95": 0.0
+          },
+          "constant_velocity_no_update_rmse_m": 1.1285346159819323,
+          "copy_previous_rmse_m": 0.457728956104729,
+          "filter_rmse_m": 0.1593411627132884,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": 0.9691934532686439,
+          "margin_vs_copy_previous_m": 0.2983877933914406,
+          "n": 3,
+          "thin_evidence": true
+        },
+        "maneuver": {
+          "consistency": {
+            "empirical_coverage_95": null,
+            "n": 0,
+            "nees_pass_rate_within_95": null
+          },
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0,
+          "thin_evidence": true
+        },
+        "onset": {
+          "consistency": {
+            "empirical_coverage_95": 0.8333333333333334,
+            "n": 12,
+            "nees_pass_rate_within_95": 0.8333333333333334
+          },
+          "constant_velocity_no_update_rmse_m": 0.7297125579154787,
+          "copy_previous_rmse_m": 0.7228517031922267,
+          "filter_rmse_m": 0.1898774537958938,
+          "innovation": {
+            "lag1_autocorrelation": 0.3655974989767517,
+            "n_pairs": 9,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": 0.5398351041195849,
+          "margin_vs_copy_previous_m": 0.5329742493963329,
+          "n": 12,
+          "thin_evidence": false
+        },
+        "static": {
+          "consistency": {
+            "empirical_coverage_95": 0.8171428571428572,
+            "n": 175,
+            "nees_pass_rate_within_95": 0.8171428571428572
+          },
+          "constant_velocity_no_update_rmse_m": 9.659623084621426,
+          "copy_previous_rmse_m": 0.18286074030350555,
+          "filter_rmse_m": 0.23649537578114072,
+          "innovation": {
+            "lag1_autocorrelation": 0.8498917383173706,
+            "n_pairs": 170,
+            "white": false,
+            "white_noise_bound_95": 0.150322375554401
+          },
+          "margin_vs_constant_velocity_m": 9.423127708840285,
+          "margin_vs_copy_previous_m": -0.05363463547763517,
+          "n": 175,
+          "thin_evidence": false
+        },
+        "sustained": {
+          "consistency": {
+            "empirical_coverage_95": null,
+            "n": 0,
+            "nees_pass_rate_within_95": null
+          },
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0,
+          "thin_evidence": true
+        }
+      },
+      "clips_with_no_agents": 3,
+      "consistency": {
+        "empirical_coverage_95": 0.8052631578947369,
+        "n": 190,
+        "nees_pass_rate_within_95": 0.8052631578947368
+      },
+      "filter_kind": "single_model",
+      "imm_config_sha": null,
+      "innovation": {
+        "lag1_autocorrelation": 0.8364504805306221,
+        "n_pairs": 185,
+        "white": false,
+        "white_noise_bound_95": 0.14409941802110895
+      },
+      "measurement_model_sha": "cd909dacb1542aa43ad56a9302304517ed1123f4e855d1aa7b50d961e2c295f7",
+      "motion_model_sha": "e9a290f22b04d8898134b2c63184d43e4c1d56e62c12fc0a07114ae2b759b69d",
+      "points_scored": 190,
+      "position": {
+        "axis_rmse_m_xyz": [
+          0.21348717016376575,
+          0.05967127960201179,
+          0.07109884962851058
+        ],
+        "baselines": [
+          {
+            "description": "predict the previous observation's position, zero velocity",
+            "flag_worthy": true,
+            "name": "copy_previous_position",
+            "value": 0.259051
+          },
+          {
+            "description": "velocity from the first two observations, then coast with no further measurement correction",
+            "flag_worthy": true,
+            "name": "constant_velocity_no_update",
+            "value": 9.273382
+          }
+        ],
+        "margin_m": 0.026257925429862577,
+        "rmse_m": 0.23279278307621934
+      },
+      "refused": false,
+      "tracks_scored": 5,
+      "velocity": {
+        "baselines": [
+          {
+            "description": "velocity from the first two observations, held constant with no further measurement correction",
+            "flag_worthy": true,
+            "name": "constant_velocity_no_update",
+            "value": 5.600767
+          }
+        ],
+        "margin_mps": 4.067045644460217,
+        "rmse_mps": 1.5337211800043318
+      },
+      "version": "v4.1-gate"
+    },
+    {
+      "by_distance_bucket": {
+        "0-3m": {
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0
+        },
+        "3-8m": {
+          "constant_velocity_no_update_rmse_m": 9.273381887540447,
+          "copy_previous_rmse_m": 0.2590507085060819,
+          "filter_rmse_m": 0.077724341319991,
+          "margin_vs_constant_velocity_m": 9.195657546220456,
+          "margin_vs_copy_previous_m": 0.1813263671860909,
+          "n": 190
+        },
+        "8m+": {
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0
+        }
+      },
+      "by_regime": {
+        "cessation": {
+          "consistency": {
+            "empirical_coverage_95": 0.33333333333333337,
+            "n": 3,
+            "nees_pass_rate_within_95": 0.3333333333333333
+          },
+          "constant_velocity_no_update_rmse_m": 1.1285346159819323,
+          "copy_previous_rmse_m": 0.457728956104729,
+          "filter_rmse_m": 0.14297894377870585,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": 0.9855556722032264,
+          "margin_vs_copy_previous_m": 0.3147500123260232,
+          "n": 3,
+          "thin_evidence": true
+        },
+        "maneuver": {
+          "consistency": {
+            "empirical_coverage_95": null,
+            "n": 0,
+            "nees_pass_rate_within_95": null
+          },
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0,
+          "thin_evidence": true
+        },
+        "onset": {
+          "consistency": {
+            "empirical_coverage_95": 0.9166666666666666,
+            "n": 12,
+            "nees_pass_rate_within_95": 0.9166666666666666
+          },
+          "constant_velocity_no_update_rmse_m": 0.7297125579154787,
+          "copy_previous_rmse_m": 0.7228517031922267,
+          "filter_rmse_m": 0.19348900294325855,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": 0.5362235549722202,
+          "margin_vs_copy_previous_m": 0.5293627002489681,
+          "n": 12,
+          "thin_evidence": false
+        },
+        "static": {
+          "consistency": {
+            "empirical_coverage_95": 0.4342857142857143,
+            "n": 175,
+            "nees_pass_rate_within_95": 0.4342857142857143
+          },
+          "constant_velocity_no_update_rmse_m": 9.659623084621426,
+          "copy_previous_rmse_m": 0.18286074030350555,
+          "filter_rmse_m": 0.06034278501916427,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": 9.599280299602261,
+          "margin_vs_copy_previous_m": 0.12251795528434128,
+          "n": 175,
+          "thin_evidence": false
+        },
+        "sustained": {
+          "consistency": {
+            "empirical_coverage_95": null,
+            "n": 0,
+            "nees_pass_rate_within_95": null
+          },
+          "constant_velocity_no_update_rmse_m": null,
+          "copy_previous_rmse_m": null,
+          "filter_rmse_m": null,
+          "innovation": {
+            "lag1_autocorrelation": null,
+            "n_pairs": 0,
+            "white": false,
+            "white_noise_bound_95": null
+          },
+          "margin_vs_constant_velocity_m": null,
+          "margin_vs_copy_previous_m": null,
+          "n": 0,
+          "thin_evidence": true
+        }
+      },
+      "clips_with_no_agents": 3,
+      "consistency": {
+        "empirical_coverage_95": 0.4631578947368421,
+        "n": 190,
+        "nees_pass_rate_within_95": 0.4631578947368421
+      },
+      "filter_kind": "imm",
+      "imm_config_sha": "9c21aec02a8da9f3174450ad01de601b5cbc846edd71c7e28bef34736db7d14f",
+      "innovation": {
+        "lag1_autocorrelation": null,
+        "n_pairs": 0,
+        "white": false,
+        "white_noise_bound_95": null
+      },
+      "measurement_model_sha": "cd909dacb1542aa43ad56a9302304517ed1123f4e855d1aa7b50d961e2c295f7",
+      "motion_model_sha": "e9a290f22b04d8898134b2c63184d43e4c1d56e62c12fc0a07114ae2b759b69d",
+      "points_scored": 190,
+      "position": {
+        "axis_rmse_m_xyz": [
+          0.04123498486744921,
+          0.045022808333217486,
+          0.04810089382119686
+        ],
+        "baselines": [
+          {
+            "description": "predict the previous observation's position, zero velocity",
+            "flag_worthy": true,
+            "name": "copy_previous_position",
+            "value": 0.259051
+          },
+          {
+            "description": "velocity from the first two observations, then coast with no further measurement correction",
+            "flag_worthy": true,
+            "name": "constant_velocity_no_update",
+            "value": 9.273382
+          }
+        ],
+        "margin_m": 0.1813263671860909,
+        "rmse_m": 0.077724341319991
+      },
+      "refused": false,
+      "tracks_scored": 5,
+      "velocity": {
+        "baselines": [
+          {
+            "description": "velocity from the first two observations, held constant with no further measurement correction",
+            "flag_worthy": true,
+            "name": "constant_velocity_no_update",
+            "value": 5.600767
+          }
+        ],
+        "margin_mps": 0.03857633640476443,
+        "rmse_mps": 5.562190488059785
+      },
+      "version": "v4.1-gate"
+    }
+  ]
+}
