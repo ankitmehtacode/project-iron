@@ -488,6 +488,10 @@ def run_imm_filter(
             ),
             imm_config_sha=imm_config.sha,
             mode_probabilities=tuple(sorted(mode_probs.items())),
+            mode_states=tuple(
+                (name, tuple(state.mean.tolist()), tuple(tuple(r) for r in state.cov.tolist()))
+                for name, state in sorted(mode_states.items())
+            ),
         )
         payload = _ImmAppendedState(
             estimate=estimate,
@@ -599,4 +603,12 @@ def resolve_imm_state(query: StateQuery, graph: StateGraph) -> StateEstimate:
         ),
         imm_config_sha=latest.imm_config.sha,
         mode_probabilities=tuple(sorted(latest.mode_probabilities.items())),
+        mode_states=tuple(
+            (
+                name,
+                tuple(predicted_means[name].tolist()),
+                tuple(tuple(r) for r in predicted_covs[name].tolist()),
+            )
+            for name in sorted(predicted_means)
+        ),
     )

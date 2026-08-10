@@ -114,6 +114,19 @@ class StateEstimate:
             summing to 1.0 — the IMM's own directly-useful output (Day 21
             Objective 5), not just an internal quantity used to compute
             the combined mean/cov and then discarded.
+        mode_states: ``None`` for a single-model estimate. For an IMM
+            estimate (Day 22), ``((mode_name, mean, cov), ...)`` — the
+            same per-mode Gaussian components :attr:`mode_probabilities`
+            weights, in the same mode order. Added alongside the
+            probabilities themselves (Day 22 Objective 1) because a
+            mixture-aware consistency check needs each component's own
+            ``(mean, cov)``, not just how much weight it carries — without
+            this, computing a mixture-valid NEES or coverage figure would
+            require reaching into IMM's private per-mode state
+            (``_ImmAppendedState``) from outside the module. ``mean`` has
+            length :data:`~src.estimator.motion_model.STATE_DIM`; ``cov``
+            is ``STATE_DIM x STATE_DIM``, same shape rules as :attr:`mean`/
+            :attr:`cov`.
 
             **Documented, not yet wired to, downstream consumers** (Day 21
             Objective 5 — intentionally documentation only): a high
@@ -154,6 +167,9 @@ class StateEstimate:
     residuals: tuple[ConsistencyResidual, ...]
     imm_config_sha: str | None = None
     mode_probabilities: tuple[tuple[str, float], ...] | None = None
+    mode_states: (
+        tuple[tuple[str, tuple[float, ...], tuple[tuple[float, ...], ...]], ...] | None
+    ) = None
 
     def __post_init__(self) -> None:
         if len(self.mean) != STATE_DIM:
@@ -216,6 +232,43 @@ class StateEstimate:
                     f"StateEstimate.mode_probabilities entries must lie in "
                     f"[0, 1], got {self.mode_probabilities}"
                 )
+        # STRUCTURAL: mode_states and mode_probabilities travel together --
+        # a mixture-aware consistency check needs both a mode's weight and
+        # its own (mean, cov); either alone is not enough to reconstruct
+        # the posterior mixture-aware code depends on.
+        if self.mode_states is not None and self.mode_probabilities is None:
+            raise StateEstimateError(
+                "StateEstimate.mode_states is set but mode_probabilities is "
+                "not -- per-mode components with no weight to combine them "
+                "cannot describe a mixture posterior"
+            )
+        if self.mode_probabilities is not None and self.mode_states is None:
+            raise StateEstimateError(
+                "StateEstimate.mode_probabilities is set but mode_states is "
+                "not -- an IMM estimate must carry each mode's own (mean, "
+                "cov), not just its weight, or mixture-aware consistency "
+                "checks (Day 22) have nothing to compute against"
+            )
+        if self.mode_states is not None:
+            prob_names = {name for name, _ in self.mode_probabilities}  # type: ignore[union-attr]
+            state_names = {name for name, _, _ in self.mode_states}
+            if prob_names != state_names:
+                raise StateEstimateError(
+                    f"StateEstimate.mode_states names {sorted(state_names)} must "
+                    f"match mode_probabilities names {sorted(prob_names)}"
+                )
+            for name, mean, cov in self.mode_states:
+                if len(mean) != STATE_DIM:
+                    raise StateEstimateError(
+                        f"StateEstimate.mode_states[{name!r}] mean must have "
+                        f"{STATE_DIM} entries, got {len(mean)}"
+                    )
+                if len(cov) != STATE_DIM or any(len(row) != STATE_DIM for row in cov):
+                    raise StateEstimateError(
+                        f"StateEstimate.mode_states[{name!r}] cov must be "
+                        f"{STATE_DIM}x{STATE_DIM}, got shape "
+                        f"({len(cov)}, {[len(r) for r in cov]})"
+                    )
 
     def require_comparable(self, other: "StateEstimate") -> None:
         """Raise unless both states were produced by the same models/rule.
@@ -273,3 +326,25 @@ class StateEstimate:
         if self.mode_probabilities is None:
             return None
         return max(self.mode_probabilities, key=lambda pair: pair[1])
+
+    def mode_components(self) -> dict[str, tuple[float, FloatArray, FloatArray]] | None:
+        """``{mode_name: (weight, mean_array, cov_array)}``, or ``None`` for
+        a single-model estimate (``mode_probabilities is None``).
+
+        The array form of :attr:`mode_probabilities` + :attr:`mode_states`
+        combined -- what :mod:`src.estimator.consistency`'s mixture-aware
+        functions (Day 22 Objective 1) actually consume, so callers do not
+        each re-implement the same tuple-to-ndarray unpacking.
+        """
+        if self.mode_probabilities is None:
+            return None
+        assert self.mode_states is not None  # STRUCTURAL invariant, see __post_init__
+        probs = dict(self.mode_probabilities)
+        return {
+            name: (
+                probs[name],
+                np.array(mean, dtype=np.float64),
+                np.array(cov, dtype=np.float64),
+            )
+            for name, mean, cov in self.mode_states
+        }

@@ -438,6 +438,62 @@ def test_imm_extrapolation_beyond_horizon_raises() -> None:
         solve_state(query, graph)
 
 
+def test_estimate_carries_mode_states_matching_mode_probabilities() -> None:
+    """Day 22, Objective 1: mode_states must accompany mode_probabilities so
+    mixture-aware consistency checks have each mode's own (mean, cov), not
+    just its weight."""
+    graph = StateGraph()
+    config = default_imm_config()
+    observations = _walk_then_stop(n_walk=10, n_static=5, step_m=0.5)
+    run_imm_filter(
+        graph, observations, config, measurement_model_for("cam-1"), manifest_sha="m"
+    )
+    query = StateQuery(
+        at_ts_ns=observations[-1].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev
+    )
+    estimate = solve_state(query, graph)
+    assert estimate.mode_states is not None
+    assert {name for name, _, _ in estimate.mode_states} == set(config.mode_names)
+    components = estimate.mode_components()
+    assert components is not None
+    total_weight = sum(w for w, _, _ in components.values())
+    assert total_weight == pytest.approx(1.0)
+    for name, (weight, mean, cov) in components.items():
+        assert mean.shape == (6,)
+        assert cov.shape == (6, 6)
+
+
+def test_bootstrap_estimate_carries_mode_states() -> None:
+    graph = StateGraph()
+    config = default_imm_config()
+    obs = _obs(1.0, 2.0, 0.0, BASE_TS)
+    run_imm_filter(
+        graph, [obs], config, measurement_model_for("cam-1"), manifest_sha="m"
+    )
+    query = StateQuery(at_ts_ns=BASE_TS, horizon_ns=0, graph_rev=graph.graph_rev)
+    estimate = solve_state(query, graph)
+    assert estimate.mode_states is not None
+    assert {name for name, _, _ in estimate.mode_states} == set(config.mode_names)
+
+
+def test_extrapolated_estimate_carries_mode_states() -> None:
+    graph = StateGraph()
+    config = default_imm_config()
+    observations = _walk_then_stop(n_walk=8, n_static=0)
+    run_imm_filter(
+        graph, observations, config, measurement_model_for("cam-1"), manifest_sha="m"
+    )
+    query = StateQuery(
+        at_ts_ns=observations[-1].ts_ns + 2 * SECOND_NS,
+        horizon_ns=10 * SECOND_NS,
+        graph_rev=graph.graph_rev,
+    )
+    estimate = solve_state(query, graph)
+    assert estimate.observed is False
+    assert estimate.mode_states is not None
+    assert {name for name, _, _ in estimate.mode_states} == set(config.mode_names)
+
+
 def test_imm_smoothed_horizon_raises_not_implemented() -> None:
     graph = StateGraph()
     config = default_imm_config()

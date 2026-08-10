@@ -72,7 +72,13 @@ from src.data import validity
 from src.data.depth_eval import DISTANCE_BUCKETS
 from src.data.golden import GoldenSetError, available_versions, load_golden_set
 from src.eval.baselines import compute_baselines, margin, require_baseline
-from src.estimator.consistency import compute_nees, fraction_outside_bound
+from src.estimator.consistency import (
+    compute_collapsed_gaussian_nees_diagnostic,
+    compute_mixture_nees,
+    compute_nees,
+    empirical_coverage_by_sampling,
+    fraction_outside_bound,
+)
 from src.estimator.diagnostics import is_white
 from src.estimator.filter import run_single_entity_filter
 from src.estimator.imm import ImmConfig, default_imm_config, run_imm_filter
@@ -94,6 +100,15 @@ FloatArray = npt.NDArray[np.float64]
 EVAL_SEED = 20260731
 """Pinned seed for synthesized observation noise -- same convention as
 scripts/cascade_bench.py's --seed default."""
+
+EVAL_SEED_MIXTURE_SAMPLING = 20260810
+"""Separate pinned seed for empirical_coverage_by_sampling's Monte-Carlo
+draws (Day 22, Objective 1) -- deliberately NOT the same stream as
+EVAL_SEED. Both single-model and IMM runs must see IDENTICAL noisy
+observations (see EVAL_SEED's own consumer), so the observation-noise RNG
+must never be perturbed by how many extra draws the mixture-sampling
+coverage check happens to consume; a shared stream would make the two
+filters' comparison depend on evaluation order, not on the filter."""
 
 BASE_TS_NS = 1_785_000_000 * 1_000_000_000
 FIRST_COMPARABLE_INDEX = 2
@@ -149,6 +164,14 @@ class FrameRecord:
     copy_previous_sq_error: float
     cv_no_update_sq_error: float
     cv_no_update_velocity_sq_error: float
+    nees_mixture: ConsistencyResidual | None = None
+    """Day 22, Objective 1(b): probability-weighted per-mode NEES -- valid
+    for a gaussian_mixture posterior. None for single-model records (no
+    mixture exists to weight)."""
+    covered_by_sampling: bool | None = None
+    """Day 22, Objective 1(a): whether GT fell inside the mixture's
+    empirical (nonparametric) 95% credible region. None for single-model
+    records."""
 
 
 @dataclass
@@ -316,16 +339,30 @@ def _evaluate_track_imm(
     imm_config: ImmConfig,
     measurement_model: MeasurementModel,
     rng: np.random.Generator,
+    sampling_rng: np.random.Generator,
 ) -> TrackResult | None:
     """The IMM counterpart of :func:`_evaluate_track`.
 
     Same observations (same ``rng`` draw sequence -- a caller evaluating
     both filters on the same track should construct a fresh ``rng`` at the
     same seed for each, so both see IDENTICAL noisy observations; see
-    :func:`_score_golden_set`), same regimes, same baselines, same NEES.
-    Innovation whiteness is not computed here — IMM has no single
-    innovation sequence (see module docstring) — every ``FrameRecord``
-    carries ``standardized_innovation_x=None``.
+    :func:`_score_golden_set`), same regimes, same baselines. Innovation
+    whiteness is not computed here — IMM has no single innovation sequence
+    (see module docstring) — every ``FrameRecord`` carries
+    ``standardized_innovation_x=None``.
+
+    Day 22, Objective 1: three NEES-family numbers are computed per frame,
+    not one, because Day 21's single pooled NEES collapsed the mixture to
+    one (mean, cov) and tested Gaussianity on the result — an assumption
+    IMM explicitly violates (see src/estimator/consistency.py's module
+    docstring). ``FrameRecord.nees`` here is the SAME collapsed
+    computation Day 21 used (kept, via
+    :func:`~src.estimator.consistency.compute_collapsed_gaussian_nees_diagnostic`,
+    now explicitly labeled as invalid for judging IMM's consistency rather
+    than silently trusted); ``nees_mixture`` and ``covered_by_sampling``
+    are the two mixture-valid alternatives Objective 1 asks for
+    "alongside" it. ``sampling_rng`` is a SEPARATE stream from ``rng`` --
+    see :data:`EVAL_SEED_MIXTURE_SAMPLING`.
     """
     frames = track_xyz.shape[0]
     if frames <= FIRST_COMPARABLE_INDEX:
@@ -383,6 +420,12 @@ def _evaluate_track_imm(
         cv_err = cv_position - gt_pos
         cv_vel_err = cv_velocity - gt_velocity[t]
 
+        components = estimate.mode_components()
+        assert components is not None  # every IMM estimate carries mode data
+        mode_weights = {name: w for name, (w, _, _) in components.items()}
+        mode_means = {name: m for name, (_, m, _) in components.items()}
+        mode_covs = {name: c for name, (_, _, c) in components.items()}
+
         result.frames.append(
             FrameRecord(
                 regime=regimes[t],
@@ -390,13 +433,21 @@ def _evaluate_track_imm(
                 position_sq_error=float(np.dot(pos_err, pos_err)),
                 axis_sq_error=pos_err**2,
                 velocity_sq_error=float(np.dot(vel_err, vel_err)),
-                nees=compute_nees(error6, estimate.cov_array()),
+                nees=compute_collapsed_gaussian_nees_diagnostic(
+                    error6, estimate.cov_array()
+                ),
                 standardized_innovation_x=None,
                 copy_previous_sq_error=float(
                     np.dot(copy_previous_err, copy_previous_err)
                 ),
                 cv_no_update_sq_error=float(np.dot(cv_err, cv_err)),
                 cv_no_update_velocity_sq_error=float(np.dot(cv_vel_err, cv_vel_err)),
+                nees_mixture=compute_mixture_nees(
+                    full_gt, mode_weights, mode_means, mode_covs
+                ),
+                covered_by_sampling=empirical_coverage_by_sampling(
+                    full_gt, mode_weights, mode_means, mode_covs, rng=sampling_rng
+                ),
             )
         )
 
@@ -418,6 +469,34 @@ def _coverage_stats(records: list[FrameRecord]) -> dict[str, Any]:
         "n": len(records),
         "nees_pass_rate_within_95": float(np.mean(within)) if within else float("nan"),
         "empirical_coverage_95": coverage,
+    }
+
+
+def _mixture_coverage_stats(records: list[FrameRecord]) -> dict[str, Any]:
+    """The two mixture-VALID consistency numbers (Day 22, Objective 1),
+    computed alongside (never instead of) :func:`_coverage_stats`'s
+    collapsed-Gaussian number -- see FrameRecord.nees_mixture/
+    covered_by_sampling's docstrings for what each one is valid for."""
+    mixture_residuals = [r.nees_mixture for r in records if r.nees_mixture is not None]
+    within = [r.within_bound for r in mixture_residuals if r.within_bound is not None]
+    fraction_outside = (
+        fraction_outside_bound(mixture_residuals, "nees")
+        if mixture_residuals
+        else float("nan")
+    )
+    mixture_nees_coverage = (
+        1.0 - fraction_outside if not np.isnan(fraction_outside) else float("nan")
+    )
+    sampled = [r.covered_by_sampling for r in records if r.covered_by_sampling is not None]
+    return {
+        "n": len(sampled),
+        "mixture_nees_pass_rate_within_95": (
+            float(np.mean(within)) if within else float("nan")
+        ),
+        "mixture_nees_coverage_95": mixture_nees_coverage,
+        "empirical_coverage_by_sampling_95": (
+            float(np.mean(sampled)) if sampled else float("nan")
+        ),
     }
 
 
@@ -507,6 +586,10 @@ def _score_golden_set(
     # noisy observations for the Objective-4 comparison to be about the
     # filter, not about which draw of noise each one happened to get.
     rng = np.random.default_rng(EVAL_SEED)
+    # Separate stream (Day 22): consumed only by IMM's mixture-sampling
+    # coverage check, so it never perturbs the observation-noise draws
+    # single_model and imm runs must share. See EVAL_SEED_MIXTURE_SAMPLING.
+    sampling_rng = np.random.default_rng(EVAL_SEED_MIXTURE_SAMPLING)
 
     tracks_scored = 0
     clips_with_no_agents = 0
@@ -542,6 +625,7 @@ def _score_golden_set(
                     imm_config,
                     measurement_model,
                     rng,
+                    sampling_rng,
                 )
             else:
                 result = _evaluate_track(
@@ -623,6 +707,8 @@ def _score_golden_set(
         regime_records = [r for r in all_records if r.regime == regime_name]
         block = _baseline_margin_block(regime_records)
         block["consistency"] = _coverage_stats(regime_records)
+        if filter_kind == "imm":
+            block["consistency_mixture"] = _mixture_coverage_stats(regime_records)
         block["innovation"] = _innovation_block(innovations_by_regime[regime_name])
         block["thin_evidence"] = (
             len(regime_records) < MIN_REGIME_FRAMES_FOR_A_CONCLUSION
@@ -630,6 +716,9 @@ def _score_golden_set(
         by_regime[regime_name] = block
 
     consistency = _coverage_stats(all_records)
+    consistency_mixture = (
+        _mixture_coverage_stats(all_records) if filter_kind == "imm" else None
+    )
     innovation = _innovation_block(innovations_by_track)
 
     return {
@@ -656,6 +745,7 @@ def _score_golden_set(
         "by_distance_bucket": by_distance_bucket,
         "by_regime": by_regime,
         "consistency": consistency,
+        "consistency_mixture": consistency_mixture,
         "innovation": innovation,
     }
 
@@ -736,6 +826,17 @@ def _print_report(report: dict[str, Any]) -> None:
             f"n_pairs={innov['n_pairs']})   "
             f"{'WHITE' if innov['white'] else 'NOT WHITE'}"
         )
+        mix = block.get("consistency_mixture")
+        if mix is not None:
+            print(
+                f"                 [mixture-valid, n={mix['n']:5}] "
+                f"per-mode-weighted NEES coverage "
+                f"{mix['mixture_nees_coverage_95']:.4f}   "
+                f"sampling-HPD coverage "
+                f"{mix['empirical_coverage_by_sampling_95']:.4f}   "
+                f"(collapsed-Gaussian NEES above is a Day-22 diagnostic, "
+                f"NOT a validated check for this posterior)"
+            )
     print()
 
     cons = report["consistency"]
@@ -768,6 +869,22 @@ def _print_report(report: dict[str, Any]) -> None:
         f"n_pairs={innov['n_pairs']} -> "
         f"{'WHITE' if innov['white'] else 'NOT WHITE'}"
     )
+    mix = report.get("consistency_mixture")
+    if mix is not None:
+        print()
+        print(
+            "** Day-22 Objective 1: the pooled NEES above collapses IMM's "
+            "mixture to one (mean, cov) and is a DIAGNOSTIC ONLY, not a "
+            "validated consistency check for this posterior. **"
+        )
+        print(
+            f"mixture-valid per-mode-weighted NEES coverage : "
+            f"{mix['mixture_nees_coverage_95']:.4f}  (target: 0.95)"
+        )
+        print(
+            f"mixture-valid empirical (sampling) coverage   : "
+            f"{mix['empirical_coverage_by_sampling_95']:.4f}  (target: 0.95)"
+        )
 
 
 NO_TRADE_TRANSIENT_REGIMES = ("onset", "cessation", "maneuver")
@@ -812,8 +929,14 @@ def _print_comparison(
         single_cov = single_block.get("consistency", {}).get(
             "empirical_coverage_95", float("nan")
         )
-        imm_cov = imm_block.get("consistency", {}).get(
-            "empirical_coverage_95", float("nan")
+        # Day 22, Objective 1: IMM's coverage figure here is the
+        # mixture-VALID sampling-based one (compare against a
+        # single-Gaussian's chi-square-based coverage on the single-model
+        # side, since that posterior genuinely is Gaussian) -- not the
+        # collapsed-Gaussian diagnostic Day 21 used, which is retained
+        # elsewhere in the report but not used to drive this verdict.
+        imm_cov = imm_block.get("consistency_mixture", {}).get(
+            "empirical_coverage_by_sampling_95", float("nan")
         )
         single_dev = (
             abs(single_cov - 0.95) if not np.isnan(single_cov) else float("nan")
