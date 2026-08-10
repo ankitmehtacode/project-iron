@@ -78,8 +78,17 @@ def test_cli_refuses_and_exits_nonzero_without_consent(tmp_path: Path) -> None:
     """The refusal must reach the exit code, not just the log."""
     source = tmp_path / "raw"
     source.mkdir()
-    code = ing.main(["--source", str(source)])
+    code = ing.main(["--source", str(source), "--source-kind", "fresh"])
     assert code == 1
+
+
+def test_cli_requires_an_explicit_source_kind(tmp_path: Path) -> None:
+    """Day 23: no default -- archived footage must never land in lane C by
+    omission, so the CLI refuses to guess which kind of source this is."""
+    source = tmp_path / "raw"
+    source.mkdir()
+    with pytest.raises(SystemExit):
+        ing.main(["--source", str(source)])
 
 
 def test_unreadable_source_is_refused(tmp_path: Path) -> None:
@@ -182,3 +191,85 @@ def test_a_clip_below_the_gate_raster_is_flagged_as_not_exercising_downscale(
     flags = {c["source_file"]: c["exercises_downscale"] for c in manifest["clips"]}
     assert flags["small.mp4"] is False
     assert flags["big.mp4"] is True
+
+
+# ---------------------------------------------------------------------------
+# Day 23 -- fresh vs. archive: archived footage never lands in lane C
+# ---------------------------------------------------------------------------
+
+
+def test_archive_ingest_lands_in_c_pending_consent_with_no_consent_file(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "raw"
+    source.mkdir()
+    _video(source, "corridor.mp4", 640, 480)
+
+    manifest = ing.ingest(
+        source,
+        tmp_path / "store",
+        ing.ConsentRecord.load_optional(None),
+        (),
+        source_kind="archive",
+    )
+    assert manifest["lane"] == "C_pending_consent"
+    assert manifest["consent"] is None
+    assert "lane_note" in manifest
+
+
+def test_archive_ingest_lands_in_c_pending_consent_even_with_a_consent_file(
+    tmp_path: Path,
+) -> None:
+    """The whole point: an archive's ORIGINAL consent basis (if any) does
+    not automatically cover a NEW purpose, so supplying one does not lift
+    the lane -- only attaching a ConsentRecord to the registry entry does
+    (src/data/registry.py, checked separately from this manifest)."""
+    source = tmp_path / "raw"
+    source.mkdir()
+    _video(source, "corridor.mp4", 640, 480)
+    consent_path = _consent(tmp_path)
+
+    manifest = ing.ingest(
+        source,
+        tmp_path / "store",
+        ing.ConsentRecord.load_optional(consent_path),
+        (),
+        source_kind="archive",
+    )
+    assert manifest["lane"] == "C_pending_consent"
+    assert manifest["consent"] is not None  # recorded for provenance ...
+    assert manifest["consent"]["subjects"] == 3  # ... but does not change the lane
+
+
+def test_fresh_ingest_still_requires_consent_and_lands_in_lane_c(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "raw"
+    source.mkdir()
+    _video(source, "corridor.mp4", 640, 480)
+
+    manifest = ing.ingest(
+        source,
+        tmp_path / "store",
+        ing.ConsentRecord.load(_consent(tmp_path)),
+        (),
+        source_kind="fresh",
+    )
+    assert manifest["lane"] == "C"
+    assert "lane_note" not in manifest
+
+
+def test_cli_archive_source_kind_writes_c_pending_consent_manifest(
+    tmp_path: Path,
+) -> None:
+    source = tmp_path / "raw"
+    source.mkdir()
+    _video(source, "corridor.mp4", 640, 480)
+    store = tmp_path / "store"
+
+    code = ing.main(
+        ["--source", str(source), "--source-kind", "archive", "--store", str(store)]
+    )
+    assert code == 0
+    manifest = json.loads((store / "capture_manifest.json").read_text())
+    assert manifest["lane"] == "C_pending_consent"

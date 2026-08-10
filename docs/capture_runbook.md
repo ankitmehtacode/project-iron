@@ -101,6 +101,48 @@ participants, 30–40 scripted sessions):
   already has tags for and a real capture is the first chance to populate
   them.
 
+### 3b. Walk-then-stop, deliberately — do not let this be incidental
+
+**This is the same "authored quiet is not real quiet" lesson §2 exists
+for, applied to cessation instead of stillness.** Day 21 diagnosed the
+estimator's sharpest known failure at the instant a tracked person stops
+moving (velocity covariance, tight from a sustained walk, takes ~10-14
+frames to catch up to the stop); Day 22 found the synthetic golden sets
+essentially could not measure it (0-3 cessation-regime frames); Day 23
+built `v5-cessation`, a purpose-authored SYNTHETIC set with real volume —
+but synthetic cessation is geometry (exact position crossing a speed
+threshold), not the appearance and micro-motion of an actual person
+coming to rest (weight shift, residual sway, a half-step correction).
+Exactly the appearance-learned gap `v5-cessation`'s own manifest declares
+it cannot fill (see Day 23's report and `src/data/validity.py`'s
+geometry-vs-appearance partition) — real footage is the only source for
+it, and it will not happen unless scripted for on purpose:
+
+- **Vary approach speed and stop abruptness deliberately, per session**:
+  at least one brisk walk-and-sudden-stop, and at least one relaxed
+  walk-and-gradual-slow-to-a-stop, per participant. Do not let every
+  stop in the capture be the same "reach the mark, stop" pattern — that
+  under-represents deceleration-profile diversity the same way a single
+  scripted walkthrough under-represents entry diversity.
+- **Vary stop duration**: brief pauses (under a second — someone checking
+  a phone mid-corridor) and long holds (ten-plus seconds — someone
+  stopped in conversation), not just "stop, then the scene resets."
+- **Vary distance and direction relative to each camera**: stopping while
+  walking toward/away from a camera (radial — changes measured distance
+  through the stop) and stopping while crossing a camera's field of view
+  (lateral — roughly constant distance through the stop) are different
+  stress tests for the same estimator, the same distinction
+  `v5-cessation`'s own scene set varies synthetically.
+- **Include at least one stop-then-restart per session** — a person who
+  stops, appears to reconsider, and walks on in the same or a different
+  direction. This is the shape most likely to be missed by a script that
+  only plans "walk to point B and stop," and it is a real, common
+  behavior a monitored space will contain constantly.
+- Condition-tag these segments distinctly (a `notes` field entry naming
+  it as a cessation-scripted segment is enough; the taxonomy has no
+  dedicated `Condition` for this yet) so a future golden-set author can
+  find them without re-watching every session.
+
 ## 4. Commands, in order
 
 ```bash
@@ -128,13 +170,22 @@ python scripts/capture_dry_run.py
 #    not yet a single production script -- see the caveat below).
 
 # 4. Ingest each recorded file, per session/segment, with its consent
-#    record and condition tags. Ingestion REFUSES without --consent; that
+#    record and condition tags. --source-kind is REQUIRED (Day 23): this
+#    is a FRESH capture consented for this exact use, so it lands in lane
+#    C. Ingestion REFUSES without --consent for --source-kind fresh; that
 #    refusal is deliberate.
 python scripts/ingest_capture.py \
     --source data/raw/office_capture_v1/<segment> \
+    --source-kind fresh \
     --consent docs/consent/<participant-or-segment>.signed.json \
     --conditions daylight single_person \
     --store data/captures/office-capture-v1
+
+# 4b. Existing archive footage (e.g. the Thinkwill CCTV archive), if ever
+#     ingested, uses --source-kind archive instead -- it lands in lane
+#     C_pending_consent REGARDLESS of --consent, because the archive's
+#     original recording purpose does not automatically cover this one.
+#     See src/data/registry.py's C_pending_consent lane.
 ```
 
 ## 5. What remains manual

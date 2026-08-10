@@ -16,6 +16,7 @@ import yaml
 
 from src.data import (
     BlockedDataset,
+    ConsentRecord,
     DatasetEntry,
     DatasetRegistry,
     LaneViolation,
@@ -76,10 +77,10 @@ def test_every_seed_entry_awaits_human_verification() -> None:
         assert e.license_snapshot is None, f"{e.name} shipped pre-verified"
 
 
-def test_seed_contains_the_three_lanes() -> None:
+def test_seed_contains_the_four_lanes() -> None:
     registry = DatasetRegistry.load(SEED_PATH)
     lanes = {e.lane for e in registry.entries() if not e.blocked}
-    assert lanes == {"S", "R", "C"}
+    assert lanes == {"S", "R", "C", "C_pending_consent"}
 
 
 def test_lane_c_is_only_ever_our_own_consented_captures() -> None:
@@ -238,3 +239,104 @@ def test_training_gate_still_requires_verification() -> None:
     registry = registry_with(entry("Kubric", "S", verified=False))
     with pytest.raises(LicenseNotVerified):
         registry.open_for_training("Kubric")
+
+
+# ---------------------------------------------------------------------------
+# Day 23 -- lane C_pending_consent
+# ---------------------------------------------------------------------------
+
+
+def consent_record() -> ConsentRecord:
+    return ConsentRecord(
+        path="/consent/thinkwill-ai-dev-2026.pdf",
+        sha="b" * 64,
+        subjects=4,
+        captured_on=date(2026, 8, 1),
+        recorded_by="test",
+        purpose_note="AI-development purpose consent, distinct from the "
+        "archive's original premises-security purpose",
+    )
+
+
+def pending_entry(name: str, consent: ConsentRecord | None = None) -> DatasetEntry:
+    return DatasetEntry(name=name, lane="C_pending_consent", consent_record=consent)
+
+
+def test_c_pending_consent_is_constructable_and_listable() -> None:
+    registry = registry_with(pending_entry("archive-x"))
+    assert registry.get("archive-x").lane == "C_pending_consent"
+    assert "archive-x" in {e.name for e in registry.entries()}
+
+
+def test_c_pending_consent_refuses_training_without_consent_record() -> None:
+    registry = registry_with(pending_entry("archive-x"))
+    with pytest.raises(LaneViolation, match="no consent record attached"):
+        registry.open_for_training("archive-x")
+
+
+def test_c_pending_consent_refuses_eval_without_consent_record() -> None:
+    """Rejected here too, unlike lane R -- eval is not exempt for
+    non-consented footage of real people."""
+    registry = registry_with(pending_entry("archive-x"))
+    with pytest.raises(LaneViolation, match="no consent record attached"):
+        registry.open_for_eval("archive-x")
+
+
+def test_c_pending_consent_refusal_names_the_dpdp_purpose_reason() -> None:
+    registry = registry_with(pending_entry("archive-x"))
+    with pytest.raises(LaneViolation, match="DPDP"):
+        registry.open_for_training("archive-x")
+
+
+def test_c_pending_consent_with_record_still_needs_a_license_snapshot() -> None:
+    """Attaching consent clears the consent-specific gate, not
+    require_fetchable's separate license check -- the two are orthogonal
+    (consent answers 'may we use footage of these people'; license_snapshot
+    answers 'has a human verified third-party terms', not applicable the
+    same way here but not silently bypassed either)."""
+    registry = registry_with(pending_entry("archive-x", consent=consent_record()))
+    with pytest.raises(LicenseNotVerified):
+        registry.open_for_training("archive-x")
+
+
+def test_seed_registry_has_a_c_pending_consent_entry_for_the_thinkwill_archive() -> (
+    None
+):
+    registry = DatasetRegistry.load(SEED_PATH)
+    thinkwill = next(e for e in registry.entries() if "thinkwill" in e.name.lower())
+    assert thinkwill.lane == "C_pending_consent"
+    assert thinkwill.consent_record is None
+    assert "dpdp" in (thinkwill.hypothesis_class + thinkwill.notes).lower()
+
+
+# ---------------------------------------------------------------------------
+# Day 23 -- validity_matrix_cell on the named lane-R shortlist
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "name",
+    [
+        "OA18",
+        "MEVA",
+        "Charades",
+        "NTU-RGBD-120",
+        "Toyota-Smarthome",
+        "InHARD",
+        "MECCANO",
+        "MMPTRACK",
+        "DA-2K",
+        "ETH3D",
+        "iBims-1",
+        "DIODE-indoor",
+    ],
+)
+def test_named_lane_r_shortlist_has_lane_r_and_a_validity_matrix_cell(
+    name: str,
+) -> None:
+    registry = DatasetRegistry.load(SEED_PATH)
+    dataset = registry.get(name)
+    assert dataset.lane == "R"
+    assert dataset.license_snapshot is None
+    assert dataset.hypothesis_class
+    assert dataset.validity_matrix_cell, f"{name} has no validity_matrix_cell note"
