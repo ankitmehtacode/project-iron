@@ -5225,3 +5225,280 @@ exactly. `main` rejected, unchanged. `git push --tags`: up to date.
 17. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
 18. **MEVA licence verification** — still blocked on a human.
 19. **Hypothesis management** — furthest out; depends on item 8.
+
+# Day 22
+
+**No timing, throughput, CPU-percentage, or latency claim is made anywhere
+in this section** — unchanged hard scope rule from Day 20/21. Everything
+below is accuracy and consistency: mixture-aware NEES/coverage, a
+physically-derived covariance floor, and per-regime position/velocity
+error against exact GT.
+
+**Headline: neither of today's two candidate fixes changed the estimator
+decision, and both failures are informative rather than inconclusive.**
+The metric-validity question (was Day 21's pooled NEES even a fair test of
+IMM?) was a real but PARTIAL red herring — mixture-valid metrics move the
+exact magnitude of IMM's degradation but not its direction; steady regimes
+are still measurably worse under IMM than under the single model. The
+physically-derived velocity covariance floor — a two-line constraint,
+derived once from a constant this project already declared on Day 20, no
+tuning — turned out to be numerically INERT on both golden sets: config B
+(single model + floor) is bit-for-bit identical to config A everywhere,
+verified against raw per-frame covariance traces (not a wiring bug — the
+natural Kalman steady state at this project's 12fps already sits well
+above the floor). And underneath both questions sits a third, more basic
+one this day surfaced rather than resolved: the no-trade criterion itself
+cannot be evaluated on either golden set, because cessation — the regime
+Day 21 diagnosed as the actual problem — has 0 frames on v3-indoor and 3
+on v4.1-gate, both below this project's own 10-frame floor for a
+conclusion. Config A (Day 20's single model, unchanged) remains in use.
+See ADR 0010 for the full decision record.
+
+## Objective 0 — push, start and end of day
+
+Start of day: `foundation/day-22` branched from `foundation/day-21`
+(`d0694b9`), pushed clean, verified local HEAD matched
+`origin/foundation/day-22` exactly. `main` unchanged.
+
+## Objective 1 — is pooled NEES valid for an IMM? Partially, and it doesn't rescue IMM
+
+NEES assumes a single-Gaussian posterior; IMM's combined estimate is a
+Gaussian mixture collapsed to one `(mean, cov)`. `src/estimator/consistency.py`
+now makes this a STRUCTURAL rule rather than an implicit assumption:
+`compute_nees` takes a `posterior_family` argument and raises
+`PosteriorFamilyError` on anything but `"gaussian"` — a single-Gaussian
+NEES applied to a mixture no longer silently returns a number. The old
+Day-21 number is kept, not deleted, via
+`compute_collapsed_gaussian_nees_diagnostic`, whose own `consumer` field
+names it invalid for judging IMM's consistency — reported "alongside" the
+new metrics per the objective, not presented as validated. Two
+mixture-valid alternatives were added: `compute_mixture_nees`
+(probability-weighted per-mode NEES, each mode scored against its own
+`(mean, cov)`) and `empirical_coverage_by_sampling` (nonparametric
+highest-posterior-density coverage via Monte Carlo — no Gaussianity
+assumed for the mixture's overall shape, only for each component).
+`StateEstimate` gained `mode_states` (per-mode mean/cov, alongside the
+existing `mode_probabilities`) so these can be computed without reaching
+into IMM's private internals.
+
+Re-evaluated per regime, all three metrics side by side:
+
+| set | regime | n | single-model | IMM collapsed (diagnostic) | IMM mixture-weighted NEES coverage | IMM sampling coverage |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| v3-indoor | onset | 284 | 0.9648 | 0.9014 | 0.8732 | 0.9613 |
+| v3-indoor | sustained | 2414 | 0.9938 | 0.6587 | 0.5058 | **0.7962** |
+| v4.1-gate | static | 175 | 0.8171 | 0.4343 | 0.4343 | 0.4343 |
+
+**Guarding against motivated reasoning, stated plainly: the mixture-valid
+metrics do not rescue IMM.** v3-indoor sustained moves from a ~33-point
+apparent regression (collapsed) to a real ~20-point regression (sampling)
+relative to the single model's 99.4% — smaller, but still a clear,
+directional degradation of a regime that needed no fix. v4.1-gate static
+is identical under every metric (43.4%) because IMM's mode probability
+there is concentrated enough on one mode that collapsing the mixture
+changes almost nothing — a useful negative control: the metric-validity
+question can only ever matter where the mixture is genuinely spread across
+modes, and it changes the story there (sustained) without changing the
+verdict. **Conclusion: the metric question was a real, partial red
+herring** — it was worth asking, it changed a number materially, and it
+did not change what that number means for whether IMM is ready.
+
+## Objective 2 — the velocity covariance floor: physically sound, measurably inert
+
+`pedestrian_velocity_covariance_floor_mps2(dt_s)` derives a floor on a
+person-kind mode's posterior velocity variance from `PERSON_SIGMA_A_MPS2`
+(1.5 m/s², already declared Day 20 as this project's pedestrian
+acceleration bound) — the same quantity `Q`'s own velocity-block entry
+already injects every single predict step (`(sigma_a * dt)^2`), so a
+posterior claiming tighter velocity confidence than what one step's own
+process noise already asserts is possible is physically incoherent — which
+is exactly Day 21's diagnosed cessation mechanism. `apply_velocity_covariance_floor`
+clamps the velocity diagonal up to this floor, proven PD-preserving by
+construction (raising one diagonal entry of a PD matrix is a rank-1 PSD
+perturbation). Opt-in per motion-model instance
+(`velocity_covariance_floor=True`), valid only for `person` and
+`asset_carried` (which inherits `person`'s bound, not its own inflated
+`sigma_a_mps2` — the floor represents the carrier's body, not the carried
+object's process noise); rejected outright, not silently ignored, for
+`asset_static`/`fixture`. The derivation is reproduced by a unit test from
+`PERSON_SIGMA_A_MPS2` directly, not asserted against a hardcoded literal.
+
+**Measured result: the floor changes nothing on either golden set.**
+Config B (single model + floor) is numerically identical to config A —
+every RMSE, every coverage figure, to displayed precision — on both
+v3-indoor and v4.1-gate, at every regime. This was checked directly
+against raw per-frame velocity covariance on the actual scored
+`brief_entry` cessation track (not just aggregate RMSE, to rule out a bug
+hidden by rounding): at this project's 12fps (`dt_s ≈ 0.083`), the floor
+evaluates to `~0.0156 (m/s)^2`; this filter's natural steady-state
+velocity variance, even after only 6 onset frames — short of full
+convergence — is already `~0.065-0.09 (m/s)^2`, four to six times looser
+than the floor. **The floor never binds, so it changes nothing, on this
+data.** Per the day's own instruction: this is reported as the finding it
+is, not tuned to force a different answer. It was not swept; the same
+derivation that produced the ineffective value is the one shipped, opt-in
+and undefaulted.
+
+## Objective 3 — four-way head-to-head, per regime
+
+`scripts/eval_estimator.py --config A --config B --config C --config D`
+(default: all four). Position RMSE / coverage (mixture-valid sampling for
+C/D, NEES-based for A/B) / frame count, per regime, both sets:
+
+| set | regime | n | A | B | C | D |
+| --- | --- | ---: | --- | --- | --- | --- |
+| v3-indoor | static | 38 | 0.085m / 1.000 | = A | 0.044m / 1.000 | = C |
+| v3-indoor | onset | 284 | 0.156m / 0.965 | = A | 0.147m / 0.961 | = C |
+| v3-indoor | sustained | 2414 | 0.114m / 0.994 | = A | 0.205m / **0.796** | = C |
+| v3-indoor | cessation | 0 | empty | empty | empty | empty |
+| v3-indoor | maneuver | 0 | empty | empty | empty | empty |
+| v4.1-gate | static | 175 | 0.237m / 0.817 | = A | 0.060m / **0.434** | = C |
+| v4.1-gate | onset | 12 | 0.190m / 0.833 | = A | 0.194m / 0.917 | = C |
+| v4.1-gate | sustained | 0 | empty | empty | empty | empty |
+| v4.1-gate | cessation | 3 (THIN) | 0.159m / 0.000 | = A | 0.143m / 0.333 | = C |
+| v4.1-gate | maneuver | 0 | empty | empty | empty | empty |
+
+`maneuver` is empty on both sets by construction (every synthetic agent
+walks one straight line at constant speed — Day 21). Trivial-baseline
+margins (copy-previous, constant-velocity dead reckoning) stay clearly
+positive for every config in every non-empty regime, unchanged from
+Day 20/21's finding — not reproduced above for space, printed in full by
+the script.
+
+The no-trade criterion (restated around cessation specifically, since
+Day 21/22 pinned the failure there, not at onset or maneuver — Day 21's
+"any transient regime" framing would have let an unrelated onset wiggle
+satisfy a criterion meant to certify a cessation fix) was applied to every
+candidate against config A:
+
+| set | A → | cessation n | status |
+| --- | --- | ---: | --- |
+| v3-indoor | B | 0 | **UNSCOREABLE** |
+| v3-indoor | C | 0 | **UNSCOREABLE** |
+| v3-indoor | D | 0 | **UNSCOREABLE** |
+| v4.1-gate | B | 3 | **UNSCOREABLE** |
+| v4.1-gate | C | 3 | **UNSCOREABLE** |
+| v4.1-gate | D | 3 | **UNSCOREABLE** |
+
+Both below `MIN_REGIME_FRAMES_FOR_A_CONCLUSION` (10). This is independent
+of every number in the table above: even v4.1-gate cessation's NEES pass
+rate moving 0.000→0.333 under IMM, or RMSE improving 0.159m→0.143m, are
+real, correctly-computed numbers from 3 frames — not evidence at the
+confidence this project requires before calling a regime fixed. Static and
+sustained REGRESSED under C/D in both sets regardless (v3-indoor sustained
+−0.110, v4.1-gate static −0.383, both flagged `** REGRESSION **`), which
+alone would fail the criterion even if cessation were scoreable.
+
+## Objective 4 — ADR 0010: config A remains in use
+
+`docs/adr/0010-estimator-configuration.md`, status Accepted. Records: the
+cessation diagnosis and mechanism (Day 21, restated); the pooled-NEES
+metric verdict (Objective 1 — partially invalid, does not rescue IMM); the
+four-way results and no-trade verdicts (Objectives 2-3); the adopted
+configuration (A) and why B/C/D are each rejected on their own,
+independent grounds (B: inert, not wrong; C/D: measurably degrade steady
+regimes with no offsetting cessation evidence because none exists in this
+data). Explicitly: **the blocker is data, not an unbuilt estimator** —
+neither golden set contains enough cessation frames to certify any fix,
+whatever that fix turns out to be.
+
+## What remains skeleton, and the order it should land in
+
+1. **Cessation frame volume in the synthetic golden sets** — the single
+   highest-leverage item surfaced today: until v3-indoor/v4.1-gate (or a
+   new set) contain ≥10 cessation frames, no estimator change touching
+   cessation can be certified against the no-trade criterion, regardless
+   of how it is built. Unblocks re-evaluating every configuration in
+   ADR 0010.
+2. **A differently-derived velocity floor**, if revisited — sized to an
+   asserted stopping-relevant variance rather than one predict step's own
+   Q injection, since today's derivation (correct as far as it went) is
+   looser than this filter's own convergence at 12fps. Needs its own
+   independent physical basis stated before measurement, not chosen to
+   move the number.
+3. **IMM's steady-regime "mixing overhead" hypothesis** (Day 21, restated
+   Day 22 item 3 originally) — still unconfirmed by a second measurement,
+   still open, independent of cessation.
+4. **Multi-entity factor graph.** Unchanged — still needed before
+   `asset_carried`'s rigid-coupling interface does anything, and still
+   inherits config A's known overconfidence on v4.1-gate static.
+5. **Smoothing** (`horizon_kind="smoothed"`). Still secondary for the same
+   reason Day 21 gave: smoothing a filter whose calibration is not yet
+   trustworthy tightens a number that is not yet honest.
+6. **Mode-probability validation against real motion labels.** Unchanged
+   from Day 21 — still required before any of Objective 5's (Day 21)
+   documented consumers may be wired up.
+7. **Hypothesis management.** Furthest out; depends on item 4.
+
+## Full suite and mypy
+
+`mypy` (scoped per `mypy.ini`): **0 errors, 58 files**, unchanged file
+count from Day 21 — today's work extended existing estimator modules
+rather than adding new ones. Repo-wide (`.venv-pinned`, `not
+requires_weights and not slow`): **966 passed, 1 skipped, 8 deselected, 0
+failures** — up from Day 21's 918 (+48: posterior-family guard, mixture
+NEES/coverage, the velocity floor's derivation and binding/non-binding
+behavior, the four-way eval harness and generalized no-trade verdict). `black --check .` / `flake8 .`
+show the same pre-existing formatting/lint drift in ~25 files noted
+Day 21, unrelated to anything touched today (confirmed absent from the
+list); every file touched today is clean under both.
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 21 — today's work was
+entirely unblocked by design:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification.**
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 10 days old.
+5. **The `main`/`origin/main` divergence decision (ADR 0009).**
+6. **Reference hardware procurement decision** (`docs/reference_hardware.md`)
+   — unchanged since Day 19.
+
+## Objective 0/5 — push, end of day
+
+`git push --all origin`: `foundation/day-22` pushed clean, matches origin
+exactly. `main` unchanged. `git push --tags`: up to date.
+
+# Day 23, in order
+
+1. **Increase cessation frame volume in the synthetic golden sets** — the
+   day's own highest-leverage finding: extend `scripts/gen_synthetic_indoor.py`
+   (or author a new golden-set version) with more/longer walk-then-stop
+   agents until v3-indoor and v4.1-gate (or their successors) carry
+   ≥10 cessation frames each, then re-run the Day-22 four-way comparison
+   against a criterion that can actually be scored.
+2. **A differently-derived velocity floor**, if pursued — see Day 22's
+   "what remains skeleton" item 2. Not to be attempted without a fresh,
+   independently-stated physical basis.
+3. **IMM's steady-regime mixing-overhead hypothesis** — still unconfirmed,
+   two days deferred now.
+4. **Reference hardware decision** — still pending a human, now 4 days
+   old.
+5. **Declare a target fps for real camera ingest** — still open from
+   Day 19.
+6. **Cascade bench, clean, on interim or reference hardware** — still
+   pending hardware.
+7. **Depth validity re-measurement** (`scripts/eval_depth.py`) — still
+   deferred from Day 18/19.
+8. **The `main`/`origin/main` decision** (ADR 0009) — a human call.
+9. **Multi-entity factor graph** — depends on Day 22 item 1 (or item 2)
+   landing first.
+10. **Smoothing** (`horizon_kind="smoothed"`) — depends on the same.
+11. **Mode-probability validation against real motion labels** — depends
+    on the same; needed before any Day-21 Objective-5 consumer is wired
+    up.
+12. **The generator has no sensor-noise model** — unchanged.
+13. **Order cameras and run the office capture** — now 10 days old.
+14. **The motion-gate precision/selectivity investigation** — eleven days
+    deferred.
+15. **Steer callers away from `raise_alert()` toward `emit_alert()`** —
+    still open from Day 14.
+16. **A canonical `Observation -> hash` function** (ADR 0007) — still
+    open from Day 13.
+17. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced** — unchanged.
+18. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+19. **MEVA licence verification** — still blocked on a human.
+20. **Hypothesis management** — furthest out; depends on item 9.
