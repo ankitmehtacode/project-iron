@@ -59,6 +59,7 @@ def test_every_minted_version_is_retained() -> None:
         "v3-indoor",
         "v4-gate",
         "v4.1-gate",
+        "v5-cessation",
     }
 
 
