@@ -65,10 +65,68 @@ def test_walk_then_stop_produces_cessation_window() -> None:
     for t in range(frames):
         track[t, 0] = min(t, stop_at) * 0.5
     labels = classify_track(track, DT_S)
-    # Frames well after stopping are static.
-    assert labels[stop_at + 2 :] == ("static",) * len(labels[stop_at + 2 :])
-    # Some frames just before stopping are cessation (not sustained/onset).
+    # Some frames just before stopping are cessation (anticipatory half).
     assert any(label == "cessation" for label in labels[max(0, stop_at - 4) : stop_at])
+    # Day 23: the recovery half -- frames right after the stop are ALSO
+    # cessation, not immediately "static". This track is too short to run
+    # past the recovery window (see the settling test below for that).
+    assert labels[stop_at + 1] == "cessation"
+
+
+def test_cessation_recovery_window_eventually_settles_to_static() -> None:
+    """Day 23: the recovery half of cessation is a WINDOW, not forever --
+    a track long enough to run past PEDESTRIAN_STOP_DURATION_S worth of
+    frames after the stop must return to 'static'."""
+    from src.estimator.regime import _cessation_recovery_window_frames
+
+    recovery_frames = _cessation_recovery_window_frames(DT_S)
+    stop_at = 10
+    frames = stop_at + recovery_frames + 15
+    track = np.zeros((frames, 3))
+    for t in range(frames):
+        track[t, 0] = min(t, stop_at) * 0.5
+    labels = classify_track(track, DT_S)
+
+    first_static_after_stop = stop_at + 1
+    # Immediately after the stop, still cessation (recovery, not settled).
+    assert labels[first_static_after_stop] == "cessation"
+    # Well past the recovery window, back to static.
+    settled_index = first_static_after_stop + recovery_frames + 5
+    assert labels[settled_index] == "static"
+
+
+def test_cessation_recovery_does_not_apply_to_a_track_static_from_the_start() -> None:
+    """A track that is static from frame 0 carries no GT evidence it ever
+    stopped -- it must stay 'static' throughout, never 'cessation'."""
+    track = np.zeros((30, 3))
+    labels = classify_track(track, DT_S)
+    assert labels == ("static",) * 30
+    assert "cessation" not in labels
+
+
+def test_stop_then_restart_labels_both_transients() -> None:
+    """A stop-then-restart sequence (Day 23, v5-cessation's own scenario
+    shape): both the cessation recovery after the first stop and the onset
+    after restarting must be labeled, not swallowed into one or the other."""
+    walk1, stop_len, walk2 = 10, 20, 10
+    frames = walk1 + stop_len + walk2
+    track = np.zeros((frames, 3))
+    pos = 0.0
+    for t in range(frames):
+        if t < walk1:
+            pos = t * 0.5
+        elif t < walk1 + stop_len:
+            pos = walk1 * 0.5  # held
+        else:
+            pos = walk1 * 0.5 + (t - walk1 - stop_len) * 0.5
+        track[t, 0] = pos
+    labels = classify_track(track, DT_S)
+    # Recovery cessation right after the first stop.
+    assert labels[walk1 + 1] == "cessation"
+    # Onset right after restarting (position changes again at walk1+stop_len,
+    # finite difference shows it one frame later).
+    restart_index = walk1 + stop_len + 1
+    assert labels[restart_index] == "onset"
 
 
 def test_straight_line_constant_speed_has_no_maneuver() -> None:
