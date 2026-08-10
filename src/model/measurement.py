@@ -74,9 +74,43 @@ class HRISSyncMeasurement:
             raise ValueError("HRISSyncMeasurement.employee_id must not be empty")
 
 
+@dataclass(frozen=True)
+class WorldPositionMeasurement:
+    """A 3D world-frame position reading, already unprojected/triangulated.
+
+    Day 20: the state estimator's measurement models (:mod:`src.estimator.
+    measurement_model`) consume this — the estimator works in metric world
+    space, not pixel space, so it needs a position measurement as a first-
+    class sensor kind rather than reaching back into a
+    :class:`CameraFrameMeasurement`'s ``bbox_px`` and re-deriving geometry
+    this type already assumes was done upstream.
+
+    No ``twin_rev`` field here: the containing
+    :class:`~src.model.observation.Observation`'s ``frame_of_reference.
+    twin_rev`` is the single authoritative source for which twin revision
+    ``x_m``/``y_m``/``z_m`` were computed under. Duplicating it here would
+    create two fields that could disagree.
+    """
+
+    sensor_kind: Literal["world_position"] = "world_position"
+    x_m: float = 0.0
+    y_m: float = 0.0
+    z_m: float = 0.0
+
+    def __post_init__(self) -> None:
+        import math
+
+        for name, value in (("x_m", self.x_m), ("y_m", self.y_m), ("z_m", self.z_m)):
+            if not math.isfinite(value):
+                raise ValueError(
+                    f"WorldPositionMeasurement.{name} must be finite, got {value}"
+                )
+
+
 Measurement = (
     CameraFrameMeasurement
     | BadgeSwipeMeasurement
     | DoorContactMeasurement
     | HRISSyncMeasurement
+    | WorldPositionMeasurement
 )

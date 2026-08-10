@@ -107,6 +107,7 @@ from src.model.measurement import (
     DoorContactMeasurement,
     HRISSyncMeasurement,
     Measurement,
+    WorldPositionMeasurement,
 )
 from src.model.observation import Observation, ObservationError
 from src.model.relationship import (
@@ -144,6 +145,7 @@ __all__ = [
     "DoorContactMeasurement",
     "HRISSyncMeasurement",
     "Measurement",
+    "WorldPositionMeasurement",
     "FrameOfReference",
     "Observation",
     "ObservationError",
