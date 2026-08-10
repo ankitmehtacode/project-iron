@@ -27,10 +27,18 @@ parens):
        from evidence eligibility too. emit_alert() is now the only public
        alert path.)
        Day 13: PARTIAL, an alert-eligible event could carry zero evidence.
-    5. Behaviour-query shape              -- PASSES at the type level
-       (an ActivityMode can never be confused with a fact); still blocked
-       on the unimplemented estimator for producing a real answer to a
-       live query — unchanged since Day 13, by scope, not by oversight.
+    5. Behaviour-query shape              -- PARTIAL as of Day 20
+       (an ActivityMode can never be confused with a fact -- unchanged);
+       solve_state now genuinely resolves a single-entity StateQuery
+       (src/estimator, Day 20) instead of raising NotImplementedError
+       unconditionally, so the "blocked on the unimplemented estimator"
+       half of Day 13's finding is closed for the single-entity case. What
+       remains blocked: nothing yet turns a resolved StateEstimate into an
+       ActivityMode label (that is behaviour modeling, still out of
+       scope), so this test proves state estimation now answers live
+       queries, not that a live behaviour query can be answered end to
+       end. Multi-entity graphs and horizon_kind="smoothed" remain
+       NotImplementedError, tested explicitly.
 """
 
 from __future__ import annotations
@@ -49,7 +57,15 @@ from src.model.coverage import (
     Interval,
     prove_absence,
 )
-from src.model.episode import ActivityMode, attach_to_alert, attach_to_evidence
+from src.model.episode import (
+    ActivityMode,
+    EpisodeError,
+    StateGraph,
+    StateQuery,
+    attach_to_alert,
+    attach_to_evidence,
+    solve_state,
+)
 from src.model.evidence import DerivationStep, Evidence, UncalibratedScore
 from src.model.events import (
     EventError,
@@ -60,18 +76,25 @@ from src.model.events import (
     assemble_evidence,
 )
 from src.model.frame_of_reference import FrameOfReference
+from src.model.measurement import WorldPositionMeasurement
+from src.model.observation import Observation
 from src.model.relationship import (
     ArtifactRegistry,
     Correction,
     DerivedArtifact,
     Relationship,
 )
+from src.model.uncertainty import Uncertainty
+from src.model.ulid import generate_ulid
 from src.model.world import (
     RigidTransform3D,
     TwinRevError,
     TwinRevTransform,
     WorldPosition,
 )
+from src.estimator.filter import FilterError, run_single_entity_filter
+from src.estimator.measurement_model import measurement_model_for
+from src.estimator.motion_model import motion_model_for
 
 SECOND_NS = 1_000_000_000
 BASE_TS = 1_785_000_000 * SECOND_NS
@@ -345,20 +368,43 @@ def test_falsification_predicted_event_can_neither_alert_nor_be_evidence() -> No
 
 
 # ---------------------------------------------------------------------------
-# 5. Behaviour-query shape -- PASSES at the type level
+# 5. Behaviour-query shape -- PARTIAL as of Day 20
 # ---------------------------------------------------------------------------
+
+
+def _position_observation(x_m: float, ts_ns: int) -> Observation:
+    return Observation(
+        observation_id=generate_ulid(now_ns=ts_ns),
+        sensor_id="cam-falsification-5",
+        ts_ns=ts_ns,
+        frame_ref="cam-falsification-5/frame",
+        measurement=WorldPositionMeasurement(x_m=x_m, y_m=0.0, z_m=0.0),
+        uncertainty=Uncertainty(kind="gaussian_3d", params=(("sigma_m", 0.05),)),
+        frame_of_reference=FrameOfReference(
+            geometry=FrameGeometry(1920, 1080),
+            to_canonical=AffineTransform.identity(),
+            twin_rev=1,
+        ),
+        producer_shas=("estimator-test",),
+        envelope_status="within_envelope",
+    )
 
 
 def test_falsification_behaviour_query_shape_cannot_be_confused_with_a_fact() -> None:
     """An ActivityMode (the shape a behaviour query would answer with)
     can never satisfy an alert or evidence path, and is never one of the
-    four fact-bearing event classes.
+    four fact-bearing event classes -- PASSES structurally, unchanged.
 
-    PASSES structurally. What remains BLOCKED on the unimplemented
-    estimator: there is no live path that actually answers a behaviour
-    query yet (src/model/episode.py::solve_state raises
-    NotImplementedError) -- this test proves the answer's shape is safe
-    once that estimator exists, not that the estimator exists.
+    Day 13/17-19: solve_state raised NotImplementedError unconditionally,
+    so this test could only prove the answer's shape was safe, not that a
+    live query could be answered. Day 20 fills solve_state for the
+    single-entity case: this test now builds a REAL single-entity graph
+    (src/estimator's filter, not a bare append_factor with no payload) and
+    confirms solve_state returns an actual StateEstimate rather than
+    raising. Still PARTIAL, not PASSES: nothing turns that StateEstimate
+    into an ActivityMode label yet (behaviour modeling is out of scope),
+    so a live *behaviour* query is still unanswerable end to end -- only
+    the state-estimation half that would feed one now works.
     """
     mode = ActivityMode(
         scope_id="traj-1",
@@ -387,14 +433,48 @@ def test_falsification_behaviour_query_shape_cannot_be_confused_with_a_fact() ->
     with pytest.raises(Exception):
         attach_to_evidence(mode, dummy_evidence)
 
-    # The estimator that would produce a live ActivityMode from a real
-    # trajectory does not exist yet -- confirming the boundary this
-    # falsification test is checking.
-    from src.model.episode import StateGraph, StateQuery, solve_state
-
+    # The single-entity estimator now exists and genuinely resolves a
+    # StateQuery -- this is the boundary that moved since Day 13.
     graph = StateGraph()
-    graph.append_factor("f1", "motion_prior", ("obs-1",), "sha-1")
+    observations = [_position_observation(1.0, BASE_TS), _position_observation(1.5, BASE_TS + SECOND_NS)]
+    run_single_entity_filter(
+        graph,
+        observations,
+        motion_model_for("person"),
+        measurement_model_for("cam-falsification-5"),
+        manifest_sha="falsification-test-5",
+    )
+    estimate = solve_state(
+        StateQuery(at_ts_ns=BASE_TS + SECOND_NS, horizon_ns=0, graph_rev=graph.graph_rev),
+        graph,
+    )
+    assert estimate.observed is True
+    assert estimate.residuals  # STRUCTURAL: never absent, see src.estimator.state
+
+    # What is STILL blocked: turning a StateEstimate into an ActivityMode.
+    # No function in this codebase does that -- there is nothing to call
+    # and assert NotImplementedError on, which is itself the honest report:
+    # this seam has not been built yet, not merely stubbed.
+    assert not hasattr(estimate, "activity_mode")
+
+    # And multi-entity / smoothed resolution are still real gaps, not
+    # silently-wrong answers:
+    smoothed_query = StateQuery(
+        at_ts_ns=BASE_TS + SECOND_NS,
+        horizon_ns=0,
+        graph_rev=graph.graph_rev,
+        horizon_kind="smoothed",
+    )
     with pytest.raises(NotImplementedError):
+        solve_state(smoothed_query, graph)
+
+    # A bare Day-13-style graph (no estimator payload) still cannot be
+    # resolved -- confirms the refusal is about missing evidence, not a
+    # blanket "unimplemented" any longer.
+    bare_graph = StateGraph()
+    bare_graph.append_factor("f1", "motion_prior", ("obs-1",), "sha-1")
+    with pytest.raises(EpisodeError, match="no resolvable state"):
         solve_state(
-            StateQuery(at_ts_ns=BASE_TS, horizon_ns=0, graph_rev=graph.graph_rev), graph
+            StateQuery(at_ts_ns=BASE_TS, horizon_ns=0, graph_rev=bare_graph.graph_rev),
+            bare_graph,
         )

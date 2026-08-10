@@ -4,8 +4,13 @@ STRUCTURAL rules under test:
   - is_interaction is derived, not a separate Interaction type.
   - ActivityMode.admissible is always False; attach_to_alert and
     attach_to_evidence both unconditionally raise.
-  - StateGraph is append-only with a monotonic graph_rev; solve_state
-    raises NotImplementedError.
+  - StateGraph is append-only with a monotonic graph_rev.
+  - solve_state: Day 20 fills the single-entity case (see
+    tests/test_estimator_filter.py for the real end-to-end path); this file
+    keeps the boundary tests that belong to the model layer itself — a bare
+    Day-13-style graph with no estimator payload still refuses (just with a
+    more specific error now), and horizon_kind="smoothed" still raises
+    NotImplementedError.
 """
 
 from __future__ import annotations
@@ -197,12 +202,14 @@ def test_state_graph_append_only_and_monotonic_graph_rev() -> None:
 
 
 def test_state_graph_has_no_mutation_method() -> None:
+    """append_factor is the only mutator; payload_for (Day 20) is a pure
+    read accessor, same category as factors_as_of, not a second mutator."""
     public_methods = {
         name
         for name in dir(StateGraph)
         if not name.startswith("_") and callable(getattr(StateGraph, name))
     }
-    assert public_methods == {"append_factor", "factors_as_of"}
+    assert public_methods == {"append_factor", "factors_as_of", "payload_for"}
 
 
 def test_factor_is_frozen() -> None:
@@ -222,9 +229,54 @@ def test_state_query_rejects_negative_horizon() -> None:
         StateQuery(at_ts_ns=1, horizon_ns=-1, graph_rev=0)
 
 
-def test_solve_state_raises_not_implemented() -> None:
+def test_solve_state_on_bare_skeleton_graph_raises() -> None:
+    """A graph built the Day-13 way (append_factor with no payload) still
+    cannot be resolved -- there is no numeric estimate attached to any
+    factor for the filter to find. Day 20 makes this a specific,
+    diagnosable EpisodeError instead of a blanket NotImplementedError; see
+    tests/test_estimator_filter.py for the real, payload-bearing path."""
     graph = StateGraph()
     graph.append_factor("f1", "kind", ("x",), "sha")
     query = StateQuery(at_ts_ns=BASE_TS, horizon_ns=0, graph_rev=graph.graph_rev)
+    with pytest.raises(EpisodeError, match="no resolvable state"):
+        solve_state(query, graph)
+
+
+def test_solve_state_smoothed_horizon_raises_not_implemented() -> None:
+    """Day 20's scope is single-entity FILTERING only. horizon_kind
+    exists and is exercised (StateQuery accepts and validates it), but
+    'smoothed' names a real, not-yet-built capability rather than silently
+    falling back to a filtered answer nobody asked for."""
+    graph = StateGraph()
+    graph.append_factor("f1", "kind", ("x",), "sha")
+    query = StateQuery(
+        at_ts_ns=BASE_TS, horizon_ns=0, graph_rev=graph.graph_rev, horizon_kind="smoothed"
+    )
     with pytest.raises(NotImplementedError):
         solve_state(query, graph)
+
+
+def test_state_query_rejects_unknown_horizon_kind() -> None:
+    with pytest.raises(EpisodeError):
+        StateQuery(at_ts_ns=1, horizon_ns=0, graph_rev=0, horizon_kind="bogus")  # type: ignore[arg-type]
+
+
+def test_state_graph_rejects_duplicate_factor_id() -> None:
+    graph = StateGraph()
+    graph.append_factor("f1", "kind", ("x",), "sha")
+    with pytest.raises(EpisodeError):
+        graph.append_factor("f1", "kind2", ("y",), "sha")
+
+
+def test_payload_for_returns_none_when_absent() -> None:
+    graph = StateGraph()
+    graph.append_factor("f1", "kind", ("x",), "sha")
+    assert graph.payload_for("f1") is None
+    assert graph.payload_for("does-not-exist") is None
+
+
+def test_append_factor_stores_and_returns_payload() -> None:
+    graph = StateGraph()
+    sentinel = object()
+    graph.append_factor("f1", "kind", ("x",), "sha", payload=sentinel)
+    assert graph.payload_for("f1") is sentinel

@@ -23,21 +23,41 @@ checked at construction, and :func:`attach_to_alert` /
 :func:`attach_to_evidence` unconditionally raise — there is no code path
 that lets a behaviour-pattern label trigger a page or back a claim.
 
-StateGraph is a skeleton, on purpose
---------------------------------------
-The factor-graph solver is explicitly out of scope for Day 13 (see the
-Day-13 prompt's scope discipline). What is in scope is the append-only
-factor store and the monotonically increasing ``graph_rev`` — because
-:class:`~src.model.evidence.Evidence` needs something to reference
-*today*, even though nothing can resolve a query against it yet.
-:func:`solve_state` raises ``NotImplementedError`` naming exactly what
-will fill it.
+StateGraph is a skeleton, on purpose — filled Day 20, single-entity only
+--------------------------------------------------------------------------
+The factor-graph solver was explicitly out of scope for Day 13 (see the
+Day-13 prompt's scope discipline). What was in scope then is the
+append-only factor store and the monotonically increasing ``graph_rev`` —
+because :class:`~src.model.evidence.Evidence` needs something to reference,
+even before anything could resolve a query against it.
+
+Day 20 fills :func:`solve_state` for the **single-entity** case only —
+:mod:`src.estimator`'s motion/measurement models and Kalman filter — via a
+deferred import inside the function body (not a module-level import: that
+would make ``src.model.episode`` depend on ``src.estimator``, which itself
+imports ``src.model.episode`` for :class:`StateGraph`/:class:`StateQuery`,
+a genuine import cycle that a call-time import breaks the same way
+``observability_partition`` in :mod:`src.data.scorecard` defers its
+``src.cascade.envelope`` import). The multi-entity factor graph, smoothing
+across the full graph, and hypothesis management are still out of scope —
+see :data:`StateQuery.horizon_kind` for how "smoothed" stays a documented
+``NotImplementedError`` rather than a silent wrong answer.
+
+``StateGraph``'s own shape is unchanged from Day 13 in every way a Day-13
+caller depends on: :class:`Factor` is still frozen with the same four
+fields, ``append_factor``'s first four parameters and
+``factors_as_of`` are untouched. The one addition is an *optional* payload
+slot on ``append_factor`` (default ``None``) so a filter can attach the
+actual numeric :class:`~src.estimator.state.StateEstimate` a factor
+represents, retrievable via the new :meth:`StateGraph.payload_for` —
+additive, not breaking, and exactly what lets :func:`solve_state` replay a
+graph's history deterministically without recomputing it from scratch.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
-from typing import Literal, NoReturn, get_args
+from dataclasses import dataclass, field
+from typing import Any, Literal, NoReturn, get_args
 
 from src.model.evidence import Evidence, UncalibratedScore
 
@@ -240,6 +260,25 @@ class Factor:
             raise EpisodeError("Factor.manifest_sha must not be empty")
 
 
+HorizonKind = Literal["filtered", "smoothed"]
+"""Which solve MODE answers this query — orthogonal to ``horizon_ns``
+(which asks *how far*, not *which algorithm*).
+
+``filtered``: causal, online — the marginal at ``at_ts_ns`` uses only
+factors at or before it (a Kalman-style forward pass). This is what Day 20
+implements.
+
+``smoothed``: uses factors *after* ``at_ts_ns`` too (an RTS-style backward
+pass), which is strictly more accurate at any point that has later evidence
+but is not a single-entity-scope concern — it needs the same factor-replay
+machinery plus a second pass, and Day 20's scope is single-entity filtering
+only. ``solve_state`` raises ``NotImplementedError`` for this value, not
+silently falling back to ``filtered`` — a caller who asked for smoothing
+and got a filtered answer with no error would not know to distrust it.
+"""
+HORIZON_KINDS: tuple[HorizonKind, ...] = get_args(HorizonKind)
+
+
 @dataclass(frozen=True)
 class StateQuery:
     """A request to resolve state at a point in time, against a graph revision.
@@ -251,11 +290,15 @@ class StateQuery:
         graph_rev: Which revision of the factor graph to answer against —
             pinned explicitly so a query's answer is reproducible even as
             the graph keeps growing.
+        horizon_kind: ``"filtered"`` (default, Day 13's original implicit
+            meaning — every pre-Day-20 ``StateQuery(...)`` call site keeps
+            working unchanged) or ``"smoothed"``. See :data:`HorizonKind`.
     """
 
     at_ts_ns: int
     horizon_ns: int
     graph_rev: int
+    horizon_kind: HorizonKind = "filtered"
 
     def __post_init__(self) -> None:
         if self.horizon_ns < 0:
@@ -265,6 +308,11 @@ class StateQuery:
         if self.graph_rev < 0:
             raise EpisodeError(
                 f"StateQuery.graph_rev must be >= 0, got {self.graph_rev}"
+            )
+        if self.horizon_kind not in HORIZON_KINDS:
+            raise EpisodeError(
+                f"unknown StateQuery.horizon_kind {self.horizon_kind!r}; "
+                f"expected one of {HORIZON_KINDS}"
             )
 
 
@@ -276,11 +324,22 @@ class StateGraph:
     by exactly one per append and is never reused, so
     ``Evidence.state_refs`` entries stay meaningful even as the graph
     keeps growing underneath them.
+
+    Day 20: ``append_factor`` accepts an optional ``payload`` — the actual
+    numeric result (a :class:`~src.estimator.state.StateEstimate`) a
+    predict/update step produced, retrievable via :meth:`payload_for`.
+    ``Factor`` itself stays untouched: the payload lives in a side table
+    keyed by ``factor_id``, not on the frozen dataclass, so every Day-13
+    caller that never passes one gets exactly the old behaviour (``None``
+    back from a lookup nothing ever performs). This is what lets
+    :func:`solve_state` replay a graph's history instead of needing a
+    parallel, separately-passed-in numeric store.
     """
 
     def __init__(self) -> None:
         self._factors: list[Factor] = []
         self._graph_rev = 0
+        self._payloads: dict[str, Any] = {}
 
     @property
     def graph_rev(self) -> int:
@@ -292,8 +351,28 @@ class StateGraph:
         factor_kind: str,
         inputs: tuple[str, ...],
         manifest_sha: str,
+        payload: Any = None,
     ) -> Factor:
-        """Append a new factor, advancing ``graph_rev`` by one."""
+        """Append a new factor, advancing ``graph_rev`` by one.
+
+        Args:
+            payload: Optional numeric result this factor represents (Day
+                20). Stored by ``factor_id``, retrievable via
+                :meth:`payload_for`. ``None`` (the default) stores nothing,
+                matching every Day-13 call site exactly.
+
+        Raises:
+            EpisodeError: if ``factor_id`` was already used in this graph —
+                payloads are keyed by ``factor_id``, so a reused id would
+                silently overwrite a prior factor's numeric result.
+        """
+        if factor_id in self._payloads or any(
+            f.factor_id == factor_id for f in self._factors
+        ):
+            raise EpisodeError(
+                f"factor_id {factor_id!r} was already appended to this graph; "
+                "factor ids must be unique within a graph"
+            )
         next_rev = self._graph_rev + 1
         factor = Factor(
             factor_id=factor_id,
@@ -304,34 +383,55 @@ class StateGraph:
         )
         self._factors.append(factor)
         self._graph_rev = next_rev
+        if payload is not None:
+            self._payloads[factor_id] = payload
         return factor
 
     def factors_as_of(self, graph_rev: int) -> tuple[Factor, ...]:
         """Every factor appended at or before ``graph_rev``, in append order."""
         return tuple(f for f in self._factors if f.graph_rev <= graph_rev)
 
+    def payload_for(self, factor_id: str) -> Any | None:
+        """The numeric payload attached to ``factor_id``, or ``None``.
 
-def solve_state(query: StateQuery, graph: StateGraph) -> NoReturn:
-    """Resolve ``query`` against ``graph``'s factors.
+        ``None`` covers two cases identically: no such factor exists, and
+        the factor exists but was appended with no payload. Callers that
+        need to distinguish those should check ``factors_as_of`` /
+        ``factor_id`` membership separately.
+        """
+        return self._payloads.get(factor_id)
 
-    Not implemented. This is the factor-graph solver / estimator, and Day
-    13's scope is primitives and rules — types, validation, serialization,
-    migration, structural guards — not inference; see the Day-13 prompt's
-    scope discipline. What belongs here, in a later measured phase: an
-    inference pass (e.g. belief propagation or an equivalent factor-graph
-    solver) over ``graph.factors_as_of(query.graph_rev)``, producing a
-    state estimate at ``query.at_ts_ns`` with uncertainty that honestly
-    reflects ``query.horizon_ns`` — wide when extrapolating past the last
-    observed factor, narrow when interpolating between two nearby ones.
-    Landing that estimator without a measured accuracy figure attached
-    would violate the same rule this whole package's Objective 0 exists
-    to enforce: no metric without a baseline, no claim without a number.
+
+def solve_state(query: StateQuery, graph: StateGraph) -> Any:
+    """Resolve ``query`` against ``graph``'s factors: the single-entity case.
+
+    Day 20 fills this for ``query.horizon_kind == "filtered"`` — a causal
+    replay of ``graph.factors_as_of(query.graph_rev)`` via
+    :mod:`src.estimator`'s single-entity Kalman filter, returning a
+    :class:`~src.estimator.state.StateEstimate`. Imported inside the
+    function body, not at module level, to avoid a cycle: ``src.estimator``
+    imports :class:`StateGraph`/:class:`StateQuery` from this module, so
+    this module cannot import ``src.estimator`` back at import time (see
+    the module docstring).
+
+    Still not implemented, and still explicitly so rather than silently
+    wrong: the multi-entity factor graph, smoothing across the full graph
+    (``query.horizon_kind == "smoothed"``), and hypothesis management. Any
+    of those landing without a measured accuracy figure attached would
+    violate the same rule this whole package's Objective 0 exists to
+    enforce — no metric without a baseline, no claim without a number —
+    which is why Day 20 also shipped ``scripts/eval_estimator.py`` in the
+    same change as this function, not after it.
 
     Raises:
-        NotImplementedError: always.
+        NotImplementedError: if ``query.horizon_kind == "smoothed"``.
+        EpisodeError: if the graph has no resolvable state before
+            ``query.at_ts_ns``, or if resolving it needs more extrapolation
+            than ``query.horizon_ns`` allows.
     """
-    raise NotImplementedError(
-        "the factor-graph solver is out of scope for Day 13 — see "
-        "solve_state's docstring for what will fill it and why it is not "
-        "here yet"
-    )
+    from src.estimator.filter import FilterError, resolve_state
+
+    try:
+        return resolve_state(query, graph)
+    except FilterError as exc:
+        raise EpisodeError(str(exc)) from exc
