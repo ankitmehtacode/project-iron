@@ -4276,6 +4276,342 @@ start and the end of the day, per the Day-17 standing rule.
 13. **MEVA licence verification** — still blocked on a human.
 14. **The factor-graph solver** — unchanged from Day 13's list.
 
+# Day 20
+
+**No timing, throughput, CPU-percentage, or latency claim is made anywhere
+in this section.** Day 19 established that no environment-dependent number
+is currently defensible on this machine, and today's objectives were
+compute-independent by design (accuracy and consistency, scored against
+exact synthetic ground truth) specifically so the day's work would not
+depend on the still-unresolved reference-hardware question. Where the word
+"cost" or "budget" would normally appear, it does not — position error,
+velocity error, and the NIS/NEES consistency residuals below are all
+environment-independent by construction (Day 19's own classification), and
+nothing here was measured on, or claims anything about, wall-clock speed.
+
+**The headline: the filter is well-calibrated on sustained motion and
+measurably overconfident at motion onset.** v3-indoor (72 tracks, mostly
+walking) empirically covers its own 95% uncertainty bound 99.1% of the
+time — slightly conservative, not a defect. v4.1-gate (5 tracks, the quiet
+set) covers only 80.5% of the time in aggregate, and breaking that down by
+track shows it is not spread evenly: the two `long_static_occupant` tracks
+are covered 100.0% of the time (as calibrated as a filter can be), while
+all three `brief_entry*` tracks — a person entering an otherwise still
+scene — sit at 63–71%. The filter's covariance, having settled tight
+during a quiet interval, does not widen fast enough to honestly represent
+the uncertainty at the moment motion actually starts. This is exactly the
+failure the prompt named: an estimator that understates its own
+uncertainty is the most dangerous defect an evidence system can have,
+because every downstream confidence inherits the error and the system is
+most certain exactly where it is most wrong. It is diagnosed, not fixed,
+today — see Day 21, item 1.
+
+## Objective 0 — push, start and end of day
+
+Start of day: `foundation/day-20` branched from `foundation/day-19`
+(`d5de7b4`), pushed clean, verified local HEAD matched
+`origin/foundation/day-20` exactly. `main` rejected, unchanged since Day 16
+(Day 19's ADR 0009 still Proposed; no new instruction to execute it arrived
+today, so nothing was touched).
+
+## Objective 1 — motion and measurement models (`src/estimator/`)
+
+New package. `MotionModel` per entity kind — all four are
+constant-velocity transitions except `fixture`, which has none:
+
+| kind | process-noise density (σₐ) | rationale |
+| --- | ---: | --- |
+| `person` | 1.5 m/s² | pedestrian acceleration bound |
+| `asset_static` | 0.02 m/s² | reluctant to acquire velocity, not pinned to zero |
+| `asset_carried` | 4.0 m/s² | inflated, standing in for the not-yet-modeled carrier coupling |
+| `fixture` | — | identity transition, no kinematics |
+
+The textbook discretized-white-noise-acceleration `Q` block is only
+positive *semi*-definite (determinant exactly zero — a single scalar noise
+source driving two states); a small regularization floor makes every `Q`
+strictly PD, tested directly at four different `dt` values per kind.
+`asset_carried` carries a `carrier_entity_id` field as the interface hook
+for real rigid coupling — unused numerically until the multi-entity day,
+confirmed by a test that a coupled and an uncoupled instance compute
+identical `Q`.
+
+`MeasurementModel` wires the Day-13 `Envelope`/`EnvelopeCurve` in directly
+as the source of R: measurement noise as a function of distance,
+monotonically increasing (tested), and a reading beyond the curve's
+calibrated range gets a 5x-inflated sigma rather than being discarded —
+tested with an exact-factor assertion, not just "bigger." Added
+`WorldPositionMeasurement` to `src/model/measurement.py` (a genuinely new
+sensor-kind variant, the pattern the module was built for) since none of
+the four existing measurement types carry an unprojected 3D position.
+
+34 tests, `mypy --strict` clean (`src/estimator` added to `mypy.ini`'s
+scope).
+
+## Objective 2 — the single-entity filter, `solve_state` filled (§15, §17)
+
+`StateGraph`/`StateQuery`'s Day-13 shape is unchanged for every existing
+caller: `append_factor` gained an *optional* `payload` slot (default
+`None`) so a filter can attach the actual `StateEstimate` a factor
+represents, retrievable via the new `payload_for` — additive, not
+breaking. `StateQuery` gained `horizon_kind` (`"filtered"` default,
+`"smoothed"` → `NotImplementedError`), a mode orthogonal to the existing
+`horizon_ns` extrapolation budget. `solve_state` delegates to
+`src.estimator.filter.resolve_state` via a deferred (call-time) import —
+the only way to avoid a genuine cycle, since the estimator imports
+`StateGraph`/`StateQuery` from the model layer.
+
+`run_single_entity_filter` (predict → observe → correct, Joseph-form
+covariance update for numerical stability) takes **no parameter that could
+carry a behavioral prior** — checked directly via `inspect.signature`, not
+just documented. The first state bootstraps from the first observation
+alone: position = that observation, velocity = 0, covariance =
+`block_diag(R, 100·I)` on velocity. Two STRUCTURAL properties fell out of
+the replay-not-recompute design almost for free:
+
+- **Reproducibility.** Re-solving at an earlier `graph_rev` after more
+  factors have been appended to the same graph returns a bit-identical
+  result (`before.mean == after.mean`, `before.cov == after.cov`) — proven
+  by appending a second, unrelated walker's observations onto the same
+  graph and re-querying the first walker's earlier state.
+- **Occlusion.** With no observation, `resolve_state` predicts forward;
+  covariance grows strictly monotonically through the gap and `observed`
+  is `False` at every step, tested across a 16-second gap in five
+  increments.
+
+Falsification test 5 (behaviour-query shape) updated: it now builds a
+*real* single-entity graph via the filter and confirms `solve_state`
+returns a genuine `StateEstimate` instead of raising. **Status moves from
+BLOCKED to PARTIAL** — the state-estimation half now works; nothing turns
+a `StateEstimate` into an `ActivityMode` behaviour label yet (out of
+scope), so a live *behaviour* query is still unanswerable end to end. The
+same test also confirms `horizon_kind="smoothed"` still raises
+`NotImplementedError` and that a bare Day-13-style graph with no estimator
+payload still refuses, now with a specific, diagnosable reason
+(`EpisodeError: no resolvable state...`) rather than a blanket one.
+
+## Objective 3 — the consistency stage, first-class (§15 stage 4)
+
+NIS is computed live on every real update
+(`src.estimator.consistency.compute_nis`), tested against known chi-square
+percentiles (dof=1 → 3.841, dof=3 → 7.815, dof=6 → 12.592 at 95%,
+matching Bar-Shalom et al. to two decimal places). The bootstrap step and
+every predicted (unobserved) step carry an explicit NIS *stub*
+(`value=None`, noting why) rather than omitting the entry — "not
+computed" and "absent" are different facts and the type keeps them
+different. `constraint`/`calibration`/`coverage` are routed as stubs
+naming their future consumers exactly per the objective: twin-revision
+hypothesis, recalibration event, envelope drift.
+
+**STRUCTURAL, tested directly:** `StateEstimate.__post_init__` raises if
+`residuals` is empty, and separately raises if no entry has `kind="nis"` —
+a state estimate cannot be constructed without running stage 4, computed
+or stubbed. `ConsistencyResidual` itself raises if only some of
+`value`/`dof`/`chi2_bound`/`within_bound` are set — a residual cannot
+claim a value with nothing to judge it against. `StateEstimate.
+require_comparable` enforces §15's three-way sha key
+(`motion_model_sha`/`measurement_model_sha`/`update_rule_sha`), same
+pattern as `MeasuredEnvelope.require_comparable` and `Scorecard.
+require_comparable` elsewhere in this codebase.
+
+26 dedicated tests, isolating the consistency-stage functions from the
+filter tests that exercise them indirectly.
+
+## Objective 4 — accuracy against exact GT (`scripts/eval_estimator.py`)
+
+**Day-10 validity gate, run first.** Registered `"state_estimation"` onto
+the existing `gate_motion_geometry` check (position/velocity are the same
+kind of exactly-known scene-description quantity as "did this move" —
+v3-indoor's `agent_xyz` is analytic, not annotated). **PASSED** on both
+sets; no refusal to report.
+
+**Method.** No detector exists yet, so observations are synthesized by
+adding measurement-model-derived noise to the exact GT position — this
+isolates the estimator's own machinery (motion model, measurement model,
+Kalman update, consistency residuals) from detection/tracking error, which
+is a separate, not-yet-built stage. All three compared methods (filter,
+`copy_previous_position`, `constant_velocity_no_update`) are scored from
+the same frame index onward per track so none gets free information the
+others lack (see the script's own docstring for why frame index 1 would
+have let the coasting baseline "predict" the very observation that defined
+its velocity).
+
+### Position and velocity accuracy, with mandatory trivial baselines (Day-12 rule)
+
+| set | position RMSE | vs copy-previous | vs constant-velocity-no-update | margin (position) | velocity RMSE | margin (velocity) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| v3-indoor | 0.1189 m | 0.2242 m | 6.2068 m | **+0.1053 m** | 0.4038 m/s | **+2.8477 m/s** |
+| v4.1-gate | 0.2328 m | 0.2591 m | 9.2734 m | **+0.0263 m** | 1.5337 m/s | **+4.0670 m/s** |
+
+Both margins are clearly positive — the filter beats both trivial
+strategies on both sets, by a wide margin against the coasting baseline
+and a real (if more modest, on the quiet set) margin against
+copy-previous. This is not the headline finding, but it rules out the
+alternative the objective named explicitly: the measurement updates are
+doing real work, this is not a wiring bug producing a filter
+indistinguishable from a trivial strategy.
+
+### Position error by GT distance bucket
+
+| set | bucket | n | position RMSE | x / y / z RMSE |
+| --- | --- | ---: | ---: | --- |
+| v3-indoor | 0–3 m | 0 | — (empty) | — |
+| v3-indoor | 3–8 m | 2528 | 0.1140 m | 0.0645 / 0.0677 / 0.0652 |
+| v3-indoor | 8 m+ | 208 | 0.1677 m | 0.1171 / 0.0858 / 0.0838 |
+| v4.1-gate | 0–3 m | 0 | — (empty) | — |
+| v4.1-gate | 3–8 m | 190 | 0.2328 m | 0.2135 / 0.0597 / 0.0711 |
+| v4.1-gate | 8 m+ | 0 | — (empty) | — |
+
+Error grows with distance (0.114 m → 0.168 m from the 3–8 m to 8 m+
+bucket on v3-indoor), consistent with the measurement model's own
+distance-indexed R — this is the expected shape, not a surprise. Neither
+set populates the 0–3 m bucket at all (both synthetic sets keep agents
+further from camera than that), which the table reports as empty rather
+than silently omitting.
+
+### Consistency: NIS/NEES pass rates and what they say about calibration
+
+| set | NEES within 95% bound | empirical coverage | reading |
+| --- | ---: | ---: | --- |
+| v3-indoor | 99.09% | 0.9909 | slightly conservative (target 95%) |
+| v4.1-gate | 80.53% | 0.8053 | **overconfident** |
+
+v4.1-gate broken down per track (5 tracks, not poolable as one number
+without losing the story):
+
+| clip | frames | NEES within 95% | position RMSE |
+| --- | ---: | ---: | ---: |
+| `long_static_occupant__cam_a` | 38 | 100.0% | 0.093 m |
+| `long_static_occupant__cam_b` | 38 | 100.0% | 0.119 m |
+| `brief_entry__cam_a` | 38 | 63.2% | 0.303 m |
+| `brief_entry__cam_b` | 38 | 68.4% | 0.269 m |
+| `brief_entry_evening__cam_a` | 38 | 71.1% | 0.290 m |
+
+**Diagnosis, stated as a hypothesis, not yet confirmed by a second
+measurement:** the two genuinely static tracks are calibrated as well as
+a filter can be; all three overconfident tracks are `brief_entry*` — a
+person entering an otherwise still scene. A constant-velocity filter that
+has settled to a tight covariance during a quiet interval does not widen
+fast enough at the moment real motion starts, so the true position error
+at onset exceeds what the (still-tight) covariance predicts, more often
+than the nominal 5%. This reads as a maneuvering-target problem (the
+process-noise budget is sized for steady walking, not for a
+velocity-onset transient), not as a bug in the NIS/NEES machinery itself
+— v3-indoor's own good calibration on 72 walking tracks is evidence the
+consistency stage is measuring correctly, not miscounting.
+
+**n=190 caveat, stated plainly:** the 190 points behind the 80.5% figure
+come from only 5 tracks with strong within-track autocorrelation, not 190
+independent trials — the per-track table above is the actual evidence,
+not the pooled percentage. It is nonetheless a large and consistent effect
+(three separate tracks, three separate cameras, one lighting condition
+different, same ~65–71% band) rather than one noisy outlier.
+
+## Falsification test 5 — from BLOCKED to PARTIAL
+
+Confirmed above (Objective 2): `solve_state` now genuinely resolves a
+single-entity `StateQuery`. `tests/test_falsification.py`: **8 tests, all
+green.**
+
+| # | Test | Day 19 | Day 20 |
+| --- | --- | --- | --- |
+| 1 | Absence under degraded coverage | PASSES | PASSES (unchanged) |
+| 2 | Retroactive badge resolution | PASSES | PASSES (unchanged) |
+| 3 | Twin re-version | PASSES | PASSES (unchanged) |
+| 4 | Alert explainability | PASSES (unchanged) | PASSES (unchanged) |
+| 5 | Behaviour-query shape | BLOCKED on the unimplemented estimator | **PARTIAL** — state estimation now live; behaviour labeling still unbuilt |
+
+## What remains skeleton, and the order it should land in
+
+1. **Motion-model change-point handling** (new finding, today) — not
+   originally on the list, but Day 20's own overconfidence result makes it
+   the most urgent gap: an estimator that is honest on steady motion and
+   overconfident exactly at the moment something starts happening is a
+   worse evidence-system defect than any of the items below, per the
+   framing at the top of this section. Likely fix shape: adaptive/inflated
+   process noise keyed off recent innovation magnitude (a
+   maneuvering-target model), not a larger blanket `sigma_a_mps2` for
+   `person` — inflating the steady-state budget would just make
+   v3-indoor's already-good calibration worse to fix a problem that is
+   specifically about transitions.
+2. **Multi-entity factor graph.** Today's `StateGraph` is, in practice, one
+   entity's graph — real coupling (the `asset_carried` interface built
+   today, cross-entity association) needs factors that reference more than
+   one entity's state and a solver that resolves them jointly.
+3. **Smoothing** (`horizon_kind="smoothed"`). A backward pass over the
+   same factor history would tighten every number in this report's
+   accuracy table, but it is strictly secondary to item 1 — smoothing a
+   filter that is overconfident at transitions makes a better-fitting
+   answer, not a better-calibrated one.
+4. **Hypothesis management.** Depends on multi-entity association existing
+   first; not started.
+
+## Full suite and mypy
+
+Repo-wide (`.venv-pinned`, `not requires_weights and not slow`): **871
+passed, 1 skipped, 8 deselected, 0 failures** — up from Day 19's 784 (+87:
+34 motion/measurement-model tests, 14 filter tests, 26 consistency tests, 8
+eval-script tests, and 5 net new/updated tests in
+`test_model_episode.py`/`test_falsification.py`). `mypy` (scoped per
+`mypy.ini`, now including `src/estimator`): **0 errors, 55 files**, up from
+Day 19's 52. `black --check` and `flake8` clean on every file touched
+today.
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 19 — today's work was
+entirely unblocked by design (state estimation is geometry-derived,
+synthetically scorable, and environment-independent), so nothing here
+moved:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification.**
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 8 days old.
+5. **The `main`/`origin/main` divergence decision (ADR 0009).**
+6. **Reference hardware procurement decision** (`docs/
+   reference_hardware.md`) — unchanged since Day 19.
+
+## Objective 0/5 — push, end of day
+
+`git push --all origin`: `foundation/day-20` pushed clean, matches origin
+exactly. `main` rejected, unchanged. `git push --tags`: up to date.
+
+## Day 21, in order
+
+1. **Motion-model change-point handling** — the day's own finding. Design
+   and measure an adaptive-process-noise (or explicit maneuvering-target)
+   variant for `person`, re-run `scripts/eval_estimator.py`, and confirm
+   `brief_entry*`'s NEES coverage moves toward 95% without degrading
+   `long_static_occupant`'s already-good calibration or v3-indoor's.
+2. **Reference hardware decision** — still pending a human, now 2 days
+   old since Day 19's procurement memo.
+3. **Declare a target fps for real camera ingest** — still open from Day
+   19.
+4. **Cascade bench, clean, on interim or reference hardware** — still
+   pending hardware.
+5. **Multi-entity factor graph** — see "what remains skeleton" above;
+   depends on item 1 landing first so multi-entity work does not inherit
+   a known-overconfident single-entity core.
+6. **Smoothing (`horizon_kind="smoothed"`)** — depends on item 1 for the
+   same reason.
+7. **Depth validity re-measurement** (`scripts/eval_depth.py`) — still
+   deferred from Day 18/19.
+8. **The `main`/`origin/main` decision** (ADR 0009) — a human call.
+9. **The generator has no sensor-noise model** — unchanged.
+10. **Order cameras and run the office capture** — now 8 days old.
+11. **The motion-gate precision/selectivity investigation** — nine days
+    deferred.
+12. **Steer callers away from `raise_alert()` toward `emit_alert()`** —
+    still open from Day 14.
+13. **A canonical `Observation -> hash` function** (ADR 0007) — still
+    open from Day 13.
+14. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced** — unchanged, now a sixth data point resting on the same
+    unmeasured multiplier.
+15. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+16. **MEVA licence verification** — still blocked on a human.
+17. **Hypothesis management** — furthest out; depends on item 5.
+
 # Day 19
 
 **After Objective 2: no, there is currently no environment-dependent number
