@@ -20,10 +20,13 @@ from src.estimator.measurement_model import (
 )
 from src.estimator.motion_model import (
     MOTION_ENTITY_KINDS,
+    PERSON_SIGMA_A_MPS2,
     STATE_DIM,
     ConstantVelocityMotionModel,
     MotionModelError,
+    apply_velocity_covariance_floor,
     motion_model_for,
+    pedestrian_velocity_covariance_floor_mps2,
 )
 from src.model.envelope import Envelope, EnvelopeCurve
 from src.model.measurement import WorldPositionMeasurement
@@ -156,6 +159,215 @@ def test_sha_stable_for_identical_params() -> None:
 def test_unknown_entity_kind_raises() -> None:
     with pytest.raises(MotionModelError):
         motion_model_for("spaceship")  # type: ignore[arg-type]
+
+
+# ---------------------------------------------------------------------------
+# Day 22, Objective 2 -- the velocity covariance floor
+# ---------------------------------------------------------------------------
+
+
+def test_pedestrian_floor_derivation_reproduced_by_unit_test() -> None:
+    """The floor is a derivation, not a hardcoded literal -- this test
+    recomputes the formula from PERSON_SIGMA_A_MPS2 independently, rather
+    than asserting against a copy-pasted number."""
+    for dt_s in (1.0 / 12.0, 0.1, 0.5, 1.0):
+        expected = (PERSON_SIGMA_A_MPS2 * dt_s) ** 2
+        assert pedestrian_velocity_covariance_floor_mps2(dt_s) == pytest.approx(expected)
+
+
+def test_pedestrian_floor_rejects_negative_dt() -> None:
+    with pytest.raises(MotionModelError):
+        pedestrian_velocity_covariance_floor_mps2(-0.1)
+
+
+def test_pedestrian_floor_grows_with_dt() -> None:
+    floors = [pedestrian_velocity_covariance_floor_mps2(dt) for dt in (0.05, 0.1, 0.5, 1.0)]
+    assert floors == sorted(floors)
+    assert len(set(floors)) == len(floors)
+
+
+def test_velocity_covariance_floor_disabled_by_default_for_person_and_carried() -> None:
+    for kind in ("person", "asset_carried"):
+        model = motion_model_for(kind)  # type: ignore[arg-type]
+        assert model.velocity_covariance_floor_mps2(0.1) is None
+
+
+def test_velocity_covariance_floor_enabled_for_person() -> None:
+    model = motion_model_for("person", velocity_covariance_floor=True)
+    dt_s = 0.1
+    assert model.velocity_covariance_floor_mps2(dt_s) == pytest.approx(
+        pedestrian_velocity_covariance_floor_mps2(dt_s)
+    )
+
+
+def test_velocity_covariance_floor_for_asset_carried_uses_person_bound_not_its_own_sigma() -> (
+    None
+):
+    """asset_carried 'inherits its carrier's bound' (Day 22 Objective 2):
+    the floor must come from PERSON_SIGMA_A_MPS2, not asset_carried's own
+    (larger) ASSET_CARRIED_SIGMA_A_MPS2 process-noise density."""
+    person = motion_model_for("person", velocity_covariance_floor=True)
+    carried = motion_model_for("asset_carried", velocity_covariance_floor=True)
+    dt_s = 0.2
+    assert carried.velocity_covariance_floor_mps2(
+        dt_s
+    ) == pytest.approx(person.velocity_covariance_floor_mps2(dt_s))  # type: ignore[arg-type]
+    # And carried's own Q is still the larger, inflated one -- the floor
+    # and the process noise are deliberately different quantities.
+    assert carried.Q(dt_s)[3, 3] > person.Q(dt_s)[3, 3]  # type: ignore[union-attr]
+
+
+@pytest.mark.parametrize("kind", ["asset_static", "fixture"])
+def test_velocity_covariance_floor_rejected_for_kinds_that_do_not_need_it(
+    kind: str,
+) -> None:
+    with pytest.raises(MotionModelError):
+        motion_model_for(kind, velocity_covariance_floor=True)  # type: ignore[arg-type]
+
+
+def test_construction_rejects_floor_enabled_for_non_person_non_carried_kind() -> None:
+    with pytest.raises(MotionModelError):
+        ConstantVelocityMotionModel(
+            kind="asset_static",
+            sigma_a_mps2=0.1,
+            velocity_variance_floor_enabled=True,
+        )
+
+
+def test_fixture_and_static_position_models_never_report_a_floor() -> None:
+    fixture = motion_model_for("fixture")
+    assert fixture.velocity_covariance_floor_mps2(0.1) is None
+    from src.estimator.motion_model import NearlyConstantPositionMotionModel
+
+    static_mode = NearlyConstantPositionMotionModel()
+    assert static_mode.velocity_covariance_floor_mps2(0.1) is None
+
+
+def test_apply_velocity_covariance_floor_is_noop_when_floor_is_none() -> None:
+    cov = np.eye(STATE_DIM) * 0.001
+    result = apply_velocity_covariance_floor(cov, None)
+    np.testing.assert_array_equal(result, cov)
+
+
+def test_apply_velocity_covariance_floor_never_exceeded_downward() -> None:
+    """The floor is never exceeded DOWNWARD: every velocity-diagonal entry
+    of the result is >= floor, regardless of whether the input was above
+    or below it."""
+    floor = 0.05
+    rng = np.random.default_rng(0)
+    for _ in range(20):
+        a = rng.normal(size=(STATE_DIM, STATE_DIM))
+        cov = a @ a.T + np.eye(STATE_DIM) * 1e-6  # random PD matrix
+        floored = apply_velocity_covariance_floor(cov, floor)
+        for axis in range(3):
+            idx = 3 + axis
+            assert floored[idx, idx] >= floor - 1e-12
+        # Position block and off-diagonals are untouched.
+        np.testing.assert_array_equal(floored[:3, :3], cov[:3, :3])
+
+
+def test_apply_velocity_covariance_floor_leaves_already_wide_covariance_alone() -> None:
+    floor = 0.01
+    cov = np.eye(STATE_DIM) * 10.0  # already far above the floor
+    floored = apply_velocity_covariance_floor(cov, floor)
+    np.testing.assert_array_equal(floored, cov)
+
+
+def test_apply_velocity_covariance_floor_preserves_positive_definiteness() -> None:
+    floor = 0.5
+    rng = np.random.default_rng(1)
+    for _ in range(20):
+        a = rng.normal(size=(STATE_DIM, STATE_DIM)) * 0.01
+        cov = a @ a.T + np.eye(STATE_DIM) * 1e-9
+        floored = apply_velocity_covariance_floor(cov, floor)
+        assert _is_positive_definite(floored)
+
+
+def _stationary_track_variances(
+    dt_s: float, n_frames: int, velocity_covariance_floor: bool
+) -> list[float]:
+    from src.estimator.filter import run_single_entity_filter
+    from src.estimator.measurement_model import measurement_model_for
+    from src.model.episode import StateGraph, StateQuery, solve_state
+    from src.model.frame_of_reference import FrameOfReference
+    from src.contracts.frames import AffineTransform, FrameGeometry
+    from src.model.measurement import WorldPositionMeasurement
+    from src.model.observation import Observation
+    from src.model.uncertainty import Uncertainty
+    from src.model.ulid import generate_ulid
+
+    BASE_TS = 1_785_000_000 * 1_000_000_000
+    dt_ns = int(round(dt_s * 1e9))
+
+    def obs(ts: int) -> Observation:
+        return Observation(
+            observation_id=generate_ulid(now_ns=ts),
+            sensor_id="cam-1",
+            ts_ns=ts,
+            frame_ref=f"cam-1/frame-{ts}",
+            measurement=WorldPositionMeasurement(x_m=0.0, y_m=0.0, z_m=0.0),
+            uncertainty=Uncertainty(kind="gaussian_3d", params=(("sigma_m", 0.03),)),
+            frame_of_reference=FrameOfReference(
+                geometry=FrameGeometry(1920, 1080),
+                to_canonical=AffineTransform.identity(),
+                twin_rev=1,
+            ),
+            producer_shas=("test",),
+            envelope_status="within_envelope",
+        )
+
+    model = motion_model_for(
+        "person", velocity_covariance_floor=velocity_covariance_floor
+    )
+    measurement_model = measurement_model_for("cam-1")
+    observations = [obs(BASE_TS + i * dt_ns) for i in range(n_frames)]
+    graph = StateGraph()
+    run_single_entity_filter(
+        graph, observations, model, measurement_model, manifest_sha="m"
+    )
+
+    variances = []
+    for t in range(2, n_frames, max(1, n_frames // 6)):
+        query = StateQuery(
+            at_ts_ns=observations[t].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev
+        )
+        estimate = solve_state(query, graph)
+        variances.append(estimate.cov[3][3])
+    return variances
+
+
+def test_stationary_track_covariance_converges_normally_above_the_floor() -> None:
+    """At a realistic frame rate (12 fps), the natural steady-state
+    velocity variance sits well above the floor -- the floor must not
+    disturb ordinary convergence when it is not the binding constraint.
+    Floor-on and floor-off must therefore produce IDENTICAL curves here."""
+    dt_s = 1.0 / 12.0
+    unfloored = _stationary_track_variances(dt_s, 60, velocity_covariance_floor=False)
+    floored = _stationary_track_variances(dt_s, 60, velocity_covariance_floor=True)
+    assert unfloored == pytest.approx(floored)
+    # And it does converge (shrink toward a steady state) in the ordinary way.
+    assert unfloored == sorted(unfloored, reverse=True)
+    floor = pedestrian_velocity_covariance_floor_mps2(dt_s)
+    assert unfloored[-1] > floor  # confirms the floor genuinely wasn't binding
+
+
+def test_floor_binds_when_natural_convergence_would_undershoot_it() -> None:
+    """At a coarse timestep, natural steady-state variance CAN fall below
+    the pedestrian floor -- exactly the physically-implausible over-
+    confidence Day 21 diagnosed. With the floor enabled, the covariance
+    must never go there, even though it still starts by shrinking."""
+    dt_s = 1.0
+    unfloored = _stationary_track_variances(dt_s, 30, velocity_covariance_floor=False)
+    floored = _stationary_track_variances(dt_s, 30, velocity_covariance_floor=True)
+    floor = pedestrian_velocity_covariance_floor_mps2(dt_s)
+
+    assert unfloored[-1] < floor, (
+        "test setup assumption failed: at dt=1s natural convergence must "
+        "undershoot the floor for this test to demonstrate anything"
+    )
+    for v in floored:
+        assert v >= floor - 1e-9
+    assert floored[-1] == pytest.approx(floor, rel=1e-6)
 
 
 # ---------------------------------------------------------------------------

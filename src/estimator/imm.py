@@ -89,6 +89,7 @@ from src.estimator.motion_model import (
     ConstantVelocityMotionModel,
     MotionModel,
     NearlyConstantPositionMotionModel,
+    apply_velocity_covariance_floor,
     motion_model_for,
 )
 from src.estimator.state import ConsistencyResidual, StateEstimate
@@ -128,10 +129,23 @@ class ImmError(RuntimeError):
     """Raised when an IMM config or filter run is malformed."""
 
 
-def _default_modes() -> tuple[tuple[str, MotionModel], ...]:
+def _default_modes(
+    velocity_covariance_floor: bool = False,
+) -> tuple[tuple[str, MotionModel], ...]:
+    """Day 22, Objective 2: ``velocity_covariance_floor`` applies ONLY to
+    the ``constant_velocity`` mode (:func:`motion_model_for`'s ``person``
+    build) — that is the mode representing a pedestrian's own kinematics.
+    ``static`` and ``maneuvering`` are IMM kinematic-regime labels, not
+    entity kinds, and Objective 2's per-entity-kind directive does not
+    name either of them; both remain unfloored regardless of this flag."""
     return (
         ("static", NearlyConstantPositionMotionModel()),
-        ("constant_velocity", motion_model_for("person")),
+        (
+            "constant_velocity",
+            motion_model_for(
+                "person", velocity_covariance_floor=velocity_covariance_floor
+            ),
+        ),
         (
             "maneuvering",
             ConstantVelocityMotionModel(
@@ -197,7 +211,10 @@ class ImmConfig:
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
-def default_imm_config(persistence_probability: float = 0.95) -> ImmConfig:
+def default_imm_config(
+    persistence_probability: float = 0.95,
+    velocity_covariance_floor: bool = False,
+) -> ImmConfig:
     """The 3-mode config Day 21 ships, with a symmetric "stay put, switch
     rarely" transition matrix.
 
@@ -211,12 +228,15 @@ def default_imm_config(persistence_probability: float = 0.95) -> ImmConfig:
             10-14 frames to resolve under the single-model filter) — not
             fitted to that specific number, chosen to be plausible at the
             same scale.
+        velocity_covariance_floor: Day 22, Objective 2 -- forwarded to
+            :func:`_default_modes`; see its docstring for which mode this
+            actually affects.
     """
     if not 0.0 < persistence_probability < 1.0:
         raise ImmError(
             f"persistence_probability must be in (0, 1), got {persistence_probability}"
         )
-    modes = _default_modes()
+    modes = _default_modes(velocity_covariance_floor)
     n = len(modes)
     off_diagonal = (1.0 - persistence_probability) / (n - 1)
     matrix = tuple(
@@ -416,6 +436,11 @@ def run_imm_filter(
                 new_cov = (
                     i_kh @ predicted_cov @ i_kh.T + kalman_gain @ R @ kalman_gain.T
                 )
+                # Day 22, Objective 2: a no-op for every mode except
+                # constant_velocity when built with velocity_covariance_floor=True.
+                new_cov = apply_velocity_covariance_floor(
+                    new_cov, model_j.velocity_covariance_floor_mps2(dt_s)
+                )
                 new_mode_states[name_j] = _ModeState(mean=new_mean, cov=new_cov)
                 likelihoods[name_j] = _gaussian_likelihood(innovation, innovation_cov)
 
@@ -575,7 +600,10 @@ def resolve_imm_state(query: StateQuery, graph: StateGraph) -> StateEstimate:
         prior = latest.mode_states[name]
         F = model.F(dt_s)
         predicted_means[name] = F @ prior.mean
-        predicted_covs[name] = F @ prior.cov @ F.T + model.Q(dt_s)
+        predicted_covs[name] = apply_velocity_covariance_floor(
+            F @ prior.cov @ F.T + model.Q(dt_s),
+            model.velocity_covariance_floor_mps2(dt_s),
+        )
     combined_mean, combined_cov = _combine(
         latest.mode_probabilities, predicted_means, predicted_covs
     )

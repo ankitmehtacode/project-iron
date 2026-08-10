@@ -54,6 +54,29 @@ block-diagonally across three axes the full 6x6 matrix is still only rank 3.
 :meth:`Q` is strictly PD, which downstream Cholesky/inverse operations in
 the filter require and which "Q is positive-definite" (Day 20's own test
 requirement) means literally.
+
+The velocity covariance floor (Day 22, Objective 2)
+------------------------------------------------------
+Day 21 diagnosed the cessation failure's mechanism directly: NEES up to
+~800 in the frames right after a walker stops, decaying back to nominal
+over ~10-14 frames as the filter's *posterior* velocity covariance —
+tight from a long preceding walk, where repeated updates against an
+accurate position sensor pull steady-state variance well below what any
+single predict step's ``Q`` alone would inject — catches up to the fact
+that velocity has actually gone to zero. Nothing in a constant-velocity
+filter unlearns quickly; a stop is, by construction, an event the
+filter's own acquired confidence says should not happen.
+
+:func:`pedestrian_velocity_covariance_floor_mps2` is a **constraint**, not
+a tuned parameter: it clamps a mode's posterior velocity-diagonal entries
+so they may never fall below what :data:`PERSON_SIGMA_A_MPS2` — this
+module's own already-declared pedestrian deceleration bound (see
+``person``'s entry above) — implies is physically possible over one
+timestep. It is derived once, from that one already-existing constant,
+and applied verbatim; see the function's own docstring for the full
+derivation. It is never fit or swept against ``scripts/eval_estimator.py``'s
+output — see that function's docstring for what a fitted version of this
+same number would mean.
 """
 
 from __future__ import annotations
@@ -98,6 +121,88 @@ ASSET_CARRIED_SIGMA_A_MPS2 = 4.0
 
 _Q_REGULARIZATION = 1e-6
 """Diagonal floor added to every Q so it is strictly PD. See module docstring."""
+
+PEDESTRIAN_STOP_DURATION_S = 1.0
+"""A comfortable, voluntary pedestrian stop takes roughly a second,
+essentially independent of how long or how steadily the person was
+walking beforehand — stopping is a local decision, not something that
+takes longer the more confidently a filter (or an observer) has been
+tracking a steady gait. Declared, same convention as
+:data:`PERSON_SIGMA_A_MPS2` itself (not fitted to any observed
+trajectory) — used only as the narrative cross-check below, not as a
+free parameter in the floor formula itself."""
+
+
+def pedestrian_velocity_covariance_floor_mps2(dt_s: float) -> float:
+    """The physically-derived floor under a person-kind (or asset_carried,
+    which inherits it) mode's posterior velocity variance, per axis, at
+    one timestep ``dt_s`` (Day 22, Objective 2).
+
+    Derivation
+    ----------
+    :data:`PERSON_SIGMA_A_MPS2` (``1.5 m/s^2``) is already this module's
+    declared pedestrian acceleration bound (see the module docstring's
+    ``person`` entry) — cross-checked here by the same physical fact Day
+    22 was asked to reason from: a commonly-cited comfortable adult
+    walking pace is on the order of ~1-1.5 m/s (this project's own
+    v3-indoor/v4.1-gate synthetic walkers move slower, ~0.5 m/s — see the
+    Day-21 report — which only makes the bound below more conservative,
+    not less), and :data:`PEDESTRIAN_STOP_DURATION_S` (~1s) is roughly how
+    long a voluntary stop from that pace takes, so ``v_typical /
+    PEDESTRIAN_STOP_DURATION_S`` lands in the same ~1-1.5 m/s^2 order of
+    magnitude already declared. This is a cross-check that the existing
+    constant is the right order of magnitude for "how fast can a person's
+    velocity legitimately change", not a new, independently-fitted number
+    — the formula below uses ``PERSON_SIGMA_A_MPS2`` directly, not a
+    freshly-derived value.
+
+    ``person``'s own ``Q`` (:func:`_cv_process_noise`) already asserts,
+    every single predict step, that velocity uncertainty of up to
+    ``(PERSON_SIGMA_A_MPS2 * dt_s)^2`` enters regardless of what the prior
+    believed — that is what "process noise density" means. It is
+    physically incoherent for the filter's *posterior* (after however
+    many updates have narrowed it) to ever claim LESS velocity uncertainty
+    than its own model already asserts is possible for one single step:
+    doing so is exactly Day 21's diagnosed mechanism, a filter so
+    confident in a converged velocity that a genuine stop becomes an
+    ~800-sigma-squared event. The floor is therefore the same quantity
+    ``Q``'s own velocity-block diagonal entry already computes::
+
+        sigma_v_floor^2 = (PERSON_SIGMA_A_MPS2 * dt_s)^2
+
+    Args:
+        dt_s: The timestep this floor applies to (the same ``dt_s`` used
+            to compute ``F``/``Q`` for that step).
+
+    Raises:
+        MotionModelError: if ``dt_s`` is negative.
+    """
+    if dt_s < 0:
+        raise MotionModelError(f"dt_s must be non-negative, got {dt_s}")
+    return (PERSON_SIGMA_A_MPS2 * dt_s) ** 2
+
+
+def apply_velocity_covariance_floor(cov: FloatArray, floor_mps2: float | None) -> FloatArray:
+    """Clamp ``cov``'s three velocity-diagonal entries up to ``floor_mps2``;
+    a no-op (returns ``cov`` unchanged) when ``floor_mps2`` is ``None`` --
+    the model in question declares no floor for its kind.
+
+    Only the diagonal is touched. Raising a PD matrix's diagonal entry by
+    itself (holding every other entry fixed) is equivalent to adding a
+    rank-1 PSD perturbation (``delta * e_i @ e_i.T``, ``delta >= 0``), so
+    this can only preserve or improve positive-definiteness, never break
+    it — the STRUCTURAL PD requirement every ``Q``/posterior covariance in
+    this module already carries (see module docstring) is not at risk
+    from this operation.
+    """
+    if floor_mps2 is None:
+        return cov
+    floored = cov.copy()
+    for axis in range(3):
+        idx = 3 + axis
+        if floored[idx, idx] < floor_mps2:
+            floored[idx, idx] = floor_mps2
+    return floored
 
 
 class MotionModelError(ValueError):
@@ -153,11 +258,24 @@ class ConstantVelocityMotionModel:
             forward compatibility) but has no effect on :meth:`F` or
             :meth:`Q` yet; a carried asset with no known carrier and one
             with a known carrier compute identically until coupling lands.
+        velocity_variance_floor_enabled: Day 22, Objective 2. Only
+            meaningful for ``kind in ("person", "asset_carried")`` — an
+            ``asset_carried`` instance with this set inherits the SAME
+            pedestrian-derived floor value a ``person`` instance would
+            (:func:`pedestrian_velocity_covariance_floor_mps2`, always
+            computed from :data:`PERSON_SIGMA_A_MPS2`, never from this
+            instance's own — possibly inflated — ``sigma_a_mps2``): the
+            floor represents the carrier's own body's physical stopping
+            bound, not the carried object's process-noise budget. Rejected
+            at construction for every other kind (§ ``__post_init__``) —
+            "static/asset_static/fixture/maneuvering do not need it" is
+            enforced, not left to the caller to remember.
     """
 
     kind: Literal["person", "asset_static", "asset_carried", "maneuvering"]
     sigma_a_mps2: float
     carrier_entity_id: str | None = None
+    velocity_variance_floor_enabled: bool = False
 
     def __post_init__(self) -> None:
         if self.kind not in ("person", "asset_static", "asset_carried", "maneuvering"):
@@ -175,6 +293,17 @@ class ConstantVelocityMotionModel:
                 f"carrier_entity_id is only meaningful for kind='asset_carried', "
                 f"got kind={self.kind!r} with carrier_entity_id set"
             )
+        if self.velocity_variance_floor_enabled and self.kind not in (
+            "person",
+            "asset_carried",
+        ):
+            raise MotionModelError(
+                "velocity_variance_floor_enabled is only meaningful for "
+                f"kind='person' or 'asset_carried' (it inherits the carrier's "
+                f"bound), got kind={self.kind!r} -- asset_static/fixture/"
+                "maneuvering do not represent a pedestrian's own stopping "
+                "physics and are not floored"
+            )
 
     @property
     def sha(self) -> str:
@@ -183,6 +312,7 @@ class ConstantVelocityMotionModel:
             {
                 "sigma_a_mps2": self.sigma_a_mps2,
                 "carrier_entity_id": self.carrier_entity_id,
+                "velocity_variance_floor_enabled": self.velocity_variance_floor_enabled,
             },
         )
 
@@ -199,6 +329,16 @@ class ConstantVelocityMotionModel:
     def f(self, state: FloatArray, dt_s: float) -> FloatArray:
         result: FloatArray = self.F(dt_s) @ state
         return result
+
+    def velocity_covariance_floor_mps2(self, dt_s: float) -> float | None:
+        """The pedestrian-derived floor for this timestep, or ``None`` if
+        this instance does not carry one (Day 22, Objective 2). Always
+        computed from :data:`PERSON_SIGMA_A_MPS2` — never from this
+        instance's own ``sigma_a_mps2`` — see
+        :attr:`velocity_variance_floor_enabled`'s docstring for why."""
+        if not self.velocity_variance_floor_enabled:
+            return None
+        return pedestrian_velocity_covariance_floor_mps2(dt_s)
 
 
 @dataclass(frozen=True)
@@ -226,6 +366,11 @@ class FixtureMotionModel:
     def f(self, state: FloatArray, dt_s: float) -> FloatArray:
         result: FloatArray = self.F(dt_s) @ state
         return result
+
+    def velocity_covariance_floor_mps2(self, dt_s: float) -> float | None:
+        """A fixture never moves; it carries no velocity floor. See
+        :meth:`ConstantVelocityMotionModel.velocity_covariance_floor_mps2`."""
+        return None
 
 
 @dataclass(frozen=True)
@@ -313,6 +458,13 @@ class NearlyConstantPositionMotionModel:
         result: FloatArray = self.F(dt_s) @ state
         return result
 
+    def velocity_covariance_floor_mps2(self, dt_s: float) -> float | None:
+        """IMM's own ``static`` mode is not a :data:`MotionEntityKind` and
+        Objective 2's per-entity-kind directive does not name it; it
+        carries no velocity floor. See
+        :meth:`ConstantVelocityMotionModel.velocity_covariance_floor_mps2`."""
+        return None
+
 
 MotionModel = (
     ConstantVelocityMotionModel | FixtureMotionModel | NearlyConstantPositionMotionModel
@@ -320,7 +472,10 @@ MotionModel = (
 
 
 def motion_model_for(
-    entity_kind: MotionEntityKind, *, carrier_entity_id: str | None = None
+    entity_kind: MotionEntityKind,
+    *,
+    carrier_entity_id: str | None = None,
+    velocity_covariance_floor: bool = False,
 ) -> MotionModel:
     """The swappable-component factory: one call site per entity kind.
 
@@ -328,12 +483,27 @@ def motion_model_for(
         entity_kind: Which of :data:`MOTION_ENTITY_KINDS` to build.
         carrier_entity_id: Only accepted for ``asset_carried`` — see
             :class:`ConstantVelocityMotionModel`.
+        velocity_covariance_floor: Day 22, Objective 2. Only valid for
+            ``entity_kind in ("person", "asset_carried")`` — raises for
+            ``asset_static``/``fixture`` rather than silently ignoring the
+            request, since those kinds do not represent a pedestrian's own
+            stopping physics (see :class:`ConstantVelocityMotionModel`'s
+            docstring).
     """
     if entity_kind == "person":
         return ConstantVelocityMotionModel(
-            kind="person", sigma_a_mps2=PERSON_SIGMA_A_MPS2
+            kind="person",
+            sigma_a_mps2=PERSON_SIGMA_A_MPS2,
+            velocity_variance_floor_enabled=velocity_covariance_floor,
         )
     if entity_kind == "asset_static":
+        if velocity_covariance_floor:
+            raise MotionModelError(
+                "velocity_covariance_floor=True is not valid for "
+                "entity_kind='asset_static' -- an asset that should not be "
+                "moving at all has no pedestrian stopping physics to floor "
+                "against"
+            )
         return ConstantVelocityMotionModel(
             kind="asset_static", sigma_a_mps2=ASSET_STATIC_SIGMA_A_MPS2
         )
@@ -342,8 +512,14 @@ def motion_model_for(
             kind="asset_carried",
             sigma_a_mps2=ASSET_CARRIED_SIGMA_A_MPS2,
             carrier_entity_id=carrier_entity_id,
+            velocity_variance_floor_enabled=velocity_covariance_floor,
         )
     if entity_kind == "fixture":
+        if velocity_covariance_floor:
+            raise MotionModelError(
+                "velocity_covariance_floor=True is not valid for "
+                "entity_kind='fixture' -- a fixture does not move at all"
+            )
         return FixtureMotionModel()
     raise MotionModelError(
         f"unknown entity_kind {entity_kind!r}; expected one of {MOTION_ENTITY_KINDS}"

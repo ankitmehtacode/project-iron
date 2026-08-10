@@ -40,7 +40,7 @@ import numpy.typing as npt
 
 from src.estimator import consistency
 from src.estimator.measurement_model import MeasurementModel
-from src.estimator.motion_model import STATE_DIM, MotionModel
+from src.estimator.motion_model import STATE_DIM, MotionModel, apply_velocity_covariance_floor
 from src.estimator.state import StateEstimate
 from src.model.episode import Factor, StateGraph, StateQuery
 from src.model.measurement import WorldPositionMeasurement
@@ -187,6 +187,12 @@ def run_single_entity_filter(
             # Joseph form: numerically stable, stays symmetric PD under
             # floating-point roundoff even when the textbook (I-KH)@P does not.
             cov = i_kh @ predicted_cov @ i_kh.T + kalman_gain @ R @ kalman_gain.T
+            # Day 22, Objective 2: a no-op unless motion_model declares a
+            # velocity floor (person/asset_carried with it enabled) -- see
+            # src.estimator.motion_model's module docstring.
+            cov = apply_velocity_covariance_floor(
+                cov, motion_model.velocity_covariance_floor_mps2(dt_s)
+            )
             nis = consistency.compute_nis(innovation, innovation_cov)
             factor_kind = "measurement_update"
             assert previous_factor_id is not None
@@ -309,6 +315,9 @@ def resolve_state(query: StateQuery, graph: StateGraph) -> StateEstimate:
     Q = latest.motion_model.Q(dt_s)
     predicted_mean = F @ latest.estimate.mean_array()
     predicted_cov = F @ latest.estimate.cov_array() @ F.T + Q
+    predicted_cov = apply_velocity_covariance_floor(
+        predicted_cov, latest.motion_model.velocity_covariance_floor_mps2(dt_s)
+    )
 
     return StateEstimate(
         ts_ns=query.at_ts_ns,
