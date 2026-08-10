@@ -1,0 +1,158 @@
+[
+  {
+    "by_distance_bucket": {
+      "0-3m": {
+        "axis_rmse_m": [
+          null,
+          null,
+          null
+        ],
+        "n": 0,
+        "position_rmse_m": null
+      },
+      "3-8m": {
+        "axis_rmse_m": [
+          0.06447082588907026,
+          0.06772358287127948,
+          0.06517100057094244
+        ],
+        "n": 2528,
+        "position_rmse_m": 0.11397469185376052
+      },
+      "8m+": {
+        "axis_rmse_m": [
+          0.11710907185903616,
+          0.08584195821700454,
+          0.08381791144726966
+        ],
+        "n": 208,
+        "position_rmse_m": 0.16765684829912905
+      }
+    },
+    "clips_with_no_agents": 0,
+    "consistency": {
+      "empirical_coverage_95": 0.9908625730994152,
+      "n_nees_scored": 2736,
+      "nees_pass_rate_within_95": 0.9908625730994152
+    },
+    "measurement_model_sha": "b60502fa2d6948261ba3934dd9afa0da92ad38e41c249dc8ae497cf4183b06fc",
+    "motion_model_sha": "e9a290f22b04d8898134b2c63184d43e4c1d56e62c12fc0a07114ae2b759b69d",
+    "points_scored": 2736,
+    "position": {
+      "axis_rmse_m_xyz": [
+        0.0698793429223467,
+        0.06926765463011947,
+        0.06677174707475528
+      ],
+      "baselines": [
+        {
+          "description": "predict the previous observation's position, zero velocity",
+          "flag_worthy": true,
+          "name": "copy_previous_position",
+          "value": 0.224232
+        },
+        {
+          "description": "velocity from the first two observations, then coast with no further measurement correction",
+          "flag_worthy": true,
+          "name": "constant_velocity_no_update",
+          "value": 6.206777
+        }
+      ],
+      "margin_m": 0.10532216668746779,
+      "rmse_m": 0.1189100363831057
+    },
+    "refused": false,
+    "tracks_scored": 72,
+    "velocity": {
+      "baselines": [
+        {
+          "description": "velocity from the first two observations, held constant with no further measurement correction",
+          "flag_worthy": true,
+          "name": "constant_velocity_no_update",
+          "value": 3.251487
+        }
+      ],
+      "margin_mps": 2.8477271678042446,
+      "rmse_mps": 0.4037600203639516
+    },
+    "version": "v3-indoor"
+  },
+  {
+    "by_distance_bucket": {
+      "0-3m": {
+        "axis_rmse_m": [
+          null,
+          null,
+          null
+        ],
+        "n": 0,
+        "position_rmse_m": null
+      },
+      "3-8m": {
+        "axis_rmse_m": [
+          0.21348717016376575,
+          0.05967127960201179,
+          0.07109884962851058
+        ],
+        "n": 190,
+        "position_rmse_m": 0.23279278307621934
+      },
+      "8m+": {
+        "axis_rmse_m": [
+          null,
+          null,
+          null
+        ],
+        "n": 0,
+        "position_rmse_m": null
+      }
+    },
+    "clips_with_no_agents": 3,
+    "consistency": {
+      "empirical_coverage_95": 0.8052631578947369,
+      "n_nees_scored": 190,
+      "nees_pass_rate_within_95": 0.8052631578947368
+    },
+    "measurement_model_sha": "cd909dacb1542aa43ad56a9302304517ed1123f4e855d1aa7b50d961e2c295f7",
+    "motion_model_sha": "e9a290f22b04d8898134b2c63184d43e4c1d56e62c12fc0a07114ae2b759b69d",
+    "points_scored": 190,
+    "position": {
+      "axis_rmse_m_xyz": [
+        0.21348717016376575,
+        0.05967127960201179,
+        0.07109884962851058
+      ],
+      "baselines": [
+        {
+          "description": "predict the previous observation's position, zero velocity",
+          "flag_worthy": true,
+          "name": "copy_previous_position",
+          "value": 0.259051
+        },
+        {
+          "description": "velocity from the first two observations, then coast with no further measurement correction",
+          "flag_worthy": true,
+          "name": "constant_velocity_no_update",
+          "value": 9.273382
+        }
+      ],
+      "margin_m": 0.026257925429862577,
+      "rmse_m": 0.23279278307621934
+    },
+    "refused": false,
+    "tracks_scored": 5,
+    "velocity": {
+      "baselines": [
+        {
+          "description": "velocity from the first two observations, held constant with no further measurement correction",
+          "flag_worthy": true,
+          "name": "constant_velocity_no_update",
+          "value": 5.600767
+        }
+      ],
+      "margin_mps": 4.067045644460217,
+      "rmse_mps": 1.5337211800043318
+    },
+    "version": "v4.1-gate"
+  }
+]

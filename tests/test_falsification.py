@@ -92,7 +92,7 @@ from src.model.world import (
     TwinRevTransform,
     WorldPosition,
 )
-from src.estimator.filter import FilterError, run_single_entity_filter
+from src.estimator.filter import run_single_entity_filter
 from src.estimator.measurement_model import measurement_model_for
 from src.estimator.motion_model import motion_model_for
 
@@ -296,7 +296,9 @@ def test_falsification_alert_explainability_when_evidence_is_populated() -> None
         reproduce_command="python scripts/rerun_claim.py --evidence ev-1",
     )
 
-    alert = emit_alert("alert-1", event, evidence_chain=[evidence], manifest_sha="sha-1")
+    alert = emit_alert(
+        "alert-1", event, evidence_chain=[evidence], manifest_sha="sha-1"
+    )
     explained = explain("alert-1", {"alert-1": alert})
     assert explained.hops[0].observation_refs == ("obs-1", "obs-2")
     assert explained.hops[0].derivation_stages == (
@@ -436,7 +438,10 @@ def test_falsification_behaviour_query_shape_cannot_be_confused_with_a_fact() ->
     # The single-entity estimator now exists and genuinely resolves a
     # StateQuery -- this is the boundary that moved since Day 13.
     graph = StateGraph()
-    observations = [_position_observation(1.0, BASE_TS), _position_observation(1.5, BASE_TS + SECOND_NS)]
+    observations = [
+        _position_observation(1.0, BASE_TS),
+        _position_observation(1.5, BASE_TS + SECOND_NS),
+    ]
     run_single_entity_filter(
         graph,
         observations,
@@ -445,7 +450,9 @@ def test_falsification_behaviour_query_shape_cannot_be_confused_with_a_fact() ->
         manifest_sha="falsification-test-5",
     )
     estimate = solve_state(
-        StateQuery(at_ts_ns=BASE_TS + SECOND_NS, horizon_ns=0, graph_rev=graph.graph_rev),
+        StateQuery(
+            at_ts_ns=BASE_TS + SECOND_NS, horizon_ns=0, graph_rev=graph.graph_rev
+        ),
         graph,
     )
     assert estimate.observed is True

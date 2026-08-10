@@ -56,7 +56,7 @@ graph's history deterministically without recomputing it from scratch.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Literal, NoReturn, get_args
 
 from src.model.evidence import Evidence, UncalibratedScore

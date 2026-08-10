@@ -77,7 +77,9 @@ class ConsistencyResidual:
                 "partial residual cannot be judged against its own bound"
             )
         if self.dof is not None and self.dof < 1:
-            raise StateEstimateError(f"ConsistencyResidual.dof must be >= 1, got {self.dof}")
+            raise StateEstimateError(
+                f"ConsistencyResidual.dof must be >= 1, got {self.dof}"
+            )
 
 
 @dataclass(frozen=True)
@@ -120,7 +122,8 @@ class StateEstimate:
     def __post_init__(self) -> None:
         if len(self.mean) != STATE_DIM:
             raise StateEstimateError(
-                f"StateEstimate.mean must have {STATE_DIM} entries, got {len(self.mean)}"
+                f"StateEstimate.mean must have {STATE_DIM} entries, got "
+                f"{len(self.mean)}"
             )
         if len(self.cov) != STATE_DIM or any(len(row) != STATE_DIM for row in self.cov):
             raise StateEstimateError(

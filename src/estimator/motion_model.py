@@ -234,7 +234,9 @@ def motion_model_for(
             :class:`ConstantVelocityMotionModel`.
     """
     if entity_kind == "person":
-        return ConstantVelocityMotionModel(kind="person", sigma_a_mps2=PERSON_SIGMA_A_MPS2)
+        return ConstantVelocityMotionModel(
+            kind="person", sigma_a_mps2=PERSON_SIGMA_A_MPS2
+        )
     if entity_kind == "asset_static":
         return ConstantVelocityMotionModel(
             kind="asset_static", sigma_a_mps2=ASSET_STATIC_SIGMA_A_MPS2

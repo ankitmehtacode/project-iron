@@ -22,7 +22,6 @@ from src.estimator.motion_model import (
     MOTION_ENTITY_KINDS,
     STATE_DIM,
     ConstantVelocityMotionModel,
-    FixtureMotionModel,
     MotionModelError,
     motion_model_for,
 )
@@ -142,7 +141,9 @@ def test_negative_dt_raises() -> None:
 
 
 def test_sha_differs_by_kind_and_params() -> None:
-    shas = {kind: motion_model_for(kind).sha for kind in MOTION_ENTITY_KINDS}  # type: ignore[arg-type]
+    shas = {}
+    for kind in MOTION_ENTITY_KINDS:
+        shas[kind] = motion_model_for(kind).sha  # type: ignore[arg-type]
     assert len(set(shas.values())) == len(shas), f"sha collision across kinds: {shas}"
 
 
@@ -179,7 +180,9 @@ def test_R_grows_monotonically_with_distance_within_envelope() -> None:
     distances = [1.0, 3.0, 8.0, 15.0, 25.0]
     sigmas = [model.sigma_m(d) for d in distances]
     assert sigmas == sorted(sigmas)
-    assert len(set(sigmas)) == len(sigmas), "sigma must be STRICTLY increasing, not flat"
+    assert len(set(sigmas)) == len(
+        sigmas
+    ), "sigma must be STRICTLY increasing, not flat"
 
 
 def test_observation_outside_envelope_gets_inflated_R_not_discarded() -> None:

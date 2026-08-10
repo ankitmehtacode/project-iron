@@ -21,7 +21,9 @@ _VALID_SHAS = dict(
 )
 
 
-def _estimate(residuals: tuple[ConsistencyResidual, ...], **overrides: object) -> StateEstimate:
+def _estimate(
+    residuals: tuple[ConsistencyResidual, ...], **overrides: object
+) -> StateEstimate:
     kwargs: dict[str, object] = dict(
         ts_ns=1,
         mean=(0.0, 0.0, 0.0, 0.0, 0.0, 0.0),
@@ -161,7 +163,9 @@ def test_consistency_residual_rejects_empty_consumer() -> None:
 
 def test_consistency_residual_rejects_partial_value_set() -> None:
     with pytest.raises(StateEstimateError):
-        ConsistencyResidual(kind="nis", consumer="x", value=1.0)  # dof/bound/within missing
+        ConsistencyResidual(
+            kind="nis", consumer="x", value=1.0
+        )  # dof/bound/within missing
 
 
 # ---------------------------------------------------------------------------
@@ -176,11 +180,15 @@ def test_state_estimate_rejects_empty_residuals() -> None:
 
 def test_state_estimate_rejects_residuals_with_no_nis_entry() -> None:
     with pytest.raises(StateEstimateError, match="nis"):
-        _estimate(residuals=(consistency.constraint_stub(), consistency.calibration_stub()))
+        _estimate(
+            residuals=(consistency.constraint_stub(), consistency.calibration_stub())
+        )
 
 
 def test_state_estimate_accepts_stub_nis_plus_other_stubs() -> None:
-    estimate = _estimate(residuals=(consistency.no_observation_nis_stub(), *consistency.stub_residuals()))
+    estimate = _estimate(
+        residuals=(consistency.no_observation_nis_stub(), *consistency.stub_residuals())
+    )
     assert len(estimate.residuals) == 4
 
 

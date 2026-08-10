@@ -45,7 +45,9 @@ def _frame_of_reference() -> FrameOfReference:
     )
 
 
-def _obs(x_m: float, y_m: float, z_m: float, ts_ns: int, sensor_id: str = "cam-1") -> Observation:
+def _obs(
+    x_m: float, y_m: float, z_m: float, ts_ns: int, sensor_id: str = "cam-1"
+) -> Observation:
     return Observation(
         observation_id=generate_ulid(now_ns=ts_ns),
         sensor_id=sensor_id,
@@ -62,7 +64,9 @@ def _obs(x_m: float, y_m: float, z_m: float, ts_ns: int, sensor_id: str = "cam-1
 def _walking_track(n: int, step_m: float = 0.5, dt_s: float = 1.0) -> list[Observation]:
     """A straight-line walker at step_m/dt_s m/s, along x."""
     return [
-        _obs(x_m=step_m * i, y_m=0.0, z_m=0.0, ts_ns=BASE_TS + int(i * dt_s * SECOND_NS))
+        _obs(
+            x_m=step_m * i, y_m=0.0, z_m=0.0, ts_ns=BASE_TS + int(i * dt_s * SECOND_NS)
+        )
         for i in range(n)
     ]
 
@@ -90,7 +94,10 @@ def test_bootstrap_uses_only_the_first_observation() -> None:
     graph = StateGraph()
     obs = _obs(x_m=7.0, y_m=-3.0, z_m=1.0, ts_ns=BASE_TS)
     run_single_entity_filter(
-        graph, [obs], motion_model_for("person"), measurement_model_for("cam-1"),
+        graph,
+        [obs],
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
         manifest_sha="m",
     )
     query = StateQuery(at_ts_ns=BASE_TS, horizon_ns=0, graph_rev=graph.graph_rev)
@@ -108,10 +115,15 @@ def test_filter_tracks_a_straight_line_walker() -> None:
     graph = StateGraph()
     observations = _walking_track(10)
     run_single_entity_filter(
-        graph, observations, motion_model_for("person"), measurement_model_for("cam-1"),
+        graph,
+        observations,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
         manifest_sha="m",
     )
-    query = StateQuery(at_ts_ns=observations[-1].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev)
+    query = StateQuery(
+        at_ts_ns=observations[-1].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev
+    )
     estimate = solve_state(query, graph)
     assert estimate.observed is True
     np.testing.assert_allclose(estimate.position_m(), [4.5, 0.0, 0.0], atol=0.5)
@@ -122,7 +134,10 @@ def test_every_update_carries_an_nis_residual() -> None:
     graph = StateGraph()
     observations = _walking_track(5)
     run_single_entity_filter(
-        graph, observations, motion_model_for("person"), measurement_model_for("cam-1"),
+        graph,
+        observations,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
         manifest_sha="m",
     )
     for factor in graph.factors_as_of(graph.graph_rev):
@@ -131,7 +146,9 @@ def test_every_update_carries_an_nis_residual() -> None:
         nis_entries = [r for r in payload.estimate.residuals if r.kind == "nis"]
         assert len(nis_entries) == 1
     # Bootstrap has no innovation to score; every subsequent update does.
-    payloads = [graph.payload_for(f.factor_id) for f in graph.factors_as_of(graph.graph_rev)]
+    payloads = [
+        graph.payload_for(f.factor_id) for f in graph.factors_as_of(graph.graph_rev)
+    ]
     bootstrap_nis = next(r for r in payloads[0].estimate.residuals if r.kind == "nis")
     assert bootstrap_nis.value is None
     for payload in payloads[1:]:
@@ -144,7 +161,10 @@ def test_empty_observations_raises() -> None:
     graph = StateGraph()
     with pytest.raises(FilterError):
         run_single_entity_filter(
-            graph, [], motion_model_for("person"), measurement_model_for("cam-1"),
+            graph,
+            [],
+            motion_model_for("person"),
+            measurement_model_for("cam-1"),
             manifest_sha="m",
         )
 
@@ -157,7 +177,10 @@ def test_out_of_order_observations_raises() -> None:
     ]
     with pytest.raises(FilterError, match="strictly increasing"):
         run_single_entity_filter(
-            graph, observations, motion_model_for("person"), measurement_model_for("cam-1"),
+            graph,
+            observations,
+            motion_model_for("person"),
+            measurement_model_for("cam-1"),
             manifest_sha="m",
         )
 
@@ -177,7 +200,10 @@ def test_non_position_measurement_raises() -> None:
     )
     with pytest.raises(FilterError, match="WorldPositionMeasurement"):
         run_single_entity_filter(
-            graph, [bad], motion_model_for("person"), measurement_model_for("cam-1"),
+            graph,
+            [bad],
+            motion_model_for("person"),
+            measurement_model_for("cam-1"),
             manifest_sha="m",
         )
 
@@ -187,7 +213,10 @@ def test_non_positive_dt_raises() -> None:
     observations = [_obs(0.0, 0.0, 0.0, BASE_TS), _obs(1.0, 0.0, 0.0, BASE_TS)]
     with pytest.raises(FilterError, match="non-positive dt"):
         run_single_entity_filter(
-            graph, observations, motion_model_for("person"), measurement_model_for("cam-1"),
+            graph,
+            observations,
+            motion_model_for("person"),
+            measurement_model_for("cam-1"),
             manifest_sha="m",
         )
 
@@ -197,11 +226,16 @@ def test_non_positive_dt_raises() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_resolving_at_an_earlier_graph_rev_is_bit_identical_after_more_appends() -> None:
+def test_resolving_at_an_earlier_graph_rev_is_bit_identical_after_more_appends() -> (
+    None
+):
     graph = StateGraph()
     first_batch = _walking_track(4)
     run_single_entity_filter(
-        graph, first_batch, motion_model_for("person"), measurement_model_for("cam-1"),
+        graph,
+        first_batch,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
         manifest_sha="m",
     )
     rev_after_first_batch = graph.graph_rev
@@ -213,11 +247,19 @@ def test_resolving_at_an_earlier_graph_rev_is_bit_identical_after_more_appends()
     # Append MORE factors -- a second, independent walker's observations,
     # continuing in time, onto the SAME graph.
     second_batch = [
-        _obs(x_m=100.0 + i, y_m=0.0, z_m=0.0, ts_ns=first_batch[-1].ts_ns + (i + 1) * SECOND_NS)
+        _obs(
+            x_m=100.0 + i,
+            y_m=0.0,
+            z_m=0.0,
+            ts_ns=first_batch[-1].ts_ns + (i + 1) * SECOND_NS,
+        )
         for i in range(3)
     ]
     run_single_entity_filter(
-        graph, second_batch, motion_model_for("person"), measurement_model_for("cam-1"),
+        graph,
+        second_batch,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
         manifest_sha="m",
     )
     assert graph.graph_rev > rev_after_first_batch
@@ -241,7 +283,10 @@ def test_covariance_grows_monotonically_through_an_observation_gap() -> None:
     graph = StateGraph()
     observations = _walking_track(5)
     run_single_entity_filter(
-        graph, observations, motion_model_for("person"), measurement_model_for("cam-1"),
+        graph,
+        observations,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
         manifest_sha="m",
     )
     last_ts = observations[-1].ts_ns
@@ -268,7 +313,10 @@ def test_extrapolation_beyond_horizon_raises() -> None:
     graph = StateGraph()
     observations = _walking_track(3)
     run_single_entity_filter(
-        graph, observations, motion_model_for("person"), measurement_model_for("cam-1"),
+        graph,
+        observations,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
         manifest_sha="m",
     )
     query = StateQuery(
@@ -284,11 +332,16 @@ def test_query_before_earliest_state_raises() -> None:
     graph = StateGraph()
     observations = _walking_track(3)
     run_single_entity_filter(
-        graph, observations, motion_model_for("person"), measurement_model_for("cam-1"),
+        graph,
+        observations,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
         manifest_sha="m",
     )
     query = StateQuery(
-        at_ts_ns=observations[0].ts_ns - SECOND_NS, horizon_ns=0, graph_rev=graph.graph_rev
+        at_ts_ns=observations[0].ts_ns - SECOND_NS,
+        horizon_ns=0,
+        graph_rev=graph.graph_rev,
     )
     with pytest.raises(EpisodeError, match="predates"):
         solve_state(query, graph)
@@ -298,7 +351,10 @@ def test_smoothed_horizon_kind_raises_not_implemented_via_filter() -> None:
     graph = StateGraph()
     observations = _walking_track(2)
     run_single_entity_filter(
-        graph, observations, motion_model_for("person"), measurement_model_for("cam-1"),
+        graph,
+        observations,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
         manifest_sha="m",
     )
     query = StateQuery(

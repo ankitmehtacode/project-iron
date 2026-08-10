@@ -640,6 +640,58 @@ def _depth_absrel_baselines(
     ]
 
 
+def _estimator_position_rmse_baselines(
+    *, copy_previous_rmse_m: float, constant_velocity_rmse_m: float, **_: Any
+) -> list[Baseline]:
+    """Two trivial strategies for state estimation (Day 20, Day-12 rule).
+
+    Neither ignores the capability entirely the way always-wake ignores
+    motion — a filter this cheap to beat would say more about the metric
+    than the system. ``copy_previous_position`` (dead reckoning at zero
+    velocity, using the same noisy observations the filter sees) tests
+    whether the motion model's velocity term earns its keep at all.
+    ``constant_velocity_no_update`` (initial velocity from the first two
+    observations, then coasting with no further correction) tests whether
+    the filter's ongoing measurement updates add anything beyond one good
+    initial velocity estimate — this is the harder bar, and per the
+    objective, a filter that does not clear it by a clear margin has
+    either a wiring bug or is running on GT motion too smooth to
+    discriminate. Both are real, run-the-same-way baselines, not
+    theoretical bounds, so both are flag-worthy.
+    """
+    return [
+        Baseline(
+            "copy_previous_position",
+            copy_previous_rmse_m,
+            "predict the previous observation's position, zero velocity",
+        ),
+        Baseline(
+            "constant_velocity_no_update",
+            constant_velocity_rmse_m,
+            "velocity from the first two observations, then coast with no "
+            "further measurement correction",
+        ),
+    ]
+
+
+def _estimator_velocity_rmse_baselines(
+    *, constant_velocity_rmse_mps: float, **_: Any
+) -> list[Baseline]:
+    """Zero-velocity is not a meaningful baseline for a velocity metric (it
+    is right by definition on a genuinely static clip and always wrong by
+    the true speed otherwise, telling you nothing about the filter). The
+    coasting constant-velocity strategy is the same-information adversary
+    used for position, applied to its own velocity estimate instead."""
+    return [
+        Baseline(
+            "constant_velocity_no_update",
+            constant_velocity_rmse_mps,
+            "velocity from the first two observations, held constant with "
+            "no further measurement correction",
+        )
+    ]
+
+
 def _register_defaults() -> None:
     """Register every metric name the project currently emits.
 
@@ -688,6 +740,9 @@ def _register_defaults() -> None:
     # -- depth ------------------------------------------------------------
     register_baseline("depth.rank_correlation", _depth_rank_correlation_baselines)
     register_baseline("depth.absrel", _depth_absrel_baselines)
+    # -- estimator (Day 20) ------------------------------------------------
+    register_baseline("estimator.position_rmse_m", _estimator_position_rmse_baselines)
+    register_baseline("estimator.velocity_rmse_mps", _estimator_velocity_rmse_baselines)
 
 
 _register_defaults()

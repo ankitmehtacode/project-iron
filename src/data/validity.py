@@ -121,6 +121,12 @@ def gate_motion_geometry(
     Ground truth for "did this move" comes from the scene description rather
     than from anything the model must infer, so an analytic fixture is not a
     compromise here — it is better than real footage, which needs annotation.
+
+    Also registered as ``"state_estimation"`` (Day 20): position and
+    velocity are the same kind of exactly-known scene-description quantity
+    as "did this move" — v3-indoor's ``agent_xyz`` is analytic GT, not an
+    annotation — so the same reasoning that authorizes scoring motion here
+    authorizes scoring the state estimator's accuracy here too.
     """
     if frames.ndim != 4 or frames.shape[0] < 2:
         return False, "need at least two frames to observe motion at all", {}
@@ -333,6 +339,7 @@ def gate_point_tracking(
 
 GATES: dict[str, Callable[..., tuple[bool, str, dict[str, Any]]]] = {
     "motion_geometry": gate_motion_geometry,
+    "state_estimation": gate_motion_geometry,
     "depth": gate_depth,
     "appearance_semantics": gate_appearance_semantics,
     "point_tracking": gate_point_tracking,

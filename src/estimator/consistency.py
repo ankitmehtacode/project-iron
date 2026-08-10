@@ -37,7 +37,9 @@ bound. Not a tunable per-run knob — changing it changes what "in bound"
 means for every consumer of a within_bound flag, so it is a module
 constant, not a function parameter with a different default per call site."""
 
-_NIS_CONSUMER = "filter self-check (this stage) and the accuracy scorecard's pass-rate summary"
+_NIS_CONSUMER = (
+    "filter self-check (this stage) and the accuracy scorecard's pass-rate summary"
+)
 _NEES_CONSUMER = "accuracy evaluation against exact GT (scripts/eval_estimator.py)"
 _CONSTRAINT_CONSUMER = "twin-revision hypothesis (not yet implemented)"
 _CALIBRATION_CONSUMER = "recalibration event (not yet implemented)"
@@ -55,7 +57,9 @@ def chi2_upper_bound(dof: int, confidence: float = DEFAULT_CONFIDENCE) -> float:
 
 
 def compute_nis(
-    innovation: FloatArray, innovation_cov: FloatArray, confidence: float = DEFAULT_CONFIDENCE
+    innovation: FloatArray,
+    innovation_cov: FloatArray,
+    confidence: float = DEFAULT_CONFIDENCE,
 ) -> ConsistencyResidual:
     """NIS = innovation^T @ inv(S) @ innovation, for one update step."""
     dof = int(innovation.shape[0])
@@ -96,20 +100,33 @@ def no_observation_nis_stub() -> ConsistencyResidual:
     return ConsistencyResidual(
         kind="nis",
         consumer=_NIS_CONSUMER,
-        note="not applicable: no observation at this step (predicted forward, e.g. an occlusion gap or bootstrap)",
+        note=(
+            "not applicable: no observation at this step (predicted forward, "
+            "e.g. an occlusion gap or bootstrap)"
+        ),
     )
 
 
 def constraint_stub() -> ConsistencyResidual:
-    return ConsistencyResidual(kind="constraint", consumer=_CONSTRAINT_CONSUMER, note="stub: not computed today")
+    return ConsistencyResidual(
+        kind="constraint",
+        consumer=_CONSTRAINT_CONSUMER,
+        note="stub: not computed today",
+    )
 
 
 def calibration_stub() -> ConsistencyResidual:
-    return ConsistencyResidual(kind="calibration", consumer=_CALIBRATION_CONSUMER, note="stub: not computed today")
+    return ConsistencyResidual(
+        kind="calibration",
+        consumer=_CALIBRATION_CONSUMER,
+        note="stub: not computed today",
+    )
 
 
 def coverage_stub() -> ConsistencyResidual:
-    return ConsistencyResidual(kind="coverage", consumer=_COVERAGE_CONSUMER, note="stub: not computed today")
+    return ConsistencyResidual(
+        kind="coverage", consumer=_COVERAGE_CONSUMER, note="stub: not computed today"
+    )
 
 
 def stub_residuals() -> tuple[ConsistencyResidual, ...]:
@@ -117,9 +134,7 @@ def stub_residuals() -> tuple[ConsistencyResidual, ...]:
     return (constraint_stub(), calibration_stub(), coverage_stub())
 
 
-def fraction_outside_bound(
-    residuals: "list[ConsistencyResidual]", kind: str
-) -> float:
+def fraction_outside_bound(residuals: "list[ConsistencyResidual]", kind: str) -> float:
     """Share of ``kind`` residuals (nis or nees) that fell outside their bound.
 
     Only residuals with an actual computed value count — stubs and

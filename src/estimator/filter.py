@@ -204,7 +204,9 @@ def run_single_entity_filter(
             residuals=(nis, *consistency.stub_residuals()),
         )
         payload = _AppendedState(
-            estimate=estimate, motion_model=motion_model, measurement_model=measurement_model
+            estimate=estimate,
+            motion_model=motion_model,
+            measurement_model=measurement_model,
         )
         factor = graph.append_factor(
             str(generate_ulid()), factor_kind, inputs, manifest_sha, payload=payload
@@ -215,7 +217,9 @@ def run_single_entity_filter(
     return graph
 
 
-def _payload_factors(graph: StateGraph, graph_rev: int) -> list[tuple[Factor, _AppendedState]]:
+def _payload_factors(
+    graph: StateGraph, graph_rev: int
+) -> list[tuple[Factor, _AppendedState]]:
     out: list[tuple[Factor, _AppendedState]] = []
     for f in graph.factors_as_of(graph_rev):
         payload = graph.payload_for(f.factor_id)
@@ -285,5 +289,8 @@ def resolve_state(query: StateQuery, graph: StateGraph) -> StateEstimate:
         measurement_model_sha=latest.estimate.measurement_model_sha,
         update_rule_sha=latest.estimate.update_rule_sha,
         graph_rev=query.graph_rev,
-        residuals=(consistency.no_observation_nis_stub(), *consistency.stub_residuals()),
+        residuals=(
+            consistency.no_observation_nis_stub(),
+            *consistency.stub_residuals(),
+        ),
     )

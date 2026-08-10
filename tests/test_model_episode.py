@@ -16,6 +16,7 @@ STRUCTURAL rules under test:
 from __future__ import annotations
 
 import dataclasses
+from typing import Any
 
 import pytest
 
@@ -250,15 +251,19 @@ def test_solve_state_smoothed_horizon_raises_not_implemented() -> None:
     graph = StateGraph()
     graph.append_factor("f1", "kind", ("x",), "sha")
     query = StateQuery(
-        at_ts_ns=BASE_TS, horizon_ns=0, graph_rev=graph.graph_rev, horizon_kind="smoothed"
+        at_ts_ns=BASE_TS,
+        horizon_ns=0,
+        graph_rev=graph.graph_rev,
+        horizon_kind="smoothed",
     )
     with pytest.raises(NotImplementedError):
         solve_state(query, graph)
 
 
 def test_state_query_rejects_unknown_horizon_kind() -> None:
+    bogus_kind: Any = "bogus"
     with pytest.raises(EpisodeError):
-        StateQuery(at_ts_ns=1, horizon_ns=0, graph_rev=0, horizon_kind="bogus")  # type: ignore[arg-type]
+        StateQuery(at_ts_ns=1, horizon_ns=0, graph_rev=0, horizon_kind=bogus_kind)
 
 
 def test_state_graph_rejects_duplicate_factor_id() -> None:
