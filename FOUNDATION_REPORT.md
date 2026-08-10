@@ -3942,3 +3942,336 @@ once too often.
 10. **MEVA licence verification** — still blocked on a human.
 11. **The factor-graph solver**, once there is a measured reason to
     start it — unchanged from Day 13's list.
+
+---
+
+# Day 18
+
+**Cascade bench did not reproduce Day 17's 4.50% today, and neither
+attempt is trustworthy enough to quote.** First run, 5.10%, taken while
+two CPU-heavy `pytest` suites (launched to verify Objective 2) were
+running concurrently on the same machine — a wall-clock benchmark
+sharing cores with ~200% of additional CPU demand. Second run, taken
+*after* those suites finished and the machine was otherwise idle, was
+**worse, not better: 9.28%.** `pmset -g therm` explained it:
+`CPU_Speed_Limit = 46`. `pmset -g batt` explained that: the machine was
+on battery power at 5%, and macOS throttles CPU hard to protect
+remaining charge, independent of thermal state or concurrent load — the
+"idle" second reading was on a CPU capped at under half speed. Neither
+5.10% nor 9.28% is comparable to Day 17's figure, and neither is
+reported as a measurement of anything except today's own power state.
+**Day 17's 4.50% stands, unchanged, as the last trustworthy cascade-cost
+figure**; a clean re-run on AC power is Day 19's first item, not
+buried in it. This is itself Day 6's-and-Day-17's-own finding recurring
+a third time in a new shape: the instrument was wrong again, and this
+time the instrument was the laptop's power source, not the interpreter.
+
+Framing, from the standing prompt: a check that stays red trains people
+to ignore red, and a value that is present but meaningless satisfies a
+presence rule without satisfying its purpose. Objective 1 closes the
+first (the stray-venv row has been red since Day 17); Objective 2 closes
+the second (`gate.recall_retained` has been a silent NaN since v4-gate
+was minted on Day 16). Objective 3 closes the two provenance gaps Day
+17 named by name; Objective 4 answers the `main` divergence
+investigation the standing rules keep deferring.
+
+## Objective 0 — push, start of day
+
+`git push --all origin`: `foundation/day-18` pushed clean (new branch).
+`git push --tags`: up to date. Verified: `foundation/day-18` local HEAD
+matched `origin/foundation/day-18` exactly immediately after push, and
+every prior `foundation/day-N` branch remained unchanged and matching.
+`main` rejected — `[rejected] main -> main (non-fast-forward)`, the
+same failure noted every day since Day 16. Objective 4 below is this
+day's actual investigation of that failure, not a repeat of the
+deferral.
+
+## Objective 1 — `.venv-infinigen` resolved to green-with-reason
+
+Took the preferred path, not the fallback: `.venv-infinigen` (1.3 GB,
+untracked, Python 3.11 for Infinigen/`bpy`) moved out of the repo tree
+entirely, to a sibling directory (`../project-iron-infinigen-venv`) next
+to the repo root. Fixed the venv's own internal absolute-path references
+after the move — `bin/activate`'s `VIRTUAL_ENV`, and the shebang line in
+every console script (`pip`, `f2py`, `cythonize`, `tqdm`, `trimesh`, and
+others) — verified by running `../project-iron-infinigen-venv/bin/python
+-m pip --version` successfully post-move, not merely by moving the
+directory and assuming it still works. Updated the three scripts that
+document how to invoke it (`infinigen_generate.py`,
+`run_infinigen_gate.py`, `probe_cycles_throughput.py`) to the new path;
+left the Day-11/12 historical docs (`docs/day12/infinigen_throughput.md`,
+`configs/datasets.yaml`'s Day-11 comment) untouched, since they describe
+what was literally run at the time under the old, then-correct, in-tree
+path — this project's day-reports are append-only, not retroactively
+rewritten.
+
+**Gate result, this machine, right now:**
+
+```
+CHECK                        STATUS  DETAIL
+interpreter identity         PASS    .venv-pinned/bin/python (sys.prefix=.../.venv-pinned)
+no stray project venvs       PASS    only .venv-pinned exists on disk
+import torch                 PASS    torch 2.2.0 (pinned)
+import openvino              PASS    openvino 2024.6.0 (pinned)
+import cv2                   PASS    opencv-python-headless 4.8.1.78 (pinned)
+import numpy                 PASS    numpy 1.26.2 (pinned)
+model PRODUCTION vjepa_xml   FAIL    missing (blocked on humans, ADR 0008)
+model PRODUCTION vjepa_bin   FAIL    missing (blocked on humans, ADR 0008)
+model cotracker_checkpoint   PASS    101.9 MB sha256 2670d4562ed69326...
+pip check                    PASS    No broken requirements found.
+seeds / threads              PASS    seed=0 numpy=yes torch=yes torch_threads=6
+```
+
+**9 of 11 checks pass; the gate returns PROCEED.** The two failures are
+the pre-existing, separately-tracked production-artifact block (ADR
+0008, blocked on a human, untouched by today's work) — not a new
+failure and not this objective's concern. The stray-venv row, red since
+the moment it was added, is green for the first reason a permanently-red
+check should ever go green: the thing it was flagging is actually gone,
+not exempted.
+
+**STRUCTURAL test, run for real, not just described:** created
+`.venv-test` at the repo root, ran the gate — `no stray project venvs
+FAIL 1 other venv(s) on disk: .venv-test`, full gate exit code 1 — then
+removed it and re-ran: back to PASS, exit 0. Encoded permanently in
+`tests/test_env_gate.py` (4 new tests, monkeypatching `REPO_ROOT` so
+they never touch the real repository tree): a clean tree passes, an
+unnamed newly-created stray venv fails by name, a non-venv directory is
+correctly ignored, and a regression guard that `.venv-infinigen` does
+not exist under `REPO_ROOT` — so a future session that recreates it
+in-tree (e.g. by following a stale doc) fails loudly instead of the row
+quietly going red again for another week unnoticed.
+
+## Objective 2 — `Undefined`, not NaN, for a zero-denominator gate metric
+
+`gate.recall_retained` on a clip with zero moving frames divides 0 by 0.
+NaN was arithmetically correct and structurally useless: it satisfied
+the Day-14 co-emission rule (`gate.wake_fraction` never ships without
+`gate.recall_retained`), because that rule only checks metric *names*,
+not whether the paired value carries information. v4.1-gate's own
+scorecard was exhibit A — `wake_fraction 0.125` next to a
+`recall_retained` that was present in name only.
+
+Added `Undefined(reason=...)`, a frozen sentinel distinct from a bare
+float, and `MetricValue = float | Undefined`. `_metric_with_baselines`
+— the sole place a `Metric` is constructed in this module — now raises
+`ScorecardError` naming the metric and the likely cause when handed a
+bare NaN, and accepts an explicit `Undefined` instead. Renders as
+`undefined (<reason>)` in `Scorecard.render()`, never as a number;
+serializes as `{"undefined": true, "reason": "..."}` in the JSON, never
+as `NaN` (which is not even valid JSON).
+
+**The fix generalized past `recall_retained` alone, on contact with the
+test suite, not by design up front.** The first version scoped the raise
+narrowly to `recall_retained`'s own zero-moving-frames case and left
+`gate.wake_fraction` / `gate.compute_saved` / `dataset.moving_frame_fraction`
+/ `coverage.observable_fraction` computing a bare NaN in their own
+zero-*presented*-frames edge case, same as before. That edge case is not
+hypothetical — it is exactly what `test_scoring_refuses_a_clip_whose_bytes_do_not_match_the_manifest`
+already exercised (a golden set where every clip fails its `content_sha`
+check scores zero clips, zero presented frames) and what four
+`test_synthetic_indoor.py` fixtures hit by using 8-frame clips against a
+10-frame gate warmup window. The general "NaN raises" rule, taken
+literally, turned both into crashes instead of returned scorecards —
+which is what the pre-existing tests correctly expect NOT to happen (a
+fully-refused set must still return a `Scorecard` with `clips_scored ==
+0` and a caveat, not raise). Generalizing `Undefined` to all four sites,
+rather than carving a narrower exception into the raise, is what let
+every existing test keep its original assertions and pass unchanged —
+the fix that survives contact with the suite it did not anticipate was
+the more honest one, not a special case bolted onto the literal ask.
+
+Applied per condition bucket in `_gate_rates_from_totals`, not only in
+the aggregate, per the objective: a bucket with zero moving frames
+inside an otherwise-active set is exactly as undefined as a quiet
+aggregate, and the v4.1-gate table below shows all four buckets
+(`occupied`, `empty`, `night`, `degenerate`) correctly reading undefined
+while `wake_fraction` stays a real per-bucket number.
+
+6 new tests in `tests/test_gate_reframe.py`: NaN raises and names the
+metric; the raise message names a likely cause; `Undefined` is accepted,
+skips margin/flag computation, and still carries its registered
+baselines; a scorecard containing an `Undefined` metric renders
+`"undefined (...)"` and contains no literal `"nan"` anywhere;
+`_gate_rates_from_totals` produces `Undefined` with zero moving frames,
+and a real number when moving frames exist. `mypy --strict`: 0 errors,
+47 files. Full non-`requires_weights`/non-`slow` suite: **758 passed, 1
+skipped, 8 deselected, 0 failures** — up from Day 17's 748 (+10: 4
+stray-venv tests, 6 `Undefined`/NaN tests).
+
+**Re-emitted v3-indoor and v4.1-gate under the corrected semantics**
+(`docs/day18/`), the pair the objective asked to read together:
+
+| metric | v3-indoor (motion-saturated) | v4.1-gate (quiet) |
+| --- | ---: | ---: |
+| `gate.wake_fraction` | 0.9067 | 0.1250 |
+| `gate.recall_retained` | 0.9340 | undefined (no moving frames in denominator) |
+| `gate.compute_saved` (estimate) | 1.87 ms/frame | 17.50 ms/frame |
+| `gate.miss_cost` | 57 | 0 |
+| `dataset.moving_frame_fraction` | 0.9667 | 0.0000 |
+
+**What the pair now says:** `wake_fraction` 0.9067 on a set authored to
+be almost entirely in motion, against 0.1250 on a set authored to be
+almost entirely still, is the first real evidence the gate does what a
+gate is for — its value concentrates where nothing happens, not where
+everything does. `recall_retained` on v3 is a real 0.9340 because v3 has
+863 moving frames to measure recall against; on v4.1 it is honestly
+undefined because there were zero, not a fabricated 0.0 or a silent NaN
+pretending to be one. Neither number is the Tier-1 economic claim, which
+still requires 24 hours of real office footage including nights and
+weekends (`docs/capture_runbook.md`) — unchanged since Day 16.
+
+## Objective 3 — cascade bench and the provenance audit, both closed out
+
+**Cascade bench: not reproduced, not quoted — see the report's first
+line above.** Two attempts today, both `.venv-pinned`, both a wrong
+number for a machine-state reason unrelated to the interpreter: 5.10%
+(concurrent CPU load from Objective 2's own test runs) and 9.28% (a
+battery-throttled CPU at 5% charge, `CPU_Speed_Limit = 46`, measured
+*after* the concurrent load had cleared). Day 17's 4.50% is not
+superseded by either — it remains the standing figure until a clean
+re-run happens on AC power, which did not happen today.
+
+**Provenance audit, completed.** Every row from Day 17's table is
+carried forward; two are resolved today, two new rows are added, and —
+per today's rule — nothing is left as a bare "unknown": every
+measurement is now `verified_pinned`, `verified_drifted`, or explicitly
+**not to be quoted until re-measured**, with a reason and a Day-19
+action attached.
+
+| Measurement | Day | Environment | Status |
+| --- | --- | --- | --- |
+| Cascade bench progression (29.5%→22.5%→4.4%) | 1 | `.venv` (unpinned) | verified_drifted; superseded narratively |
+| Cascade cost 2.97% of one core | 2 | `.venv` (unpinned) | verified_drifted — caught by the project itself (Day 3), re-measured Day 6 (4.57%), reconfirmed Day 17 (4.50%) |
+| env_gate.py's own first run (numpy 2.5.1, opencv 5.0.0) | 3 | `.venv` (unpinned) — this IS the evidence | verified_drifted (self-documenting) |
+| Golden-vector cosine fix (0.332 → 0.999987) | 3, after 22:10 | `.venv-pinned` | verified_pinned |
+| Cascade cost re-measurement, 4.57%, BUDGET MISSED | 6 | `.venv-pinned` | verified_pinned; reconfirmed Day 17 at 4.50% |
+| Envelope calibration (`min_foreground_fraction` 0.002, threshold 115.2px) | 7 | `.venv-pinned` | verified_pinned |
+| Depth validity: v3-indoor rank correlation −0.5924, 30 clips/120 frames | 9 | `.venv-pinned` (presumed) | **NOT TO BE QUOTED until re-measured** — deliberately not re-run today: `scripts/eval_depth.py` requires a real Depth-Anything-V2 forward pass over ~30 clips, and this machine was on 5% battery with CPU throttled to 46% speed for the entire remainder of the day. Running a CPU-heavy job under those conditions risks a mid-run shutdown and loses more than it proves; the existing LOW-risk classification (independently reconfirmed via a different single-clip method, Day 16) stands unchanged, deferred rather than gambled on. Day-19 item. |
+| Appearance validity: texture energy 3.03, material diversity 15.17 | 10 | `.venv-pinned` (presumed) | verified_pinned — reproduced exactly (3.031, 15.168) Day 16 |
+| Point-tracking gate / CoTracker3 pin, v3 refuses | 11 | `.venv-pinned` (presumed) | verified_pinned — refusal pattern reproduced Day 16 |
+| `motion_gate_v3_with_baselines.json` | 12 | `.venv-pinned` (inherited envelope stack only, Day 17) | **verified_pinned — resolved today.** v3-indoor was rescored today (Objective 2) and now carries a live `measurement_environment` fingerprint in its own JSON: `numpy 1.26.2 / opencv 4.8.1.78 / python 3.10.20`, `sys_prefix` ending in `.venv-pinned` (`docs/day18/motion_gate_v3_rescored.json`). Direct evidence, not inference from timing. |
+| Gate reframe: wake_fraction 0.9067, recall_retained 0.9340, miss_cost 57 | 14 | `.venv-pinned` (presumed) | verified_pinned — reproduced bit-identical Day 16, Day 17, and again today in the v3-indoor rescore |
+| mypy "35 pre-existing errors, verified both ways via git stash" | 15 | `.venv-pinned` (that day's own claim) | verified_pinned — reproduced exactly (35, same file/line/class) Day 16, Day 17 |
+| Retrieval-metric sweep, byte-for-byte reproducing Day 12 | 15 | `.venv-pinned` (presumed; reproducibility is the evidence) | verified_pinned |
+| v4-gate scorecards, mypy 35→0, validity matrix, 745 tests | 16 | `.venv-pinned` — direct session evidence | verified_pinned |
+| Transient mypy check showing "6 errors" (never committed) | 16 | `.venv` (unpinned, deleted Day 17) | verified_drifted — caught and corrected within the same session |
+| Cascade bench re-run (4.50%), env_gate extension, gait fix, v4.1-gate | 17 | `.venv-pinned` — direct session evidence | verified_pinned |
+| env_gate stray-venv fix, `.venv-infinigen` relocated, 4 structural tests | 18 | `.venv-pinned` — direct session evidence | verified_pinned |
+| `Undefined`/`recall_retained` fix, v3-indoor + v4.1-gate rescored | 18 | `.venv-pinned` — direct session evidence, live `measurement_environment` on both scorecards | verified_pinned |
+| **Cascade bench re-run attempts: 5.10%, 9.28%** | 18 | `.venv-pinned` interpreter correct; machine state (concurrent load, then battery throttle) contaminated both readings | **NOT TO BE QUOTED until re-measured** — see the report's first line. Day-19 item, first. |
+
+**Counts:** 13 `verified_pinned`, 4 `verified_drifted`, 2 `not to be
+quoted until re-measured` (depth validity — deferred for battery
+safety; today's cascade bench — contaminated twice). 19 rows total, zero
+left as a bare "unknown" — every measurement this project has ever
+quoted now resolves to one of exactly three states, on query, not on
+investigation.
+
+## Objective 4 — `main` / `origin/main`: unrelated histories, ADR 0009 (Proposed)
+
+Investigated, not executed. `origin/main` is a real, five-author,
+PR-based history — 34 commits, `2026-02-17` through `2026-07-13`,
+merging `optimize-cotracker-input` and `temporal-stitching` through
+actual pull requests, citing `Dalbirsm03/project-iron` as a fetched
+remote in its own merge-commit messages. Local `main` is one commit,
+`41e924c`, `"chore: import project-iron working tree as baseline"`,
+dated `2026-07-31` — eighteen days after `origin/main`'s last commit —
+and every `foundation/day-N` branch descends from it.
+`git merge-base foundation/day-1 origin/main` (and the same check
+against `day-17`) returns nothing: no common ancestor. Same project (82
+of `origin/main`'s 82 files match local `main`'s 90 by name), unrelated
+git histories.
+
+Three options recorded in `docs/adr/0009-repository-history-divergence.md`,
+with consequences: **graft** the foundation line onto `origin/main`
+(rewrites ~100+ commits across 18 branches, invalidates every SHA this
+report has ever cited by name); **keep the lines permanently separate**
+and rename local `main` for clarity (reversible, touches nothing on
+`origin`, is the recommendation); **archive and replace** `origin/main`
+under a tag (the only option that unifies the mainline, and the only one
+that force-pushes over four other people's history without asking them
+first). The ADR recommends the second, executes none of the three:
+status **Proposed**, no branch renamed, no history rewritten, no tag
+created. `git push --all origin` will keep rejecting `main` tomorrow,
+exactly as it has every day since Day 16 — this is now a five-minute
+decision waiting on a human, not a two-hour investigation waiting to
+happen again.
+
+## All five falsification tests, re-run today
+
+| # | Test | Day 17 | Day 18 |
+| --- | --- | --- | --- |
+| 1 | Absence under degraded coverage | PASSES | PASSES (unchanged) |
+| 2 | Retroactive badge resolution | PASSES | PASSES (unchanged) |
+| 3 | Twin re-version | PASSES | PASSES (unchanged) |
+| 4 | Alert explainability | PASSES (unchanged; `raise_alert()` still un-steered) | PASSES (unchanged) |
+| 5 | Behaviour-query shape | PASSES (type-level, unchanged) | PASSES (type-level, unchanged) — still blocked on the unimplemented estimator |
+
+`tests/test_falsification.py`: 8 tests, all green, unchanged. Repo-wide
+(`.venv-pinned`, `not requires_weights and not slow`): **758 passed, 1
+skipped, 8 deselected, 0 failures**, up from Day 17's 748 (+10: 4 env-gate
+stray-venv tests, 6 `Undefined`/NaN tests). `mypy --strict` on the
+declared scope: **0 errors**, unchanged from Day 16 and 17.
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged today, plus one addition:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — forensic
+   objective closed unanswered (ADR 0008); still wanted for its own sake.
+2. **MEVA licence verification.**
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 6 days old.
+5. **NEW: the `main`/`origin/main` divergence decision (ADR 0009)** —
+   which of graft / keep-separate / archive-and-replace, and whether the
+   other four `origin/main` collaborators need to be looped in before
+   any option touching `origin` is chosen.
+
+## Objective 0/5 — push, end of day
+
+`git push --all origin`: pushed clean. `git push --tags`: up to date.
+Re-verified: every `foundation/day-N` branch head matches its remote
+exactly; `main`'s pre-existing divergence unchanged, untouched, now
+documented rather than merely noted (ADR 0009). Push happened at the
+start and the end of the day, per the Day-17 standing rule.
+
+## Day 19, in order
+
+1. **Cascade bench, clean, on AC power — first item, not buried.**
+   Today's two readings (5.10%, 9.28%) are both explicitly not to be
+   quoted. Confirm the machine is charging (not just plugged in — this
+   machine reached 5% while presumably plugged in overnight at some
+   point, so charging state deserves its own check) and CPU_Speed_Limit
+   reads 100 via `pmset -g therm` before trusting any number.
+2. **Depth validity re-measurement** (`scripts/eval_depth.py`), deferred
+   today for the same battery-safety reason as item 1. LOW risk,
+   independently corroborated, but "unknown" is not a status this
+   project leaves standing when a query would resolve it.
+3. **The `main`/`origin/main` decision** (ADR 0009) — a human call, not
+   an engineering one. Renaming local `main` per the ADR's recommendation
+   is cheap and reversible whenever that call is made.
+4. **`env_gate.py`'s stray-venv row is green again** — no action needed,
+   listed only to close the loop on Day 17's item 1.
+5. **v4.1-gate's `recall_retained`/`miss_cost` dimension is still
+   unexercised** — `brief_entry`'s only real motion falls inside the
+   10-frame warmup window. Unchanged from Day 17's item 2; today's fix
+   makes the zero honestly `undefined` rather than a fabricated `nan`,
+   but does not make the dimension measure anything yet.
+6. **The generator has no sensor-noise model** — unchanged, Day 17's
+   item 3.
+7. **Order cameras and run the office capture** — unchanged in priority
+   since Day 16, now 6 days old.
+8. **The motion-gate precision/selectivity investigation** — seven days
+   deferred.
+9. **Steer callers away from `raise_alert()` toward `emit_alert()`** —
+   still open from Day 14.
+10. **A canonical `Observation -> hash` function** (ADR 0007) — still
+    open from Day 13.
+11. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced** — unchanged ask, now a fourth data point resting on the
+    same unmeasured multiplier.
+12. **Bridge the live-RTSP path and `scripts/ingest_capture.py`** — not a
+    blocker for the capture itself.
+13. **MEVA licence verification** — still blocked on a human.
+14. **The factor-graph solver** — unchanged from Day 13's list.
