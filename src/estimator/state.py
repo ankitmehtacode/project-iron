@@ -100,7 +100,19 @@ class StateEstimate:
             produced this estimate — pins it to a specific, reproducible
             factor history.
         residuals: STRUCTURAL — required, non-empty, and must include at
-            least one ``"nis"``-kind entry. See module docstring.
+            least one ``"nis"``-kind entry. See module docstring. An IMM
+            estimate (Day 21) includes one combined ``"nis"`` entry plus
+            one per-mode ``"nis"`` entry (distinguished by ``consumer``/
+            ``note``, naming the mode) — the structural rule ("at least
+            one nis entry") is unchanged; IMM simply emits more of them.
+        imm_config_sha: ``None`` for a single-model estimate (Day 20,
+            unchanged). Set for an IMM estimate (Day 21) — §15's
+            comparability key extends to four shas when this is set; see
+            :meth:`require_comparable`.
+        mode_probabilities: ``None`` for a single-model estimate.
+            ``((mode_name, probability), ...)`` for an IMM estimate,
+            summing to 1.0 — the IMM's own directly-useful output (Day 21
+            Objective 5), not just an internal quantity.
     """
 
     ts_ns: int
@@ -118,6 +130,8 @@ class StateEstimate:
     update_rule_sha: str
     graph_rev: int
     residuals: tuple[ConsistencyResidual, ...]
+    imm_config_sha: str | None = None
+    mode_probabilities: tuple[tuple[str, float], ...] | None = None
 
     def __post_init__(self) -> None:
         if len(self.mean) != STATE_DIM:
@@ -158,12 +172,38 @@ class StateEstimate:
                 "(computed, or a stub noting why it does not apply this step) "
                 "-- every predict-or-update step produces one."
             )
+        if self.mode_probabilities is not None:
+            if self.imm_config_sha is None:
+                raise StateEstimateError(
+                    "StateEstimate.mode_probabilities is set but imm_config_sha "
+                    "is not -- a mode-probability output with no recorded IMM "
+                    "config cannot be traced back to what produced it"
+                )
+            if not self.mode_probabilities:
+                raise StateEstimateError(
+                    "StateEstimate.mode_probabilities must not be an empty tuple "
+                    "when set; pass None instead if there are no modes"
+                )
+            total = sum(p for _, p in self.mode_probabilities)
+            if abs(total - 1.0) > 1e-6:
+                raise StateEstimateError(
+                    f"StateEstimate.mode_probabilities must sum to 1.0, got {total}"
+                )
+            if any(p < 0.0 or p > 1.0 for _, p in self.mode_probabilities):
+                raise StateEstimateError(
+                    f"StateEstimate.mode_probabilities entries must lie in "
+                    f"[0, 1], got {self.mode_probabilities}"
+                )
 
     def require_comparable(self, other: "StateEstimate") -> None:
-        """Raise unless both states were produced by the same three models/rule.
+        """Raise unless both states were produced by the same models/rule.
 
         Same pattern as ``MeasuredEnvelope.require_comparable`` and
         ``Scorecard.require_comparable`` elsewhere in this codebase (§15).
+        Extends to ``imm_config_sha`` (Day 21): ``None`` compares equal to
+        ``None`` (two single-model estimates), but a single-model estimate
+        is never comparable to an IMM one, and two IMM estimates are only
+        comparable under the same transition-matrix/mode configuration.
         """
         mismatches = [
             field
@@ -175,6 +215,7 @@ class StateEstimate:
                     other.measurement_model_sha,
                 ),
                 ("update_rule_sha", self.update_rule_sha, other.update_rule_sha),
+                ("imm_config_sha", self.imm_config_sha, other.imm_config_sha),
             )
             if a != b
         ]

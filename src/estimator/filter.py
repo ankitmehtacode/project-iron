@@ -228,8 +228,30 @@ def _payload_factors(
     return out
 
 
+def _is_imm_graph(graph: StateGraph, graph_rev: int) -> bool:
+    """Whether the payloads at or before ``graph_rev`` are IMM's, not
+    single-model's — decides which resolver ``resolve_state`` delegates
+    to. A graph is built by exactly one of
+    :func:`run_single_entity_filter` / ``run_imm_filter`` in every case
+    this codebase constructs today, so checking the first payload found is
+    sufficient; a graph deliberately mixing the two would be a caller
+    error this function does not need to detect.
+    """
+    from src.estimator.imm import _ImmAppendedState
+
+    for f in graph.factors_as_of(graph_rev):
+        payload = graph.payload_for(f.factor_id)
+        if payload is not None:
+            return isinstance(payload, _ImmAppendedState)
+    return False
+
+
 def resolve_state(query: StateQuery, graph: StateGraph) -> StateEstimate:
     """The "filtered" half of ``src.model.episode.solve_state`` (§15).
+
+    Dispatches to :func:`src.estimator.imm.resolve_imm_state` when
+    ``graph`` was populated by ``run_imm_filter`` rather than
+    :func:`run_single_entity_filter` — see :func:`_is_imm_graph`.
 
     Raises:
         NotImplementedError: if ``query.horizon_kind == "smoothed"``.
@@ -244,6 +266,14 @@ def resolve_state(query: StateQuery, graph: StateGraph) -> StateEstimate:
             "'filtered' (causal, forward-only) is implemented — see "
             "StateQuery.horizon_kind's docstring"
         )
+
+    if _is_imm_graph(graph, query.graph_rev):
+        from src.estimator.imm import ImmError, resolve_imm_state
+
+        try:
+            return resolve_imm_state(query, graph)
+        except ImmError as exc:
+            raise FilterError(str(exc)) from exc
 
     candidates = _payload_factors(graph, query.graph_rev)
     if not candidates:

@@ -133,10 +133,18 @@ def _cv_process_noise(dt_s: float, sigma_a_mps2: float) -> FloatArray:
 
 @dataclass(frozen=True)
 class ConstantVelocityMotionModel:
-    """CV transition shared by ``person``, ``asset_static``, and ``asset_carried``.
+    """CV transition shared by ``person``, ``asset_static``, ``asset_carried``,
+    and (Day 21) IMM's ``maneuvering`` mode.
 
     Attributes:
-        kind: Which entity kind this instance was configured for.
+        kind: Which entity kind — or, for ``"maneuvering"``, which IMM
+            kinematic regime — this instance was configured for.
+            ``"maneuvering"`` is distinct from :data:`MotionEntityKind`
+            entirely: it is IMM's own high-process-noise mode
+            (:mod:`src.estimator.imm`), never reachable through
+            :func:`motion_model_for`'s entity-kind dispatch — a kinematic
+            *regime* label, not an entity-kind label, sharing this class
+            only because the underlying CV math is identical.
         sigma_a_mps2: Acceleration process-noise density (m/s^2).
         carrier_entity_id: §15's rigid-coupling hook for ``asset_carried``.
             Unused today — this is the interface the multi-entity day wires
@@ -147,15 +155,15 @@ class ConstantVelocityMotionModel:
             with a known carrier compute identically until coupling lands.
     """
 
-    kind: Literal["person", "asset_static", "asset_carried"]
+    kind: Literal["person", "asset_static", "asset_carried", "maneuvering"]
     sigma_a_mps2: float
     carrier_entity_id: str | None = None
 
     def __post_init__(self) -> None:
-        if self.kind not in ("person", "asset_static", "asset_carried"):
+        if self.kind not in ("person", "asset_static", "asset_carried", "maneuvering"):
             raise MotionModelError(
                 f"ConstantVelocityMotionModel.kind must be one of person/"
-                f"asset_static/asset_carried, got {self.kind!r}"
+                f"asset_static/asset_carried/maneuvering, got {self.kind!r}"
             )
         if not (self.sigma_a_mps2 > 0.0) or not np.isfinite(self.sigma_a_mps2):
             raise MotionModelError(
@@ -220,7 +228,95 @@ class FixtureMotionModel:
         return result
 
 
-MotionModel = ConstantVelocityMotionModel | FixtureMotionModel
+@dataclass(frozen=True)
+class NearlyConstantPositionMotionModel:
+    """Position holds still; velocity is not used to predict it (Day 21).
+
+    Distinct from a :class:`ConstantVelocityMotionModel` tuned with a tiny
+    ``sigma_a_mps2``: that class shares the same F as every other CV
+    instance — position += velocity * dt — so a nonzero velocity, however
+    it entered the state (e.g. mixed in from another IMM mode), keeps
+    getting propagated forward, just with a tighter, more confident
+    covariance around doing so. Built for IMM's "static" mode
+    (:mod:`src.estimator.imm`) after Day 21 found exactly that failure: a
+    tight-Q CV "static" mode does not resist predicting motion, it just
+    claims more confidence while doing it, and wins the mode-probability
+    contest against a genuinely moving target purely on covariance width
+    — a race the mode was never supposed to be in.
+
+    This model's F has **no velocity-to-position coupling at all**:
+    predicted position next step equals current position next step,
+    regardless of whatever velocity is sitting in the state vector. An
+    entity in this mode does not move, however confident or not that
+    claim is — which is what "static" needs to mean for the mode contest
+    to be decided by evidence (the actual innovation) rather than by
+    which mode happens to claim the tightest prior.
+    """
+
+    kind: Literal["static_position"] = "static_position"
+    sigma_position_mps_sqrt_s: float = 0.05
+    """Position process-noise density (m / sqrt(s)) — small sway, not zero
+    (a person standing is not a fixture; see :class:`FixtureMotionModel`
+    for the truly-immobile case)."""
+    sigma_velocity_mps2: float = 0.05
+    """Velocity process-noise density. Kept small and nonzero rather than
+    frozen at whatever mixing handed this mode, so a genuine transition
+    OUT of this mode (the entity starts moving) is not permanently
+    fighting a velocity state stuck at a stale value."""
+
+    def __post_init__(self) -> None:
+        if not (self.sigma_position_mps_sqrt_s > 0.0) or not np.isfinite(
+            self.sigma_position_mps_sqrt_s
+        ):
+            raise MotionModelError(
+                f"sigma_position_mps_sqrt_s must be finite and positive, got "
+                f"{self.sigma_position_mps_sqrt_s}"
+            )
+        if not (self.sigma_velocity_mps2 > 0.0) or not np.isfinite(
+            self.sigma_velocity_mps2
+        ):
+            raise MotionModelError(
+                f"sigma_velocity_mps2 must be finite and positive, got "
+                f"{self.sigma_velocity_mps2}"
+            )
+
+    @property
+    def sha(self) -> str:
+        return _sha_for(
+            self.kind,
+            {
+                "sigma_position_mps_sqrt_s": self.sigma_position_mps_sqrt_s,
+                "sigma_velocity_mps2": self.sigma_velocity_mps2,
+            },
+        )
+
+    def F(self, dt_s: float) -> FloatArray:
+        if dt_s < 0:
+            raise MotionModelError(f"dt_s must be non-negative, got {dt_s}")
+        # Identity: position and velocity both hold at their prior value,
+        # and critically, position does NOT advance by velocity * dt.
+        return np.eye(STATE_DIM, dtype=np.float64)
+
+    def Q(self, dt_s: float) -> FloatArray:
+        if dt_s < 0:
+            raise MotionModelError(f"dt_s must be non-negative, got {dt_s}")
+        Q = np.zeros((STATE_DIM, STATE_DIM), dtype=np.float64)
+        position_var = (self.sigma_position_mps_sqrt_s**2) * dt_s
+        velocity_var = (self.sigma_velocity_mps2**2) * dt_s
+        for axis in range(3):
+            Q[axis, axis] = position_var
+            Q[axis + 3, axis + 3] = velocity_var
+        Q += _Q_REGULARIZATION * np.eye(STATE_DIM, dtype=np.float64)
+        return Q
+
+    def f(self, state: FloatArray, dt_s: float) -> FloatArray:
+        result: FloatArray = self.F(dt_s) @ state
+        return result
+
+
+MotionModel = (
+    ConstantVelocityMotionModel | FixtureMotionModel | NearlyConstantPositionMotionModel
+)
 
 
 def motion_model_for(

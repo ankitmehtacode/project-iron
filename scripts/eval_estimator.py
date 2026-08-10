@@ -1,13 +1,13 @@
 """Score the single-entity state estimator against exact synthetic GT.
 
-Day 20's hard scope rule: **no timing, throughput, CPU-percentage, or
+Day 20/21's hard scope rule: **no timing, throughput, CPU-percentage, or
 latency claim is made anywhere in this script.** Everything below is
 accuracy and consistency — position/velocity error against v3-indoor's and
-v4.1-gate's analytic ``agent_xyz`` ground truth, and the NIS/NEES
-consistency residuals src/estimator's filter already computes. If a
-benchmark needs to run at all, it goes through Day 19's environment gate
-(``src.bench.environment``) and is expected to refuse on this machine —
-see ``docs/reference_hardware.md``.
+v4.1-gate's analytic ``agent_xyz`` ground truth, the NIS/NEES consistency
+residuals src/estimator's filter already computes, and (Day 21) GT motion
+regimes and innovation whiteness. If a benchmark needs to run at all, it
+goes through Day 19's environment gate (``src.bench.environment``) and is
+expected to refuse on this machine — see ``docs/reference_hardware.md``.
 
     python scripts/eval_estimator.py
     python scripts/eval_estimator.py --version v3-indoor --version v4.1-gate
@@ -35,6 +35,13 @@ needs only one prior observation. Comparing them from frame 1 would let
 ``constant_velocity_no_update`` score using observation 1 as its own
 "prediction" of observation 1 — a walkover, not a baseline.
 
+Day 21 adds two things per scored frame: a GT motion regime (classified
+from exact GT alone, never from the filter's own estimate — see
+:mod:`src.estimator.regime`) and a standardized innovation (for the
+whiteness diagnostic, :mod:`src.estimator.diagnostics`), reconstructed by
+replaying the same predict step the filter itself took, using only the
+filter's public ``F``/``Q``/``H``/``R`` interface.
+
 Exit codes:
     0  every requested set was scored (or cleanly empty)
     1  the Day-10 validity gate refused, or a requested set could not be
@@ -60,9 +67,11 @@ from src.data.depth_eval import DISTANCE_BUCKETS
 from src.data.golden import GoldenSetError, available_versions, load_golden_set
 from src.eval.baselines import compute_baselines, margin, require_baseline
 from src.estimator.consistency import compute_nees, fraction_outside_bound
+from src.estimator.diagnostics import is_white
 from src.estimator.filter import run_single_entity_filter
 from src.estimator.measurement_model import MeasurementModel, measurement_model_for
 from src.estimator.motion_model import MotionModel, motion_model_for
+from src.estimator.regime import MOTION_REGIMES, MotionRegime, classify_track
 from src.estimator.state import ConsistencyResidual
 from src.model.episode import StateGraph, StateQuery, solve_state
 from src.model.frame_of_reference import FrameOfReference
@@ -82,6 +91,11 @@ FIRST_COMPARABLE_INDEX = 2
 """See module docstring: the first frame index at which all three compared
 methods (filter, copy_previous, constant_velocity_no_update) have a
 genuine, non-circular answer."""
+
+MIN_REGIME_FRAMES_FOR_A_CONCLUSION = 10
+"""Below this many pooled frames, a regime's numbers are reported (never
+hidden) but flagged as too thin to support a conclusion -- matches
+src.estimator.diagnostics.is_white's own floor for the same reason."""
 
 
 def _frame_of_reference(twin_rev: int = 1) -> FrameOfReference:
@@ -113,17 +127,26 @@ def _xyz(observation: Observation) -> tuple[float, float, float]:
 
 
 @dataclass
+class FrameRecord:
+    """Everything one scored frame contributes to the evaluation."""
+
+    regime: MotionRegime
+    distance_m: float
+    position_sq_error: float
+    axis_sq_error: FloatArray
+    velocity_sq_error: float
+    nees: ConsistencyResidual
+    standardized_innovation_x: float | None
+    copy_previous_sq_error: float
+    cv_no_update_sq_error: float
+    cv_no_update_velocity_sq_error: float
+
+
+@dataclass
 class TrackResult:
     """One agent-track's contribution to a golden set's evaluation."""
 
-    position_sq_errors: list[float] = field(default_factory=list)
-    per_axis_sq_errors: list[FloatArray] = field(default_factory=list)
-    velocity_sq_errors: list[float] = field(default_factory=list)
-    distances_m: list[float] = field(default_factory=list)
-    nees_residuals: list[ConsistencyResidual] = field(default_factory=list)
-    copy_previous_sq_errors: list[float] = field(default_factory=list)
-    cv_no_update_sq_errors: list[float] = field(default_factory=list)
-    cv_no_update_velocity_sq_errors: list[float] = field(default_factory=list)
+    frames: list[FrameRecord] = field(default_factory=list)
 
 
 def _make_observations(
@@ -199,20 +222,26 @@ def _evaluate_track(
     gt_velocity[1:] = (track_xyz[1:] - track_xyz[:-1]) / dt_s
     gt_velocity[0] = gt_velocity[1]
 
+    regimes = classify_track(track_xyz, dt_s)
+
     obs_xyz = np.array([_xyz(o) for o in observations])
     cv_velocity = (obs_xyz[1] - obs_xyz[0]) / dt_s
     cv_position = obs_xyz[1].copy()
 
+    H = measurement_model.H()
+
+    # Innovation reconstruction needs the PREVIOUS corrected estimate,
+    # replaying the same predict step the filter itself took internally,
+    # through the filter's own public F/Q/H/R interface only.
+    query0 = StateQuery(
+        at_ts_ns=observations[0].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev
+    )
+    prev_estimate = solve_state(query0, graph)
+
     result = TrackResult()
     for t in range(1, frames):
-        # Advance the coasting baseline every step from t=1 onward so its
-        # state at FIRST_COMPARABLE_INDEX reflects genuine free-running
-        # dead reckoning, not a lucky first step.
         if t >= 2:
             cv_position = cv_position + cv_velocity * dt_s
-
-        if t < FIRST_COMPARABLE_INDEX:
-            continue
 
         query = StateQuery(
             at_ts_ns=observations[t].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev
@@ -220,30 +249,51 @@ def _evaluate_track(
         estimate = solve_state(query, graph)
 
         gt_pos = track_xyz[t]
+        distance = _camera_depth_m(gt_pos, extrinsics)
+
+        # Reconstruct the pre-update predicted state from the PREVIOUS
+        # corrected estimate, to get the innovation the filter itself saw.
+        predicted_mean = motion_model.f(prev_estimate.mean_array(), dt_s)
+        predicted_cov = motion_model.F(
+            dt_s
+        ) @ prev_estimate.cov_array() @ motion_model.F(dt_s).T + motion_model.Q(dt_s)
+        R = measurement_model.R(distance)
+        innovation = obs_xyz[t] - H @ predicted_mean
+        innovation_cov = H @ predicted_cov @ H.T + R
+        sigma_x = float(np.sqrt(innovation_cov[0, 0]))
+        standardized_innovation_x = (
+            float(innovation[0] / sigma_x) if sigma_x > 0 else None
+        )
+        prev_estimate = estimate
+
+        if t < FIRST_COMPARABLE_INDEX:
+            continue
+
         pos_err = estimate.position_m() - gt_pos
-        result.position_sq_errors.append(float(np.dot(pos_err, pos_err)))
-        result.per_axis_sq_errors.append(pos_err**2)
-
         vel_err = estimate.velocity_mps() - gt_velocity[t]
-        result.velocity_sq_errors.append(float(np.dot(vel_err, vel_err)))
-
-        result.distances_m.append(_camera_depth_m(gt_pos, extrinsics))
-
         full_gt = np.concatenate([gt_pos, gt_velocity[t]])
         error6 = estimate.mean_array() - full_gt
-        result.nees_residuals.append(compute_nees(error6, estimate.cov_array()))
 
         prev_obs = obs_xyz[t - 1]
         copy_previous_err = prev_obs - gt_pos
-        result.copy_previous_sq_errors.append(
-            float(np.dot(copy_previous_err, copy_previous_err))
-        )
-
         cv_err = cv_position - gt_pos
-        result.cv_no_update_sq_errors.append(float(np.dot(cv_err, cv_err)))
         cv_vel_err = cv_velocity - gt_velocity[t]
-        result.cv_no_update_velocity_sq_errors.append(
-            float(np.dot(cv_vel_err, cv_vel_err))
+
+        result.frames.append(
+            FrameRecord(
+                regime=regimes[t],
+                distance_m=distance,
+                position_sq_error=float(np.dot(pos_err, pos_err)),
+                axis_sq_error=pos_err**2,
+                velocity_sq_error=float(np.dot(vel_err, vel_err)),
+                nees=compute_nees(error6, estimate.cov_array()),
+                standardized_innovation_x=standardized_innovation_x,
+                copy_previous_sq_error=float(
+                    np.dot(copy_previous_err, copy_previous_err)
+                ),
+                cv_no_update_sq_error=float(np.dot(cv_err, cv_err)),
+                cv_no_update_velocity_sq_error=float(np.dot(cv_vel_err, cv_vel_err)),
+            )
         )
 
     return result
@@ -251,6 +301,57 @@ def _evaluate_track(
 
 def _rmse(sq_errors: list[float]) -> float:
     return float(np.sqrt(np.mean(sq_errors))) if sq_errors else float("nan")
+
+
+def _coverage_stats(records: list[FrameRecord]) -> dict[str, Any]:
+    nees_list = [r.nees for r in records]
+    within = [r.within_bound for r in nees_list if r.within_bound is not None]
+    fraction_outside = fraction_outside_bound(nees_list, "nees")
+    coverage = (
+        1.0 - fraction_outside if not np.isnan(fraction_outside) else float("nan")
+    )
+    return {
+        "n": len(records),
+        "nees_pass_rate_within_95": float(np.mean(within)) if within else float("nan"),
+        "empirical_coverage_95": coverage,
+    }
+
+
+def _baseline_margin_block(records: list[FrameRecord]) -> dict[str, Any]:
+    """Position RMSE for filter/copy-previous/constant-velocity-no-update
+    over exactly ``records`` -- the Objective-1 gap, now computable for any
+    slice (a distance bucket, a regime, the whole set)."""
+    filter_rmse = _rmse([r.position_sq_error for r in records])
+    copy_previous_rmse = _rmse([r.copy_previous_sq_error for r in records])
+    cv_rmse = _rmse([r.cv_no_update_sq_error for r in records])
+    margin_vs_copy_previous = (
+        copy_previous_rmse - filter_rmse
+        if not (np.isnan(filter_rmse) or np.isnan(copy_previous_rmse))
+        else float("nan")
+    )
+    margin_vs_cv = (
+        cv_rmse - filter_rmse
+        if not (np.isnan(filter_rmse) or np.isnan(cv_rmse))
+        else float("nan")
+    )
+    return {
+        "n": len(records),
+        "filter_rmse_m": filter_rmse,
+        "copy_previous_rmse_m": copy_previous_rmse,
+        "constant_velocity_no_update_rmse_m": cv_rmse,
+        "margin_vs_copy_previous_m": margin_vs_copy_previous,
+        "margin_vs_constant_velocity_m": margin_vs_cv,
+    }
+
+
+def _innovation_block(records: list[list[float]]) -> dict[str, Any]:
+    white, correlation, bound, n_pairs = is_white(records)
+    return {
+        "white": white,
+        "lag1_autocorrelation": correlation,
+        "white_noise_bound_95": bound,
+        "n_pairs": n_pairs,
+    }
 
 
 def _score_golden_set(
@@ -296,19 +397,11 @@ def _score_golden_set(
 
     tracks_scored = 0
     clips_with_no_agents = 0
-    bucket_sq_errors: dict[str, list[float]] = {
-        name: [] for name, _, _ in DISTANCE_BUCKETS
+    all_records: list[FrameRecord] = []
+    innovations_by_track: list[list[float]] = []
+    innovations_by_regime: dict[str, list[list[float]]] = {
+        r: [] for r in MOTION_REGIMES
     }
-    bucket_axis_sq_errors: dict[str, list[FloatArray]] = {
-        name: [] for name, _, _ in DISTANCE_BUCKETS
-    }
-    all_position_sq: list[float] = []
-    all_axis_sq: list[FloatArray] = []
-    all_velocity_sq: list[float] = []
-    all_nees: list[ConsistencyResidual] = []
-    all_copy_previous_sq: list[float] = []
-    all_cv_no_update_sq: list[float] = []
-    all_cv_no_update_velocity_sq: list[float] = []
 
     for clip in golden.clips:
         clip_path = clip_root / f"{clip.clip_id}.npz"
@@ -338,22 +431,23 @@ def _score_golden_set(
             if result is None:
                 continue
             tracks_scored += 1
-            all_position_sq.extend(result.position_sq_errors)
-            all_axis_sq.extend(result.per_axis_sq_errors)
-            all_velocity_sq.extend(result.velocity_sq_errors)
-            all_nees.extend(result.nees_residuals)
-            all_copy_previous_sq.extend(result.copy_previous_sq_errors)
-            all_cv_no_update_sq.extend(result.cv_no_update_sq_errors)
-            all_cv_no_update_velocity_sq.extend(result.cv_no_update_velocity_sq_errors)
+            all_records.extend(result.frames)
 
-            for sq, distance in zip(result.position_sq_errors, result.distances_m):
-                for name, low, high in DISTANCE_BUCKETS:
-                    if low <= distance < high:
-                        bucket_sq_errors[name].append(sq)
-            for axis_sq, distance in zip(result.per_axis_sq_errors, result.distances_m):
-                for name, low, high in DISTANCE_BUCKETS:
-                    if low <= distance < high:
-                        bucket_axis_sq_errors[name].append(axis_sq)
+            track_innovations = [
+                r.standardized_innovation_x
+                for r in result.frames
+                if r.standardized_innovation_x is not None
+            ]
+            if track_innovations:
+                innovations_by_track.append(track_innovations)
+
+            per_regime_track: dict[str, list[float]] = {r: [] for r in MOTION_REGIMES}
+            for r in result.frames:
+                if r.standardized_innovation_x is not None:
+                    per_regime_track[r.regime].append(r.standardized_innovation_x)
+            for regime_name, values in per_regime_track.items():
+                if values:
+                    innovations_by_regime[regime_name].append(values)
 
     if tracks_scored == 0:
         return {
@@ -364,11 +458,14 @@ def _score_golden_set(
             "note": "no agent track in this set had enough frames to evaluate",
         }
 
-    position_rmse = _rmse(all_position_sq)
-    velocity_rmse = _rmse(all_velocity_sq)
-    copy_previous_rmse = _rmse(all_copy_previous_sq)
-    cv_no_update_rmse = _rmse(all_cv_no_update_sq)
-    cv_no_update_velocity_rmse = _rmse(all_cv_no_update_velocity_sq)
+    # -- pooled, whole-set summary (Day 20 shape, preserved) -------------
+    position_rmse = _rmse([r.position_sq_error for r in all_records])
+    velocity_rmse = _rmse([r.velocity_sq_error for r in all_records])
+    copy_previous_rmse = _rmse([r.copy_previous_sq_error for r in all_records])
+    cv_no_update_rmse = _rmse([r.cv_no_update_sq_error for r in all_records])
+    cv_no_update_velocity_rmse = _rmse(
+        [r.cv_no_update_velocity_sq_error for r in all_records]
+    )
 
     require_baseline("estimator.position_rmse_m")
     require_baseline("estimator.velocity_rmse_mps")
@@ -384,41 +481,38 @@ def _score_golden_set(
     position_margin = margin(position_rmse, position_baselines, higher_is_better=False)
     velocity_margin = margin(velocity_rmse, velocity_baselines, higher_is_better=False)
 
-    per_axis = np.array(all_axis_sq) if all_axis_sq else np.zeros((0, 3))
+    axis_arr = np.array([r.axis_sq_error for r in all_records])
     axis_rmse = (
-        np.sqrt(per_axis.mean(axis=0)).tolist() if per_axis.size else [float("nan")] * 3
+        np.sqrt(axis_arr.mean(axis=0)).tolist() if axis_arr.size else [float("nan")] * 3
     )
 
-    by_bucket = {}
-    for name, _, _ in DISTANCE_BUCKETS:
-        axis_arr = (
-            np.array(bucket_axis_sq_errors[name])
-            if bucket_axis_sq_errors[name]
-            else None
+    # -- by distance bucket, INCLUDING the baseline margin (Objective 1) --
+    by_distance_bucket = {}
+    for name, low, high in DISTANCE_BUCKETS:
+        bucket_records = [r for r in all_records if low <= r.distance_m < high]
+        by_distance_bucket[name] = _baseline_margin_block(bucket_records)
+
+    # -- by motion regime: baseline margin AND consistency (Objective 2) -
+    by_regime = {}
+    for regime_name in MOTION_REGIMES:
+        regime_records = [r for r in all_records if r.regime == regime_name]
+        block = _baseline_margin_block(regime_records)
+        block["consistency"] = _coverage_stats(regime_records)
+        block["innovation"] = _innovation_block(innovations_by_regime[regime_name])
+        block["thin_evidence"] = (
+            len(regime_records) < MIN_REGIME_FRAMES_FOR_A_CONCLUSION
         )
-        by_bucket[name] = {
-            "n": len(bucket_sq_errors[name]),
-            "position_rmse_m": _rmse(bucket_sq_errors[name]),
-            "axis_rmse_m": (
-                np.sqrt(axis_arr.mean(axis=0)).tolist()
-                if axis_arr is not None and axis_arr.size
-                else [float("nan")] * 3
-            ),
-        }
+        by_regime[regime_name] = block
 
-    nees_within = [r.within_bound for r in all_nees if r.within_bound is not None]
-    fraction_outside_95 = fraction_outside_bound(all_nees, "nees")
-    empirical_coverage_95 = (
-        1.0 - fraction_outside_95 if not np.isnan(fraction_outside_95) else float("nan")
-    )
-    nees_pass_rate = float(np.mean(nees_within)) if nees_within else float("nan")
+    consistency = _coverage_stats(all_records)
+    innovation = _innovation_block(innovations_by_track)
 
     return {
         "version": version,
         "refused": False,
         "tracks_scored": tracks_scored,
         "clips_with_no_agents": clips_with_no_agents,
-        "points_scored": len(all_position_sq),
+        "points_scored": len(all_records),
         "motion_model_sha": motion_model.sha,
         "measurement_model_sha": measurement_model.sha,
         "position": {
@@ -432,12 +526,10 @@ def _score_golden_set(
             "baselines": [b.as_dict() for b in velocity_baselines],
             "margin_mps": velocity_margin,
         },
-        "by_distance_bucket": by_bucket,
-        "consistency": {
-            "nees_pass_rate_within_95": nees_pass_rate,
-            "empirical_coverage_95": empirical_coverage_95,
-            "n_nees_scored": len(nees_within),
-        },
+        "by_distance_bucket": by_distance_bucket,
+        "by_regime": by_regime,
+        "consistency": consistency,
+        "innovation": innovation,
     }
 
 
@@ -479,18 +571,46 @@ def _print_report(report: dict[str, Any]) -> None:
         print(f"    vs {b['name']:26} {b['value']:.4f} m/s")
     print(f"    margin            {vel['margin_mps']:+.4f} m/s")
     print()
-    print("by GT distance bucket:")
-    for name, bucket in report["by_distance_bucket"].items():
-        if bucket["n"] == 0:
+
+    print("by GT distance bucket -- filter / copy-previous / constant-velocity RMSE:")
+    for name, block in report["by_distance_bucket"].items():
+        if block["n"] == 0:
             print(f"    {name:8} n=0 (empty)")
             continue
-        axis = bucket["axis_rmse_m"]
         print(
-            f"    {name:8} n={bucket['n']:5}  "
-            f"position RMSE {bucket['position_rmse_m']:.4f} m  "
-            f"(x/y/z: {axis[0]:.4f}/{axis[1]:.4f}/{axis[2]:.4f})"
+            f"    {name:8} n={block['n']:5}  "
+            f"filter {block['filter_rmse_m']:.4f} m  "
+            f"copy-prev {block['copy_previous_rmse_m']:.4f} m "
+            f"(margin {block['margin_vs_copy_previous_m']:+.4f})  "
+            f"const-vel {block['constant_velocity_no_update_rmse_m']:.4f} m "
+            f"(margin {block['margin_vs_constant_velocity_m']:+.4f})"
         )
     print()
+
+    print("by GT motion regime -- filter / baselines / NEES coverage / innovation:")
+    for name, block in report["by_regime"].items():
+        thin = " [THIN EVIDENCE]" if block["thin_evidence"] else ""
+        if block["n"] == 0:
+            print(f"    {name:12} n=0 (empty){thin}")
+            continue
+        cons = block["consistency"]
+        innov = block["innovation"]
+        print(
+            f"    {name:12} n={block['n']:5}  "
+            f"filter {block['filter_rmse_m']:.4f} m  "
+            f"copy-prev margin {block['margin_vs_copy_previous_m']:+.4f}  "
+            f"const-vel margin {block['margin_vs_constant_velocity_m']:+.4f}{thin}"
+        )
+        print(
+            f"                 NEES coverage {cons['empirical_coverage_95']:.4f} "
+            f"(target 0.95)   "
+            f"innovation lag1-autocorr {innov['lag1_autocorrelation']:+.4f} "
+            f"(white-noise bound ±{innov['white_noise_bound_95']:.4f}, "
+            f"n_pairs={innov['n_pairs']})   "
+            f"{'WHITE' if innov['white'] else 'NOT WHITE'}"
+        )
+    print()
+
     cons = report["consistency"]
     print(f"NEES pass rate (within 95% bound): {cons['nees_pass_rate_within_95']:.4f}")
     print(
@@ -513,6 +633,14 @@ def _print_report(report: dict[str, Any]) -> None:
             "    UNDERCONFIDENT: essentially everything falls within bound; the "
             "filter's covariance is looser than its true error needs."
         )
+    innov = report["innovation"]
+    print(
+        f"innovation whiteness (pooled)     : "
+        f"lag1-autocorr {innov['lag1_autocorrelation']:+.4f}, "
+        f"bound ±{innov['white_noise_bound_95']:.4f}, "
+        f"n_pairs={innov['n_pairs']} -> "
+        f"{'WHITE' if innov['white'] else 'NOT WHITE'}"
+    )
 
 
 def _nan_to_none(value: Any) -> Any:
