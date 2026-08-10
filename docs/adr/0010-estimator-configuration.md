@@ -1,6 +1,9 @@
 # ADR 0010 — Estimator configuration: config A remains in use
 
-- **Status:** Accepted
+- **Status:** Accepted; **revised 2026-08-11 (Day 23)** — see
+  "Day 23 revision" below. The original decision (config A) is UNCHANGED;
+  Day 23 replaces "unscoreable" evidence with a scored, decisive result
+  that supports the same decision more strongly.
 - **Date:** 2026-08-10
 - **Decides for:** which of the four Day-22 estimator configurations
   (single model / single model + velocity floor / IMM / IMM + velocity
@@ -9,9 +12,12 @@
   and did not close
 - **Related:** [[iron-data-model-day13]] (IMM built Day 21, not yet
   validated as an improvement); `FOUNDATION_REPORT.md` Day 21 (cessation
-  diagnosis, IMM build, no-trade criterion NOT satisfied) and Day 22
-  (this ADR's evidence); [[check-the-measuring-apparatus]] (the pooled-NEES
-  question this ADR answers is another instance of that pattern)
+  diagnosis, IMM build, no-trade criterion NOT satisfied), Day 22 (this
+  ADR's original evidence) and Day 23 (the revision below: v5-cessation,
+  the frame-rate sweep, and the reconciled regime labeling);
+  [[check-the-measuring-apparatus]] (the pooled-NEES question this ADR
+  answers, and the matrix-script gap Day 23 found while re-running the
+  validity gates, are both instances of that pattern)
 
 ## Context
 
@@ -116,6 +122,14 @@ scoped to answer both before any estimator decision.
    sustained, v4.1-gate static) — accuracy and calibration moving in
    opposite directions, the same pattern Day 21 already found.
 
+   **Superseded for cessation specifically, 2026-08-11:** v4.1-gate's
+   `cessation (n=3, THIN)` row above used the pre-Day-23 regime label,
+   which (see "Day 23 revision" below) covered only the anticipatory
+   frame before a stop, not the recovery tail — this table is left
+   exactly as measured on 2026-08-10 for the record, not edited in
+   place. The corrected label, corrected v4.1-gate numbers (n=39), and
+   the new v5-cessation set (n=373) are in the revision section.
+
 4. **The no-trade criterion is UNSCOREABLE on both golden sets, for every
    candidate, independent of the numbers above.** The criterion (restated
    Day 22 around cessation specifically, since Day 21 pinned the failure
@@ -201,3 +215,166 @@ scoped to answer both before any estimator decision.
   hypothesis — a standing 2.5%-per-mode tax from the transition matrix
   even after mode probability converges) is the mechanism, independent of
   cessation — still unconfirmed by a second measurement, still open.
+
+## Day 23 revision — v5-cessation results, the no-trade criterion scored
+
+Day 22 closed with two open questions this section answers, plus a third
+Day 23 asked that Day 22 did not: (1) can the generator supply enough
+cessation volume — **yes**; (2) does IMM's degradation survive contact
+with real cessation volume, or was it an artifact of 0-3 frames —
+**survives, and gets worse**; (3) at what frame rate would the velocity
+floor begin to bind — **none tested, including 12fps and every rate
+above it**.
+
+### The regime label was the first defect, fixed before any of this
+
+Day 23 Objective 1 found that the pre-Day-23 `cessation` regime
+(`src/estimator/regime.py`) covered only the *anticipatory* window before
+a stop — the instant GT speed reached zero, every following frame was
+immediately `static`, including the ~10-14 frame recovery tail Day 21
+traced by hand (NEES 759.9→9.1, reproduced directly against the real
+`brief_entry` track; Day 21's own reported 815→16 differs only by minor
+codebase drift since). `classify_track` now runs a second pass that
+reclassifies a `static` run's opening frames back to `cessation` for a
+recovery window (`PEDESTRIAN_STOP_DURATION_S`, reused not fitted — 12
+frames at 12fps). Measured effect: v4.1-gate's cessation count rose
+3→39. **This made the phenomenon measurable. It did not supply
+behavioral diversity** — 39 frames from ~2 underlying stop trajectories
+is one labeling fix away from three-frame evidence, still thin. That is
+what v5-cessation is for.
+
+### v5-cessation: 373 cessation frames, from 19 diverse tracks
+
+Day 23 Objective 2 built `synthetic-indoor-v5-cessation` — 19 clips: 8
+radial and 8 lateral stop events spanning slow/medium/fast approach,
+near/far distance, abrupt/gradual deceleration, and a long-hold variant,
+plus 2 stop-then-restart clips and 1 double-stop clip. Measured directly
+via `classify_track` over every scene's raw GT track: 1059 total frames,
+cessation 373, static 260, sustained 282, onset 129, maneuver 15
+(declared out of scope). The mint-time gate
+(`enforce_regime_volume`/`RegimeVolumeError`) refuses to mint a set that
+cannot clear ≥200 cessation frames and ≥30 for every other non-exempt
+regime — this set cleared both by a wide margin. Registered lane S with
+full per-asset clearance (`configs/datasets.yaml`); the Day-10 validity
+gates confirm PASS on `motion_geometry`/`state_estimation`, REFUSE on
+`depth`/`appearance_semantics`/`point_tracking` — geometry-yes,
+appearance-no, exactly as this set's own purpose predicts. (Note: the
+eval script's own per-track scoring drops each track's first 2 frames as
+filter warm-up — `FIRST_COMPARABLE_INDEX` in `scripts/eval_estimator.py`
+— so the *scored* onset count below is 91, not 129; cessation/static/
+sustained are unaffected since none of v5-cessation's 19 tracks start
+inside those regimes.)
+
+### Four-way per-regime table, v5-cessation (scored via `scripts/eval_estimator.py --version v5-cessation`)
+
+| regime | n | A/B RMSE | A/B coverage¹ | C/D RMSE | C/D coverage² | C/D NEES/NIS pass³ | margin(copy-prev), A |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| static | 260 | 0.1381m | 0.9962 | 0.0832m | 0.0808 | 0.0615 | +0.1338m |
+| onset (scored) | 91 | 0.1991m | 0.8132 | 0.2686m | 0.9011 | 0.7802 | +0.1413m |
+| sustained | 282 | 0.1470m | 0.9574 | 0.2067m | 0.9504 | 0.9220 | +0.1789m |
+| cessation | 373 | 0.2499m | 0.5013 | 0.1432m | 0.3727 | 0.3083 | +0.0368m |
+| maneuver (exempt) | 15 | 0.1789m | 0.4000 | 0.2608m | 0.8000 | 0.7333 | +0.2855m |
+
+¹A/B coverage is NEES pass rate (single-Gaussian posterior, valid for
+these configs). ²C/D coverage is the mixture-valid sampling-HPD
+coverage (`empirical_coverage_by_sampling`), not the collapsed-Gaussian
+number — Day 22's `PosteriorFamilyError` discipline, applied. ³C/D
+NEES/NIS pass is the collapsed-Gaussian diagnostic Day 22 built
+specifically to flag as non-authoritative for a mixture posterior;
+listed because Objective 3 asked for NEES/NIS pass rates explicitly, not
+as the calibration verdict — use the coverage column for that. B=A and
+D=C in every cell (floor still inert — see below). Every config beats
+`constant_velocity_no_update` by very large margins everywhere (dead
+reckoning accumulates unbounded drift); omitted from the table as
+uninformative, consistent with Day 22.
+
+Re-run on v4.1-gate under the corrected regime label (same command):
+cessation n=39 (was 3), A RMSE 0.4643m / coverage 0.1282, C/D RMSE
+0.0803m / coverage 0.0256 (sampling-HPD) — same direction as
+v5-cessation, more extreme. v3-indoor is untouched by any of Day 23's
+work and remains cessation n=0 — a genuine data gap specific to that
+set (it has no stop events at all), not something v5-cessation was ever
+meant to fix.
+
+### No-trade verdict: now scoreable, and NOT_SATISFIED
+
+| version | A→B | A→C | A→D |
+| --- | --- | --- | --- |
+| v3-indoor | UNSCOREABLE (n=0) | UNSCOREABLE (n=0) | UNSCOREABLE (n=0) |
+| v4.1-gate | NOT_SATISFIED (cessation Δ +0.0000, n=39) | NOT_SATISFIED (cessation Δ −0.1026, static Δ −0.3604 REGRESSION) | NOT_SATISFIED (same as C) |
+| v5-cessation | NOT_SATISFIED (cessation Δ +0.0000, n=373) | NOT_SATISFIED (cessation Δ −0.1287, static Δ −0.8231 REGRESSION) | NOT_SATISFIED (same as C) |
+
+No candidate config satisfies the criterion on either set that has
+cessation frames. IMM does not merely fail to *improve* cessation
+coverage — it makes it worse (0.5013→0.3727 on v5-cessation) while
+cratering static calibration harder than on any set measured to date
+(0.9962→0.0808, an 91-point drop — worse than v3-indoor's or
+v4.1-gate's own IMM static regressions). This is now measured on 373
+autocorrelated-but-behaviorally-diverse cessation frames from 19
+distinct stop events across two camera geometries, not 3 frames from one
+track. **The direction of Day 21/22's finding survives at full strength;
+the magnitude of config A's own cessation overconfidence moderates once
+measured on a diverse set** — v4.1-gate's thin-sample cessation coverage
+under config A was 0.1282; v5-cessation's properly-powered estimate is
+0.5013. Both are decisively below the 0.95 target and both are real; the
+first was also an artifact of n=2 underlying trajectories, which this
+section is what resolves.
+
+### Frame-rate dependence of the velocity floor: it never binds
+
+`scripts/velocity_floor_frame_rate_sweep.py` runs config A (floor
+disabled) over a controlled synthetic constant-velocity walk at a swept
+range of frame rates and compares the filter's own converged posterior
+velocity variance against the floor's closed-form value
+(`(PERSON_SIGMA_A_MPS2 * dt_s)^2`) at the same `dt_s`. Measured, 1-1000
+fps:
+
+| fps | natural (m/s)² | floor (m/s)² | floor/natural |
+| --- | --- | --- | --- |
+| 1 | 3.864052 | 2.250000 | 0.5823 |
+| 2 | 0.656961 | 0.562500 | **0.8562 (closest approach)** |
+| 12 (this project) | 0.065043 | 0.015625 | 0.2402 |
+| 90 | 0.010296 | 0.000278 | 0.0270 |
+| 120 | 0.011324 | 0.000156 | 0.0138 |
+| 1000 | 0.547952 | 0.000002 | 0.0000 |
+
+The floor never binds anywhere in this range. The least-obvious finding:
+natural convergence is **not monotonic** in frame rate — it is worst at
+very low fps (large per-step process noise), improves to a minimum
+around fps≈90-120, then gets worse again at very high fps (differencing
+positions that are close together in time, against fixed measurement
+noise, amplifies velocity-estimate noise — a classical
+differentiation-of-a-noisy-signal effect). The floor shrinks
+monotonically as `dt_s²` throughout, so it becomes *more* inert, not
+less, as fps rises past 12 — the intuitive guess ("higher fps converges
+tighter, so the floor binds sooner") is backwards. Its closest approach
+to binding in the tested range is ~86% of natural, at 2fps — already
+below any frame rate this product would run at, and the ratio still does
+not cross 1.0 there.
+
+**This closes Day 22's open question 2 (generator volume: yes) and
+answers Day 23's frame-rate question directly: the floor as currently
+derived is retired as a live finding.** It is not deleted — it remains
+tested, documented, opt-in machinery per Decision 6, since a physically
+sound constraint that does not currently bind is real information, not
+a bug — but it is no longer an open research thread to revisit "at a
+different frame rate," because no frame rate this product could plausibly
+run at makes it relevant. Day 22's open question 1 (a floor derived from
+the *actual stopping deceleration profile*, a different physical basis
+entirely) is untouched by this finding and remains open if a floor-shaped
+fix is ever revisited. Open question 3 (IMM's mixing-overhead hypothesis)
+is also untouched — still unconfirmed — though v5-cessation's sharper
+static regression under IMM is one more data point consistent with
+*something* systematic in IMM's steady-regime behavior, not a
+confirmation of the specific mechanism.
+
+### Decision: unchanged. Config A remains adopted — now on stronger evidence
+
+Day 22 adopted config A because no alternative could be shown to clear
+the no-trade bar, and neither could the bar itself be evaluated at
+cessation. Day 23 evaluated it, on 373 frames from 19 diverse stop
+events, and no alternative clears it — IMM fails cessation and regresses
+static harder than previously measured, and the floor is inert
+everywhere a camera for this product could plausibly run. This is a
+strictly stronger result than Day 22's, in the same direction: config A
+was provisionally correct-by-elimination; it is now correct-by-measurement.
