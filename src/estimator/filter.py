@@ -40,7 +40,11 @@ import numpy.typing as npt
 
 from src.estimator import consistency
 from src.estimator.measurement_model import MeasurementModel
-from src.estimator.motion_model import STATE_DIM, MotionModel, apply_velocity_covariance_floor
+from src.estimator.motion_model import (
+    STATE_DIM,
+    MotionModel,
+    apply_velocity_covariance_floor,
+)
 from src.estimator.state import StateEstimate
 from src.model.episode import Factor, StateGraph, StateQuery
 from src.model.measurement import WorldPositionMeasurement

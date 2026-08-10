@@ -182,7 +182,9 @@ def pedestrian_velocity_covariance_floor_mps2(dt_s: float) -> float:
     return (PERSON_SIGMA_A_MPS2 * dt_s) ** 2
 
 
-def apply_velocity_covariance_floor(cov: FloatArray, floor_mps2: float | None) -> FloatArray:
+def apply_velocity_covariance_floor(
+    cov: FloatArray, floor_mps2: float | None
+) -> FloatArray:
     """Clamp ``cov``'s three velocity-diagonal entries up to ``floor_mps2``;
     a no-op (returns ``cov`` unchanged) when ``floor_mps2`` is ``None`` --
     the model in question declares no floor for its kind.

@@ -68,6 +68,7 @@ class PosteriorFamilyError(ValueError):
     was not derived for -- e.g. a single-Gaussian NEES run against a
     Gaussian-mixture (IMM) posterior collapsed to one (mean, cov)."""
 
+
 DEFAULT_CONFIDENCE = 0.95
 """The fraction of updates a correctly-calibrated filter should fall within
 bound. Not a tunable per-run knob — changing it changes what "in bound"
@@ -316,7 +317,9 @@ def empirical_coverage_by_sampling(
         )
     names = list(mode_weights)
     if not names:
-        raise PosteriorFamilyError("empirical_coverage_by_sampling needs at least one mode")
+        raise PosteriorFamilyError(
+            "empirical_coverage_by_sampling needs at least one mode"
+        )
     probs = np.array([mode_weights[n] for n in names], dtype=np.float64)
     probs = probs / probs.sum()
     counts = rng.multinomial(n_samples, probs)

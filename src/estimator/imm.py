@@ -514,7 +514,11 @@ def run_imm_filter(
             imm_config_sha=imm_config.sha,
             mode_probabilities=tuple(sorted(mode_probs.items())),
             mode_states=tuple(
-                (name, tuple(state.mean.tolist()), tuple(tuple(r) for r in state.cov.tolist()))
+                (
+                    name,
+                    tuple(state.mean.tolist()),
+                    tuple(tuple(r) for r in state.cov.tolist()),
+                )
                 for name, state in sorted(mode_states.items())
             ),
         )

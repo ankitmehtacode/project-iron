@@ -172,7 +172,9 @@ def test_pedestrian_floor_derivation_reproduced_by_unit_test() -> None:
     than asserting against a copy-pasted number."""
     for dt_s in (1.0 / 12.0, 0.1, 0.5, 1.0):
         expected = (PERSON_SIGMA_A_MPS2 * dt_s) ** 2
-        assert pedestrian_velocity_covariance_floor_mps2(dt_s) == pytest.approx(expected)
+        assert pedestrian_velocity_covariance_floor_mps2(dt_s) == pytest.approx(
+            expected
+        )
 
 
 def test_pedestrian_floor_rejects_negative_dt() -> None:
@@ -181,7 +183,9 @@ def test_pedestrian_floor_rejects_negative_dt() -> None:
 
 
 def test_pedestrian_floor_grows_with_dt() -> None:
-    floors = [pedestrian_velocity_covariance_floor_mps2(dt) for dt in (0.05, 0.1, 0.5, 1.0)]
+    floors = [
+        pedestrian_velocity_covariance_floor_mps2(dt) for dt in (0.05, 0.1, 0.5, 1.0)
+    ]
     assert floors == sorted(floors)
     assert len(set(floors)) == len(floors)
 
@@ -209,9 +213,9 @@ def test_velocity_covariance_floor_for_asset_carried_uses_person_bound_not_its_o
     person = motion_model_for("person", velocity_covariance_floor=True)
     carried = motion_model_for("asset_carried", velocity_covariance_floor=True)
     dt_s = 0.2
-    assert carried.velocity_covariance_floor_mps2(
-        dt_s
-    ) == pytest.approx(person.velocity_covariance_floor_mps2(dt_s))  # type: ignore[arg-type]
+    assert carried.velocity_covariance_floor_mps2(dt_s) == pytest.approx(
+        person.velocity_covariance_floor_mps2(dt_s)
+    )  # type: ignore[arg-type]
     # And carried's own Q is still the larger, inflated one -- the floor
     # and the process noise are deliberately different quantities.
     assert carried.Q(dt_s)[3, 3] > person.Q(dt_s)[3, 3]  # type: ignore[union-attr]

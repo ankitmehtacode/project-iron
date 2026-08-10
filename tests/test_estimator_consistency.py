@@ -250,7 +250,9 @@ def test_mixture_density_single_mode_matches_scipy_pdf() -> None:
     mean = np.array([1.0, 2.0])
     cov = np.eye(2) * 0.5
     point = np.array([1.1, 1.9])
-    density = consistency.mixture_density(point, {"only": 1.0}, {"only": mean}, {"only": cov})
+    density = consistency.mixture_density(
+        point, {"only": 1.0}, {"only": mean}, {"only": cov}
+    )
     expected = mvn.pdf(point, mean=mean, cov=cov)
     assert density[0] == pytest.approx(expected)
 
@@ -314,8 +316,13 @@ def test_empirical_coverage_is_calibrated_for_a_single_gaussian_mode() -> None:
     for gt in gt_draws:
         sample_rng = np.random.default_rng(int(rng.integers(0, 2**32 - 1)))
         if consistency.empirical_coverage_by_sampling(
-            gt, {"only": 1.0}, {"only": mean}, {"only": cov},
-            confidence=confidence, n_samples=1000, rng=sample_rng,
+            gt,
+            {"only": 1.0},
+            {"only": mean},
+            {"only": cov},
+            confidence=confidence,
+            n_samples=1000,
+            rng=sample_rng,
         ):
             covered_count += 1
     coverage = covered_count / len(gt_draws)
