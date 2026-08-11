@@ -1,9 +1,14 @@
 """Day 23, Objective 3 -- scripts/velocity_floor_frame_rate_sweep.py.
-
-Regression anchors for the day's measured finding (not a re-test of the
-filter itself, see tests/test_estimator_filter.py): the velocity-
-covariance floor does not bind at this project's 12fps, and does not
-bind anywhere in the swept range even at its closest approach.
+Superseded Day 24, Objective 2: the floor formula this script sweeps was
+per-timestep (scaled by dt_s), which is why Day 23 measured it as never
+binding anywhere from 1-1000fps -- the formula shrank with dt_s faster
+than natural convergence did. Day 24 re-derived the floor as an ABSOLUTE
+bound (anchored to PEDESTRIAN_STOP_DURATION_S, not dt_s; see
+motion_model.py's "Day 24 correction" docstring). Re-measured with the
+corrected formula: the floor now binds at every fps from 2 to 1000, and
+does not bind only at fps=1 (dt_s=1.0s), the single point where the two
+derivations coincide by construction. These are regression anchors for
+the corrected finding.
 """
 
 from __future__ import annotations
@@ -26,21 +31,27 @@ def test_natural_velocity_variance_is_positive_finite_at_12fps() -> None:
     assert natural < float("inf")
 
 
-def test_floor_does_not_bind_at_12fps() -> None:
-    """The Day-22/ADR-0010 finding, reproduced: floor stays well below
-    natural convergence at this project's own frame rate."""
+def test_floor_binds_at_12fps() -> None:
+    """Day 24 correction: the absolute floor (2.25 (m/s)^2) now sits well
+    above natural convergence (~0.065 (m/s)^2) at this project's own
+    frame rate -- the opposite of Day 22-23's per-timestep-floor finding,
+    which was an artifact of that formula's dt_s scaling, not a fact
+    about this filter's physics."""
     natural = sweep._natural_velocity_variance_mps2(12.0)
     floor = pedestrian_velocity_covariance_floor_mps2(1.0 / 12.0)
-    assert floor < natural
-    assert floor / natural < 0.3
+    assert floor > natural
+    assert floor / natural > 30.0
 
 
-def test_floor_does_not_bind_at_its_closest_measured_approach() -> None:
-    """fps=2 is where the swept ratio comes closest to 1.0 (Day 23) --
-    still comfortably under it. If this ever flips, the floor's
-    retirement finding needs revisiting, not just this test."""
-    natural = sweep._natural_velocity_variance_mps2(2.0)
-    floor = pedestrian_velocity_covariance_floor_mps2(1.0 / 2.0)
+def test_floor_does_not_bind_only_at_1fps() -> None:
+    """fps=1 (dt_s=1.0s=PEDESTRIAN_STOP_DURATION_S) is the single point
+    where the corrected absolute formula and the old per-timestep formula
+    coincide by construction -- natural convergence there (~3.86 (m/s)^2)
+    is the one measured case that still exceeds the floor (2.25 (m/s)^2).
+    Every other tested rate now binds (see test_floor_binds_at_12fps and
+    the module docstring)."""
+    natural = sweep._natural_velocity_variance_mps2(1.0)
+    floor = pedestrian_velocity_covariance_floor_mps2(1.0)
     assert floor < natural
 
 

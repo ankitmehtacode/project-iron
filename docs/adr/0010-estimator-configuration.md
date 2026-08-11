@@ -1,12 +1,16 @@
 # ADR 0010 — Estimator configuration: config A remains in use
 
 - **Status:** Accepted; revised 2026-08-11 (Day 23); **revised again
-  2026-08-11 (Day 24, Objective 1)** — see "Day 24 revision (Objective 1)"
-  below. Day 21's founding NEES-815 number is traced to n=1 hand-traced
-  track, not an aggregate — under-supported as originally reported,
-  though the underlying finding is now independently established at
-  real n (373 frames, Day 23). The adopted configuration (A) is
-  unchanged.
+  2026-08-11 (Day 24)** — see "Day 24 revision (Objective 1)" and
+  "Day 24 revision (Objective 2)" below. Objective 1: Day 21's founding
+  NEES-815 number is traced to n=1 hand-traced track, not an aggregate —
+  under-supported as originally reported, though the underlying finding
+  is now independently established at real n (373 frames, Day 23).
+  Objective 2: **the velocity floor Day 22-23 measured as permanently
+  inert was itself mis-derived; corrected, it binds at every practical
+  frame rate and materially changes the evidence, though the adopted
+  configuration (A) is unchanged today pending one open methodological
+  question (see Day 24 revision (Objective 2), final section).**
 - **Date:** 2026-08-10
 - **Decides for:** which of the four Day-22 estimator configurations
   (single model / single model + velocity floor / IMM / IMM + velocity
@@ -18,8 +22,8 @@
   diagnosis, IMM build, no-trade criterion NOT satisfied), Day 22 (this
   ADR's original evidence), Day 23 (the first revision below:
   v5-cessation, the frame-rate sweep, and the reconciled regime
-  labeling), and Day 24 (the second revision below: the NEES-815
-  frame-support audit);
+  labeling), and Day 24 (the second revision: the NEES-815 frame-support
+  audit and the corrected, absolute velocity floor);
   [[check-the-measuring-apparatus]] (the pooled-NEES question this ADR
   answers, and the matrix-script gap Day 23 found while re-running the
   validity gates, are both instances of that pattern)
@@ -460,3 +464,195 @@ does or doesn't support. Going forward, any report section that opens a
 multi-day investigation on the strength of one measured number should
 state that number's own sample size in the same paragraph, not leave it
 inferable from a trace printed for a different purpose.
+
+## Day 24 revision (Objective 2) — the floor was mis-derived, not inert; corrected, it changes the field
+
+**Headline: the "floor never binds at any frame rate" finding Day 23
+reported as decisive was itself an artifact of a derivation bug. Fixed,
+the floor binds at every practical frame rate this project could run at,
+and config B (single model + floor) satisfies the no-trade criterion on
+v4.1-gate outright and comes close on v5-cessation. This does not
+automatically make B the adopted configuration — see the open question at
+the end of this section — but it means Day 22-23's "the floor is real
+physics that simply doesn't help" conclusion is retracted. The floor
+helps; it was measured with a broken ruler.**
+
+### The derivation bug: per-timestep, not absolute
+
+`pedestrian_velocity_covariance_floor_mps2` (`src/estimator/motion_model.py`)
+computed, since Day 22:
+
+```
+sigma_v_floor^2 = (PERSON_SIGMA_A_MPS2 * dt_s)^2        [units: (m/s^2 * s)^2 = (m/s)^2]
+```
+
+where `dt_s` was the CURRENT PREDICT STEP's own timestep — the same `dt_s`
+used to compute `F`/`Q` for that one step. This is dimensionally a
+velocity variance (that is why it passed review), but it answers "how
+much velocity uncertainty does one sample interval's own process noise
+inject" — a quantity that shrinks as the sample interval shrinks, i.e.
+as frame rate rises. Day 23's frame-rate sweep measured exactly that
+consequence: the floor shrank monotonically as `dt_s^2` while natural
+Kalman convergence did not shrink nearly as fast, so the floor fell
+further behind natural convergence at every fps above 1, never catching
+up anywhere in a 1-1000fps sweep.
+
+The floor exists to bound a different, PHYSICAL question: how much could
+a person's velocity plausibly have changed since the filter last had
+strong evidence pinning it down, given that a person can go from walking
+to at-rest in about `PEDESTRIAN_STOP_DURATION_S` (~1s, already declared,
+Day 22)? That physical fact does not depend on how often a camera happens
+to sample the walk. A floor that answers it correctly must therefore be
+ABSOLUTE — the same value regardless of frame rate — not a per-step
+quantity. Corrected:
+
+```
+sigma_v_floor^2 = (PERSON_SIGMA_A_MPS2 * PEDESTRIAN_STOP_DURATION_S)^2
+                 = (1.5 m/s^2 * 1.0 s)^2
+                 = (1.5 m/s)^2
+                 = 2.25 (m/s)^2                          [constant, every fps]
+```
+
+Units at every step: `PERSON_SIGMA_A_MPS2` is m/s², `PEDESTRIAN_STOP_DURATION_S`
+is s; their product is m/s (a velocity, the same physical quantity `dt_s`
+occupied in the old formula, just anchored to a fixed physical duration
+instead of a variable sampling interval); squaring gives (m/s)², the same
+units `cov`'s velocity-diagonal entries already carry. The two formulas
+necessarily coincide at exactly one point — `dt_s == PEDESTRIAN_STOP_DURATION_S`,
+i.e. 1 fps — which is why Day 23's sweep table already contained the
+"correct" value (2.2500) in its fps=1 row without anyone noticing it was
+the special case, not a data point on a curve that should have varied.
+
+### Corrected floor vs converged σ_v on v5
+
+At this project's 12fps (`dt_s ≈ 0.0833s`), re-measuring natural Kalman
+convergence directly (`scripts/velocity_floor_frame_rate_sweep.py`,
+unchanged script, corrected floor value): natural steady-state velocity
+variance is **0.0650 (m/s)²**, versus the corrected floor's **2.2500
+(m/s)²** — the floor is now ~34.6x LARGER than natural convergence, i.e.
+it binds, hard, exactly where Day 21's diagnosis said a floor was needed.
+Re-running the full frame-rate sweep confirms this holds everywhere
+tested except the single fps=1 coincidence point:
+
+| fps | natural (m/s)² | floor (m/s)² | binds? |
+| ---: | ---: | ---: | --- |
+| 1 | 3.8641 | 2.2500 | no |
+| 2 | 0.6570 | 2.2500 | **YES** |
+| 12 (this project) | 0.0650 | 2.2500 | **YES** |
+| 90 | 0.0103 | 2.2500 | **YES** |
+| 120 | 0.0113 | 2.2500 | **YES** |
+| 1000 | 0.5480 | 2.2500 | **YES** |
+
+The hypothesis stated at the top of today's objective — "a floor that
+never binds anywhere from 1 to 1000 fps is more likely mis-derived than
+physically irrelevant" — is confirmed. The floor now binds at every
+tested rate from 2 to 1000 fps; the one exception (1 fps) is the
+coincidence point above, not a counterexample to the fix.
+
+### Four-way re-evaluation, corrected floor, all three golden sets
+
+Re-ran `scripts/eval_estimator.py`'s A/B/C/D comparison (config B/D now
+genuinely differ from A/C for the first time since the floor was built).
+
+**v5-cessation** (n=373 cessation frames, 19 stop events):
+
+| regime | n | A RMSE/cov | B RMSE/cov | C RMSE/cov | D RMSE/cov |
+| --- | ---: | --- | --- | --- | --- |
+| static | 260 | 0.1381m / 0.9962 | 0.1923m / 0.9923 | 0.0832m / 0.0808 | 0.0839m / 0.7154 |
+| onset (scored) | 91 | 0.1991m / 0.8132 | 0.1988m / 0.9890 | 0.2686m / 0.9011 | 0.2701m / 0.9011 |
+| sustained | 282 | 0.1470m / 0.9574 | 0.1887m / 0.9929 | 0.2067m / 0.9504 | 0.1962m / 0.9787 |
+| cessation | 373 | 0.2499m / 0.5013 | **0.1990m / 0.9946** | 0.1432m / 0.3727 | 0.1450m / 0.8606 |
+| maneuver (exempt) | 15 | 0.1789m / 0.4000 | 0.1697m / 1.0000 | 0.2608m / 0.8000 | 0.1625m / 1.0000 |
+
+Config B's cessation coverage moves **0.5013 → 0.9946** — from
+decisively-overconfident to essentially nominal — while static moves
+0.9962→0.9923 (negligible) and sustained moves 0.9574→0.9929 (toward
+MORE conservative, i.e. underconfident, not overconfident — see the
+no-trade discussion below for why this still registers as a "regression"
+under the criterion as coded).
+
+No-trade verdicts, v5-cessation:
+
+| A→ | cessation Δtoward-nominal | static Δ | sustained Δ | verdict |
+| --- | --- | --- | --- | --- |
+| B | **+0.4040 (IMPROVED)** | +0.0038 | −0.0355 REGRESSION | NOT_SATISFIED |
+| C | −0.1287 (not improved) | −0.8231 REGRESSION | +0.0071 | NOT_SATISFIED |
+| D | +0.3592 (IMPROVED) | −0.1885 REGRESSION | −0.0213 REGRESSION | NOT_SATISFIED |
+
+**v4.1-gate** (n=39 cessation frames, ~2 underlying trajectories, Day 23's corrected label):
+
+| regime | n | A RMSE/cov | B RMSE/cov | C RMSE/cov | D RMSE/cov |
+| --- | ---: | --- | --- | --- | --- |
+| static | 139 | 0.1023m / 0.9928 | 0.1437m / 1.0000 | 0.0567m / 0.5468 | 0.0568m / 0.5468 |
+| onset | 12 | 0.1899m / 0.8333 | 0.1833m / 0.9167 | 0.1935m / 0.9167 | 0.1889m / 0.9167 |
+| sustained | 0 | empty | empty | empty | empty |
+| cessation | 39 | 0.4643m / 0.1282 | **0.1748m / 1.0000** | 0.0803m / 0.0256 | 0.0901m / 0.1282 |
+| maneuver | 0 | empty | empty | empty | empty |
+
+No-trade verdicts, v4.1-gate:
+
+| A→ | cessation Δtoward-nominal | static Δ | verdict |
+| --- | --- | --- | --- |
+| B | **+0.7718 (IMPROVED)** | −0.0072 | **SATISFIED** |
+| C | −0.1026 (not improved) | −0.3604 REGRESSION | NOT_SATISFIED |
+
+**Config B (single model + corrected floor) clears the no-trade bar
+outright on v4.1-gate.** It does not clear it on v5-cessation, purely
+because of `sustained`'s −0.0355 delta — cessation itself improves
+strongly on both sets (+0.7718 on v4.1-gate, +0.4040 on v5-cessation).
+
+v3-indoor (unaffected finding — cessation stays UNSCOREABLE, n=0, a
+genuine data gap untouched by this fix): static/onset/sustained coverage
+under B moves 1.0000→1.0000, 0.9648→0.9965, 0.9938→0.9975 respectively —
+each equal to or above config A, no regression by any reading.
+
+### Why v5-cessation's "regression" is a softer failure than it looks
+
+The no-trade criterion (`_no_trade_verdict`, `scripts/eval_estimator.py`)
+scores `sustained`/`static` degradation as `|coverage − 0.95|` growing —
+symmetric around nominal, so moving from underconfident-but-close
+(A: 0.9574, |Δ|=0.0074) to more-underconfident (B: 0.9929, |Δ|=0.0429) on
+v5-cessation's sustained regime counts against B exactly as harshly as
+moving toward overconfidence would. But overconfidence and
+underconfidence are not equally dangerous for this product: overconfident
+coverage means the filter's stated uncertainty band is a LIE (Day 21's
+whole diagnosis), which is the failure mode that produces false
+confidence in wrong state; underconfident coverage means the filter
+claims a wider band than it strictly needs, which is conservative, not
+misleading. B's only "regression" on the only properly-powered set is
+entirely in the safe direction. This is noted as an observation, not
+acted on today — changing how the criterion is scored specifically
+because it would flip B's verdict is exactly the "iterate a metric until
+it passes" pattern the project's rules prohibit, however defensible the
+argument sounds in isolation. It is recorded here as Day 25's first
+open question, to be decided BEFORE looking at whether the decision
+changes, not after.
+
+### Decision: unchanged today — config A remains adopted, pending one open question
+
+Config A remains adopted as of Day 24, unchanged — but on materially
+weaker relative footing than Day 23 recorded, since Day 23's stated
+reason for rejecting B ("floor never binds, so it changes nothing") is
+now known to be false. The correct summary of today's evidence: **B is a
+serious, no-longer-inert candidate that clears the no-trade bar on one
+golden set and misses it on the other only via a safe-direction
+deviation the criterion does not currently distinguish from a dangerous
+one.** Re-deciding the adopted configuration on that basis today, in the
+same session that discovered it, would repeat the exact pattern Day 21
+was instructed to avoid (iterating toward a target rather than deciding
+in advance what would count as evidence). Day 25's first item is
+therefore: settle whether the no-trade criterion should weight
+over-confidence and under-confidence deviations asymmetrically — decided
+on its own methodological merits, stated in advance of re-scoring B
+against it — and only then revisit config B's adoption.
+
+### Rejected, and why (Day 24 addendum)
+
+- **IMM (configs C/D)** — unaffected by today's fix, still rejected per
+  Day 23: degrades static/sustained on both sets with real frame counts,
+  with no offsetting cessation win large enough to justify it (C's own
+  cessation coverage is still the worst of any config, 0.3727 on
+  v5-cessation).
+- **The velocity floor (config B)** — NOT rejected. Explicitly
+  un-rejected by this section; carried forward as an open, high-priority
+  candidate rather than retired machinery.

@@ -135,8 +135,9 @@ free parameter in the floor formula itself."""
 
 def pedestrian_velocity_covariance_floor_mps2(dt_s: float) -> float:
     """The physically-derived floor under a person-kind (or asset_carried,
-    which inherits it) mode's posterior velocity variance, per axis, at
-    one timestep ``dt_s`` (Day 22, Objective 2).
+    which inherits it) mode's posterior velocity variance, per axis
+    (Day 22, Objective 2; re-derived Day 24, Objective 2 — see "Day 24
+    correction" below).
 
     Derivation
     ----------
@@ -152,34 +153,59 @@ def pedestrian_velocity_covariance_floor_mps2(dt_s: float) -> float:
     PEDESTRIAN_STOP_DURATION_S`` lands in the same ~1-1.5 m/s^2 order of
     magnitude already declared. This is a cross-check that the existing
     constant is the right order of magnitude for "how fast can a person's
-    velocity legitimately change", not a new, independently-fitted number
-    — the formula below uses ``PERSON_SIGMA_A_MPS2`` directly, not a
-    freshly-derived value.
+    velocity legitimately change", not a new, independently-fitted number.
 
-    ``person``'s own ``Q`` (:func:`_cv_process_noise`) already asserts,
-    every single predict step, that velocity uncertainty of up to
-    ``(PERSON_SIGMA_A_MPS2 * dt_s)^2`` enters regardless of what the prior
-    believed — that is what "process noise density" means. It is
-    physically incoherent for the filter's *posterior* (after however
-    many updates have narrowed it) to ever claim LESS velocity uncertainty
-    than its own model already asserts is possible for one single step:
-    doing so is exactly Day 21's diagnosed mechanism, a filter so
-    confident in a converged velocity that a genuine stop becomes an
-    ~800-sigma-squared event. The floor is therefore the same quantity
-    ``Q``'s own velocity-block diagonal entry already computes::
+    The floor exists to prevent exactly Day 21's diagnosed mechanism: a
+    filter so confident in a converged velocity that a genuine stop
+    becomes an ~800-sigma-squared event. The physical fact that makes a
+    stop possible is "a person can go from walking to at-rest within about
+    :data:`PEDESTRIAN_STOP_DURATION_S`" — a fact about the WORLD, fixed
+    regardless of how often the filter happens to sample it. The floor is
+    therefore anchored to that duration, not to the current predict
+    step's ``dt_s``::
 
-        sigma_v_floor^2 = (PERSON_SIGMA_A_MPS2 * dt_s)^2
+        sigma_v_floor^2 = (PERSON_SIGMA_A_MPS2 * PEDESTRIAN_STOP_DURATION_S)^2
+
+    i.e. an ABSOLUTE bound on sigma_v (units m/s, ``PERSON_SIGMA_A_MPS2
+    [m/s^2] * PEDESTRIAN_STOP_DURATION_S [s] = 1.5 m/s``), the same value
+    at every frame rate.
+
+    Day 24 correction
+    ------------------
+    Day 22 through Day 23 used ``(PERSON_SIGMA_A_MPS2 * dt_s)^2`` instead
+    — the current predict step's own process-noise injection, not the
+    stop duration. That formula is dimensionally a velocity variance too,
+    which is how it passed review, but it answers a different physical
+    question ("how much can velocity change in one sample interval")
+    than the one the floor exists to answer ("how much could velocity
+    have changed since we last had strong evidence pinning it down, given
+    a person can stop in about a second"). Because it scaled with
+    ``dt_s``, it shrank as ``dt_s`` shrank — i.e. it got MORE inert, not
+    less, as frame rate rose — and Day 23's frame-rate sweep measured
+    exactly that: the floor never bound anywhere from 1 to 1000 fps, with
+    natural Kalman convergence itself non-monotonic in fps. A floor that
+    never binds anywhere in a 1000x sweep was the symptom; the per-step
+    scaling was the defect. The corrected, absolute formula reduces to
+    the *same numeric value* the old formula produced at exactly
+    ``dt_s == PEDESTRIAN_STOP_DURATION_S`` (1 second, i.e. 1 fps) — the
+    one point in Day 23's sweep where the two derivations necessarily
+    agree — and diverges from it at every other frame rate, which is the
+    fix: the floor no longer depends on sampling rate at all.
 
     Args:
-        dt_s: The timestep this floor applies to (the same ``dt_s`` used
-            to compute ``F``/``Q`` for that step).
+        dt_s: The timestep of the predict step this floor is being
+            applied to (unused in the formula itself since Day 24 — see
+            above — but still validated, for the same reason
+            :meth:`ConstantVelocityMotionModel.F`/``Q`` validate it: a
+            negative step is malformed regardless of what floor value
+            would result).
 
     Raises:
         MotionModelError: if ``dt_s`` is negative.
     """
     if dt_s < 0:
         raise MotionModelError(f"dt_s must be non-negative, got {dt_s}")
-    return (PERSON_SIGMA_A_MPS2 * dt_s) ** 2
+    return (PERSON_SIGMA_A_MPS2 * PEDESTRIAN_STOP_DURATION_S) ** 2
 
 
 def apply_velocity_covariance_floor(

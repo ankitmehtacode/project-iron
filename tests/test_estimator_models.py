@@ -20,6 +20,7 @@ from src.estimator.measurement_model import (
 )
 from src.estimator.motion_model import (
     MOTION_ENTITY_KINDS,
+    PEDESTRIAN_STOP_DURATION_S,
     PERSON_SIGMA_A_MPS2,
     STATE_DIM,
     ConstantVelocityMotionModel,
@@ -168,10 +169,15 @@ def test_unknown_entity_kind_raises() -> None:
 
 def test_pedestrian_floor_derivation_reproduced_by_unit_test() -> None:
     """The floor is a derivation, not a hardcoded literal -- this test
-    recomputes the formula from PERSON_SIGMA_A_MPS2 independently, rather
-    than asserting against a copy-pasted number."""
-    for dt_s in (1.0 / 12.0, 0.1, 0.5, 1.0):
-        expected = (PERSON_SIGMA_A_MPS2 * dt_s) ** 2
+    recomputes the formula from PERSON_SIGMA_A_MPS2 and
+    PEDESTRIAN_STOP_DURATION_S independently, rather than asserting
+    against a copy-pasted number. Day 24: the formula anchors to the
+    absolute stop duration, not to dt_s -- see
+    test_pedestrian_floor_is_absolute_not_scaled_by_dt below for the
+    property that distinguishes this from Day 22's original (buggy,
+    per-timestep) derivation."""
+    expected = (PERSON_SIGMA_A_MPS2 * PEDESTRIAN_STOP_DURATION_S) ** 2
+    for dt_s in (1.0 / 1000.0, 1.0 / 12.0, 0.1, 0.5, 1.0, 10.0):
         assert pedestrian_velocity_covariance_floor_mps2(dt_s) == pytest.approx(
             expected
         )
@@ -182,12 +188,20 @@ def test_pedestrian_floor_rejects_negative_dt() -> None:
         pedestrian_velocity_covariance_floor_mps2(-0.1)
 
 
-def test_pedestrian_floor_grows_with_dt() -> None:
+def test_pedestrian_floor_is_absolute_not_scaled_by_dt() -> None:
+    """Day 24, Objective 2: the floor is an ABSOLUTE bound on sigma_v, the
+    same value at every frame rate -- not a per-timestep quantity that
+    shrinks as dt_s shrinks. Day 22-23's original formula,
+    ``(PERSON_SIGMA_A_MPS2 * dt_s) ** 2``, grew monotonically with dt_s
+    and consequently never bound at any of the 1-1000fps rates Day 23
+    swept (dt_s never large enough). This test is the regression guard
+    against reintroducing that dt-dependence: the floor must be constant
+    across four orders of magnitude of dt_s."""
     floors = [
-        pedestrian_velocity_covariance_floor_mps2(dt) for dt in (0.05, 0.1, 0.5, 1.0)
+        pedestrian_velocity_covariance_floor_mps2(dt)
+        for dt in (1.0 / 1000.0, 1.0 / 90.0, 1.0 / 12.0, 0.1, 0.5, 1.0, 10.0)
     ]
-    assert floors == sorted(floors)
-    assert len(set(floors)) == len(floors)
+    assert all(f == pytest.approx(floors[0]) for f in floors)
 
 
 def test_velocity_covariance_floor_disabled_by_default_for_person_and_carried() -> None:
@@ -338,19 +352,27 @@ def _stationary_track_variances(
     return variances
 
 
-def test_stationary_track_covariance_converges_normally_above_the_floor() -> None:
-    """At a realistic frame rate (12 fps), the natural steady-state
-    velocity variance sits well above the floor -- the floor must not
-    disturb ordinary convergence when it is not the binding constraint.
-    Floor-on and floor-off must therefore produce IDENTICAL curves here."""
+def test_floor_binds_at_realistic_frame_rate() -> None:
+    """Day 24, Objective 2: at this project's actual frame rate (12 fps),
+    the corrected absolute floor (1.5 m/s, squared -> 2.25 (m/s)^2) now
+    binds -- unfloored natural convergence settles around ~0.076 (m/s)^2
+    (measured; well below the floor), while the floored curve is clamped
+    to the floor's constant value at every step. This supersedes Day
+    22-23's "floor never binds at 12fps" finding, which was a direct
+    consequence of the per-timestep derivation bug fixed today (see
+    motion_model.py's "Day 24 correction" docstring section)."""
     dt_s = 1.0 / 12.0
     unfloored = _stationary_track_variances(dt_s, 60, velocity_covariance_floor=False)
     floored = _stationary_track_variances(dt_s, 60, velocity_covariance_floor=True)
-    assert unfloored == pytest.approx(floored)
-    # And it does converge (shrink toward a steady state) in the ordinary way.
-    assert unfloored == sorted(unfloored, reverse=True)
     floor = pedestrian_velocity_covariance_floor_mps2(dt_s)
-    assert unfloored[-1] > floor  # confirms the floor genuinely wasn't binding
+
+    # Natural convergence (floor disabled) still shrinks toward a steady
+    # state in the ordinary way, and ends up well below the floor.
+    assert unfloored == sorted(unfloored, reverse=True)
+    assert unfloored[-1] < floor
+    # With the floor enabled, every reported variance is clamped to it.
+    for v in floored:
+        assert v == pytest.approx(floor, rel=1e-6)
 
 
 def test_floor_binds_when_natural_convergence_would_undershoot_it() -> None:

@@ -7,6 +7,15 @@ floor (~0.0156 (m/s)^2) everywhere it was checked. Day 23 Objective 3
 asks the question ADR 0010 left open: is that a 12fps-specific accident,
 or does the floor never bind at any plausible frame rate?
 
+Day 24, Objective 2: the ~0.0156 (m/s)^2 floor value above, and Day 23's
+"never binds anywhere from 1-1000fps" answer, were both consequences of
+a derivation bug (the floor scaled with the current predict step's
+`dt_s`, not with the absolute physical stop duration it was meant to
+bound). Corrected, the floor is now a CONSTANT 2.25 (m/s)^2 at every fps
+-- see `pedestrian_velocity_covariance_floor_mps2`'s "Day 24 correction"
+docstring and ADR 0010's "Day 24 revision" section. This script and its
+logic are unchanged; only the floor value it sweeps against changed.
+
 The floor is ANALYTIC by construction (dt_s * PERSON_SIGMA_A_MPS2,
 squared) -- deliberately never fitted, see motion_model.py. The natural
 convergence side has no equally simple closed form (it is the steady
