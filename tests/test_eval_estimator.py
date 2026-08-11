@@ -57,6 +57,18 @@ def test_rmse_of_empty_list_is_nan() -> None:
     assert np.isnan(ee._rmse([]))
 
 
+def test_config_descriptions_covers_every_config_spec() -> None:
+    """Day 24, Objective 3 audit: CONFIG_SPECS and CONFIG_DESCRIPTIONS are
+    two separately hand-maintained dicts keyed by the same config labels
+    (A/B/C/D) -- the same shape as the CAPABILITIES/GATES defect (Day 16,
+    Day 23), just not yet caught drifting. A label present in one and
+    missing from the other currently fails with a bare KeyError deep in
+    main() the first time that config is scored, not at the boundary.
+    Cheap structural guard against a fifth config being added to one dict
+    and not the other."""
+    assert set(ee.CONFIG_SPECS) == set(ee.CONFIG_DESCRIPTIONS)
+
+
 def test_rmse_known_values() -> None:
     # errors of 3 and 4 -> RMSE = sqrt((9+16)/2) = sqrt(12.5)
     assert ee._rmse([9.0, 16.0]) == pytest.approx(np.sqrt(12.5))

@@ -24,25 +24,41 @@ from src.config import IronConfig  # noqa: E402
 from src.data import validity  # noqa: E402
 from src.data.golden import available_versions, load_golden_set  # noqa: E402
 
-CAPABILITIES = (
-    "motion_geometry",
-    "state_estimation",
-    "depth",
-    "appearance_semantics",
-    "point_tracking",
-)
-"""Day 16: point_tracking was registered in ``validity.GATES`` since Day 11
-(``scripts/eval_tracking.py`` uses it directly) but never appeared in THE
-matrix — the one script whose job is "which capabilities can this project
-evaluate" was answering that question for three of the four registered
-gates. Added here rather than left as a second, parallel evaluator.
 
-Day 23: the same defect, same shape, caught a second time — ``state_estimation``
-was registered in ``validity.GATES`` since Day 20 (aliased to
-``gate_motion_geometry``; see that function's docstring) and never appeared
-here either, silently for three days, until Day 23 needed to report a
-state_estimation matrix row for v5-cessation and there wasn't one. Fixed the
-same way: added to the tuple, not evaluated by a second script."""
+def registered_capabilities() -> tuple[str, ...]:
+    """Every capability with a registered validity gate, in registration
+    order — read directly from ``validity.GATES`` on every call, never
+    cached in a second list.
+
+    Day 16: point_tracking was registered in ``validity.GATES`` since Day
+    11 (``scripts/eval_tracking.py`` uses it directly) but never appeared
+    in THE matrix — the one script whose job is "which capabilities can
+    this project evaluate" was answering that question for three of the
+    four registered gates. Fixed then by adding it to a hand-maintained
+    tuple here.
+
+    Day 23: the same defect, same shape, caught a SECOND time —
+    ``state_estimation`` was registered in ``validity.GATES`` since Day 20
+    (aliased to ``gate_motion_geometry``; see that function's docstring)
+    and never appeared here either, silently for three days. Fixed the
+    same way Day 16 was: added to the tuple by hand — which is exactly why
+    it recurred. A hand-maintained list next to a registry is a promise to
+    remember, and remembering twice in 23 days is the base rate, not bad
+    luck.
+
+    Day 24, Objective 3: fixed STRUCTURALLY instead. This function reads
+    ``validity.GATES`` directly, live, every call — there is no second
+    list to fall out of sync (and no import-time snapshot to go stale
+    either), so this specific defect cannot recur a third time.
+    Registering a new gate in ``GATES`` makes it appear here automatically;
+    see ``tests/test_validity_matrix.py`` for the test that enforces this
+    (register a dummy gate, assert it appears with no other edit) and
+    greps the repo to confirm no other hand-maintained capability list
+    exists.
+    """
+    return tuple(validity.GATES)
+
+
 DEPTH_WEIGHTS = Path("models/weights/depth_anything_v2_small")
 
 
@@ -83,6 +99,7 @@ def main(argv: list[str] | None = None) -> int:
     config = IronConfig.load()
     golden_dir = config.paths.resolve(config.eval.golden_sets_dir)
     versions = available_versions(golden_dir)
+    capabilities = registered_capabilities()
 
     predictor = build_predictor()
     results = []
@@ -99,7 +116,7 @@ def main(argv: list[str] | None = None) -> int:
             if sample is not None:
                 break
 
-        for capability in CAPABILITIES:
+        for capability in capabilities:
             if sample is None:
                 results.append(
                     validity.GateResult(
@@ -131,12 +148,12 @@ def main(argv: list[str] | None = None) -> int:
     print("=" * 78)
     print("Can this dataset meaningfully score this capability?")
     print()
-    header = f"{'dataset':<{width}}" + "".join(f"{c:<24}" for c in CAPABILITIES)
+    header = f"{'dataset':<{width}}" + "".join(f"{c:<24}" for c in capabilities)
     print(header)
     print("-" * len(header))
     for version in versions:
         row = f"{version:<{width}}"
-        for capability in CAPABILITIES:
+        for capability in capabilities:
             result = next(
                 r
                 for r in results
@@ -158,7 +175,7 @@ def main(argv: list[str] | None = None) -> int:
         print()
 
     payload = {
-        "capabilities": list(CAPABILITIES),
+        "capabilities": list(capabilities),
         "datasets": versions,
         "results": [r.as_dict() for r in results],
     }

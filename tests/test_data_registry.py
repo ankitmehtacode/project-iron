@@ -10,15 +10,18 @@ from __future__ import annotations
 
 from datetime import date
 from pathlib import Path
+from typing import get_args
 
 import pytest
 import yaml
 
 from src.data import (
+    LANE_DESCRIPTIONS,
     BlockedDataset,
     ConsentRecord,
     DatasetEntry,
     DatasetRegistry,
+    Lane,
     LaneViolation,
     LicenseNotVerified,
     LicenseSnapshot,
@@ -185,6 +188,19 @@ def test_lane_r_refuses_the_training_path() -> None:
 def test_lanes_s_and_c_may_train(lane: str) -> None:
     registry = registry_with(entry("ok-data", lane))
     assert registry.open_for_training("ok-data").lane == lane
+
+
+def test_lane_descriptions_covers_every_lane() -> None:
+    """Day 24, Objective 3 audit: LANE_DESCRIPTIONS is a hand-written dict
+    keyed by the Lane Literal, not derived from it (unlike, e.g.,
+    MOTION_ENTITY_KINDS = get_args(MotionEntityKind) in motion_model.py) --
+    `dict[Lane, str]` does not make mypy enforce that every Lane member has
+    an entry. No drift exists today, but this is the same shape as the
+    CAPABILITIES/GATES defect (Day 16, Day 23) waiting to happen the moment
+    a fifth lane is added without remembering this dict. Cheap structural
+    guard, not a rewrite: assert coverage explicitly rather than leave it
+    to be noticed by a KeyError somewhere downstream."""
+    assert set(LANE_DESCRIPTIONS) == set(get_args(Lane))
 
 
 def test_lane_r_loads_for_eval_from_a_neutral_context() -> None:

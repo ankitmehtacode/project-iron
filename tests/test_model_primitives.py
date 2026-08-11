@@ -23,7 +23,11 @@ from src.model.envelope import Envelope, EnvelopeCurve, EnvelopeError
 from src.model.frame_of_reference import FrameOfReference
 from src.model.measurement import BadgeSwipeMeasurement, CameraFrameMeasurement
 from src.model.observation import Observation, ObservationError
-from src.model.uncertainty import Uncertainty, UncertaintyError
+from src.model.uncertainty import (
+    ALL_UNCERTAINTY_KINDS,
+    Uncertainty,
+    UncertaintyError,
+)
 from src.model.ulid import ULID, InvalidULID, generate_ulid
 
 
@@ -157,6 +161,19 @@ def test_uncertainty_interval_rejects_low_above_high() -> None:
 def test_uncertainty_rejects_negative_sigma() -> None:
     with pytest.raises(UncertaintyError):
         Uncertainty.gaussian_px(-1.0, 1.0)
+
+
+def test_required_params_covers_every_uncertainty_kind() -> None:
+    """Day 24, Objective 3 audit: _REQUIRED_PARAMS is a hand-written dict
+    keyed by the UncertaintyKind Literal, the same shape as the
+    CAPABILITIES/GATES defect (Day 16, Day 23) -- a kind present in
+    UncertaintyKind but missing from _REQUIRED_PARAMS would raise a bare
+    KeyError from Uncertainty.__post_init__ instead of a clear
+    UncertaintyError. No drift exists today; this is the cheap structural
+    guard against it happening the moment a sixth kind is added."""
+    from src.model import uncertainty as uncertainty_module
+
+    assert set(uncertainty_module._REQUIRED_PARAMS) == set(ALL_UNCERTAINTY_KINDS)
 
 
 # ---------------------------------------------------------------------------
