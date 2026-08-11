@@ -5830,7 +5830,7 @@ entirely unblocked by design:
 `git push --all origin`: `foundation/day-23` pushed clean, matches origin
 exactly. `main` unchanged. `git push --tags`: up to date.
 
-# Day 24, in order
+## Day 24, in order
 
 1. **Multi-entity factor graph** — no longer blocked (v5-cessation
    supplied the cessation data volume Day 22 was waiting on); the
@@ -5883,3 +5883,402 @@ exactly. `main` unchanged. `git push --tags`: up to date.
 21. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued — a DPDP
     process decision, not a coding task.
 22. **Hypothesis management** — furthest out; depends on item 1.
+
+# Day 24
+
+**No timing, throughput, CPU-percentage, or latency claim is made
+anywhere in this section** — unchanged hard scope rule from Day 20-23.
+Everything below is accuracy, consistency, and test/measurement hygiene:
+frame-support auditing, a corrected covariance-floor derivation and its
+re-evaluation, a registry-derived validity matrix, and repo-wide test
+timing.
+
+**Headline, leading with the biggest reversal: the velocity-covariance
+floor Day 22-23 reported as permanently, physically inert was
+mis-derived, not inert. It scaled with the current predict step's own
+`dt_s` instead of the absolute physical stop duration it was meant to
+bound, so it shrank exactly as frame rate rose — which is why Day 23's
+1-1000fps sweep found it never binding anywhere. Corrected to an
+absolute bound, it now binds at every practical frame rate, and config B
+(single model + floor) clears the no-trade criterion outright on
+v4.1-gate and comes within one safe-direction deviation of clearing it
+on v5-cessation. Day 23's four-way evaluation was comparing three real
+configs and one no-op; today's is the first time all four have actually
+been different filters.** Config A stays adopted today regardless — see
+Objective 2 below for why re-deciding in the same session that found
+this would repeat exactly the mistake Day 21 was built to avoid — but
+the evidentiary picture ADR 0010 rests on is materially stronger for B
+than at any point since Day 22 first proposed it.
+
+Objective 1 separately found that Day 21's founding NEES-815 number —
+the one that motivated IMM, the floor, and three days of work — was
+itself under-supported as originally reported (n=1 hand-traced track).
+The underlying phenomenon is real and is now independently established
+at n=373 (Day 23), but the two questions are distinct: whether the
+diagnosis was well-supported when made, and whether the thing it
+diagnosed turned out to be true. The first answer is no; the second is
+yes.
+
+## Objective 0 — push, start of day
+
+`foundation/day-24` branched from `foundation/day-23` (`82742d3`), pushed
+clean before any Day-24 commit landed — verified local matched
+`origin/foundation/day-24` exactly. `main` unchanged since Day 16 (ADR
+0009 still Proposed). (End of day: see the closing Objective 0/5 section
+below.)
+
+## Objective 1 — how many frames actually supported NEES 815?
+
+Full derivation in `docs/adr/0010-estimator-configuration.md`'s "Day 24
+revision (Objective 1)" section (`bcb5763`); summarized here.
+
+**Verdict, one sentence: Day 21's NEES-815 diagnosis was under-supported
+as originally reported — n=1 hand-traced track, not an aggregate, and
+not even the same frames as the `cessation` row (n=3) Day 21's own report
+printed alongside it — but the phenomenon it pointed at is now
+independently established at real power (373 frames, 19 stop events,
+Day 23), so Days 21-22 are better read as "established that the problem
+existed" than "measured how bad it was."**
+
+Peak NEES and decay curve (Day 21's `brief_entry` trace, reproduced
+verbatim, the only source for the "815" figure):
+
+```
+frame  regime      NEES     bound   within
+ 0-3   onset       0.8-2.2  12.59   True
+ 4     cessation   165.6    12.59   False
+ 5-14  static      815->16  12.59   False (all)
+15+    static      <10      12.59   True
+```
+
+Per-regime NEES coverage, Day 21 (single model, target 0.95), for
+reference against the trace above:
+
+| set | regime | n | coverage |
+| --- | --- | ---: | ---: |
+| v3-indoor | static | 38 | 1.0000 |
+| v3-indoor | onset | 284 | 0.9648 |
+| v3-indoor | sustained | 2414 | 0.9938 |
+| v4.1-gate | static | 175 | 0.8171 |
+| v4.1-gate | onset | 12 | 0.8333 |
+| v4.1-gate | cessation | 3 | 0.0000 |
+
+Under the pre-Day-23 regime label, frames 5-14 of the trace above were
+classified `static`, not `cessation` — they are folded into v4.1-gate's
+`static` row (diluted by ~165 genuinely-converged frames), not visible
+in the `cessation` row printed next to the trace. **Day 21's own
+aggregate table and its own headline number described two different
+slices of the data that happened to share a name**, which is why neither
+looking at the trace nor looking at the table alone would have surfaced
+this — only comparing them does.
+
+Regime definition, then vs now: **then**, `classify_track`
+(`src/estimator/regime.py`, pre-Day-23) assigned `cessation` only to the
+anticipatory window immediately before a stop; every frame from the stop
+onward fell to `static`, including the entire recovery tail. **Now**
+(Day 23 Objective 1, unchanged today), a second labeling pass
+reclassifies a `static` run's opening frames back to `cessation` inside
+a `PEDESTRIAN_STOP_DURATION_S` recovery window (12 frames at 12fps)
+following a moving-to-static transition — the fix that raised
+v4.1-gate's cessation count 3→39 and is the label v5-cessation's 373
+frames were classified under from the start.
+
+**Process note — the second instance of the same omission pattern.**
+Day 20's per-distance-bucket margin existed in the underlying data but
+was not surfaced in the report's own table until Day 21 went looking.
+Here, the frame-support answer existed in Day 23's own Objective 1 body
+(the `brief_entry` track is named directly) but was never assembled into
+an explicit statement of the number's own evidentiary weight — Day 23's
+headline described the fix and the outcome, not the support behind the
+number that motivated it. Two instances is a pattern: a number can be
+technically present in a report and still functionally missing if no
+sentence states what it does or doesn't support. Applied going forward:
+any report section that opens a multi-day investigation on the strength
+of one measured number should state that number's own sample size in the
+same paragraph it is first reported, not leave it inferable from a trace
+printed for a different purpose.
+
+## Objective 2 — the velocity floor: re-derived as an absolute bound
+
+Full derivation, units at every step, and both re-evaluated golden sets
+are in ADR 0010's "Day 24 revision (Objective 2)" section (`38fa5bb`);
+summarized here.
+
+**The bug.** `pedestrian_velocity_covariance_floor_mps2` computed
+`sigma_v_floor^2 = (PERSON_SIGMA_A_MPS2 * dt_s)^2` — units
+`(m/s^2 * s)^2 = (m/s)^2`, dimensionally a velocity variance, which is
+why it read as correct. But `dt_s` there was the CURRENT PREDICT STEP's
+own timestep, so the formula answers "how much velocity uncertainty does
+one sample interval's own process noise inject" — a quantity that
+shrinks as the sample interval shrinks, i.e. as frame rate rises. That
+is not the physical question the floor exists to bound: how much could a
+person's velocity have changed since the filter last had strong evidence
+pinning it down, given a person can go from walking to at-rest in about
+`PEDESTRIAN_STOP_DURATION_S` (~1s) — a fact about the world, independent
+of how often a camera samples it.
+
+**The fix.** Anchor to the absolute duration instead of the current
+step's interval:
+
+```
+sigma_v_floor^2 = (PERSON_SIGMA_A_MPS2 * PEDESTRIAN_STOP_DURATION_S)^2
+                 = (1.5 m/s^2 * 1.0 s)^2 = (1.5 m/s)^2 = 2.25 (m/s)^2
+```
+
+constant at every fps. The two formulas coincide, by construction, at
+exactly `dt_s == PEDESTRIAN_STOP_DURATION_S` (1 fps) — which is why Day
+23's own sweep table already contained the value `2.2500` in its fps=1
+row without anyone noticing it was a coincidence, not a data point.
+
+**Floor vs converged σ_v on v5, at this project's 12fps:** natural
+Kalman convergence measures **0.0650 (m/s)²** (unchanged, re-measured);
+the corrected floor is **2.2500 (m/s)²** — ~34.6x larger, i.e. it binds,
+hard. Re-running `scripts/velocity_floor_frame_rate_sweep.py` across the
+full 1-1000fps range: the floor now binds everywhere except fps=1 (the
+coincidence point above), the exact reversal of Day 23's "never binds
+anywhere" finding — confirming the objective's own hypothesis ("a floor
+that never binds anywhere from 1-1000fps is more likely mis-derived than
+physically irrelevant").
+
+**Re-evaluated: `scripts/eval_estimator.py`'s four-way A/B/C/D
+comparison, both golden sets with real cessation volume** (config B/D
+now genuinely differ from A/C for the first time):
+
+v5-cessation (n=373):
+
+| regime | n | A cov | B cov | C cov | D cov |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| static | 260 | 0.9962 | 0.9923 | 0.0808 | 0.7154 |
+| onset (scored) | 91 | 0.8132 | 0.9890 | 0.9011 | 0.9011 |
+| sustained | 282 | 0.9574 | 0.9929 | 0.9504 | 0.9787 |
+| cessation | 373 | **0.5013** | **0.9946** | 0.3727 | 0.8606 |
+
+v4.1-gate (n=39):
+
+| regime | n | A cov | B cov | C cov | D cov |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| static | 139 | 0.9928 | 1.0000 | 0.5468 | 0.5468 |
+| onset | 12 | 0.8333 | 0.9167 | 0.9167 | 0.9167 |
+| cessation | 39 | **0.1282** | **1.0000** | 0.0256 | 0.1282 |
+
+No-trade verdicts (A→B):
+
+| version | cessation Δ | steady-regime Δ | verdict |
+| --- | --- | --- | --- |
+| v4.1-gate (n=39) | +0.7718 (IMPROVED) | static −0.0072 | **SATISFIED** |
+| v5-cessation (n=373) | +0.4040 (IMPROVED) | sustained −0.0355 (REGRESSION by the criterion's symmetric scoring) | NOT_SATISFIED |
+
+**Config B clears the bar outright on v4.1-gate.** It misses it on
+v5-cessation purely because `sustained` moved from 0.9574 to 0.9929 —
+i.e. from slightly underconfident to more underconfident, the SAFE
+direction of miscalibration, not the overconfident direction Day 21
+diagnosed as dangerous. The no-trade criterion currently scores
+`|coverage − 0.95|` growing as a regression regardless of which
+direction it grows in, so this counts against B exactly as hard as
+moving toward overconfidence would.
+
+**Decision: config A remains adopted today, unchanged — but not because
+B was re-measured and found wanting.** B's own defect is that no-trade's
+sustained-regime scoring cannot currently tell "the filter got 4 points
+more conservative" from "the filter got 4 points more overconfident,"
+and changing that scoring specifically because it would flip B's verdict
+this session is the exact "iterate a metric until it passes" pattern
+this project's rules prohibit — however defensible the argument sounds
+in isolation. Day 25's first item, stated before any re-scoring: decide
+whether the no-trade criterion should weight over- and under-confidence
+deviations asymmetrically, on its own methodological merits, and only
+then revisit B's adoption.
+
+## Objective 3 — the validity matrix is now derived, not copied
+
+`scripts/validity_matrix.py`'s `CAPABILITIES` tuple was a hand-maintained
+copy of `src.data.validity.GATES`'s keys — the exact defect caught and
+hand-patched on Day 16 (`point_tracking`) and Day 23
+(`state_estimation`), both times by adding to the tuple rather than
+removing it. Replaced with `registered_capabilities()`, which reads
+`GATES` live on every call — there is no second list to fall out of
+sync a third time. `tests/test_validity_matrix.py` (new): registers a
+dummy gate directly in `GATES` and confirms it appears with zero edits
+to the script, plus a grep-verify that no other hand-maintained copy of
+the capability list exists in `src/`, `scripts/`, `tests/`, or `configs/`.
+
+**Parallel-maintenance audit, as asked.** Same question asked of the
+rest of the codebase: where else is a registry kept in sync with a
+consumer by memory instead of by construction? Found and fixed three
+more, all the same latent shape, none yet drifted:
+
+- `LANE_DESCRIPTIONS` (`src/data/registry.py`) — a dict keyed by the
+  `Lane` Literal with no completeness check. Added
+  `test_lane_descriptions_covers_every_lane`.
+- `CONFIG_DESCRIPTIONS` / `CONFIG_SPECS` (`scripts/eval_estimator.py`) —
+  two separately hand-maintained dicts keyed by the same four config
+  labels. Added `test_config_descriptions_covers_every_config_spec`.
+- `_REQUIRED_PARAMS` (`src/model/uncertainty.py`) — keyed by the
+  `UncertaintyKind` Literal, no completeness check against
+  `ALL_UNCERTAINTY_KINDS`. Added
+  `test_required_params_covers_every_uncertainty_kind`.
+
+Checked and explicitly NOT flagged: `tests/test_golden_sets.py`'s
+hardcoded retained-version set (a deliberate append-only ledger — an
+auto-derived version would make the test check disk against itself,
+which is tautological, not a fix); `ACTION_TO_VERB`
+(`src/data/converters/ntu_skeleton.py`, documented as a deliberately
+partial/conservative mapping); `Envelope.capability`
+(`src/model/envelope.py`, a free string field, not an enum with a
+companion list); `DATASET_NAMES`
+(`scripts/gen_synthetic_indoor.py`, single consumer, no parallel list).
+(`d36e3d7`.)
+
+## Objective 4 — test hygiene, and an apparatus finding along the way
+
+Measured with `--durations=0` rather than guessed, per Day 23's own
+flag that the `slow` marker's definition ("renders the full synthetic
+set... costing ~90s") already covered these tests without excluding
+them: `tests/test_synthetic_indoor.py`, unmarked, ran 957.71s across 29
+tests. **13 tests genuinely qualify** — every one that calls
+`gen.generate()` directly or via a subprocess, ranging 16.12s-421.13s.
+The other 16 top out at 5.39s; two of those render individual frames via
+`gen.render_frame()` (not the full set) and correctly do not match the
+marker's own definition. Marked exactly the 13. Re-measured: this file's
+`-m "not slow"` subset drops **957.71s → 6.93s**.
+
+**Repo-wide, closing Day 23's open caveat** (`-m "not requires_weights
+and not slow"`, the number Day 23 could not confirm because it stopped
+at >92% on this file's then-unmarked tests): **1001 passed, 1 skipped,
+21 deselected, 0 failures.**
+
+**An apparatus finding surfaced while confirming that number, reported
+rather than the clean re-run being quietly kept.** The first run of the
+command above measured **969.07s**. Re-running the identical command
+immediately after — same flags, same machine, no code change in
+between — measured **58.42s**, with byte-identical pass/skip/deselect
+counts. A `--durations=25` breakdown of the fast run tops out at 6.68s
+for any single test and sums to 34.1s across all 25 slowest — nowhere
+near enough to explain a 969s total either way. This is a measurement-
+apparatus artifact, not a code or marking defect: the 969s run
+immediately followed this same session's 16-minute, CPU-saturating
+`--durations=0` run of `test_synthetic_indoor.py` alone, and this
+machine has twice before (Day 18, Day 19) been caught throttling under
+sustained load, including once while on AC power. `pmset -g therm`
+after the fact showed `CPU_Speed_Limit 100` (not currently throttled)
+with the battery at 16% and discharging — consistent with, but not
+direct confirmation of, throttling during the slow run specifically,
+since thermal state was not checked live at the time (unlike Day 19's
+own catch, which was). Both numbers are reported for that reason: the
+969s figure is not disowned, it is explained as far as the evidence
+available actually supports, which is short of certain. The trustworthy
+number for "does the not-slow suite run in bounded time" is the
+uncontended one (58.42s, corroborated by a third run at 72.74s with the
+new duration hook active below) — bounded, and consistent with what the
+per-file numbers already predicted.
+
+**STRUCTURAL, and cheap: a repo-wide duration-threshold gate.**
+`tests/conftest.py` gained a `pytest_runtest_makereport` hookwrapper that
+fails any test exceeding `SLOW_THRESHOLD_S` (15s — above the clean run's
+observed 6.68s maximum for an unmarked test, below the 16s+ tier that
+should already be marked) without `slow`/`requires_weights`/
+`decoder_dependent` set, so the next expensive test marks itself rather
+than being found by someone watching a terminal. Verified against an
+isolated scratch fixture before wiring in (lowered threshold; one
+intentionally-slow unmarked test fails with the expected message; one
+marked-slow test of the same duration passes); the full repo-wide suite
+still passes clean with the hook active (1001 passed, 1 skipped, 21
+deselected, 72.74s). (`0abd8c7`.)
+
+## Full suite and mypy
+
+`mypy` (scoped per `mypy.ini`, unchanged file list — today's estimator/
+validity/model work extended existing modules; `scripts/` and `tests/`
+are outside scope): **0 errors, 58 files** — unchanged from Day 23.
+`black --check` / `flake8` clean on every file touched today
+(`src/estimator/motion_model.py`, `scripts/validity_matrix.py`,
+`scripts/velocity_floor_frame_rate_sweep.py`, `tests/conftest.py`,
+`tests/test_synthetic_indoor.py`, `tests/test_estimator_models.py`,
+`tests/test_velocity_floor_frame_rate_sweep.py`,
+`tests/test_validity_matrix.py`, `tests/test_data_registry.py`,
+`tests/test_eval_estimator.py`, `tests/test_model_primitives.py`,
+`docs/adr/0010-estimator-configuration.md`).
+
+Repo-wide `-m "not requires_weights and not slow"`: **1001 passed, 1
+skipped, 21 deselected, 0 failures** — see Objective 4 for the two
+measured runtimes and why both are reported. This is the number Day 23
+flagged as unconfirmed; it is now confirmed, not carried forward as an
+open caveat.
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 23 — today's work was
+entirely unblocked by design:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification** — ranked #1 in Day 23's ordered list,
+   highest product impact of any pending data item; now 1 day older.
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 13 days old.
+5. **The `main`/`origin/main` divergence decision** (ADR 0009, Day 18,
+   still Proposed).
+6. **Reference hardware procurement decision**
+   (`docs/reference_hardware.md`) — now 6 days old.
+
+## Objective 0/5 — push, end of day
+
+`git push --all origin`: `foundation/day-24` pushed clean, matches origin
+exactly. `main` unchanged. `git push --tags`: up to date.
+
+## Day 25, in order
+
+1. **Decide the no-trade criterion's directionality question, before
+   re-scoring anything** — should `static`/`sustained` degradation be
+   scored symmetrically around 0.95, or should moving toward
+   underconfidence count less than moving toward overconfidence? Decide
+   on the methodological merits first; only then revisit config B's
+   adoption (Objective 2 today found B clears the bar on v4.1-gate
+   outright and misses v5-cessation only via a safe-direction deviation
+   under the current, symmetric scoring).
+2. **Multi-entity factor graph** — no longer blocked since Day 23's
+   v5-cessation landed; the highest-leverage next build regardless of
+   item 1's outcome.
+3. **Smoothing** (`horizon_kind="smoothed"`) — same unblock, still
+   secondary per Day 21's reasoning.
+4. **A velocity floor derived from the actual stopping deceleration
+   profile** — Day 22's other open question, untouched by today's fix
+   (today corrected the SAME physical basis's derivation; a genuinely
+   different basis is still untried) — lower priority now that the
+   corrected absolute floor already performs well, but not yet closed.
+5. **IMM's steady-regime mixing-overhead hypothesis** — unconfirmed, now
+   4 days deferred.
+6. **Mode-probability validation against real motion labels** — depends
+   on item 2.
+7. **MEVA licence verification** — still blocked on a human, highest
+   product impact of any pending data item.
+8. **DA-2K licence verification** — adapter built and tested, zero
+   engineering lag once cleared.
+9. **Reference hardware procurement decision** — now 6 days old.
+10. **Declare a target fps for real camera ingest** — still open from
+    Day 19.
+11. **Cascade bench, clean, on interim or reference hardware** — still
+    pending hardware.
+12. **Depth validity re-measurement** (`scripts/eval_depth.py`) — still
+    deferred; gates on item 8 for a real depth number.
+13. **The `main`/`origin/main` decision** (ADR 0009) — a human call.
+14. **The generator has no sensor-noise model** — unchanged.
+15. **Order cameras and run the office capture** — now 13 days old.
+16. **The motion-gate precision/selectivity investigation** — still
+    deferred.
+17. **A canonical `Observation -> hash` function** (ADR 0007) — still
+    open from Day 13.
+18. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced** — unchanged.
+19. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+20. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued — a DPDP
+    process decision, not a coding task.
+21. **Hypothesis management** — furthest out; depends on item 2.
+
+Dropped from this list today: "steer callers away from `raise_alert()`
+toward `emit_alert()`" — carried forward unchanged since Day 14 despite
+`raise_alert()` having been deleted entirely on Day 15
+(`tests/test_model_alert.py::test_raise_alert_deleted_from_events_module_and_package_root`
+asserts its absence). Nine days of carrying an already-resolved item is
+the same near-identical-recurring-boilerplate-line risk this list has
+already shown once (Day 20's append-order slip) — checked directly
+against the filesystem before dropping, not assumed stale.
