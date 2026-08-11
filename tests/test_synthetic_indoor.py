@@ -75,6 +75,7 @@ def test_agent_count_spans_the_declared_range() -> None:
     assert min(counts) <= 2 and max(counts) >= 6
 
 
+@pytest.mark.slow
 def test_generation_is_deterministic(tmp_path: Path) -> None:
     """Same seed, same bytes — a fixture that drifts is not a fixture."""
     first = gen.generate(tmp_path / "a", frames=4, fps=12.0, seed=7)
@@ -84,6 +85,7 @@ def test_generation_is_deterministic(tmp_path: Path) -> None:
     assert shas_a == shas_b
 
 
+@pytest.mark.slow
 def test_depth_is_metric_and_positive(tmp_path: Path) -> None:
     """Analytic depth in metres, so it can back a metric claim."""
     gen.generate(tmp_path, frames=4, fps=12.0, seed=3)
@@ -95,6 +97,7 @@ def test_depth_is_metric_and_positive(tmp_path: Path) -> None:
     assert 0.1 < float(np.median(depth)) < 100.0
 
 
+@pytest.mark.slow
 def test_occlusion_flags_exist_and_vary(tmp_path: Path) -> None:
     """An occlusion flag that is constant tests nothing."""
     gen.generate(tmp_path, frames=8, fps=12.0, seed=5)
@@ -107,6 +110,7 @@ def test_occlusion_flags_exist_and_vary(tmp_path: Path) -> None:
     assert any_variation, "no clip has partial occlusion; the set is too easy"
 
 
+@pytest.mark.slow
 def test_intrinsics_are_exact_not_guessed(tmp_path: Path) -> None:
     """Unlike compute_intrinsics, these are known rather than invented."""
     gen.generate(tmp_path, frames=4, fps=12.0, seed=9)
@@ -119,6 +123,7 @@ def test_intrinsics_are_exact_not_guessed(tmp_path: Path) -> None:
     np.testing.assert_allclose(extrinsics[3], [0, 0, 0, 1])
 
 
+@pytest.mark.slow
 def test_manifest_declares_the_synthetic_limitation(tmp_path: Path) -> None:
     """A synthetic scorecard quoted externally is the failure mode."""
     manifest = gen.generate(tmp_path, frames=4, fps=12.0, seed=11)
@@ -127,6 +132,7 @@ def test_manifest_declares_the_synthetic_limitation(tmp_path: Path) -> None:
     assert "why_not_kubric" in manifest["renderer"]
 
 
+@pytest.mark.slow
 def test_scorecard_reports_false_negatives_prominently(tmp_path: Path) -> None:
     """The metric that matters most must be present and correctly directed.
 
@@ -164,6 +170,7 @@ def test_scorecard_reports_false_negatives_prominently(tmp_path: Path) -> None:
     assert card.clips_scored == 2
 
 
+@pytest.mark.slow
 def test_scorecard_carries_a_live_measurement_environment(tmp_path: Path) -> None:
     """Day 17: the environment that scored THIS run, not the envelope's.
 
@@ -196,6 +203,7 @@ def test_scorecard_carries_a_live_measurement_environment(tmp_path: Path) -> Non
     assert "measurement_environment" in card.as_dict()
 
 
+@pytest.mark.slow
 def test_scorecard_reports_per_condition_wake_fraction(tmp_path: Path) -> None:
     """Objective 3 (Day 15): a single aggregate wake_fraction across mixed
     conditions must not be the headline -- card.per_condition always
@@ -228,6 +236,7 @@ def test_scorecard_reports_per_condition_wake_fraction(tmp_path: Path) -> None:
         assert np.isnan(card.per_condition[bucket]["wake_fraction"])
 
 
+@pytest.mark.slow
 def test_scorecard_reports_set_difficulty_not_just_score(tmp_path: Path) -> None:
     """A perfect score on easy clips says nothing; difficulty must be visible."""
     from src.config import IronConfig
@@ -250,6 +259,7 @@ def test_scorecard_reports_set_difficulty_not_just_score(tmp_path: Path) -> None
     assert any(m.name == "gt.occluded_track_fraction" for m in card.metrics)
 
 
+@pytest.mark.slow
 def test_static_background_is_bit_identical_across_frames(tmp_path: Path) -> None:
     """A wall does not shimmer.
 
@@ -481,6 +491,7 @@ def test_v5_cessation_varies_approach_speed_deceleration_and_distance() -> None:
     assert radial_far != radial_near, "radial distance-from-camera does not vary"
 
 
+@pytest.mark.slow
 def test_enforce_regime_volume_passes_on_v5_cessation(tmp_path: Path) -> None:
     manifest = gen.generate(
         tmp_path, frames=24, fps=12.0, seed=20260811, scene_set="v5-cessation"
@@ -495,6 +506,7 @@ def test_enforce_regime_volume_passes_on_v5_cessation(tmp_path: Path) -> None:
     assert counts["cessation"] >= 200
 
 
+@pytest.mark.slow
 def test_enforce_regime_volume_refuses_a_set_with_no_cessation(tmp_path: Path) -> None:
     """v3's own scenes never stop (Day 21/22: constant velocity throughout)
     -- exactly the set this gate exists to refuse if someone tried to mint
@@ -548,6 +560,7 @@ def test_stationary_v5_cessation_agent_silhouette_is_bit_identical() -> None:
             )
 
 
+@pytest.mark.slow
 def test_content_sha_reproduces_across_processes(tmp_path: Path) -> None:
     """The end-to-end version of the above, run in real subprocesses.
 
