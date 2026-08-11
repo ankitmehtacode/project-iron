@@ -1,9 +1,12 @@
 # ADR 0010 — Estimator configuration: config A remains in use
 
-- **Status:** Accepted; **revised 2026-08-11 (Day 23)** — see
-  "Day 23 revision" below. The original decision (config A) is UNCHANGED;
-  Day 23 replaces "unscoreable" evidence with a scored, decisive result
-  that supports the same decision more strongly.
+- **Status:** Accepted; revised 2026-08-11 (Day 23); **revised again
+  2026-08-11 (Day 24, Objective 1)** — see "Day 24 revision (Objective 1)"
+  below. Day 21's founding NEES-815 number is traced to n=1 hand-traced
+  track, not an aggregate — under-supported as originally reported,
+  though the underlying finding is now independently established at
+  real n (373 frames, Day 23). The adopted configuration (A) is
+  unchanged.
 - **Date:** 2026-08-10
 - **Decides for:** which of the four Day-22 estimator configurations
   (single model / single model + velocity floor / IMM / IMM + velocity
@@ -13,8 +16,10 @@
 - **Related:** [[iron-data-model-day13]] (IMM built Day 21, not yet
   validated as an improvement); `FOUNDATION_REPORT.md` Day 21 (cessation
   diagnosis, IMM build, no-trade criterion NOT satisfied), Day 22 (this
-  ADR's original evidence) and Day 23 (the revision below: v5-cessation,
-  the frame-rate sweep, and the reconciled regime labeling);
+  ADR's original evidence), Day 23 (the first revision below:
+  v5-cessation, the frame-rate sweep, and the reconciled regime
+  labeling), and Day 24 (the second revision below: the NEES-815
+  frame-support audit);
   [[check-the-measuring-apparatus]] (the pooled-NEES question this ADR
   answers, and the matrix-script gap Day 23 found while re-running the
   validity gates, are both instances of that pattern)
@@ -378,3 +383,80 @@ static harder than previously measured, and the floor is inert
 everywhere a camera for this product could plausibly run. This is a
 strictly stronger result than Day 22's, in the same direction: config A
 was provisionally correct-by-elimination; it is now correct-by-measurement.
+
+## Day 24 revision (Objective 1) — how much did Day 21's NEES-815 number actually support?
+
+Day 24's first objective asked a narrower question than it looks:
+Day 21's headline diagnosis — NEES climbing to ~815 and decaying over
+10-14 frames after a stop — motivated everything from IMM (Day 21) through
+the floor (Day 22) through v5-cessation (Day 23). How many frames actually
+stood behind that number when it was first reported?
+
+**Answer: exactly one hand-traced track.** Day 21 Objective 2's
+`brief_entry` trace (reproduced verbatim from the Day 21 report):
+
+```
+frame  regime      NEES     bound   within
+ 0-3   onset       0.8-2.2  12.59   True        <- fine
+ 4     cessation   165.6    12.59   False       <- the stop itself
+ 5-14  static      815->16  12.59   False (all) <- decaying tail
+15+    static      <10      12.59   True        <- settled
+```
+
+is a single-track, hand-traced narrative — 10 frames (5-14) of one
+recovery tail from one stop event. It was never an aggregate statistic.
+Day 21's own per-regime coverage table, printed in the SAME report
+section, could not have shown this finding even in principle: under the
+then-current regime label, those 10 decaying-NEES frames were themselves
+classified `static` (the label bug Day 23 Objective 1 later fixed), so
+they are folded into v4.1-gate's `static` row (n=175, coverage 0.8171) —
+diluted by ~165 genuinely-converged static frames elsewhere in the set —
+not visible in the `cessation` row (n=3, coverage 0.0000) printed
+alongside it, which the trace also does not correspond to (that n=3 was
+the anticipatory instant(s) before a stop, a different frame set
+entirely). **Day 21's own aggregate table and its own headline number
+were, without anyone noticing at the time, describing two different
+slices of the data that happened to share a label.**
+
+Regime definition, then vs now: **then** (Day 21, pre-Day-23-fix),
+`classify_track` (`src/estimator/regime.py`) used priority
+static > onset > cessation > maneuver > sustained and assigned
+`cessation` only to the anticipatory window immediately before GT speed
+reaches zero; every frame from the stop onward, including the entire
+recovery tail, fell to `static`. **Now** (Day 23 Objective 1's fix,
+unchanged today), a second labeling pass reclassifies a `static` run's
+opening frames back to `cessation` if they fall inside a recovery window
+of `PEDESTRIAN_STOP_DURATION_S` (12 frames at 12fps) following a
+moving-to-static transition — which is what raised v4.1-gate's cessation
+count 3→39, and is the label under which v5-cessation's 373 frames were
+classified from the start.
+
+**Verdict, one sentence: Day 21's NEES-815 diagnosis was under-supported
+as originally reported (n=1 track, hand-traced, not even the same frames
+as its own printed aggregate row) — the *existence* of the cessation
+miscalibration is now established (373 frames, 19 stop events, config A
+coverage 0.5013, decisively below the 0.95 target), but that took until
+Day 23 Objective 2-3, two full days after the diagnosis was first acted
+on.** This reframes Days 21-22 accurately: they established that IMM and
+the floor were plausible responses to a real-looking signal and built
+both in good faith, but neither day could have certified that the signal
+generalized beyond one anecdote, and Day 22 said so explicitly (the
+no-trade criterion's own "UNSCOREABLE" verdict was this same fact,
+already surfacing structurally two days before it was stated in these
+terms).
+
+**Process note — this is the second instance of the same omission
+pattern.** Day 20's per-distance-bucket margin existed in the underlying
+data but wasn't surfaced in the report's own table until Day 21
+Objective 1 went looking for it. Here, the "how many frames actually
+support this" question had its answer available in Day 23's own
+Objective 1 body (`FOUNDATION_REPORT.md` names the `brief_entry` track
+directly) but was never assembled into an explicit statement of support
+— Day 23's headline described the fix and the outcome, not the
+evidentiary weight of the number that motivated the fix. Two instances is
+a pattern, not a coincidence: a number can be technically present in a
+report and still functionally missing if no sentence ever states what it
+does or doesn't support. Going forward, any report section that opens a
+multi-day investigation on the strength of one measured number should
+state that number's own sample size in the same paragraph, not leave it
+inferable from a trace printed for a different purpose.
