@@ -135,8 +135,109 @@ authored synthetic scene (20-50+ agents) or real capture data, neither of
 which exists in this project's golden sets today (real camera capture is
 still blocked on procurement — see [[iron-blocked-on-humans]]).
 
-## Objective 3 — design, conditional on the gate above
+## Objective 3 — design, conditional on the gate above: landed
 
-*(Filled in below as Objective 3 lands — see the section immediately
-following this one if present; if absent, Objective 3 did not proceed
-past this ADR's own gate.)*
+`src/estimator/joint.py`. Components as the unit of inference: a
+`Component` is one carrier plus zero or more entities it carries,
+declared statically by the caller — Objective 2's proximity graph was a
+MEASUREMENT to sanity-check before building anything, not the grouping
+key the filter itself uses; the actual coupling factor implemented today
+is `carrier_entity_id` specifically (proximity alone creates no shared
+kinematic factor between two unrelated nearby entities).
+
+### Rigid coupling plus slip — the motivating case
+
+A carried entity's own kinematics are not tracked; its state is a 3D
+offset from its carrier (`carried_absolute_position = carrier_position +
+offset`), nearly constant between updates ("rigid") with a small
+process-noise density representing shift-while-held ("slip") —
+exactly the design `motion_model.py`'s `asset_carried` docstring named
+since Day 20 and left unimplemented pending this day. State layout: `[6
+carrier dims (pos, vel)] + [3 dims per carried entity (offset)]` — 6+3k
+for k carried entities. F: carrier's own motion-model F, identity on
+every offset block. Q: carrier's own motion-model Q, `slip_sigma² * dt *
+I3` on every offset block (declared 0.05 m/√s, same order as IMM's
+`static`-mode sway noise). H: position-only, picking `carrier_pos` for a
+carrier observation or `carrier_pos + offset_i` for a carried-entity
+observation (linear, no EKF needed). Joseph-form update, generalized
+dimension, applied sequentially for however many entities are observed
+at one timestep.
+
+**Tested directly, not just claimed:** bootstrap a carrier+carried
+component, feed ONLY carrier observations for several further steps (no
+carried-entity observation at all), and confirm the carried entity's
+implied absolute position moves with the carrier
+(`test_carried_entity_posterior_moves_with_carrier_without_further_observation`).
+This is the entire product value of coupling — the carrier's motion
+informs the carried entity's estimate between the object's own, possibly
+sparse, detections — and it falls out of the predict step automatically
+once the state layout above is correct; no special-cased "propagate the
+carried entity" logic was needed.
+
+### Size-1 delegates to Day 20/25's own filter, verbatim
+
+A component with no carried entities is not joint at all:
+`run_joint_filter` calls
+`src.estimator.filter.run_single_entity_filter` directly for that case —
+not a reimplementation that happens to agree, the actual function call —
+so it reproduces Day 20/25's single-entity behaviour (mean, cov, and
+config B's adopted velocity floor) bit-for-bit BY CONSTRUCTION, tested
+directly against a shared observation sequence
+(`test_size_one_component_reproduces_single_entity_filter_exactly`).
+
+### NEES dof, tested at sizes 1/2/3
+
+`consistency.compute_nees` already infers `dof = error.shape[0]` — no
+joint-specific NEES function was needed, only correctly-sized joint
+error/cov arrays. Tested directly (`test_nees_dof_matches_component_size`,
+parametrized): size-1 reports dof=6 (identical to Day 25), size-2
+(1 carried entity) reports dof=9, size-3 (2 carried entities) reports
+dof=12 — confirming "getting this right" was about the state
+construction, not the metric.
+
+### STRUCTURAL, re-tested against the single-entity precedent
+
+- **Prior firewall (§17):** `run_joint_filter`/`resolve_joint_state`
+  signatures inspected directly (`inspect.signature`), no
+  prior-shaped parameter — same test pattern as
+  `run_single_entity_filter`'s own.
+- **Consistency residuals required:** `JointStateEstimate` independently
+  re-checks the non-empty-residuals-with-an-nis-entry rule at
+  construction (not inherited from `StateEstimate` — a genuinely separate
+  type, since the joint state's dimension is variable and
+  `StateEstimate.mean` is hard-validated to exactly `STATE_DIM=6`).
+- **graph_rev reproducibility:** re-solving a joint component at an
+  earlier revision after MORE factors (a second, unrelated component) are
+  appended to the same graph reproduces bit-identically — tested directly,
+  mirroring `test_estimator_filter.py`'s own reproducibility test.
+
+### Not implemented today — a real scope limit, not a discovered gap
+
+Bootstrap requires every declared component member to be observed at the
+component's FIRST timestamp; a carried entity discovered mid-track
+(dynamic membership) is out of scope. Two skeletons name what would close
+this, both `NotImplementedError` with a docstring, not a silent
+placeholder: `resolve_data_association` (hypothesis management — which
+carrier a carried entity belongs to, when that's genuinely ambiguous) and
+`HybridDiscreteContinuousState` (a discrete "picked up"/"set down" mode
+that would let component membership change without restarting the
+filter). `resolve_joint_state` also raises `NotImplementedError` for
+`horizon_kind="smoothed"`, matching `StateQuery`'s own documented
+convention. None of these were needed for today's evaluation
+(Objective 4), which builds and tears down one component's full
+membership per synthetic track.
+
+### One convention carried forward, not enforced by code
+
+A `StateGraph` is used per-component, exactly as the single-entity
+precedent uses one per track (`run_single_entity_filter`'s own docstring
+already noted "nothing in this Day-20 scope exercises" sharing a graph
+across unrelated entities). `resolve_joint_state` does not filter
+factors by component identity — it relies on `graph_rev` pinning the
+same way `resolve_state` always has. Mixing two components' factors into
+one graph and querying at the LATEST revision could pick up the wrong
+component's estimate; this was not fixed today because nothing in this
+project's actual call sites does that (today's evaluation harness builds
+a fresh graph per component, matching `scripts/eval_estimator.py`'s own
+per-track pattern). Flagged here so a future multi-component orchestrator
+does not assume this guarantee exists.

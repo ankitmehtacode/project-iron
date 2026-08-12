@@ -1,0 +1,488 @@
+"""Day 26, Objective 3 — the multi-entity joint filter.
+
+Structural properties under test, each isolated so a regression in one
+doesn't hide behind another passing (mirrors tests/test_estimator_filter.py's
+own organization for the single-entity precedent this extends):
+
+- Size-1 components reproduce Day 20/25's single-entity filter bit-for-bit
+  (mean, cov, and NEES dof), by delegation, not by a second implementation
+  that happens to agree.
+- The motivating case: a carrier's own motion moves a carried entity's
+  posterior even with no further observation of the carried entity at all.
+- NEES dof is correct at component sizes 1, 2, and 3 -- 6, 9, and 12
+  respectively -- getting this wrong is exactly the silent-mis-report risk
+  Day 26's objective named explicitly.
+- The prior firewall (no behavioral-prior parameter) and graph_rev
+  reproducibility, re-tested against the joint path specifically.
+"""
+
+from __future__ import annotations
+
+import inspect
+
+import numpy as np
+import pytest
+
+from src.contracts.frames import AffineTransform, FrameGeometry
+from src.estimator import consistency
+from src.estimator.joint import (
+    Component,
+    HybridDiscreteContinuousState,
+    JointFilterError,
+    JointObservation,
+    JointStateEstimate,
+    resolve_data_association,
+    resolve_joint_state,
+    run_joint_filter,
+)
+from src.estimator.measurement_model import measurement_model_for
+from src.estimator.motion_model import motion_model_for
+from src.model.episode import StateGraph, StateQuery
+from src.model.frame_of_reference import FrameOfReference
+from src.model.measurement import WorldPositionMeasurement
+from src.model.observation import Observation
+from src.model.uncertainty import Uncertainty
+from src.model.ulid import generate_ulid
+
+SECOND_NS = 1_000_000_000
+BASE_TS = 1_785_000_000 * SECOND_NS
+
+
+def _frame_of_reference() -> FrameOfReference:
+    return FrameOfReference(
+        geometry=FrameGeometry(1920, 1080),
+        to_canonical=AffineTransform.identity(),
+        twin_rev=1,
+    )
+
+
+def _obs(
+    x_m: float, y_m: float, z_m: float, ts_ns: int, sensor_id: str = "cam-1"
+) -> Observation:
+    return Observation(
+        observation_id=generate_ulid(now_ns=ts_ns),
+        sensor_id=sensor_id,
+        ts_ns=ts_ns,
+        frame_ref=f"{sensor_id}/frame-{ts_ns}",
+        measurement=WorldPositionMeasurement(x_m=x_m, y_m=y_m, z_m=z_m),
+        uncertainty=Uncertainty(kind="gaussian_3d", params=(("sigma_m", 0.05),)),
+        frame_of_reference=_frame_of_reference(),
+        producer_shas=("test",),
+        envelope_status="within_envelope",
+    )
+
+
+def _walking_track(n: int, step_m: float = 0.5, dt_s: float = 1.0) -> list[Observation]:
+    return [
+        _obs(
+            x_m=step_m * i, y_m=0.0, z_m=0.0, ts_ns=BASE_TS + int(i * dt_s * SECOND_NS)
+        )
+        for i in range(n)
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Component validation
+# ---------------------------------------------------------------------------
+
+
+def test_component_rejects_carrier_carrying_itself() -> None:
+    with pytest.raises(JointFilterError):
+        Component(carrier_entity_id="A", carried_entity_ids=("A",))
+
+
+def test_component_rejects_duplicate_carried_ids() -> None:
+    with pytest.raises(JointFilterError):
+        Component(carrier_entity_id="A", carried_entity_ids=("laptop-7", "laptop-7"))
+
+
+def test_component_size_and_state_dim() -> None:
+    solo = Component(carrier_entity_id="A")
+    assert solo.size == 1 and solo.state_dim == 6
+    pair = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    assert pair.size == 2 and pair.state_dim == 9
+    triple = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7", "bag-3"))
+    assert triple.size == 3 and triple.state_dim == 12
+
+
+# ---------------------------------------------------------------------------
+# Prior firewall
+# ---------------------------------------------------------------------------
+
+
+def test_run_joint_filter_has_no_prior_parameter() -> None:
+    sig = inspect.signature(run_joint_filter)
+    for name in sig.parameters:
+        assert "prior" not in name.lower(), f"found a prior-shaped parameter: {name!r}"
+
+
+def test_resolve_joint_state_has_no_prior_parameter() -> None:
+    sig = inspect.signature(resolve_joint_state)
+    for name in sig.parameters:
+        assert "prior" not in name.lower(), f"found a prior-shaped parameter: {name!r}"
+
+
+# ---------------------------------------------------------------------------
+# Size-1 reproduces Day 20/25's single-entity filter bit-for-bit
+# ---------------------------------------------------------------------------
+
+
+def test_size_one_component_reproduces_single_entity_filter_exactly() -> None:
+    from src.estimator.filter import run_single_entity_filter
+    from src.model.episode import solve_state
+
+    observations = _walking_track(10)
+    component = Component(carrier_entity_id="A")
+
+    single_graph = StateGraph()
+    run_single_entity_filter(
+        single_graph,
+        observations,
+        motion_model_for("person", velocity_covariance_floor=True),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+    )
+    query = StateQuery(
+        at_ts_ns=observations[-1].ts_ns, horizon_ns=0, graph_rev=single_graph.graph_rev
+    )
+    single_estimate = solve_state(query, single_graph)
+
+    joint_graph = StateGraph()
+    run_joint_filter(
+        joint_graph,
+        component,
+        [JointObservation(entity_id="A", observation=o) for o in observations],
+        motion_model_for("person", velocity_covariance_floor=True),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+    )
+    joint_query = StateQuery(
+        at_ts_ns=observations[-1].ts_ns, horizon_ns=0, graph_rev=joint_graph.graph_rev
+    )
+    joint_estimate = resolve_joint_state(joint_query, joint_graph)
+
+    assert joint_estimate.mean == single_estimate.mean
+    assert joint_estimate.cov == single_estimate.cov
+
+    gt = np.array([4.5, 0.0, 0.0, 0.5, 0.0, 0.0])
+    single_nees = consistency.compute_nees(
+        single_estimate.mean_array() - gt, single_estimate.cov_array()
+    )
+    joint_nees = consistency.compute_nees(
+        joint_estimate.mean_array() - gt, joint_estimate.cov_array()
+    )
+    assert single_nees.value == joint_nees.value
+    assert single_nees.dof == joint_nees.dof == 6
+
+
+# ---------------------------------------------------------------------------
+# The motivating case
+# ---------------------------------------------------------------------------
+
+
+def test_carried_entity_posterior_moves_with_carrier_without_further_observation() -> (
+    None
+):
+    """If A carries laptop-7 and A moves, laptop-7's posterior must move --
+    even across steps with NO new observation of laptop-7 at all."""
+    component = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    bootstrap_offset = np.array([0.3, 0.0, 0.0])
+
+    carrier_obs = _walking_track(6, step_m=0.5)
+    carrier_start_x = carrier_obs[0].measurement.x_m  # type: ignore[union-attr]
+    carried_bootstrap = _obs(
+        x_m=carrier_start_x + bootstrap_offset[0],
+        y_m=0.0,
+        z_m=0.0,
+        ts_ns=BASE_TS,
+    )
+    joint_obs = [JointObservation("A", o) for o in carrier_obs]
+    joint_obs.append(JointObservation("laptop-7", carried_bootstrap))
+
+    graph = StateGraph()
+    run_joint_filter(
+        graph,
+        component,
+        joint_obs,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+    )
+    first_query = StateQuery(at_ts_ns=BASE_TS, horizon_ns=0, graph_rev=graph.graph_rev)
+    first_estimate = resolve_joint_state(first_query, graph)
+    assert isinstance(first_estimate, JointStateEstimate)
+    carried_start = first_estimate.carried_position_m("laptop-7")
+
+    last_ts = carrier_obs[-1].ts_ns
+    last_query = StateQuery(at_ts_ns=last_ts, horizon_ns=0, graph_rev=graph.graph_rev)
+    last_estimate = resolve_joint_state(last_query, graph)
+    assert isinstance(last_estimate, JointStateEstimate)
+    carried_end = last_estimate.carried_position_m("laptop-7")
+    carrier_end = last_estimate.carrier_position_m()
+    carrier_start = first_estimate.carrier_position_m()
+
+    # The carried entity moved by (approximately) the same displacement as
+    # the carrier -- the rigid-coupling identity -- despite receiving no
+    # observation of its own after bootstrap.
+    np.testing.assert_allclose(
+        carried_end - carried_start, carrier_end - carrier_start, atol=0.3
+    )
+
+
+# ---------------------------------------------------------------------------
+# NEES dof correctness at component sizes 1, 2, 3
+# ---------------------------------------------------------------------------
+
+
+def _bootstrap_component(carried_ids: tuple[str, ...]) -> tuple[StateGraph, Component]:
+    component = Component(carrier_entity_id="A", carried_entity_ids=carried_ids)
+    carrier_obs = _walking_track(6, step_m=0.5)
+    joint_obs = [JointObservation("A", o) for o in carrier_obs]
+    for i, cid in enumerate(carried_ids):
+        joint_obs.append(
+            JointObservation(
+                cid, _obs(x_m=0.1 * (i + 1), y_m=0.0, z_m=0.0, ts_ns=BASE_TS)
+            )
+        )
+    graph = StateGraph()
+    run_joint_filter(
+        graph,
+        component,
+        joint_obs,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+    )
+    return graph, component
+
+
+@pytest.mark.parametrize(
+    "carried_ids,expected_dof",
+    [((), 6), (("laptop-7",), 9), (("laptop-7", "bag-3"), 12)],
+)
+def test_nees_dof_matches_component_size(
+    carried_ids: tuple[str, ...], expected_dof: int
+) -> None:
+    graph, component = _bootstrap_component(carried_ids)
+    query = StateQuery(at_ts_ns=BASE_TS, horizon_ns=0, graph_rev=graph.graph_rev)
+    estimate = resolve_joint_state(query, graph)
+    gt = np.zeros(component.state_dim)
+    nees = consistency.compute_nees(estimate.mean_array() - gt, estimate.cov_array())
+    assert nees.dof == expected_dof
+
+
+# ---------------------------------------------------------------------------
+# Bootstrap correctness and error handling
+# ---------------------------------------------------------------------------
+
+
+def test_bootstrap_offset_is_carried_minus_carrier() -> None:
+    component = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    carrier_obs = _obs(x_m=1.0, y_m=2.0, z_m=0.0, ts_ns=BASE_TS)
+    carried_obs = _obs(x_m=1.3, y_m=2.0, z_m=0.0, ts_ns=BASE_TS)
+    graph = StateGraph()
+    run_joint_filter(
+        graph,
+        component,
+        [JointObservation("A", carrier_obs), JointObservation("laptop-7", carried_obs)],
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+    )
+    query = StateQuery(at_ts_ns=BASE_TS, horizon_ns=0, graph_rev=graph.graph_rev)
+    estimate = resolve_joint_state(query, graph)
+    assert isinstance(estimate, JointStateEstimate)
+    np.testing.assert_allclose(estimate.carried_offset_m("laptop-7"), [0.3, 0.0, 0.0])
+    np.testing.assert_allclose(estimate.carried_position_m("laptop-7"), [1.3, 2.0, 0.0])
+
+
+def test_bootstrap_missing_a_declared_member_raises() -> None:
+    component = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    graph = StateGraph()
+    with pytest.raises(JointFilterError, match="missing observations"):
+        run_joint_filter(
+            graph,
+            component,
+            [JointObservation("A", _obs(0.0, 0.0, 0.0, BASE_TS))],
+            motion_model_for("person"),
+            measurement_model_for("cam-1"),
+            manifest_sha="m",
+        )
+
+
+def test_observation_for_unrelated_entity_raises() -> None:
+    component = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    graph = StateGraph()
+    with pytest.raises(JointFilterError, match="not part of this component"):
+        run_joint_filter(
+            graph,
+            component,
+            [
+                JointObservation("A", _obs(0.0, 0.0, 0.0, BASE_TS)),
+                JointObservation("laptop-7", _obs(0.1, 0.0, 0.0, BASE_TS)),
+                JointObservation("intruder", _obs(5.0, 5.0, 0.0, BASE_TS + SECOND_NS)),
+            ],
+            motion_model_for("person"),
+            measurement_model_for("cam-1"),
+            manifest_sha="m",
+        )
+
+
+def test_empty_observations_raises() -> None:
+    component = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    graph = StateGraph()
+    with pytest.raises(JointFilterError):
+        run_joint_filter(
+            graph,
+            component,
+            [],
+            motion_model_for("person"),
+            measurement_model_for("cam-1"),
+            manifest_sha="m",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Velocity floor applies to the carrier block in a joint solve
+# ---------------------------------------------------------------------------
+
+
+def test_velocity_floor_binds_on_the_carrier_block_of_a_joint_solve() -> None:
+    from src.estimator.motion_model import pedestrian_velocity_covariance_floor_mps2
+
+    component = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    carrier_obs = _walking_track(10, step_m=0.5, dt_s=1.0 / 12.0)
+    carried_obs = _obs(
+        x_m=carrier_obs[0].measurement.x_m + 0.3,  # type: ignore[union-attr]
+        y_m=0.0,
+        z_m=0.0,
+        ts_ns=BASE_TS,
+    )
+    joint_obs = [JointObservation("A", o) for o in carrier_obs]
+    joint_obs.append(JointObservation("laptop-7", carried_obs))
+
+    graph = StateGraph()
+    run_joint_filter(
+        graph,
+        component,
+        joint_obs,
+        motion_model_for("person", velocity_covariance_floor=True),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+    )
+    query = StateQuery(
+        at_ts_ns=carrier_obs[-1].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev
+    )
+    estimate = resolve_joint_state(query, graph)
+    floor = pedestrian_velocity_covariance_floor_mps2(1.0 / 12.0)
+    cov = estimate.cov_array()
+    for axis in range(3):
+        assert cov[3 + axis, 3 + axis] >= floor - 1e-9
+
+
+# ---------------------------------------------------------------------------
+# STRUCTURAL — reproducibility: re-solve a joint component at an earlier rev
+# ---------------------------------------------------------------------------
+
+
+def test_resolving_a_joint_component_at_an_earlier_rev_is_bit_identical() -> None:
+    component = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    first_batch = _walking_track(4)
+    carried_bootstrap = _obs(
+        x_m=first_batch[0].measurement.x_m + 0.3,  # type: ignore[union-attr]
+        y_m=0.0,
+        z_m=0.0,
+        ts_ns=BASE_TS,
+    )
+    joint_obs = [JointObservation("A", o) for o in first_batch]
+    joint_obs.append(JointObservation("laptop-7", carried_bootstrap))
+
+    graph = StateGraph()
+    run_joint_filter(
+        graph,
+        component,
+        joint_obs,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+    )
+    rev_after_first_batch = graph.graph_rev
+    query = StateQuery(
+        at_ts_ns=first_batch[-1].ts_ns, horizon_ns=0, graph_rev=rev_after_first_batch
+    )
+    before = resolve_joint_state(query, graph)
+
+    # Append factors for a SECOND, unrelated component onto the SAME graph
+    # (mirrors test_estimator_filter.py's own reproducibility test, which
+    # appends an unrelated second walker) -- this must not perturb the
+    # first component's already-resolved earlier state.
+    other_component = Component(carrier_entity_id="B", carried_entity_ids=("bag-3",))
+    other_obs = [
+        JointObservation(
+            "B",
+            _obs(
+                x_m=100.0 + i,
+                y_m=0.0,
+                z_m=0.0,
+                ts_ns=first_batch[-1].ts_ns + (i + 1) * SECOND_NS,
+            ),
+        )
+        for i in range(3)
+    ]
+    other_obs.append(
+        JointObservation(
+            "bag-3",
+            _obs(x_m=100.3, y_m=0.0, z_m=0.0, ts_ns=first_batch[-1].ts_ns + SECOND_NS),
+        )
+    )
+    run_joint_filter(
+        graph,
+        other_component,
+        other_obs,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+    )
+    assert graph.graph_rev > rev_after_first_batch
+
+    after = resolve_joint_state(query, graph)
+
+    assert before.mean == after.mean
+    assert before.cov == after.cov
+    assert before.graph_rev == after.graph_rev == rev_after_first_batch
+
+
+# ---------------------------------------------------------------------------
+# Skeletons: NotImplementedError, not a silent gap
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_data_association_is_not_implemented() -> None:
+    with pytest.raises(NotImplementedError):
+        resolve_data_association()
+
+
+def test_hybrid_discrete_continuous_state_is_not_implemented() -> None:
+    with pytest.raises(NotImplementedError):
+        HybridDiscreteContinuousState()
+
+
+def test_resolve_joint_state_smoothed_horizon_raises_not_implemented() -> None:
+    component = Component(carrier_entity_id="A")
+    graph = StateGraph()
+    run_joint_filter(
+        graph,
+        component,
+        [JointObservation("A", _obs(0.0, 0.0, 0.0, BASE_TS))],
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+    )
+    query = StateQuery(
+        at_ts_ns=BASE_TS,
+        horizon_ns=0,
+        graph_rev=graph.graph_rev,
+        horizon_kind="smoothed",
+    )
+    with pytest.raises(NotImplementedError):
+        resolve_joint_state(query, graph)
