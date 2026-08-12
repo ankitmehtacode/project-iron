@@ -98,6 +98,7 @@ Not implemented today (skeletons, not silent gaps)
 from __future__ import annotations
 
 import hashlib
+import json
 from dataclasses import dataclass
 from typing import Literal, Sequence
 
@@ -114,9 +115,10 @@ from src.estimator.motion_model import (
     STATE_DIM,
     MotionModel,
     apply_velocity_covariance_floor,
+    motion_model_for,
 )
 from src.estimator.state import ConsistencyResidual, StateEstimate
-from src.model.episode import Factor, StateGraph, StateQuery
+from src.model.episode import Factor, StateGraph, StateQuery, solve_state
 from src.model.measurement import WorldPositionMeasurement
 from src.model.observation import Observation
 from src.model.ulid import generate_ulid
@@ -248,6 +250,122 @@ class Component:
         return slice(start, start + OFFSET_DIM)
 
 
+DegradationAction = Literal["independent_fallback"]
+"""Day 27, Objective 2: what the solver does when a component exceeds its
+configured cap. Only one action is implemented today (``"split_weakest_
+coupling"`` was the named alternative and was NOT built -- see
+:data:`DEFAULT_COMPONENT_CAP_CONFIG`'s docstring for why). A ``Literal``
+with a single member is intentional, not a placeholder: it keeps the
+field's type honest about what can actually happen today, and adding a
+second action later is a type-checker-visible change everywhere this is
+matched, not a silent string comparison someone forgot to update."""
+
+
+@dataclass(frozen=True)
+class ComponentCapConfig:
+    """Config-driven, versioned bound on joint-component size -- see
+    :data:`DEFAULT_COMPONENT_CAP_CONFIG` for the declared default and its
+    justification. Passed explicitly to :func:`run_joint_filter` (never a
+    module-global mutated in place), same convention as
+    :class:`~src.estimator.imm.ImmConfig`."""
+
+    max_component_size: int
+    degradation_action: DegradationAction
+
+    def __post_init__(self) -> None:
+        if self.max_component_size < 1:
+            raise JointFilterError(
+                f"ComponentCapConfig.max_component_size must be >= 1, got "
+                f"{self.max_component_size}"
+            )
+
+    @property
+    def sha(self) -> str:
+        payload = {
+            "max_component_size": self.max_component_size,
+            "degradation_action": self.degradation_action,
+        }
+        canonical = json.dumps(payload, sort_keys=True)
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+DEFAULT_COMPONENT_CAP_CONFIG = ComponentCapConfig(
+    max_component_size=6, degradation_action="independent_fallback"
+)
+"""6, not a round number picked for convenience: Day 26 Objective 2's own
+coupling-density measurement (``scripts/measure_component_sparsity.py``)
+found this project's data supports component sizes up to 6 -- the
+largest authored scene's agent count -- and its own decision gate
+("proceed to Objective 3 only if p95 component size <= 6") used exactly
+this bound to authorize building any solver at all. The solver was
+designed against, and evaluated against
+(``scripts/eval_joint_estimator.py``), data topping out at 6 entities.
+Capping the solver's own operation at that SAME measured bound means it
+never runs in a component-size regime nothing has validated it against —
+exceeding 6 degrades rather than extrapolating joint-estimation behaviour
+into untested territory. See ``docs/adr/0011-multi-entity-factor-graph.md``'s
+Day 26 "Decision gate" section for the full derivation.
+
+``degradation_action="independent_fallback"``, not ``"split_weakest_
+coupling"``: independent fallback regresses to Day 20/25's single-entity
+filter, already well-tested and well-understood, with a known accuracy/
+calibration profile (``scripts/eval_estimator.py``). "Split weakest
+coupling" would need a measured notion of relationship information
+strength to rank factors by -- this project has never measured that (Day
+26 Objective 2 measured coupling DENSITY, not coupling INFORMATIVENESS),
+so building a ranking heuristic today would be exactly the kind of
+unmeasured analytical claim Day 25/26's own rule warns against."""
+
+
+@dataclass(frozen=True)
+class DegradedComponentEstimate:
+    """What :func:`run_joint_filter` emits INSTEAD of a
+    :class:`JointStateEstimate` when ``component.size`` exceeds
+    ``cap_config.max_component_size``. STRUCTURAL: this is a distinct
+    TYPE, not a flag bolted onto ``JointStateEstimate`` -- a caller
+    holding one of these cannot construct it without
+    ``degradation_action`` and ``cap_config_sha`` (both required fields,
+    no default), and cannot mistake it for a genuine joint solve the way
+    an optional flag on the same type could be overlooked. Every entity's
+    own independently-filtered :class:`~src.estimator.state.StateEstimate`
+    is preserved (not discarded) -- a degraded component still resolves
+    to a real per-entity answer, just not a jointly-coupled one.
+    """
+
+    ts_ns: int
+    component: Component
+    degradation_action: DegradationAction
+    cap_config_sha: str
+    entity_estimates: tuple[tuple[str, StateEstimate], ...]
+
+    def __post_init__(self) -> None:
+        if not self.degradation_action:
+            raise JointFilterError(
+                "DegradedComponentEstimate.degradation_action must not be empty"
+            )
+        if not self.cap_config_sha:
+            raise JointFilterError(
+                "DegradedComponentEstimate.cap_config_sha must not be empty"
+            )
+        recorded_ids = {entity_id for entity_id, _ in self.entity_estimates}
+        expected_ids = set(self.component.entity_ids)
+        if recorded_ids != expected_ids:
+            raise JointFilterError(
+                f"DegradedComponentEstimate.entity_estimates covers "
+                f"{sorted(recorded_ids)}, expected exactly "
+                f"{sorted(expected_ids)} (component.entity_ids)"
+            )
+
+    def estimate_for(self, entity_id: str) -> StateEstimate:
+        for recorded_id, estimate in self.entity_estimates:
+            if recorded_id == entity_id:
+                return estimate
+        raise JointFilterError(
+            f"{entity_id!r} is not a member of this degraded component "
+            f"({self.component.entity_ids})"
+        )
+
+
 @dataclass(frozen=True)
 class JointObservation:
     """One entity's observation, tagged with which member of the component
@@ -362,6 +480,14 @@ class _JointAppendedState:
     offset_slip_model: OffsetSlipModel = "constant"
 
 
+@dataclass(frozen=True)
+class _DegradedAppendedState:
+    """What ``StateGraph``'s payload slot holds for a capped (degraded)
+    component step -- the degraded-path analogue of ``_JointAppendedState``."""
+
+    estimate: DegradedComponentEstimate
+
+
 def _distance_m(position_m: FloatArray, sensor_origin_m: FloatArray) -> float:
     return float(np.linalg.norm(position_m - sensor_origin_m))
 
@@ -428,6 +554,118 @@ def _xyz(measurement: WorldPositionMeasurement) -> FloatArray:
     )
 
 
+def _run_degraded_fallback(
+    graph: StateGraph,
+    component: Component,
+    observations: Sequence[JointObservation],
+    carrier_motion_model: MotionModel,
+    measurement_model: MeasurementModel,
+    manifest_sha: str,
+    cap_config: ComponentCapConfig,
+    sensor_origin_m: tuple[float, float, float],
+) -> StateGraph:
+    """``component.size > cap_config.max_component_size``: run every
+    entity INDEPENDENTLY (the carrier under its own motion model, each
+    carried entity under the un-coupled ``asset_carried`` model -- Day
+    20's original, pre-coupling default) and bundle the results into one
+    :class:`DegradedComponentEstimate` per shared timestamp, appended to
+    ``graph`` as the returned type :func:`resolve_joint_state` will hand
+    back for this graph.
+
+    Requires every entity to be observed at every timestamp ANY entity in
+    the component is observed at (full synchronization) -- every caller
+    of :func:`run_joint_filter` today (``scripts/eval_joint_estimator.py``)
+    already constructs fully synchronized per-entity observation streams;
+    tolerating a genuinely asynchronous, per-entity-sparse stream in the
+    degraded path is not needed by anything that exists today and is not
+    built speculatively.
+    """
+    if not observations:
+        raise JointFilterError("run_joint_filter needs at least one observation")
+
+    entity_ids = component.entity_ids
+    per_entity_obs: dict[str, list[Observation]] = {eid: [] for eid in entity_ids}
+    for jo in observations:
+        if jo.entity_id not in per_entity_obs:
+            raise JointFilterError(
+                f"observation entity_id {jo.entity_id!r} is not part of this "
+                f"component {entity_ids}"
+            )
+        per_entity_obs[jo.entity_id].append(jo.observation)
+
+    all_ts = sorted({o.ts_ns for obs_list in per_entity_obs.values() for o in obs_list})
+    for eid in entity_ids:
+        observed_ts = {o.ts_ns for o in per_entity_obs[eid]}
+        missing = [ts for ts in all_ts if ts not in observed_ts]
+        if missing:
+            raise JointFilterError(
+                f"degraded fallback for component {entity_ids} requires every "
+                f"entity observed at every shared timestamp; entity {eid!r} is "
+                f"missing {len(missing)} of {len(all_ts)} timestamps"
+            )
+
+    entity_motion_models: dict[str, MotionModel] = {
+        component.carrier_entity_id: carrier_motion_model
+    }
+    for cid in component.carried_entity_ids:
+        entity_motion_models[cid] = motion_model_for("asset_carried")
+
+    entity_graphs: dict[str, StateGraph] = {}
+    for eid in entity_ids:
+        obs_sorted = sorted(per_entity_obs[eid], key=lambda o: o.ts_ns)
+        sub_graph = StateGraph()
+        run_single_entity_filter(
+            sub_graph,
+            obs_sorted,
+            entity_motion_models[eid],
+            measurement_model,
+            manifest_sha,
+            sensor_origin_m,
+        )
+        entity_graphs[eid] = sub_graph
+
+    cap_sha = cap_config.sha
+    previous_factor_id: str | None = None
+    for ts in all_ts:
+        entity_estimates = []
+        for eid in entity_ids:
+            sub_graph = entity_graphs[eid]
+            query = StateQuery(at_ts_ns=ts, horizon_ns=0, graph_rev=sub_graph.graph_rev)
+            entity_estimates.append((eid, solve_state(query, sub_graph)))
+
+        degraded = DegradedComponentEstimate(
+            ts_ns=ts,
+            component=component,
+            degradation_action=cap_config.degradation_action,
+            cap_config_sha=cap_sha,
+            entity_estimates=tuple(entity_estimates),
+        )
+        payload = _DegradedAppendedState(estimate=degraded)
+        obs_ids_at_ts = tuple(
+            str(jo.observation.observation_id)
+            for jo in observations
+            if jo.observation.ts_ns == ts
+        )
+        factor_inputs = (
+            (previous_factor_id, *obs_ids_at_ts)
+            if previous_factor_id
+            else obs_ids_at_ts
+        )
+        factor_kind = (
+            "degraded_bootstrap" if previous_factor_id is None else "degraded_update"
+        )
+        factor = graph.append_factor(
+            str(generate_ulid()),
+            factor_kind,
+            factor_inputs,
+            manifest_sha,
+            payload=payload,
+        )
+        previous_factor_id = factor.factor_id
+
+    return graph
+
+
 def run_joint_filter(
     graph: StateGraph,
     component: Component,
@@ -438,6 +676,7 @@ def run_joint_filter(
     offset_slip_sigma_mps_sqrt_s: float = OFFSET_SLIP_SIGMA_MPS_SQRT_S,
     offset_slip_model: OffsetSlipModel = "constant",
     sensor_origin_m: tuple[float, float, float] = (0.0, 0.0, 0.0),
+    cap_config: ComponentCapConfig = DEFAULT_COMPONENT_CAP_CONFIG,
 ) -> StateGraph:
     """Run predict-then-update jointly over ``component``'s entities,
     appending one factor per distinct timestamp to ``graph``. Mutates and
@@ -478,12 +717,35 @@ def run_joint_filter(
             alternative. Ignored for a size-1 component (no offset exists
             to apply either model to).
         sensor_origin_m: Same meaning as ``run_single_entity_filter``'s.
+        cap_config: See :data:`DEFAULT_COMPONENT_CAP_CONFIG`. When
+            ``component.size`` exceeds ``cap_config.max_component_size``,
+            this function does NOT run the joint update at all -- it
+            appends :class:`DegradedComponentEstimate` payloads instead
+            (independent per-entity filtering, degradation recorded on
+            every one), and the returned ``StateGraph`` must be resolved
+            via :func:`resolve_joint_state`, which returns that type
+            rather than :class:`JointStateEstimate` for such a graph.
 
     Raises:
         JointFilterError: on empty input, an observation for an entity not
             in ``component``, a non-positive dt between timestamps, or a
-            component member missing from the bootstrap timestamp.
+            component member missing from the bootstrap timestamp (or, in
+            the degraded-fallback path, missing from any shared timestamp
+            -- see :func:`_run_degraded_fallback`'s own docstring for that
+            path's synchronization requirement).
     """
+    if component.size > cap_config.max_component_size:
+        return _run_degraded_fallback(
+            graph,
+            component,
+            observations,
+            carrier_motion_model,
+            measurement_model,
+            manifest_sha,
+            cap_config,
+            sensor_origin_m,
+        )
+
     if not component.carried_entity_ids:
         for jo in observations:
             if jo.entity_id != component.carrier_entity_id:
@@ -692,32 +954,70 @@ def _joint_payload_factors(
     return out
 
 
-def _is_joint_graph(graph: StateGraph, graph_rev: int) -> bool:
+def _degraded_payload_factors(
+    graph: StateGraph, graph_rev: int
+) -> list[tuple[Factor, _DegradedAppendedState]]:
+    out = []
     for f in graph.factors_as_of(graph_rev):
         payload = graph.payload_for(f.factor_id)
+        if isinstance(payload, _DegradedAppendedState):
+            out.append((f, payload))
+    return out
+
+
+PayloadKind = Literal["single", "joint", "degraded"]
+
+
+def _payload_kind(graph: StateGraph, graph_rev: int) -> PayloadKind:
+    for f in graph.factors_as_of(graph_rev):
+        payload = graph.payload_for(f.factor_id)
+        if isinstance(payload, _JointAppendedState):
+            return "joint"
+        if isinstance(payload, _DegradedAppendedState):
+            return "degraded"
         if payload is not None:
-            return isinstance(payload, _JointAppendedState)
-    return False
+            return "single"
+    return "single"
 
 
 def resolve_joint_state(
     query: StateQuery, graph: StateGraph
-) -> StateEstimate | JointStateEstimate:
+) -> StateEstimate | JointStateEstimate | DegradedComponentEstimate:
     """The joint-estimation entry point, usable uniformly regardless of
-    component size: a graph built by a size-1 ``run_joint_filter`` call
-    (delegated to ``run_single_entity_filter`` internally) resolves via
+    component size or cap status: a graph built by a size-1
+    ``run_joint_filter`` call (delegated to ``run_single_entity_filter``
+    internally) resolves via
     :func:`~src.estimator.filter.resolve_state` and returns a
     :class:`~src.estimator.state.StateEstimate`; a genuinely joint graph
-    (size >= 2) resolves here directly and returns a
-    :class:`JointStateEstimate`. Both expose ``mean_array()``/
-    ``cov_array()``, so a caller computing NEES does not need to branch on
-    which type came back.
+    (size >= 2, within the cap) resolves here directly and returns a
+    :class:`JointStateEstimate`; a graph built by a component that
+    exceeded :data:`DEFAULT_COMPONENT_CAP_CONFIG`'s (or a caller-supplied)
+    cap returns a :class:`DegradedComponentEstimate`.
+
+    ``StateEstimate`` and ``JointStateEstimate`` both expose
+    ``mean_array()``/``cov_array()``, so NEES scoring does not need to
+    branch between them. ``DegradedComponentEstimate`` deliberately does
+    NOT -- there is no single joint mean/cov for a degraded component,
+    only per-entity ones via ``estimate_for`` -- so a caller must branch
+    (``isinstance``) on this return type specifically. That asymmetry is
+    intentional: silently treating a degraded result as if it were
+    jointly-coupled would hide exactly the provenance this cap exists to
+    make visible.
+
+    Degraded-path resolution supports EXACT timestamp matches only
+    (``dt_ns == 0`` against a recorded factor) -- extrapolating a degraded
+    component beyond its last recorded step would need the per-entity sub
+    -graphs :func:`_run_degraded_fallback` builds internally, which are
+    not persisted (the degraded path is a structural safety net, not a
+    primary code path); this raises :class:`JointFilterError` rather than
+    silently falling back to something un-degraded.
 
     Raises:
         NotImplementedError: if ``query.horizon_kind == "smoothed"``.
         JointFilterError: if the graph has no resolvable state before
-            ``query.at_ts_ns``, or resolving it needs more extrapolation
-            than ``query.horizon_ns`` allows.
+            ``query.at_ts_ns``, if resolving it needs more extrapolation
+            than ``query.horizon_ns`` allows, or (degraded path only) any
+            extrapolation at all.
     """
     if query.horizon_kind == "smoothed":
         raise NotImplementedError(
@@ -727,11 +1027,40 @@ def resolve_joint_state(
             "single-entity precedent this follows"
         )
 
-    if not _is_joint_graph(graph, query.graph_rev):
+    kind = _payload_kind(graph, query.graph_rev)
+
+    if kind == "single":
         try:
             return _resolve_single_entity_state(query, graph)
         except FilterError as exc:
             raise JointFilterError(str(exc)) from exc
+
+    if kind == "degraded":
+        degraded_candidates = _degraded_payload_factors(graph, query.graph_rev)
+        if not degraded_candidates:
+            raise JointFilterError(
+                f"no resolvable degraded component state in this graph at "
+                f"graph_rev={query.graph_rev}"
+            )
+        degraded_at_or_before = [
+            (f, p) for f, p in degraded_candidates if p.estimate.ts_ns <= query.at_ts_ns
+        ]
+        if not degraded_at_or_before:
+            earliest = degraded_candidates[0][1].estimate.ts_ns
+            raise JointFilterError(
+                f"query.at_ts_ns={query.at_ts_ns} predates this graph's "
+                f"earliest resolvable degraded state (ts_ns={earliest})"
+            )
+        _, latest_degraded = degraded_at_or_before[-1]
+        if latest_degraded.estimate.ts_ns != query.at_ts_ns:
+            raise JointFilterError(
+                f"query.at_ts_ns={query.at_ts_ns} does not exactly match a "
+                "recorded degraded-component factor "
+                f"(nearest at or before: ts_ns={latest_degraded.estimate.ts_ns}) "
+                "-- extrapolating a degraded component is not supported, see "
+                "resolve_joint_state's own docstring"
+            )
+        return latest_degraded.estimate
 
     candidates = _joint_payload_factors(graph, query.graph_rev)
     if not candidates:

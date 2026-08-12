@@ -27,6 +27,9 @@ from src.contracts.frames import AffineTransform, FrameGeometry
 from src.estimator import consistency
 from src.estimator.joint import (
     Component,
+    ComponentCapConfig,
+    DEFAULT_COMPONENT_CAP_CONFIG,
+    DegradedComponentEstimate,
     HybridDiscreteContinuousState,
     JointFilterError,
     JointObservation,
@@ -584,3 +587,215 @@ def test_acceleration_scaled_model_runs_end_to_end_and_stays_positive_definite()
     assert np.all(
         eigenvalues > 0
     ), f"joint covariance not PD: eigenvalues={eigenvalues}"
+
+
+# ---------------------------------------------------------------------------
+# Day 27, Objective 2 -- component-size cap and the degradation path
+# ---------------------------------------------------------------------------
+
+
+def test_component_cap_config_rejects_nonpositive_size() -> None:
+    with pytest.raises(JointFilterError):
+        ComponentCapConfig(
+            max_component_size=0, degradation_action="independent_fallback"
+        )
+
+
+def test_default_component_cap_is_six_with_independent_fallback() -> None:
+    assert DEFAULT_COMPONENT_CAP_CONFIG.max_component_size == 6
+    assert DEFAULT_COMPONENT_CAP_CONFIG.degradation_action == "independent_fallback"
+
+
+def _synchronized_component_observations(
+    carrier_id: str, carried_ids: tuple[str, ...], n_frames: int = 5
+) -> list[JointObservation]:
+    obs: list[JointObservation] = []
+    for t in range(n_frames):
+        ts = BASE_TS + t * SECOND_NS
+        obs.append(JointObservation(carrier_id, _obs(0.5 * t, 0.0, 0.0, ts)))
+        for i, cid in enumerate(carried_ids):
+            obs.append(
+                JointObservation(cid, _obs(0.5 * t + 0.1 * (i + 1), 0.0, 0.0, ts))
+            )
+    return obs
+
+
+def test_component_within_cap_is_not_degraded() -> None:
+    component = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    small_cap = ComponentCapConfig(
+        max_component_size=6, degradation_action="independent_fallback"
+    )
+    graph = StateGraph()
+    run_joint_filter(
+        graph,
+        component,
+        _synchronized_component_observations("A", ("laptop-7",)),
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+        cap_config=small_cap,
+    )
+    query = StateQuery(
+        at_ts_ns=BASE_TS + 4 * SECOND_NS, horizon_ns=0, graph_rev=graph.graph_rev
+    )
+    estimate = resolve_joint_state(query, graph)
+    assert isinstance(estimate, JointStateEstimate)
+
+
+def test_component_exceeding_cap_degrades_and_records_provenance() -> None:
+    """STRUCTURAL: the overflow path, tested explicitly. A component
+    larger than the cap must never silently solve jointly -- it must
+    return a DegradedComponentEstimate with the degradation recorded."""
+    carried_ids = ("laptop-7", "bag-3", "phone-1")
+    component = Component(carrier_entity_id="A", carried_entity_ids=carried_ids)
+    assert component.size == 4
+    tight_cap = ComponentCapConfig(
+        max_component_size=2, degradation_action="independent_fallback"
+    )
+    graph = StateGraph()
+    run_joint_filter(
+        graph,
+        component,
+        _synchronized_component_observations("A", carried_ids),
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+        cap_config=tight_cap,
+    )
+    query = StateQuery(
+        at_ts_ns=BASE_TS + 4 * SECOND_NS, horizon_ns=0, graph_rev=graph.graph_rev
+    )
+    estimate = resolve_joint_state(query, graph)
+    assert isinstance(estimate, DegradedComponentEstimate)
+    assert estimate.degradation_action == "independent_fallback"
+    assert estimate.cap_config_sha == tight_cap.sha
+    for entity_id in component.entity_ids:
+        per_entity = estimate.estimate_for(entity_id)
+        assert per_entity.observed is True
+
+
+def test_degraded_component_estimate_requires_all_fields() -> None:
+    """A DegradedComponentEstimate cannot be constructed without a
+    degradation_action or a cap_config_sha -- no default exists for
+    either, so "a capped solve with no recorded degradation" is a
+    TypeError, not a runtime possibility."""
+    import dataclasses
+
+    fields = {f.name for f in dataclasses.fields(DegradedComponentEstimate)}
+    assert "degradation_action" in fields
+    assert "cap_config_sha" in fields
+    field_defaults = {
+        f.name: f.default is dataclasses.MISSING
+        for f in dataclasses.fields(DegradedComponentEstimate)
+    }
+    assert field_defaults["degradation_action"] is True  # no default -> required
+    assert field_defaults["cap_config_sha"] is True
+
+
+def test_degraded_component_estimate_rejects_incomplete_entity_coverage() -> None:
+    component = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    with pytest.raises(JointFilterError):
+        DegradedComponentEstimate(
+            ts_ns=BASE_TS,
+            component=component,
+            degradation_action="independent_fallback",
+            cap_config_sha="deadbeef",
+            entity_estimates=(),  # missing both entities
+        )
+
+
+def test_degraded_fallback_requires_full_synchronization() -> None:
+    carried_ids = ("laptop-7", "bag-3", "phone-1")
+    component = Component(carrier_entity_id="A", carried_entity_ids=carried_ids)
+    tight_cap = ComponentCapConfig(
+        max_component_size=2, degradation_action="independent_fallback"
+    )
+    obs = _synchronized_component_observations("A", carried_ids)
+    # Drop one carried entity's observation at the last timestamp.
+    obs = [
+        jo
+        for jo in obs
+        if not (
+            jo.entity_id == "phone-1"
+            and jo.observation.ts_ns == BASE_TS + 4 * SECOND_NS
+        )
+    ]
+    graph = StateGraph()
+    with pytest.raises(JointFilterError, match="missing"):
+        run_joint_filter(
+            graph,
+            component,
+            obs,
+            motion_model_for("person"),
+            measurement_model_for("cam-1"),
+            manifest_sha="m",
+            cap_config=tight_cap,
+        )
+
+
+def test_degraded_resolution_rejects_extrapolation() -> None:
+    carried_ids = ("laptop-7", "bag-3", "phone-1")
+    component = Component(carrier_entity_id="A", carried_entity_ids=carried_ids)
+    tight_cap = ComponentCapConfig(
+        max_component_size=2, degradation_action="independent_fallback"
+    )
+    graph = StateGraph()
+    run_joint_filter(
+        graph,
+        component,
+        _synchronized_component_observations("A", carried_ids),
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+        cap_config=tight_cap,
+    )
+    query = StateQuery(
+        at_ts_ns=BASE_TS + 4 * SECOND_NS + SECOND_NS // 2,
+        horizon_ns=int(SECOND_NS),
+        graph_rev=graph.graph_rev,
+    )
+    with pytest.raises(JointFilterError, match="extrapolat"):
+        resolve_joint_state(query, graph)
+
+
+def test_degraded_graph_rev_reproducibility() -> None:
+    """Same STRUCTURAL guarantee as the joint path, re-tested for the
+    degraded path specifically."""
+    carried_ids = ("laptop-7", "bag-3", "phone-1")
+    component = Component(carrier_entity_id="A", carried_entity_ids=carried_ids)
+    tight_cap = ComponentCapConfig(
+        max_component_size=2, degradation_action="independent_fallback"
+    )
+    graph = StateGraph()
+    run_joint_filter(
+        graph,
+        component,
+        _synchronized_component_observations("A", carried_ids, n_frames=4),
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+        cap_config=tight_cap,
+    )
+    rev_after_first = graph.graph_rev
+    query = StateQuery(
+        at_ts_ns=BASE_TS + 3 * SECOND_NS, horizon_ns=0, graph_rev=rev_after_first
+    )
+    before = resolve_joint_state(query, graph)
+
+    other_component = Component(carrier_entity_id="B")
+    run_joint_filter(
+        graph,
+        other_component,
+        [JointObservation("B", _obs(100.0, 0.0, 0.0, BASE_TS + 4 * SECOND_NS))],
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+        cap_config=tight_cap,
+    )
+    assert graph.graph_rev > rev_after_first
+
+    after = resolve_joint_state(query, graph)
+    assert isinstance(before, DegradedComponentEstimate)
+    assert isinstance(after, DegradedComponentEstimate)
+    assert before.entity_estimates == after.entity_estimates
+    assert before.ts_ns == after.ts_ns == BASE_TS + 3 * SECOND_NS

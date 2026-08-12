@@ -471,3 +471,107 @@ offset never becomes too rigid to keep averaging, rather than one term
 doing both jobs. This is recorded as Day 28's first item, to be derived
 and tested with the same discipline, not assumed to work because the
 reasoning sounds right.
+
+## Day 27, Objective 2 — a hard cap with a specified degradation path
+
+Day 26's own gate was a narrow pass, not a comfortable one, and gave no
+reason to expect sparsity holds past 6 entities. Rather than relax the
+proximity threshold (which would hide the problem, not solve it), the
+solver now has a specified, provenance-recording behaviour for when a
+component would exceed what was actually measured.
+
+### The cap: 6, and why
+
+`ComponentCapConfig` (`src/estimator/joint.py`), config-driven and
+versioned (a `.sha` over its declared fields, same convention as
+`ImmConfig.sha`), passed explicitly to `run_joint_filter` rather than a
+module-global. `DEFAULT_COMPONENT_CAP_CONFIG`:
+`max_component_size=6, degradation_action="independent_fallback"`.
+
+**6 is not a round number** — it is the exact bound Day 26 Objective 2's
+own decision gate used to authorize building any solver at all ("proceed
+to Objective 3 only if p95 component size ≤ 6"). The solver was designed
+against, and evaluated against
+(`scripts/eval_joint_estimator.py`), data topping out at 6 entities.
+Capping the solver's own operation at that SAME measured bound means it
+never runs in a size regime nothing has validated it against.
+
+**`independent_fallback`, not `split_weakest_coupling`:** the latter
+would need a measured notion of relationship information strength to
+rank factors by, and this project has only ever measured coupling
+DENSITY (Day 26 Objective 2), never coupling INFORMATIVENESS — building
+a ranking heuristic today would be exactly the unmeasured analytical
+claim Day 25/26's rule warns against. Independent fallback regresses to
+Day 20/25's single-entity filter: well-tested, well-understood, with a
+known accuracy/calibration profile.
+
+### STRUCTURAL: the overflow path cannot silently solve jointly
+
+`DegradedComponentEstimate` is a distinct TYPE (not a flag on
+`JointStateEstimate`) with two required fields, no default:
+`degradation_action`, `cap_config_sha`. `resolve_joint_state`'s return
+type is `StateEstimate | JointStateEstimate | DegradedComponentEstimate`
+— a caller scoring a component's estimate must `isinstance`-branch on
+this, so a capped result can never be silently treated as a genuine
+joint solve. `DegradedComponentEstimate.__post_init__` also verifies
+`entity_estimates` covers exactly `component.entity_ids` — no entity can
+be silently dropped during degradation. Tested explicitly
+(`tests/test_estimator_joint.py`): a size-4 component under a cap of 2
+degrades and returns a `DegradedComponentEstimate` with every entity's
+own independent estimate recoverable via `estimate_for`; the dataclass
+fields are confirmed to have no default (`dataclasses.fields`); an
+incomplete `entity_estimates` tuple raises at construction; a
+desynchronized observation stream (one entity missing an observation at
+a shared timestamp) raises rather than silently degrading partially;
+degraded-path `graph_rev` reproducibility is re-tested against the same
+pattern the joint and single-entity paths already use.
+
+### Cost measured — and an important caveat about what this specific measurement shows
+
+`scripts/measure_component_cap_cost.py`. No general person-to-person
+proximity coupling is implemented (only carrier+carried), so there is no
+genuinely-6-PERSON joint solve in this codebase to cap. To still measure
+against real data, `v3-indoor`'s `crowded_6agents` scene (the one Day 26
+found merges at 1.10m) supplies 6 real GT tracks, with one HONESTLY
+LABELED "carrier" and the other five "carried" purely to exercise a
+genuine 6-entity component using the topology that exists — not a claim
+that five people are rigidly attached to a sixth.
+
+| entity | uncapped RMSE | capped RMSE | cost (capped − uncapped) | uncapped cov | capped cov |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| agent-0 (carrier) | 0.3822m | 0.1335m | **−0.2487m** | 0.1316 | 1.0000 |
+| agent-1 | 0.2424m | 0.1637m | −0.0788m | 0.3684 | 0.9474 |
+| agent-2 | 0.2363m | 0.1492m | −0.0871m | 0.3158 | 1.0000 |
+| agent-3 | 0.2936m | 0.1182m | −0.1754m | 0.1316 | 0.9211 |
+| agent-4 | 0.2242m | 0.1387m | −0.0855m | 0.2368 | 1.0000 |
+| agent-5 | 0.3439m | 0.1546m | −0.1893m | 0.1316 | 1.0000 |
+
+**The measured cost is negative on every entity — capping HELPS here,
+substantially.** This is real and correctly measured, but it is NOT
+evidence that joint estimation is generally worse, or that capping is
+"free": it is a direct consequence of the honest-labeling caveat above.
+These six people are genuinely independent walkers with no real rigid
+relationship; forcing them into one rigid-coupling-plus-slip component
+is a badly mismatched physical model, so the joint solve actively hurts,
+and falling back to independent filtering is strictly better. **This
+measures the cap's safety value in the opposite failure mode from the
+one the objective asked about: protection against inappropriately
+coupling unrelated entities, not the accuracy given up when a genuinely
+well-matched component gets capped.** Day 26/27's own carrier+actual-
+asset evaluation (a physically appropriate 2-entity component) already
+answers the latter question directly: joint beat independent by
++0.0425m/+0.0265m RMSE on the two golden sets. If a genuinely
+well-coupled 6-entity component existed and were capped, the plausible
+cost would be foregoing an improvement of that order — not the ~0.15m
+"improvement" this specific test shows, which is really a demonstration
+of what happens when component MEMBERSHIP is wrong, a concern this
+project has never had the data to settle (Day 26 Objective 2's own
+finding: proximity density was measured, not whether nearby entities are
+actually coupled).
+
+**What this leaves genuinely open:** whether a real 6-entity component
+that IS actually coupled (e.g. a family/group moving together, several
+items carried by one person) would show a positive cost when capped.
+Answering that needs either real multi-entity carried-object data or a
+larger authored synthetic scene with a genuine group relationship — both
+already on the Day 26 punch list, unresolved by today's work.
