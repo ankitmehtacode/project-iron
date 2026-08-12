@@ -241,3 +241,109 @@ project's actual call sites does that (today's evaluation harness builds
 a fresh graph per component, matching `scripts/eval_estimator.py`'s own
 per-track pattern). Flagged here so a future multi-component orchestrator
 does not assume this guarantee exists.
+
+## Objective 4 — joint vs independent, evaluated: the motivating case is real, and it has a cost
+
+`scripts/eval_joint_estimator.py`. No golden set carries a real carried-
+object entity (Objective 2's finding), so a carried asset's GT is
+synthesized: the carrier's own GT position plus a fixed, declared, RIGID
+offset (0.25m to the side, 0.30m below the carrier's own reference point —
+no synthetic slip added to GT itself, so this tests whether coupling
+correctly exploits a genuinely rigid attachment). Trivial baseline (Day 12
+rule): INDEPENDENT per-entity filtering — the carrier under config B (Day
+25's adopted floor-enabled single-entity filter), the asset under the
+`asset_carried` motion model that has existed, unused, since Day 20
+(inflated CV process noise, no coupling).
+
+### The motivating case passes cleanly
+
+| set | asset RMSE: indep → joint | margin | asset coverage: indep → joint | verdict |
+| --- | --- | ---: | --- | --- |
+| v5-cessation (n=1021) | 0.2051m → 0.1626m | **+0.0425m** | 0.8570 → 0.8737 | PASS |
+| v3-indoor (n=2736) | 0.1691m → 0.1426m | **+0.0265m** | 0.9635 → 0.9269 | PASS (small wiggle, within tolerance) |
+
+Joint estimation beats independent filtering on the carried asset by a
+real, consistent margin on both sets, and does not degrade the asset's
+own calibration toward overconfidence on either. This is not a marginal
+result — it is coupling doing exactly the thing it was built to do
+(Objective 3's own tested claim: "if A moves, laptop 7's posterior must
+move," now confirmed to also make the posterior MORE ACCURATE, not just
+directionally correct).
+
+### The carrier's own calibration is not neutral — it is measurably worse on v5-cessation specifically
+
+| set | carrier RMSE: indep → joint | margin | carrier coverage: indep → joint | verdict |
+| --- | --- | ---: | --- | --- |
+| v5-cessation (n=1021) | 0.1888m → 0.1608m | **+0.0280m** | 0.9089 → 0.8874 | **FAIL_OVERCONFIDENT** (Δ −0.0215) |
+| v3-indoor (n=2736) | 0.1552m → 0.1408m | **+0.0144m** | 0.9912 → 0.9675 | PASS (Δ +0.0238, calibration improves) |
+
+**On both sets the carrier's RAW ACCURACY improves under joint estimation**
+(more measurements per step lowers RMSE, as expected) — but the
+CALIBRATION effect is set-dependent and, on v5-cessation, crosses the
+directional criterion's own non-negotiable line: coverage moves from
+already-near-nominal (0.9089) to measurably overconfident (0.8874), a
+degradation the criterion correctly flags regardless of the accuracy
+gain sitting right next to it. This is exactly the danger Objective 4's
+own framing named in advance: "a joint solve that sharpens covariance
+without justification is the exact danger the criterion now names."
+
+**The effect is regime-concentrated, not uniform**, per-regime carrier
+coverage on v5-cessation:
+
+| regime | n | indep cov | joint cov | Δ toward nominal |
+| --- | ---: | ---: | ---: | ---: |
+| static | 260 | 0.8923 | 0.9154 | **+0.0067** (improves) |
+| onset | 91 | 0.9121 | 0.8791 | −0.0209 |
+| sustained | 282 | 0.9149 | 0.8865 | −0.0163 |
+| cessation | 373 | 0.9276 | 0.8901 | **−0.0375** (worst) |
+
+`static` is the only regime where coupling improves the carrier's
+calibration; every regime with real carrier motion degrades it, and
+`cessation` degrades hardest — nearly double the pooled effect, and in
+the exact regime this entire multi-day investigation (Days 21-26) has
+already found the estimator's calibration most fragile. The plausible
+mechanism, stated as a hypothesis and not yet confirmed by a second
+measurement (per this project's own discipline against acting on a
+first read): during a regime where the carrier's true velocity is
+changing, the coupled update lets the asset's own (independently noisy)
+position observation contribute extra apparent confidence to the
+carrier's state through the shared Kalman gain, exactly when the
+carrier's motion is least predictable and the floor (Day 25) is doing
+the most work to keep velocity uncertainty honest — an interaction this
+session did not isolate further.
+
+### No same-session fix, per this project's own discipline
+
+The mechanism is hypothesized, not confirmed, and Days 21-25 have
+repeatedly shown that tuning a parameter (here, candidates would be
+`OFFSET_SLIP_SIGMA_MPS_SQRT_S` or excluding the carrier←asset direction
+of the cross-covariance update) in the SAME session that found a
+miscalibration reads as motivated regardless of whether the reasoning is
+sound. This is recorded as Day 27's first item: confirm the mechanism
+with a second measurement (e.g., sweep `OFFSET_SLIP_SIGMA_MPS_SQRT_S` and
+check whether the carrier's cessation-regime overconfidence tracks it
+monotonically, which would support the hypothesis above) BEFORE changing
+anything.
+
+### Day-10 validity gate and falsification test 5
+
+Re-run, unaffected by today's work: `state_estimation` **PASSES** on both
+v5-cessation and v3-indoor (unchanged — gating logic does not depend on
+which filter scored the set). Falsification test 5 (behaviour-query
+shape): re-run, still **PASSES/PARTIAL** exactly as Day 20 left it
+(`tests/test_falsification.py`, 8/8 green) — joint estimation produces a
+richer `StateEstimate`-adjacent output but still nothing that resolves to
+an `ActivityMode` behaviour label, so the test's own PARTIAL verdict is
+unchanged, not silently inherited.
+
+### Status: capability validated, not yet a production recommendation
+
+Joint estimation is a real, measured capability addition — the carried-
+asset improvement is not marginal and holds on both sets. It is NOT
+recommended for unconditional production use in its current form: the
+carrier's own posterior takes a real, regime-concentrated calibration
+cost on at least one golden set, and per this project's own no-trade
+discipline, a capability that helps one entity while measurably degrading
+another's calibration is a stated trade, not a clean win, until the
+mechanism is understood. Status stays **Proposed** (not Accepted) pending
+Day 27's confirmation measurement.

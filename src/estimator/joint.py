@@ -292,6 +292,23 @@ class JointStateEstimate:
         this whole module exists to maintain."""
         return self.carrier_position_m() + self.carried_offset_m(carried_entity_id)
 
+    def carried_position_cov_m2(self, carried_entity_id: str) -> FloatArray:
+        """Covariance of ``carried_position_m`` -- NOT
+        ``Cov(carrier_pos) + Cov(offset)``, which silently drops the
+        cross-covariance term ``2*Cov(carrier_pos, offset)`` that the
+        Joseph-form update actually builds up between the two blocks (a
+        carried-entity observation updates offset via a gain that also
+        touches carrier_pos, and vice versa -- see ``_H_for``). Computed
+        as ``H @ cov @ H.T`` with the SAME 3 x state_dim projection matrix
+        :func:`_H_for` builds for scoring a carried-entity observation, so
+        the mean and the covariance this method returns are projections
+        of the joint posterior under the identical linear map -- they
+        cannot silently drift apart the way two independently-derived
+        formulas could."""
+        H = _H_for(self.component, carried_entity_id)
+        result: FloatArray = H @ self.cov_array() @ H.T
+        return result
+
 
 @dataclass(frozen=True)
 class _JointAppendedState:
