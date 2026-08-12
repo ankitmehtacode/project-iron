@@ -347,3 +347,127 @@ discipline, a capability that helps one entity while measurably degrading
 another's calibration is a stated trade, not a clean win, until the
 mechanism is understood. Status stays **Proposed** (not Accepted) pending
 Day 27's confirmation measurement.
+
+## Day 27, Objective 1 — the mechanism confirmed, and the naive fix trades the motivating case away
+
+### The cross-covariance confounder does not apply
+
+Checked before anything else, per instruction. Git history: the fix
+(`JointStateEstimate.carried_position_cov_m2`) and the eval script that
+first produced the carrier-overconfidence finding
+(`scripts/eval_joint_estimator.py`) landed in the SAME commit
+(`cd0f763`) — there is no earlier, buggy version of the eval script that
+was ever run. More directly: the bug was isolated to the ASSET's
+absolute-position covariance, `Cov(carrier_pos + offset)`, which
+genuinely needs the cross term. The CARRIER's own marginal covariance
+(`joint_estimate.cov_array()[:6, :6]`) is a direct sub-block of the joint
+covariance matrix — a marginal of a joint Gaussian needs no summation,
+so there was never a formula to get wrong there. **The confounder is
+ruled out; the carrier finding stands on its own math.**
+
+### The mechanism, instrumented directly (not reasoned about)
+
+`scripts/eval_joint_estimator.py` now reports, per regime, the carrier's
+covariance shrinkage from coupling (`1 - joint_pos_cov_trace /
+independent_pos_cov_trace`) against the ACTUAL squared-error reduction
+the coupling delivers — Day 25's rule applied to Day 26's own finding: a
+closed-form prediction ("coupling should help") is a hypothesis; this is
+the measurement.
+
+**v5-cessation, constant slip model (Day 26's original):**
+
+| regime | covariance shrinkage | actual error reduction | unjustified gain |
+| --- | ---: | ---: | ---: |
+| static | 40.2% | 47.6% | −7.3% (conservative) |
+| onset | 32.0% | **−7.7%** (worse!) | **+39.7%** |
+| sustained | 38.6% | 26.0% | +12.7% |
+| cessation | 40.8% | 21.5% | **+19.3%** |
+
+The mechanism is exactly as hypothesized: the constant slip model shrinks
+the carrier's covariance by roughly the SAME 32-41% regardless of regime
+— it does not know whether the carrier's motion is steady or changing.
+The ACTUAL benefit the coupling delivers varies enormously by regime
+(near-full justification in `static`, negative in `onset`). The
+covariance shrinkage is a constant-rate side effect of adding a second
+measurement stream per step; the error reduction is regime-dependent.
+Where they diverge most (`onset`, `cessation`) is exactly where the
+no-trade criterion flagged overconfidence.
+
+### The derived fix: partially confirms the physics, and reveals a real trade
+
+`OffsetSlipModel = "acceleration_scaled"` (`src/estimator/joint.py`):
+effective slip sigma = `OFFSET_SLIP_SIGMA_MPS_SQRT_S * (|carrier
+acceleration| / PERSON_SIGMA_A_MPS2)`, both already-declared constants,
+carrier acceleration estimated causally from the two most recent carrier
+velocity states already in the factor chain (no new state dimension, no
+fitted parameter).
+
+**v5-cessation, acceleration-scaled model:**
+
+| regime | covariance shrinkage | actual error reduction | unjustified gain |
+| --- | ---: | ---: | ---: |
+| static | 13.4% | 18.2% | −4.8% |
+| onset | 14.2% | **−8.1%** | **+22.3%** (still bad) |
+| sustained | 11.1% | 11.5% | −0.4% |
+| cessation | 12.4% | 11.4% | **+0.9%** (was +19.3%) |
+
+**Overall carrier verdict on v5-cessation: FAIL_OVERCONFIDENT → PASS**
+(coverage 0.9089→0.9109, Δ +0.0020). Cessation — the regime this entire
+investigation exists to fix — has its unjustified gain reduced by more
+than 20x. This is a real, physics-derived success: the fix works exactly
+where it was targeted.
+
+**But `onset` is NOT fixed** — the unjustified gain barely moves in
+relative terms, because onset's ACTUAL error reduction stays negative
+(joint estimation is genuinely worse there, not just less-confidently
+better) — the acceleration-scaled model reduces the covariance's
+overclaim but cannot make an intrinsically-poor coupling fit look good.
+
+**And the asset's own benefit is destroyed — the trade the objective
+warned about, found exactly as it predicted:**
+
+| set | asset margin, constant model | asset margin, acceleration-scaled |
+| --- | ---: | ---: |
+| v5-cessation | **+0.0425m** | **−0.0051m** |
+| v3-indoor | +0.0265m | **−0.0049m** |
+
+On both golden sets the asset's RMSE margin flips from a clear win to
+essentially zero or slightly negative. The mechanism: acceleration-scaled
+slip noise collapses toward the Q regularization floor whenever the
+carrier's estimated acceleration is near zero — which is MOST of a
+walking track (pedestrian motion is mostly steady). A near-rigid offset
+sounds correct (the true synthetic offset genuinely never changes), but
+an almost-zero process noise also means the Kalman gain on subsequent
+asset observations shrinks toward zero: the filter locks onto whatever
+the (single, noisy) bootstrap measurement implied and stops meaningfully
+averaging in later asset observations to refine it. The constant model's
+uniformly-nonzero slip noise was, inadvertently, doing double duty — not
+just modeling physical slip, but keeping the offset estimate ELASTIC
+enough to keep refining from new measurements. The acceleration-scaled
+model removes that side benefit along with the overclaimed confidence.
+
+### Verdict: the derived model is a finding about the physics, not an adoptable fix
+
+Per instruction: report this as a finding, not paper over it. The
+acceleration-scaling hypothesis is CONFIRMED as the mechanism (cessation
+overconfidence tracks estimated carrier acceleration almost exactly, and
+scaling slip noise by it closes the gap by over 20x) — but the specific
+derived form tested today optimizes carrier calibration at the direct
+expense of the asset's own accuracy, which is the motivating case this
+entire capability exists to deliver. **A change that protects the
+carrier by destroying the coupling's benefit has traded the motivating
+case away — not a fix, a different, worse tradeoff.** Neither model
+(constant or acceleration-scaled, as derived today) is adopted as the
+default. `offset_slip_model` stays available as an explicit opt-in
+parameter (default `"constant"`, unchanged from Day 26) so the tradeoff
+this section documents is not silently picked for a caller.
+
+No further same-session tuning was attempted (Day 24's own rule: a
+tuned parameter that succeeds is a fitted parameter wearing a physics
+costume). The gap suggests the two effects (confidence calibration,
+estimate elasticity) need to be decoupled — e.g. a slip model with an
+acceleration-scaled component ADDED to a small constant floor, so the
+offset never becomes too rigid to keep averaging, rather than one term
+doing both jobs. This is recorded as Day 28's first item, to be derived
+and tested with the same discipline, not assumed to work because the
+reasoning sounds right.

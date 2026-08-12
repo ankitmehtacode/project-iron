@@ -486,3 +486,101 @@ def test_resolve_joint_state_smoothed_horizon_raises_not_implemented() -> None:
     )
     with pytest.raises(NotImplementedError):
         resolve_joint_state(query, graph)
+
+
+# ---------------------------------------------------------------------------
+# Day 27, Objective 1 -- acceleration-scaled slip model
+# ---------------------------------------------------------------------------
+
+
+def test_constant_slip_model_is_the_default_and_unchanged_from_day_26() -> None:
+    import inspect
+
+    sig = inspect.signature(run_joint_filter)
+    assert sig.parameters["offset_slip_model"].default == "constant"
+
+
+def test_effective_offset_slip_sigma_constant_model_ignores_acceleration() -> None:
+    from src.estimator.joint import _effective_offset_slip_sigma
+
+    base = 0.05
+    assert _effective_offset_slip_sigma(base, "constant", None) == base
+    assert _effective_offset_slip_sigma(base, "constant", 10.0) == base
+
+
+def test_effective_offset_slip_sigma_acceleration_scaled_at_reference_equals_base() -> (
+    None
+):
+    from src.estimator.joint import _effective_offset_slip_sigma
+    from src.estimator.motion_model import PERSON_SIGMA_A_MPS2
+
+    base = 0.05
+    at_reference = _effective_offset_slip_sigma(
+        base, "acceleration_scaled", PERSON_SIGMA_A_MPS2
+    )
+    assert at_reference == pytest.approx(base)
+
+
+def test_effective_offset_slip_sigma_acceleration_scaled_shrinks_when_steady() -> None:
+    from src.estimator.joint import _effective_offset_slip_sigma
+
+    steady = _effective_offset_slip_sigma(0.05, "acceleration_scaled", 0.01)
+    assert steady < 0.05
+
+
+def test_effective_offset_slip_sigma_grows_during_a_sharp_stop() -> None:
+    from src.estimator.joint import _effective_offset_slip_sigma
+    from src.estimator.motion_model import PERSON_SIGMA_A_MPS2
+
+    sharp_stop = _effective_offset_slip_sigma(
+        0.05, "acceleration_scaled", 4.0 * PERSON_SIGMA_A_MPS2
+    )
+    assert sharp_stop == pytest.approx(0.05 * 4.0)
+
+
+def test_acceleration_scaled_model_runs_end_to_end_and_stays_positive_definite() -> (
+    None
+):
+    """A stop-then-restart carrier track (real acceleration, not just
+    steady walking) under the acceleration_scaled model must still
+    produce a valid, positive-definite joint posterior at every step."""
+    component = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    walk = _walking_track(6, step_m=0.5, dt_s=1.0 / 12.0)
+    stop = [
+        _obs(
+            x_m=walk[-1].measurement.x_m,  # type: ignore[union-attr]
+            y_m=0.0,
+            z_m=0.0,
+            ts_ns=walk[-1].ts_ns + (i + 1) * int(SECOND_NS / 12),
+        )
+        for i in range(6)
+    ]
+    carrier_obs = walk + stop
+    carried_bootstrap = _obs(
+        x_m=carrier_obs[0].measurement.x_m + 0.3,  # type: ignore[union-attr]
+        y_m=0.0,
+        z_m=0.0,
+        ts_ns=BASE_TS,
+    )
+    joint_obs = [JointObservation("A", o) for o in carrier_obs]
+    joint_obs.append(JointObservation("laptop-7", carried_bootstrap))
+
+    graph = StateGraph()
+    run_joint_filter(
+        graph,
+        component,
+        joint_obs,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+        offset_slip_model="acceleration_scaled",
+    )
+    query = StateQuery(
+        at_ts_ns=carrier_obs[-1].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev
+    )
+    estimate = resolve_joint_state(query, graph)
+    cov = estimate.cov_array()
+    eigenvalues = np.linalg.eigvalsh(cov)
+    assert np.all(
+        eigenvalues > 0
+    ), f"joint covariance not PD: eigenvalues={eigenvalues}"

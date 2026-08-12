@@ -99,7 +99,7 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Literal, Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -110,6 +110,7 @@ from src.estimator.filter import FilterError
 from src.estimator.filter import resolve_state as _resolve_single_entity_state
 from src.estimator.measurement_model import MeasurementModel
 from src.estimator.motion_model import (
+    PERSON_SIGMA_A_MPS2,
     STATE_DIM,
     MotionModel,
     apply_velocity_covariance_floor,
@@ -134,7 +135,46 @@ carrier's body per unit time, in the same small-sway convention
 already uses for IMM's ``static`` mode (``sigma_position_mps_sqrt_s =
 0.05``) -- a carried object held against or near the body is at least as
 rigid as a standing person's own sway, so the same order-of-magnitude
-value is the natural default rather than a new, separately-tuned one."""
+value is the natural default rather than a new, separately-tuned one.
+This is the CONSTANT slip model's value -- see :data:`OffsetSlipModel`
+for the Day 27 alternative that scales this baseline by relative
+acceleration instead of applying it uniformly."""
+
+OffsetSlipModel = Literal["constant", "acceleration_scaled"]
+"""Day 27, Objective 1: which physical model governs the offset's process
+noise. ``"constant"`` (Day 26's original) applies
+:data:`OFFSET_SLIP_SIGMA_MPS_SQRT_S` uniformly at every step, regardless
+of what the carrier is doing. ``"acceleration_scaled"`` is the
+physically-derived alternative -- a grip slips when motion CHANGES, not
+when it is steady, so the effective slip sigma at a step is
+:data:`OFFSET_SLIP_SIGMA_MPS_SQRT_S` scaled by the carrier's own
+estimated acceleration relative to :data:`~src.estimator.motion_model.
+PERSON_SIGMA_A_MPS2` (this module's already-declared pedestrian
+acceleration bound, reused rather than a new fitted reference):
+
+    effective_sigma = OFFSET_SLIP_SIGMA_MPS_SQRT_S * (|a_hat| / PERSON_SIGMA_A_MPS2)
+
+At the nominal acceleration bound, effective_sigma equals the declared
+baseline; well below it (steady walking), slip noise shrinks toward the
+Q regularization floor; above it (a sharp stop), slip noise grows. Carrier
+acceleration is estimated causally from the two most recent carrier
+velocity states already in the factor chain (no new state dimension) --
+see :func:`run_joint_filter`'s own loop for where it is computed, one
+step behind the predict it informs (the acceleration during step k-1→k
+sets the slip noise for step k→k+1), since acceleration during the
+CURRENT step cannot be known before its own update completes."""
+
+
+def _effective_offset_slip_sigma(
+    base_slip_sigma_mps_sqrt_s: float,
+    offset_slip_model: OffsetSlipModel,
+    carrier_acceleration_mps2: float | None,
+) -> float:
+    if offset_slip_model == "constant" or carrier_acceleration_mps2 is None:
+        return base_slip_sigma_mps_sqrt_s
+    ratio = carrier_acceleration_mps2 / PERSON_SIGMA_A_MPS2
+    return base_slip_sigma_mps_sqrt_s * ratio
+
 
 _JOINT_Q_REGULARIZATION = 1e-6
 """Same convention and same value as
@@ -319,6 +359,7 @@ class _JointAppendedState:
     carrier_motion_model: MotionModel
     measurement_model: MeasurementModel
     offset_slip_sigma_mps_sqrt_s: float
+    offset_slip_model: OffsetSlipModel = "constant"
 
 
 def _distance_m(position_m: FloatArray, sensor_origin_m: FloatArray) -> float:
@@ -339,11 +380,16 @@ def _joint_process_noise(
     dt_s: float,
     carrier_motion_model: MotionModel,
     offset_slip_sigma_mps_sqrt_s: float,
+    offset_slip_model: OffsetSlipModel = "constant",
+    carrier_acceleration_mps2: float | None = None,
 ) -> FloatArray:
     dim = component.state_dim
     Q = np.zeros((dim, dim), dtype=np.float64)
     Q[:STATE_DIM, :STATE_DIM] = carrier_motion_model.Q(dt_s)
-    slip_var = (offset_slip_sigma_mps_sqrt_s**2) * dt_s
+    effective_slip_sigma = _effective_offset_slip_sigma(
+        offset_slip_sigma_mps_sqrt_s, offset_slip_model, carrier_acceleration_mps2
+    )
+    slip_var = (effective_slip_sigma**2) * dt_s
     for i in range(len(component.carried_entity_ids)):
         start = STATE_DIM + OFFSET_DIM * i
         Q[start : start + OFFSET_DIM, start : start + OFFSET_DIM] = slip_var * np.eye(
@@ -390,6 +436,7 @@ def run_joint_filter(
     measurement_model: MeasurementModel,
     manifest_sha: str,
     offset_slip_sigma_mps_sqrt_s: float = OFFSET_SLIP_SIGMA_MPS_SQRT_S,
+    offset_slip_model: OffsetSlipModel = "constant",
     sensor_origin_m: tuple[float, float, float] = (0.0, 0.0, 0.0),
 ) -> StateGraph:
     """Run predict-then-update jointly over ``component``'s entities,
@@ -425,6 +472,11 @@ def run_joint_filter(
             camera envelope per sensor, not per detected object class).
         manifest_sha: The run that produced these observations.
         offset_slip_sigma_mps_sqrt_s: See :data:`OFFSET_SLIP_SIGMA_MPS_SQRT_S`.
+        offset_slip_model: See :data:`OffsetSlipModel`. Default
+            ``"constant"`` preserves Day 26's exact behaviour;
+            ``"acceleration_scaled"`` is the Day 27 physically-derived
+            alternative. Ignored for a size-1 component (no offset exists
+            to apply either model to).
         sensor_origin_m: Same meaning as ``run_single_entity_filter``'s.
 
     Raises:
@@ -534,12 +586,19 @@ def run_joint_filter(
         carrier_motion_model=carrier_motion_model,
         measurement_model=measurement_model,
         offset_slip_sigma_mps_sqrt_s=offset_slip_sigma_mps_sqrt_s,
+        offset_slip_model=offset_slip_model,
     )
     factor = graph.append_factor(
         str(generate_ulid()), "bootstrap", inputs, manifest_sha, payload=payload
     )
     previous = payload
     previous_factor_id = factor.factor_id
+    # Causal acceleration estimate for "acceleration_scaled": the velocity
+    # BEFORE `previous`'s own velocity, so step k's slip noise is set from
+    # the (k-2 -> k-1) acceleration, one step behind the dynamics it
+    # informs -- see OffsetSlipModel's docstring for why this is causal by
+    # construction, not a lag introduced as a shortcut.
+    prior_carrier_velocity: FloatArray = mean[3:6].copy()
 
     for ts in timestamps[1:]:
         group = by_ts[ts]
@@ -549,10 +608,24 @@ def run_joint_filter(
                 f"non-positive dt ({dt_s}s) between joint observations at "
                 f"{previous.estimate.ts_ns} and {ts}"
             )
+        carrier_acceleration_mps2: float | None = None
+        if offset_slip_model == "acceleration_scaled":
+            carrier_acceleration_mps2 = float(
+                np.linalg.norm(
+                    previous.estimate.carrier_velocity_mps() - prior_carrier_velocity
+                )
+                / dt_s
+            )
         F = _joint_transition(component, dt_s, carrier_motion_model)
         Q = _joint_process_noise(
-            component, dt_s, carrier_motion_model, offset_slip_sigma_mps_sqrt_s
+            component,
+            dt_s,
+            carrier_motion_model,
+            offset_slip_sigma_mps_sqrt_s,
+            offset_slip_model,
+            carrier_acceleration_mps2,
         )
+        prior_carrier_velocity = previous.estimate.carrier_velocity_mps()
         current_mean = F @ previous.estimate.mean_array()
         current_cov = F @ previous.estimate.cov_array() @ F.T + Q
 
@@ -593,6 +666,7 @@ def run_joint_filter(
             carrier_motion_model=carrier_motion_model,
             measurement_model=measurement_model,
             offset_slip_sigma_mps_sqrt_s=offset_slip_sigma_mps_sqrt_s,
+            offset_slip_model=offset_slip_model,
         )
         factor = graph.append_factor(
             str(generate_ulid()),
@@ -688,11 +762,17 @@ def resolve_joint_state(
     dt_s = dt_ns / 1e9
     component = latest.estimate.component
     F = _joint_transition(component, dt_s, latest.carrier_motion_model)
+    # Extrapolation beyond the last factor has no live velocity history to
+    # estimate acceleration from -- falls back to the constant baseline
+    # regardless of offset_slip_model (see _effective_offset_slip_sigma:
+    # carrier_acceleration_mps2=None always returns the base sigma).
     Q = _joint_process_noise(
         component,
         dt_s,
         latest.carrier_motion_model,
         latest.offset_slip_sigma_mps_sqrt_s,
+        latest.offset_slip_model,
+        carrier_acceleration_mps2=None,
     )
     predicted_mean = F @ latest.estimate.mean_array()
     predicted_cov = F @ latest.estimate.cov_array() @ F.T + Q

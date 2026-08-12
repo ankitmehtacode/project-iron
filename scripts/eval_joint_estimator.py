@@ -101,6 +101,7 @@ def _evaluate_one_track(
     clip_id: str,
     fps: float,
     measurement_model: Any,
+    offset_slip_model: str = "constant",
 ) -> dict[str, Any] | None:
     """One agent's track, scored both ways (joint, independent). Returns
     per-frame records for carrier and asset under each method, plus the GT
@@ -138,6 +139,7 @@ def _evaluate_one_track(
         carrier_motion_model,
         measurement_model,
         manifest_sha="scripts/eval_joint_estimator.py",
+        offset_slip_model=offset_slip_model,  # type: ignore[arg-type]
     )
 
     # -- independent --
@@ -196,6 +198,7 @@ def _evaluate_one_track(
                     )
                 ),
                 "nees": compute_nees(carrier_error, carrier_cov6),
+                "pos_cov_trace": float(np.trace(carrier_cov6[:3, :3])),
             }
         )
         records["asset_joint"].append(
@@ -221,6 +224,7 @@ def _evaluate_one_track(
                     )
                 ),
                 "nees": compute_nees(carrier_ind_err6, carrier_estimate.cov_array()),
+                "pos_cov_trace": float(np.trace(carrier_estimate.cov_array()[:3, :3])),
             }
         )
 
@@ -247,10 +251,47 @@ def _evaluate_one_track(
 
 
 def _aggregate(records: list[dict[str, Any]]) -> dict[str, Any]:
+    traces = [r["pos_cov_trace"] for r in records if "pos_cov_trace" in r]
     return {
         "n": len(records),
         "rmse_m": _rmse([r["sq_error"] for r in records]),
         **_coverage([r["nees"] for r in records]),
+        "mean_pos_cov_trace_m2": float(np.mean(traces)) if traces else float("nan"),
+    }
+
+
+def _information_gain(
+    joint_block: dict[str, Any], independent_block: dict[str, Any]
+) -> dict[str, float]:
+    """Day 27, Objective 1: the mechanism, instrumented directly rather
+    than reasoned about (Day 25's rule). ``covariance_shrinkage`` is how
+    much the coupling reduces the carrier's REPORTED position-covariance
+    trace; ``error_reduction`` is how much it reduces the carrier's ACTUAL
+    squared position error. A correctly-calibrated coupling should shrink
+    covariance by AT MOST what the actual error shrinks by; overconfidence
+    is exactly the case where covariance_shrinkage exceeds error_reduction
+    -- the filter claiming more certainty than the data earned."""
+    joint_trace = joint_block["mean_pos_cov_trace_m2"]
+    indep_trace = independent_block["mean_pos_cov_trace_m2"]
+    joint_sq = joint_block["rmse_m"] ** 2
+    indep_sq = independent_block["rmse_m"] ** 2
+    if (
+        np.isnan(joint_trace)
+        or np.isnan(indep_trace)
+        or indep_trace == 0
+        or indep_sq == 0
+    ):
+        return {
+            "covariance_shrinkage": float("nan"),
+            "error_reduction": float("nan"),
+            "unjustified_gain": float("nan"),
+        }
+    covariance_shrinkage = 1.0 - joint_trace / indep_trace
+    error_reduction = 1.0 - joint_sq / indep_sq
+    return {
+        "covariance_shrinkage": covariance_shrinkage,
+        "error_reduction": error_reduction,
+        "unjustified_gain": covariance_shrinkage - error_reduction,
     }
 
 
@@ -307,7 +348,7 @@ def _directional_check(
 
 
 def _score_version(
-    version: str, root: Path, config: IronConfig
+    version: str, root: Path, config: IronConfig, offset_slip_model: str = "constant"
 ) -> dict[str, Any] | None:
     try:
         golden = load_golden_set(root, version)
@@ -367,7 +408,12 @@ def _score_version(
         for agent_index in range(n_agents):
             track = agent_xyz[:, agent_index, :]
             result = _evaluate_one_track(
-                track, extrinsics, clip.clip_id, fps, measurement_model
+                track,
+                extrinsics,
+                clip.clip_id,
+                fps,
+                measurement_model,
+                offset_slip_model,
             )
             if result is None:
                 continue
@@ -447,6 +493,7 @@ def _print_report(report: dict[str, Any]) -> None:
         "Carrier",
         report["carrier_joint_by_regime"],
         report["carrier_independent_by_regime"],
+        show_information_gain=True,
     )
 
 
@@ -454,6 +501,7 @@ def _print_by_regime(
     label: str,
     joint_by_regime: dict[str, dict[str, Any]],
     independent_by_regime: dict[str, dict[str, Any]],
+    show_information_gain: bool = False,
 ) -> None:
     print(f"{label}, by GT regime:")
     print(
@@ -472,6 +520,27 @@ def _print_by_regime(
             f"{indep_block['empirical_coverage_95']:>10.4f}  "
             f"{joint_block['empirical_coverage_95']:>10.4f}"
         )
+    if show_information_gain:
+        print(
+            f"  {'regime':<12}  {'cov shrink':>10}  {'error reduc':>11}  "
+            f"{'unjustified gain':>17}"
+        )
+        for regime, joint_block in joint_by_regime.items():
+            indep_block = independent_by_regime[regime]
+            if joint_block["n"] == 0:
+                continue
+            gain = _information_gain(joint_block, indep_block)
+            flag = (
+                " ** OVERCONFIDENT SIGNATURE **"
+                if not np.isnan(gain["unjustified_gain"])
+                and gain["unjustified_gain"] > 0.02
+                else ""
+            )
+            print(
+                f"  {regime:<12}  {gain['covariance_shrinkage']:>10.4f}  "
+                f"{gain['error_reduction']:>11.4f}  "
+                f"{gain['unjustified_gain']:>+17.4f}{flag}"
+            )
     print()
 
 
@@ -479,6 +548,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--version", action="append", default=None)
     parser.add_argument("--root", default=None)
+    parser.add_argument(
+        "--offset-slip-model",
+        choices=["constant", "acceleration_scaled"],
+        default="constant",
+    )
     args = parser.parse_args(argv)
 
     config = IronConfig.load()
@@ -491,7 +565,7 @@ def main(argv: list[str] | None = None) -> int:
 
     any_failed = False
     for version in versions:
-        report = _score_version(version, root, config)
+        report = _score_version(version, root, config, args.offset_slip_model)
         if report is None:
             any_failed = True
             continue
