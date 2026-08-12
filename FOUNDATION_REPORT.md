@@ -6444,3 +6444,360 @@ asserts its absence). Nine days of carrying an already-resolved item is
 the same near-identical-recurring-boilerplate-line risk this list has
 already shown once (Day 20's append-order slip) — checked directly
 against the filesystem before dropping, not assumed stale.
+
+# Day 25
+
+**No timing, throughput, CPU-percentage, or latency claim is made
+anywhere in this section** — unchanged hard scope rule from Day 20-24.
+Everything below is accuracy, consistency, and report/process hygiene: a
+real-run confirmation of the velocity floor's binding, a directional
+no-trade criterion, and a structural fix for a promotion gap that had
+dropped three required numbers in a row.
+
+**Headline: the no-trade criterion's redesign flips the adopted
+configuration, from A to B.** Objective 3 rebuilt the criterion from a
+symmetric distance-to-nominal score into a directional one —
+overconfidence fails outright, any regime, any magnitude beyond
+tolerance; underconfidence is a stated, bounded cost — decided on its own
+methodological merits and committed to code and tests BEFORE it was
+scored against config B, per Day 24's own closing instruction to sequence
+it that way. Scored: config B (single model + velocity covariance floor)
+now clears the bar cleanly on v4.1-gate and with one stated,
+safe-direction cost (`sustained`, magnitude 0.0355) on v5-cessation; IMM
+(C/D) still fails, exactly as predicted in advance, on the same
+overconfident-static-regression grounds Day 21-24 already established.
+ADR 0010 revised: **config B is now adopted**, reversing the Day 20-24
+default.
+
+Objective 1 separately confirmed, against a real run rather than a
+synthetic comparison, that the corrected floor has no remaining defect:
+config B's minimum observed σ_v equals the floor (1.5 m/s) to
+floating-point precision in every regime on both golden sets. None of the
+three hypothesized failure modes — a mis-derived floor, an unreached
+clamp, or a filter that is never confident about velocity at all — is
+what is actually happening; the contradiction the day opened with does
+not survive contact with the real code path. Objective 2 recovered the
+three numbers that had gone missing between report and summary on Days
+20/23/24; Objective 4 makes that recurrence structural rather than
+something a future day has to catch by re-reading old sections.
+
+## Verdicts
+
+- **Floor verdict — (a), (b), (c), or something else, with both
+  numbers?** Neither (a), (b), nor (c) — the assumed contradiction does
+  not hold. Floor = 1.5000 m/s (2.2500 (m/s)²); natural (unfloored)
+  converged σ_v sits at 0.17-0.40x the floor in every regime on
+  v5-cessation and v4.1-gate; the floor-enabled config's minimum reading
+  equals the floor to floating-point precision everywhere. → Objective 1.
+- **Cessation frame-support verdict (recovered)?** Day 21's NEES-815
+  diagnosis was under-supported as originally reported (n=1 hand-traced
+  track); the phenomenon it pointed at is independently established at
+  n=373 (Day 23). → Objective 2.
+- **Parallel-maintenance audit (recovered)?** Three registry/consumer
+  pairs found and fixed Day 24 (`LANE_DESCRIPTIONS`,
+  `CONFIG_DESCRIPTIONS`/`CONFIG_SPECS`, `_REQUIRED_PARAMS`); four more
+  checked and explicitly not flagged, with reasons on record. →
+  Objective 2.
+- **Day 20 baseline margin, per regime AND per distance bucket
+  (recovered)?** Never printed as a combined table by any day through Day
+  24, despite the code supporting it since Day 21 — produced today
+  (config A, both golden sets). → Objective 2.
+- **Does the directional no-trade criterion change any verdict?** Yes —
+  config B: NOT_SATISFIED → PASS_WITH_COST on v5-cessation, and a clean
+  PASS on v4.1-gate. IMM (C/D): unchanged, still fails, now
+  FAIL_OVERCONFIDENT specifically rather than a bare "regressed." →
+  Objective 3.
+- **Is the report-to-summary promotion gap now structural?** Yes — every
+  day section from Day 20 onward requires a non-empty `## Verdicts`
+  block, enforced by `tests/test_report_verdicts.py`. → Objective 4.
+
+## Objective 0 — push, start of day
+
+`foundation/day-25` branched from `foundation/day-24` (`809f8ff`), pushed
+clean before any Day-25 commit landed — verified local matched
+`origin/foundation/day-25` exactly. `main` unchanged since Day 16 (ADR
+0009 still Proposed). (End of day: see the closing Objective 0/5 section
+below.)
+
+## Objective 1 — the two numbers that settle the floor: neither (a), (b), nor (c)
+
+Full derivation, both real-run tables, and the full verdict reasoning are
+in ADR 0010's "Day 25 revision (Objective 1)" section; summarized here.
+
+New `scripts/velocity_floor_binding_audit.py` runs the REAL floor-enabled
+filter (config B) on a golden set's actual tracks and reads
+`estimate.cov_array()`'s velocity-diagonal entries back — not a
+closed-form floor value compared against a synthetic walk's convergence,
+which is all Day 22-24's "binds hard" claim ever rested on.
+`eval_estimator.py`'s `FrameRecord` gained `velocity_variance_diag_mps2`,
+now surfaced as a min/p50/max distribution in every `by_regime` block —
+reusable machinery, not a one-off print.
+
+**Floor: `PERSON_SIGMA_A_MPS2` [1.5 m/s²] × `PEDESTRIAN_STOP_DURATION_S`
+[1.0 s] = 1.5000 m/s (2.2500 (m/s)²)**, unchanged from Day 24.
+
+v5-cessation, config A (floor disabled) vs config B (floor enabled):
+
+| regime | n | A p50 σ_v (m/s) | A p50/floor | B min σ_v (m/s) |
+| --- | ---: | ---: | ---: | ---: |
+| static | 260 | 0.2562 | 0.1708 | 1.5000 |
+| onset | 91 | 0.5954 | 0.3969 | 1.5000 |
+| sustained | 282 | 0.2728 | 0.1819 | 1.5000 |
+| cessation | 373 | 0.2548 | 0.1699 | 1.5000 |
+
+Cross-checked on v4.1-gate (static/onset/cessation; `sustained` is empty
+by construction on that set) — same shape: config A's p50 sits at
+0.17-0.38x the floor in every populated regime; config B is pinned at
+exactly 1.5000 in every populated regime.
+
+**Verdict: none of (a)/(b)/(c).** Not (b) — config B's minimum reading
+equals the floor to floating-point precision in every regime; the one
+place a reading exceeds the floor (`onset`'s max, 1.8014) is natural
+uncertainty legitimately exceeding a floor that only ever raises a value,
+never caps it, exactly where the transient regime's own higher natural
+uncertainty would predict. Not (a) — the floor sits far ABOVE natural
+convergence (0.17-0.40x), the opposite of (a)'s premise. Not (c) —
+natural convergence's p50 sits at 0.25-0.60 m/s in every regime,
+comfortably below the "never confident" threshold. Day 23's "never binds
+anywhere" finding was entirely the `dt_s`-scaling bug Day 24 already
+fixed; today closes the one remaining gap in how that fix had been
+checked — against a real run's actual posterior covariance, not a
+closed-form comparison. (`7e6b9cd`.)
+
+## Objective 2 — the three unreported verdicts, recovered
+
+Two of the three were already fully present in the report body, just
+never assembled into the kind of one-line statement a summary would
+carry forward — recovered here by pointing at them, not by re-measuring.
+The third had never actually been produced as a table by any day through
+Day 24, despite the underlying code supporting it since Day 21.
+
+**Cessation frame support (Day 23/24 Objective 1).** Present in full in
+Day 24's own Objective 1 section: Day 21's `brief_entry` trace (NEES
+0.8-2.2 at onset → 165.6 at the stop itself → 815→16 decaying over the
+recovery tail → <10 once settled, against a chi-square(6) 95% bound of
+12.59) and the per-regime NEES coverage table it was drawn from (v3-indoor
+static/onset/sustained n=38/284/2414; v4.1-gate static/onset/cessation
+n=175/12/3, pre-Day-23 labeling). **Verdict, restated: under-supported as
+originally reported (n=1 hand-traced track, not an aggregate), the
+underlying phenomenon independently established at n=373 (Day 23).**
+
+**Parallel-maintenance audit (Day 24 Objective 3).** Present in full in
+Day 24's own Objective 3 section. Fixed: `LANE_DESCRIPTIONS`
+(`src/data/registry.py`), `CONFIG_DESCRIPTIONS`/`CONFIG_SPECS`
+(`scripts/eval_estimator.py`), `_REQUIRED_PARAMS`
+(`src/model/uncertainty.py`) — each a dict hand-keyed by a `Literal` with
+no completeness check, the same latent shape as the `GATES`/matrix defect
+Objective 3 itself fixed that day. Checked and explicitly not flagged:
+`tests/test_golden_sets.py`'s retained-version ledger (deliberately
+append-only), `ACTION_TO_VERB` (deliberately partial), `Envelope.capability`
+(a free string, not an enum), `DATASET_NAMES` (single consumer).
+
+**Day 20 baseline margin, per regime AND per distance bucket.** Grep-
+confirmed absent: no day's report between Day 20 and Day 24 ever printed
+the per-distance-bucket margin table, though Day 21 Objective 1 fixed the
+script to compute it. Produced today, config A, current codebase (the
+same filter Day 20 built; regime labels reflect Day 23's fix):
+
+v3-indoor:
+
+| slice | n | filter RMSE | copy-prev margin | const-vel margin |
+| --- | ---: | ---: | ---: | ---: |
+| bucket 3-8m | 2528 | 0.1140 m | +0.0990 m | +5.9890 m |
+| bucket 8m+ | 208 | 0.1677 m | +0.1644 m | +7.1841 m |
+| regime static | 38 | 0.0846 m | +0.0997 m | +4.6118 m |
+| regime onset | 284 | 0.1563 m | +0.0547 m | +0.7505 m |
+| regime sustained | 2414 | 0.1142 m | +0.1121 m | +6.4599 m |
+
+v4.1-gate:
+
+| slice | n | filter RMSE | copy-prev margin | const-vel margin |
+| --- | ---: | ---: | ---: | ---: |
+| bucket 3-8m | 190 | 0.2328 m | +0.0263 m | +9.0406 m |
+| regime static | 139 | 0.1023 m | +0.0778 m | +10.4733 m |
+| regime onset | 12 | 0.1899 m | +0.5330 m | +0.5398 m |
+| regime cessation | 39 | 0.4643 m | **−0.2396 m** | +4.0266 m |
+
+Every margin is positive except one, reported because it looks bad, not
+despite that: v4.1-gate's `cessation` regime under config A loses to
+copy-previous by 0.2396 m — the filter's own confident-but-wrong velocity
+carries it PAST where the person actually is once they have stopped,
+while copy-previous, having no velocity model at all, simply has nothing
+to be wrong about. This is a new number, not one either of the first two
+recovered items already stated, and it is the same mechanism Day 21
+diagnosed by a different measurement (NEES, not RMSE) — consistent, not
+contradictory, with everything already on record about config A's
+cessation behaviour. `0-3m` is empty on both sets (both synthetic sets
+keep agents further from camera than that, Day 20's own finding,
+unchanged).
+
+## Objective 3 — the no-trade criterion made directional; config B adopted
+
+Full rationale, the complete four-config re-evaluation on both golden
+sets, and the adoption decision (with the project's own decision
+framework applied explicitly) are in ADR 0010's "Day 25 revision
+(Objective 3)" section; summarized here.
+
+`_no_trade_verdict` (`scripts/eval_estimator.py`) now returns one of five
+typed dataclasses — `NoTradeUnscoreable`, `NoTradeNoImprovement`,
+`NoTradeFailOverconfident`, `NoTradePass`, `NoTradePassWithCost(regime,
+magnitude, costs=...)` — never a bare boolean or a status string a caller
+could collapse to "it passed." A steady regime moving toward
+overconfidence (candidate coverage below the 0.95 nominal) by more than
+`NO_TRADE_DEGRADATION_TOLERANCE` fails the candidate outright, any
+regime, any magnitude beyond that tolerance, independent of how much
+cessation improved. A move toward underconfidence is recorded as a
+numeric, bounded cost instead. Direction is read off the CANDIDATE's own
+coverage-error sign against 0.95, not the sign of the change.
+
+Re-evaluated A/B/C/D on v5-cessation and v3-indoor, as asked (v4.1-gate
+checked too, for ADR consistency):
+
+| set | A→ | old verdict (symmetric) | new verdict (directional) | changed? |
+| --- | --- | --- | --- | --- |
+| v5-cessation | B | NOT_SATISFIED | **PASS_WITH_COST** (sustained, 0.0355) | **YES** |
+| v5-cessation | C | NOT_SATISFIED | FAIL_OVERCONFIDENT (static, 0.8231) | no |
+| v5-cessation | D | NOT_SATISFIED | FAIL_OVERCONFIDENT (static, 0.1885) | no |
+| v4.1-gate | B | SATISFIED | **PASS** (no cost anywhere) | no (already satisfied; now clean) |
+| v4.1-gate | C | NOT_SATISFIED | FAIL_OVERCONFIDENT (static, 0.3604) | no |
+| v3-indoor | B/C/D | UNSCOREABLE | UNSCOREABLE | no (0 cessation frames, unaffected) |
+
+**IMM's predicted outcome, checked as instructed: confirmed.** "IMM still
+fails, because Day 23 found it regressing static harder than any set to
+date and static regression means overconfidence in the regime that
+should be easiest" — exactly what happened on both sets; `static`'s
+coverage collapse (0.9962→0.0808 on v5-cessation, 0.9928→0.5468 on
+v4.1-gate) both land far below 0.95, so `FAIL_OVERCONFIDENT` is the only
+possible outcome. There was no "examine whether IMM's degradation is
+genuinely toward underconfidence" step to run, because it plainly is not.
+
+**Only config B's verdict changes, in the direction the redesign's own
+stated rationale predicts** — its sole "regression" anywhere on either
+set is `sustained` moving from slightly-underconfident (0.9574) to
+more-underconfident (0.9929) on v5-cessation, the safe direction by the
+criterion's own definition. **Decision: config B (single model + velocity
+covariance floor) is now adopted**, reversing the Day 20-24 default — it
+is the only candidate that clears the non-negotiable side of the
+criterion on both golden sets while materially fixing cessation
+(0.5013→0.9946 on v5-cessation, 0.1282→1.0000 on v4.1-gate). This was
+decided after the criterion was redesigned and committed on its own
+methodological merits, not the same session it was discovered to flip
+B's verdict — the sequence Day 24 set out in advance. (`3cbc556`.)
+
+## Objective 4 — the report-to-summary promotion gap, closed structurally
+
+Every day section from Day 20 onward now opens with a `## Verdicts`
+block: one line per question that day's own prompt asked for an explicit
+answer to, each pointing at the objective containing the evidence.
+Retrofitted for Days 20-24 from their existing report bodies (see each
+day's own new block, inserted directly after that day's headline
+paragraph); Day 20's still-missing distance-bucket table is marked NEVER
+MEASURED there rather than silently carried forward as if it had been
+produced.
+
+**STRUCTURAL:** `tests/test_report_verdicts.py` parses
+`FOUNDATION_REPORT.md`, finds every top-level section whose heading names
+a day number ≥ 20, and fails if that section has no `## Verdicts` heading
+or an empty one. A dedicated test constructs a fake day section with no
+block at all and confirms the detection regex would catch it, before
+trusting that the real sections passing means anything. Days 1-19 predate
+the convention and are out of today's retrofit scope (their headings are
+also inconsistently numbered — e.g. "Day 3 (resumed, post-amendment)" —
+which the day-number regex is not asked to handle).
+
+The session summary for any future day should now be generated by
+reading that day's `## Verdicts` block, not composed independently from
+memory of what felt important — which is exactly the step that dropped
+Day 20's distance-bucket margin, Day 23's cessation-support number, and
+Day 24's cessation verdict and parallel-maintenance audit, three times in
+a row before this fix. (`7cb4ec1`.)
+
+## Full suite and mypy
+
+`mypy` (scoped per `mypy.ini`; `scripts/` and `tests/` remain outside its
+scope, unchanged — today's estimator work extended `scripts/eval_estimator.py`,
+already outside that boundary): **0 errors, 58 files** — unchanged from
+Day 24. `black --check` / `flake8` clean on every file touched today
+(`scripts/eval_estimator.py`, `scripts/velocity_floor_binding_audit.py`,
+`tests/test_eval_estimator.py`, `tests/test_report_verdicts.py`,
+`docs/adr/0010-estimator-configuration.md`).
+
+Repo-wide `-m "not requires_weights and not slow"`: **1009 passed, 1
+skipped, 21 deselected, 0 failures** — up from Day 24's 1001 (+8: three
+sigma_v-distribution tests, two net new directional no-trade tests
+replacing/extending the old symmetric ones, and three report-verdicts
+lint tests).
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 24 — today's work was
+entirely unblocked by design:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification** — ranked #1 in Day 23's ordered list,
+   highest product impact of any pending data item; now 2 days older.
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 14 days old.
+5. **The `main`/`origin/main` divergence decision** (ADR 0009, Day 18,
+   still Proposed).
+6. **Reference hardware procurement decision**
+   (`docs/reference_hardware.md`) — now 7 days old.
+
+## Objective 0/5 — push, end of day
+
+`git push --all origin`: `foundation/day-25` pushed clean, matches origin
+exactly. `main` unchanged. `git push --tags`: up to date.
+
+## Day 26, in order
+
+1. **Multi-entity factor graph** — no longer blocked since Day 23, and no
+   longer waiting on a configuration decision either (Day 25 settled it):
+   the highest-leverage next build. When it lands, the call site that
+   constructs the production single-entity filter must pass
+   `velocity_covariance_floor=True` for `person`/`asset_carried` kinds
+   per today's ADR 0010 decision — noted here so it is not rediscovered
+   as a surprise default.
+2. **Smoothing** (`horizon_kind="smoothed"`) — same unblock, still
+   secondary per Day 21's reasoning.
+3. **A velocity floor derived from the actual stopping deceleration
+   profile** — Day 22's other open question, still untried (today
+   confirmed the SAME physical basis's derivation and binding; a
+   genuinely different basis remains open) — lower priority now that the
+   adopted floor is confirmed working well against a real run.
+4. **IMM's steady-regime mixing-overhead hypothesis** — unconfirmed, now
+   5 days deferred; today is the fourth consecutive day IMM has been
+   rejected on independent, increasingly specific grounds (most recently
+   `FAIL_OVERCONFIDENT`), which lowers the urgency of chasing why without
+   resolving the "why" itself.
+5. **Mode-probability validation against real motion labels** — depends
+   on item 1.
+6. **MEVA licence verification** — still blocked on a human, highest
+   product impact of any pending data item.
+7. **DA-2K licence verification** — adapter built and tested, zero
+   engineering lag once cleared.
+8. **Reference hardware procurement decision** — now 7 days old.
+9. **Declare a target fps for real camera ingest** — still open from
+   Day 19.
+10. **Cascade bench, clean, on interim or reference hardware** — still
+    pending hardware.
+11. **Depth validity re-measurement** (`scripts/eval_depth.py`) — still
+    deferred; gates on item 7 for a real depth number.
+12. **The `main`/`origin/main` decision** (ADR 0009) — a human call.
+13. **The generator has no sensor-noise model** — unchanged.
+14. **Order cameras and run the office capture** — now 14 days old.
+15. **The motion-gate precision/selectivity investigation** — still
+    deferred.
+16. **A canonical `Observation -> hash` function** (ADR 0007) — still
+    open from Day 13.
+17. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced** — unchanged.
+18. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+19. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued — a DPDP
+    process decision, not a coding task.
+20. **Hypothesis management** — furthest out; depends on item 1.
+
+Dropped from this list today: nothing — checked directly against the
+filesystem/codebase before carrying every item forward (per the process
+note Day 24 established after the `raise_alert()` incident); every item
+above is either still genuinely open or explicitly re-scoped in place
+(items 1, 3, 4) rather than silently renumbered.
