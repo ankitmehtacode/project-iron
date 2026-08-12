@@ -57,6 +57,7 @@ Exit codes:
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import sys
 from dataclasses import dataclass, field
@@ -966,14 +967,25 @@ the way Day 21 did would let an unrelated onset wiggle satisfy a
 criterion meant to certify a cessation fix."""
 NO_TRADE_STEADY_REGIMES = ("static", "sustained")
 NO_TRADE_MATERIAL_IMPROVEMENT = 0.05
-"""Cessation's empirical coverage must close its gap to the 0.95 nominal
+"""Cessation's empirical coverage must close its gap to NOMINAL_COVERAGE
 by at least this much (in coverage points) for a config to count as
 having "moved materially toward nominal" there. Declared, not fitted."""
 NO_TRADE_DEGRADATION_TOLERANCE = 0.02
-"""A steady regime's coverage may move at most this much FURTHER from
-nominal before it counts as "degraded" -- allows for sampling noise
-between two runs on the same (identical, same-seed) observations without
-calling every microscopic wiggle a regression."""
+"""Day 25, Objective 3: now doing double duty on the directional
+criterion. A steady regime's coverage moving further from
+NOMINAL_COVERAGE than this, in EITHER direction, is what makes a move
+count as a "degradation" worth naming at all (absorbs sampling noise
+between two runs on the same, same-seed observations). Which of the two
+outcomes a degradation THEN produces -- FAIL_OVERCONFIDENT or a
+PASS_WITH_COST entry -- is decided separately, by the sign of the
+candidate's own coverage error against NOMINAL_COVERAGE, not by this
+constant. Declared, not fitted, same as NO_TRADE_MATERIAL_IMPROVEMENT."""
+NOMINAL_COVERAGE = 0.95
+"""The target empirical coverage every consistency check in this script
+is judged against. Below this = overconfident (the covariance understates
+true error); above this = underconfident (conservative, not misleading).
+Named so the sign convention driving the Day 25 directional criterion is
+legible at every call site, not a repeated magic 0.95."""
 
 
 def _regime_coverage(block: dict[str, Any]) -> float:
@@ -990,20 +1002,124 @@ def _regime_coverage(block: dict[str, Any]) -> float:
     )
 
 
+@dataclass(frozen=True)
+class NoTradeUnscoreable:
+    """Cessation itself does not have enough frames in common between
+    baseline and candidate to support any conclusion -- distinct from
+    every other verdict below. Silently defaulting to pass or fail on
+    thin evidence would be exactly the bounded-null-read-as-limit mistake
+    this project has caught before (see the `iron-eval-discipline` skill's
+    "Bounded Nulls" section)."""
+
+    baseline: str
+    candidate: str
+    n_cessation: int
+
+
+@dataclass(frozen=True)
+class NoTradeNoImprovement:
+    """Cessation is scoreable but did not move materially toward nominal.
+    There is no measured benefit here to weigh a cost against -- this is
+    neither a pass nor a directional failure, it is simply not yet a
+    result worth adopting a config over."""
+
+    baseline: str
+    candidate: str
+    n_cessation: int
+    cessation_delta_toward_nominal: float
+
+
+@dataclass(frozen=True)
+class NoTradeFailOverconfident:
+    """Non-negotiable. A steady regime's coverage moved toward
+    overconfidence (below NOMINAL_COVERAGE) by more than
+    NO_TRADE_DEGRADATION_TOLERANCE -- independent of how much cessation
+    improved. See ADR 0010's Day 25 revision for why overconfidence and
+    underconfidence are not symmetric risks for this product."""
+
+    baseline: str
+    candidate: str
+    regime: str
+    coverage_before: float
+    coverage_after: float
+    magnitude: float
+
+
+@dataclass(frozen=True)
+class NoTradePass:
+    """Cessation improved materially; no steady regime degraded toward
+    overconfidence beyond tolerance. Any steady-regime movement present
+    was toward underconfidence, within tolerance, or absent entirely."""
+
+    baseline: str
+    candidate: str
+    cessation_delta_toward_nominal: float
+    n_cessation: int
+
+
+@dataclass(frozen=True)
+class NoTradePassWithCost:
+    """Cessation improved materially; at least one steady regime degraded,
+    but strictly toward underconfidence -- an efficiency cost (a wider,
+    more conservative band), not a danger. `regime`/`magnitude` name the
+    single worst such degradation; `costs` carries the full per-regime
+    breakdown so the trade is numeric and complete in the record, never
+    implied by a single collapsed number."""
+
+    baseline: str
+    candidate: str
+    regime: str
+    magnitude: float
+    costs: tuple[tuple[str, float], ...]
+    cessation_delta_toward_nominal: float
+    n_cessation: int
+
+
+NoTradeVerdict = (
+    NoTradeUnscoreable
+    | NoTradeNoImprovement
+    | NoTradeFailOverconfident
+    | NoTradePass
+    | NoTradePassWithCost
+)
+"""STRUCTURAL (Day 25, Objective 3): `_no_trade_verdict` returns one of
+these five dataclasses, never a bare boolean or a status string a caller
+could collapse to "it passed" -- `NoTradePassWithCost` and `NoTradePass`
+are distinct types with different fields, so a caller that only handles
+`NoTradePass` fails type-checking (or an `isinstance`/match miss) rather
+than silently treating a cost-bearing candidate as clean."""
+
+
 def _no_trade_verdict(
     baseline_label: str,
     baseline_report: dict[str, Any],
     candidate_label: str,
     candidate_report: dict[str, Any],
-) -> dict[str, Any]:
-    """Objective 3: the no-trade criterion, generalized to ANY config
-    against the baseline (config A, Day 20's filter) -- cessation coverage
-    must move materially toward nominal AND static/sustained must not
-    degrade. Returns the verdict as data, including a THIRD state
-    ("unscoreable") for when cessation itself does not have enough frames
-    to support any conclusion -- silently defaulting to pass or fail on
-    thin evidence would be exactly the kind of bounded-null-read-as-limit
-    mistake this project has caught before.
+) -> NoTradeVerdict:
+    """Day 22 Objective 3 built this around cessation specifically; Day 25
+    Objective 3 makes it DIRECTIONAL. Overconfidence (coverage below
+    NOMINAL_COVERAGE) and underconfidence (coverage above it) are not
+    equally dangerous for an evidence system: an overconfident estimator's
+    stated uncertainty band is a lie, and every downstream confidence
+    inherits it; an underconfident one is merely more conservative than it
+    needs to be. See ADR 0010's Day 25 revision for the full rationale.
+
+    A steady regime (`NO_TRADE_STEADY_REGIMES`) moving toward
+    overconfidence by more than `NO_TRADE_DEGRADATION_TOLERANCE` fails the
+    candidate outright (`NoTradeFailOverconfident`) -- non-negotiable,
+    independent of cessation's own improvement. A move toward
+    underconfidence is instead a COST (`NoTradePassWithCost`), weighed
+    numerically against cessation's improvement rather than silently
+    forgiven. Direction is read off the CANDIDATE's own coverage-error
+    sign against `NOMINAL_COVERAGE` (below = overconfident), not the sign
+    of the change itself -- a regime that was already overconfident at
+    baseline and stays there is still `overconfident`, not "improving in
+    the safe direction" just because the gap narrowed.
+
+    Cessation must still improve materially for a `NoTradePass`/
+    `NoTradePassWithCost` -- there is nothing to trade a cost against
+    otherwise; a candidate that neither fails on overconfidence nor
+    improves cessation gets `NoTradeNoImprovement`, not a default pass.
     """
     baseline_regimes = baseline_report.get("by_regime", {})
     candidate_regimes = candidate_report.get("by_regime", {})
@@ -1011,72 +1127,121 @@ def _no_trade_verdict(
     cessation_baseline = baseline_regimes.get(NO_TRADE_CESSATION_REGIME, {})
     cessation_candidate = candidate_regimes.get(NO_TRADE_CESSATION_REGIME, {})
     n_cessation = min(cessation_baseline.get("n", 0), cessation_candidate.get("n", 0))
-    cessation_scoreable = n_cessation >= MIN_REGIME_FRAMES_FOR_A_CONCLUSION
+    if n_cessation < MIN_REGIME_FRAMES_FOR_A_CONCLUSION:
+        return NoTradeUnscoreable(baseline_label, candidate_label, n_cessation)
 
+    base_cess_cov = _regime_coverage(cessation_baseline)
+    cand_cess_cov = _regime_coverage(cessation_candidate)
     cessation_delta = float("nan")
-    if cessation_scoreable:
-        base_cov = _regime_coverage(cessation_baseline)
-        cand_cov = _regime_coverage(cessation_candidate)
-        if not (np.isnan(base_cov) or np.isnan(cand_cov)):
-            cessation_delta = abs(base_cov - 0.95) - abs(cand_cov - 0.95)
+    if not (np.isnan(base_cess_cov) or np.isnan(cand_cess_cov)):
+        cessation_delta = abs(base_cess_cov - NOMINAL_COVERAGE) - abs(
+            cand_cess_cov - NOMINAL_COVERAGE
+        )
     cessation_improved = (
-        cessation_scoreable
-        and not np.isnan(cessation_delta)
+        not np.isnan(cessation_delta)
         and cessation_delta >= NO_TRADE_MATERIAL_IMPROVEMENT
     )
 
-    steady_deltas: dict[str, float] = {}
-    any_steady_degraded = False
+    fail: NoTradeFailOverconfident | None = None
+    costs: list[tuple[str, float]] = []
     for name in NO_TRADE_STEADY_REGIMES:
         base_cov = _regime_coverage(baseline_regimes.get(name, {}))
         cand_cov = _regime_coverage(candidate_regimes.get(name, {}))
         if np.isnan(base_cov) or np.isnan(cand_cov):
             continue
-        delta = abs(base_cov - 0.95) - abs(cand_cov - 0.95)
-        steady_deltas[name] = delta
-        if delta < -NO_TRADE_DEGRADATION_TOLERANCE:
-            any_steady_degraded = True
+        delta_toward_nominal = abs(base_cov - NOMINAL_COVERAGE) - abs(
+            cand_cov - NOMINAL_COVERAGE
+        )
+        if delta_toward_nominal >= -NO_TRADE_DEGRADATION_TOLERANCE:
+            continue  # improved, flat, or within sampling-noise tolerance
+        magnitude = -delta_toward_nominal
+        overconfident = (cand_cov - NOMINAL_COVERAGE) < 0
+        if overconfident:
+            candidate_fail = NoTradeFailOverconfident(
+                baseline=baseline_label,
+                candidate=candidate_label,
+                regime=name,
+                coverage_before=base_cov,
+                coverage_after=cand_cov,
+                magnitude=magnitude,
+            )
+            if fail is None or magnitude > fail.magnitude:
+                fail = candidate_fail
+        else:
+            costs.append((name, magnitude))
 
-    if not cessation_scoreable:
-        status = "unscoreable"
-    elif cessation_improved and not any_steady_degraded:
-        status = "satisfied"
-    else:
-        status = "not_satisfied"
+    if fail is not None:
+        return fail
 
-    return {
-        "baseline": baseline_label,
-        "candidate": candidate_label,
-        "n_cessation": n_cessation,
-        "cessation_scoreable": cessation_scoreable,
-        "cessation_delta_toward_nominal": cessation_delta,
-        "cessation_improved": cessation_improved,
-        "steady_deltas_toward_nominal": steady_deltas,
-        "any_steady_degraded": any_steady_degraded,
-        "status": status,
-    }
+    if not cessation_improved:
+        return NoTradeNoImprovement(
+            baseline_label, candidate_label, n_cessation, cessation_delta
+        )
+
+    if costs:
+        worst_regime, worst_magnitude = max(costs, key=lambda item: item[1])
+        return NoTradePassWithCost(
+            baseline=baseline_label,
+            candidate=candidate_label,
+            regime=worst_regime,
+            magnitude=worst_magnitude,
+            costs=tuple(costs),
+            cessation_delta_toward_nominal=cessation_delta,
+            n_cessation=n_cessation,
+        )
+
+    return NoTradePass(
+        baseline=baseline_label,
+        candidate=candidate_label,
+        cessation_delta_toward_nominal=cessation_delta,
+        n_cessation=n_cessation,
+    )
 
 
-def _print_no_trade_verdict(version: str, verdict: dict[str, Any]) -> None:
-    baseline, candidate = verdict["baseline"], verdict["candidate"]
-    print(f"  {baseline} -> {candidate} ({version}):")
-    if not verdict["cessation_scoreable"]:
+def _print_no_trade_verdict(version: str, verdict: NoTradeVerdict) -> None:
+    print(f"  {verdict.baseline} -> {verdict.candidate} ({version}):")
+    if isinstance(verdict, NoTradeUnscoreable):
         print(
-            f"    UNSCOREABLE -- cessation has only {verdict['n_cessation']} frame(s) "
+            f"    UNSCOREABLE -- cessation has only {verdict.n_cessation} frame(s) "
             f"in common (< {MIN_REGIME_FRAMES_FOR_A_CONCLUSION} floor); no conclusion "
             "can be drawn about the regime this criterion is actually about"
         )
-    else:
+        return
+    if isinstance(verdict, NoTradeNoImprovement):
         print(
             f"    cessation delta-toward-nominal: "
-            f"{verdict['cessation_delta_toward_nominal']:+.4f} "
-            f"(n={verdict['n_cessation']}, "
-            f"{'IMPROVED' if verdict['cessation_improved'] else 'not improved'})"
+            f"{verdict.cessation_delta_toward_nominal:+.4f} (n={verdict.n_cessation}, "
+            "not improved -- no benefit here to weigh a cost against)"
         )
-    for name, delta in verdict["steady_deltas_toward_nominal"].items():
-        flag = " ** REGRESSION **" if delta < -NO_TRADE_DEGRADATION_TOLERANCE else ""
-        print(f"    {name} delta-toward-nominal: {delta:+.4f}{flag}")
-    print(f"    NO-TRADE CRITERION: {verdict['status'].upper()}")
+        print("    NO-TRADE CRITERION: NO_IMPROVEMENT")
+        return
+    if isinstance(verdict, NoTradeFailOverconfident):
+        print(
+            f"    {verdict.regime} moved TOWARD OVERCONFIDENCE: coverage "
+            f"{verdict.coverage_before:.4f} -> {verdict.coverage_after:.4f} "
+            f"(magnitude {verdict.magnitude:.4f}, below nominal "
+            f"{NOMINAL_COVERAGE:.2f}) -- non-negotiable"
+        )
+        print("    NO-TRADE CRITERION: FAIL_OVERCONFIDENT")
+        return
+    # NoTradePass / NoTradePassWithCost both improved cessation materially.
+    print(
+        f"    cessation delta-toward-nominal: "
+        f"{verdict.cessation_delta_toward_nominal:+.4f} "
+        f"(n={verdict.n_cessation}, IMPROVED)"
+    )
+    if isinstance(verdict, NoTradePassWithCost):
+        for name, magnitude in verdict.costs:
+            print(
+                f"    {name} moved toward UNDERCONFIDENCE by {magnitude:.4f} "
+                "(cost, not a failure)"
+            )
+        print(
+            f"    NO-TRADE CRITERION: PASS_WITH_COST "
+            f"(worst: {verdict.regime}, magnitude {verdict.magnitude:.4f})"
+        )
+    else:
+        print("    NO-TRADE CRITERION: PASS")
 
 
 def _print_four_way_summary(
@@ -1207,7 +1372,13 @@ def main(argv: list[str] | None = None) -> int:
                     "A", per_config["A"], candidate_label, per_config[candidate_label]
                 )
                 _print_no_trade_verdict(version, verdict)
-                verdicts.append({"version": version, **verdict})
+                verdicts.append(
+                    {
+                        "version": version,
+                        "kind": type(verdict).__name__,
+                        **dataclasses.asdict(verdict),
+                    }
+                )
             print()
 
     if args.artifact_dir:

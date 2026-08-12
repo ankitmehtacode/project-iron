@@ -1,16 +1,18 @@
-# ADR 0010 — Estimator configuration: config A remains in use
+# ADR 0010 — Estimator configuration: config B (velocity covariance floor) now adopted
 
-- **Status:** Accepted; revised 2026-08-11 (Day 23); **revised again
-  2026-08-11 (Day 24)** — see "Day 24 revision (Objective 1)" and
-  "Day 24 revision (Objective 2)" below. Objective 1: Day 21's founding
-  NEES-815 number is traced to n=1 hand-traced track, not an aggregate —
+- **Status:** Accepted; revised 2026-08-11 (Day 23); revised again
+  2026-08-11 (Day 24); **revised again 2026-08-12 (Day 25) — the adopted
+  configuration CHANGES, from A to B.** See "Day 25 revision
+  (Objective 1)" (confirms the floor binds on a real run — no remaining
+  defect) and "Day 25 revision (Objective 3)" (the no-trade criterion
+  made directional; under it, config B clears the bar on both golden
+  sets with one stated, bounded, safe-direction cost, and is adopted).
+  Day 24's summary, for continuity: Objective 1 traced Day 21's founding
+  NEES-815 number to n=1 hand-traced track, not an aggregate —
   under-supported as originally reported, though the underlying finding
-  is now independently established at real n (373 frames, Day 23).
-  Objective 2: **the velocity floor Day 22-23 measured as permanently
-  inert was itself mis-derived; corrected, it binds at every practical
-  frame rate and materially changes the evidence, though the adopted
-  configuration (A) is unchanged today pending one open methodological
-  question (see Day 24 revision (Objective 2), final section).**
+  is independently established at real n (373 frames, Day 23). Objective
+  2 found the velocity floor Day 22-23 measured as permanently inert was
+  itself mis-derived; corrected, it binds at every practical frame rate.
 - **Date:** 2026-08-10
 - **Decides for:** which of the four Day-22 estimator configurations
   (single model / single model + velocity floor / IMM / IMM + velocity
@@ -22,11 +24,13 @@
   diagnosis, IMM build, no-trade criterion NOT satisfied), Day 22 (this
   ADR's original evidence), Day 23 (the first revision below:
   v5-cessation, the frame-rate sweep, and the reconciled regime
-  labeling), and Day 24 (the second revision: the NEES-815 frame-support
-  audit and the corrected, absolute velocity floor);
-  [[check-the-measuring-apparatus]] (the pooled-NEES question this ADR
-  answers, and the matrix-script gap Day 23 found while re-running the
-  validity gates, are both instances of that pattern)
+  labeling), Day 24 (the second revision: the NEES-815 frame-support
+  audit and the corrected, absolute velocity floor), and Day 25 (the
+  third revision: the floor's binding confirmed against a real run, and
+  the no-trade criterion redesigned directionally, changing the adopted
+  configuration to B); [[check-the-measuring-apparatus]] (the pooled-NEES
+  question this ADR answers, and the matrix-script gap Day 23 found while
+  re-running the validity gates, are both instances of that pattern)
 
 ## Context
 
@@ -746,3 +750,150 @@ adjust a constant to make the floor bind.
 
 No constant was adjusted to reach this result — both numbers were
 measured as-is, from the code as Day 24 left it.
+
+## Day 25 revision (Objective 3) — the no-trade criterion made directional; config B now adopted
+
+**This was revised because the criterion was symmetric and the
+underlying risk is not — not because a configuration needed to pass.**
+The redesign below was written and committed to (in `scripts/eval_estimator.py`,
+with unit tests) BEFORE it was run against config B's own numbers, exactly
+per Day 24's closing instruction: "settle whether the no-trade criterion
+should weight over-confidence and under-confidence deviations
+asymmetrically... and only then revisit config B's adoption." The
+sequence below records that order, so this reads as a principled
+redesign rather than a metric loosened until something passed.
+
+### The asymmetry, stated as a rule before any config was re-scored
+
+Overconfidence (empirical coverage below the 0.95 nominal — the filter's
+stated uncertainty band understates its true error) and underconfidence
+(coverage above 0.95 — the band is wider than it needs to be) are not
+equally dangerous for an evidence system. Overconfidence is a lie the
+filter tells about its own certainty, and every downstream decision
+inherits it; the system becomes most certain exactly where it is most
+wrong (this project's Day 20 headline finding, `brief_entry`'s
+onset-transient overconfidence, was this exact failure mode). Underconfidence
+is inefficient — wider bounds, more conservative alerts — never
+misleading.
+
+The criterion (`_no_trade_verdict`, `scripts/eval_estimator.py`) now
+returns one of five explicit types, never a bare boolean or a status
+string a caller could collapse to "it passed":
+
+- `NoTradeUnscoreable` — cessation too thin to judge anything (unchanged
+  from Day 22).
+- `NoTradeNoImprovement` — cessation didn't move materially toward
+  nominal; nothing to weigh a cost against.
+- `NoTradeFailOverconfident` — **non-negotiable.** A steady regime
+  (`static`/`sustained`) moved toward overconfidence (candidate coverage
+  below 0.95) by more than `NO_TRADE_DEGRADATION_TOLERANCE` (0.02,
+  unchanged). Independent of how much cessation improved.
+- `NoTradePass` — cessation improved materially; no steady regime
+  degraded toward overconfidence beyond tolerance.
+- `NoTradePassWithCost(regime, magnitude, costs=...)` — cessation
+  improved materially; at least one steady regime degraded, but strictly
+  toward underconfidence. The magnitude is a required field, not a note —
+  the trade is numeric in the record, not implied.
+
+Direction is read off the CANDIDATE's own coverage-error sign against
+0.95 (below = overconfident), not the sign of the change — a regime
+already overconfident at baseline that stays overconfident is still
+`overconfident`, independent of whether the gap narrowed.
+
+### Four-way re-evaluation under the directional criterion
+
+**v5-cessation** (n=373 cessation frames):
+
+| A→ | cessation Δtoward-nominal | verdict (Day 24, symmetric) | verdict (Day 25, directional) | changed? |
+| --- | --- | --- | --- | --- |
+| B | +0.4040 (IMPROVED) | NOT_SATISFIED (sustained −0.0355 scored as a plain regression) | **PASS_WITH_COST** (sustained, magnitude 0.0355) | **YES** |
+| C | −0.1287 (not improved) | NOT_SATISFIED | FAIL_OVERCONFIDENT (static 0.9962→0.0808, magnitude 0.8231) | no (still rejected, different reason recorded) |
+| D | +0.3592 (IMPROVED) | NOT_SATISFIED | FAIL_OVERCONFIDENT (static 0.9962→0.7154, magnitude 0.1885) | no (still rejected) |
+
+**v4.1-gate** (n=39 cessation frames):
+
+| A→ | cessation Δtoward-nominal | verdict (Day 24) | verdict (Day 25) | changed? |
+| --- | --- | --- | --- | --- |
+| B | +0.7718 (IMPROVED) | SATISFIED | **PASS** (no cost anywhere — static 0.9928→1.0000 is itself an improvement, not a degradation) | no (already satisfied; now clean rather than merely satisfied) |
+| C | −0.1026 (not improved) | NOT_SATISFIED | FAIL_OVERCONFIDENT (static 0.9928→0.5468, magnitude 0.3604) | no |
+
+**v3-indoor**: UNSCOREABLE for every candidate on both the old and new
+criterion (0 cessation frames by construction — unaffected finding,
+confirms the redesign did not change behaviour where there is nothing to
+score).
+
+**IMM's expected outcome, checked as instructed.** The objective's own
+prediction — "IMM still fails, because Day 23 found it regressing static
+harder than any set to date and static regression means overconfidence
+in the regime that should be easiest" — is confirmed on both sets. IMM
+(C and D) does not pass under the directional criterion either;
+`static`'s coverage collapse (0.9962→0.0808 on v5-cessation, 0.9928→0.5468
+on v4.1-gate) is squarely in the overconfident direction (both landing
+far below 0.95), so `NoTradeFailOverconfident` is the correct, and only
+possible, outcome — there is no "examine whether IMM's degradation is
+genuinely toward underconfidence" step to run, because it plainly is not:
+coverage collapsing toward 0 is overconfidence by definition. The
+directional criterion did not loosen anything for IMM; it gave the same
+rejection a more specific, falsifiable reason.
+
+**Config B is the only verdict that changes**, and it changes in the
+direction the redesign's own stated rationale predicts: B's only
+"regression" anywhere in either golden set is `sustained` moving from
+slightly-underconfident (0.9574) to more-underconfident (0.9929) on
+v5-cessation — coverage moving further above nominal, the safe direction
+by the criterion's own definition. Under the old symmetric scoring this
+counted against B exactly as hard as moving toward overconfidence would;
+under the corrected, directional scoring it is recorded as a stated,
+bounded, numeric cost (`magnitude=0.0355`) rather than a rejection.
+
+### Decision: config B (single model + velocity covariance floor) is now adopted
+
+Following this project's decision framework:
+
+1. **Problem.** Config A is overconfident specifically in the cessation
+   regime (v5-cessation coverage 0.5013, v4.1-gate 0.1282 — both far
+   below the 0.95 nominal, the exact failure mode Day 21 diagnosed).
+2. **Constraints.** A replacement must not become overconfident anywhere
+   it wasn't already (the non-negotiable side of the criterion above);
+   any other cost must be stated numerically, not hidden in an aggregate.
+3. **Alternatives compared.** A (status quo, overconfident at cessation),
+   B (single model + floor), C (IMM), D (IMM + floor).
+4. **Tradeoffs.** B fixes cessation coverage on both golden sets
+   (0.5013→0.9946 on v5-cessation, 0.1282→1.0000 on v4.1-gate) at the cost
+   of `sustained` becoming more conservative by 0.0355 coverage points on
+   v5-cessation only — a single, bounded, safe-direction cost, not a new
+   failure mode. C/D fix cessation less completely (C's own cessation
+   coverage, 0.3727, is the worst of any config) while introducing a
+   genuine, dangerous overconfidence regression in `static` on both sets —
+   rejected on the same grounds Day 21-23 already established.
+5. **Recommendation: adopt config B.** It is the only candidate that
+   clears the non-negotiable side of the criterion on both golden sets
+   while materially fixing the problem the criterion exists to catch.
+6. **Why it wins.** The one cost it carries is exactly the kind this
+   criterion was redesigned to treat differently from a danger: a wider,
+   more conservative bound in a regime that was already close to nominal,
+   not a filter lying about its own certainty.
+7. **Future maintenance cost.** `velocity_covariance_floor_enabled` is
+   already a per-motion-model flag (Day 22) — adopting B is a
+   configuration change (`motion_model_for("person",
+   velocity_covariance_floor=True)` at whatever call site constructs the
+   production filter; no such call site exists yet, since detection/
+   tracking are still unbuilt — Day 20's own scope note), not new code.
+   The floor itself (`pedestrian_velocity_covariance_floor_mps2`) is
+   analytic and declared, not fitted, so it carries no retraining or
+   re-tuning burden going forward. The one open item this decision
+   creates: `sustained`'s 0.0355-point conservatism on v5-cessation
+   specifically should be watched, not re-litigated, if a future golden
+   set shows it growing rather than staying flat.
+
+This reverses config A's Day 20-24 default. It is recorded as a decision
+made on Day 25's own evidence, following redesign-then-score ordering
+Day 24 set out in advance — not a same-session reaction to a metric that
+happened to flip.
+
+### Rejected, and why (Day 25 addendum)
+
+- **IMM (configs C/D)** — unaffected by the criterion redesign; the
+  directional criterion gives the same rejection Day 21-24 already
+  established a more specific, falsifiable reason (`FAIL_OVERCONFIDENT`,
+  not just "regressed").

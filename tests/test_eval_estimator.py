@@ -212,6 +212,9 @@ def test_score_golden_set_handles_missing_version_gracefully(tmp_path: Path) -> 
 
 # ---------------------------------------------------------------------------
 # Day 22, Objective 3 -- the generalized no-trade verdict
+# Day 25, Objective 3 -- made DIRECTIONAL: overconfidence fails outright,
+# underconfidence is a weighed, numeric cost. See ADR 0010's Day 25
+# revision for the rationale.
 # ---------------------------------------------------------------------------
 
 
@@ -272,11 +275,11 @@ def test_no_trade_unscoreable_when_cessation_too_thin() -> None:
         }
     )
     verdict = ee._no_trade_verdict("A", baseline, "C", candidate)
-    assert verdict["status"] == "unscoreable"
-    assert verdict["cessation_scoreable"] is False
+    assert isinstance(verdict, ee.NoTradeUnscoreable)
+    assert verdict.n_cessation == 3
 
 
-def test_no_trade_satisfied_when_cessation_improves_and_steady_holds() -> None:
+def test_no_trade_pass_when_cessation_improves_and_steady_holds() -> None:
     baseline = _fake_report(
         {
             "cessation": _regime_block(20, 0.0, mixture_coverage=None),
@@ -292,13 +295,14 @@ def test_no_trade_satisfied_when_cessation_improves_and_steady_holds() -> None:
         }
     )
     verdict = ee._no_trade_verdict("A", baseline, "D", candidate)
-    assert verdict["cessation_scoreable"] is True
-    assert verdict["cessation_improved"] is True
-    assert verdict["any_steady_degraded"] is False
-    assert verdict["status"] == "satisfied"
+    assert isinstance(verdict, ee.NoTradePass)
+    assert verdict.cessation_delta_toward_nominal > 0
 
 
-def test_no_trade_not_satisfied_when_steady_regime_degrades() -> None:
+def test_no_trade_fails_overconfident_when_steady_regime_drops_below_nominal() -> None:
+    """The dangerous direction: a steady regime's coverage moves BELOW
+    nominal -- the filter's stated uncertainty understates its true error.
+    Non-negotiable, regardless of cessation's own improvement."""
     baseline = _fake_report(
         {
             "cessation": _regime_block(20, 0.0),
@@ -309,17 +313,42 @@ def test_no_trade_not_satisfied_when_steady_regime_degrades() -> None:
     candidate = _fake_report(
         {
             "cessation": _regime_block(20, 0.9, mixture_coverage=0.9),
-            "static": _regime_block(50, 0.5, mixture_coverage=0.5),  # degraded
+            "static": _regime_block(50, 0.5, mixture_coverage=0.5),  # overconfident
             "sustained": _regime_block(50, 0.95),
         }
     )
     verdict = ee._no_trade_verdict("A", baseline, "C", candidate)
-    assert verdict["cessation_improved"] is True
-    assert verdict["any_steady_degraded"] is True
-    assert verdict["status"] == "not_satisfied"
+    assert isinstance(verdict, ee.NoTradeFailOverconfident)
+    assert verdict.regime == "static"
+    assert verdict.coverage_after == pytest.approx(0.5)
 
 
-def test_no_trade_not_satisfied_when_cessation_does_not_improve_materially() -> None:
+def test_no_trade_pass_with_cost_when_steady_regime_moves_above_nominal() -> None:
+    """The safe direction: a steady regime's coverage moves further ABOVE
+    nominal (more conservative, not misleading). This must be a weighed
+    cost, not the same outright failure an overconfident move gets."""
+    baseline = _fake_report(
+        {
+            "cessation": _regime_block(20, 0.0),
+            "static": _regime_block(50, 0.95),
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    candidate = _fake_report(
+        {
+            "cessation": _regime_block(20, 0.9, mixture_coverage=0.9),
+            "static": _regime_block(50, 0.99, mixture_coverage=0.99),  # underconfident
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    verdict = ee._no_trade_verdict("A", baseline, "C", candidate)
+    assert isinstance(verdict, ee.NoTradePassWithCost)
+    assert verdict.regime == "static"
+    assert verdict.magnitude == pytest.approx(0.04)
+    assert verdict.costs == (("static", pytest.approx(0.04)),)
+
+
+def test_no_trade_no_improvement_when_cessation_does_not_improve_materially() -> None:
     baseline = _fake_report(
         {
             "cessation": _regime_block(20, 0.90),
@@ -335,13 +364,13 @@ def test_no_trade_not_satisfied_when_cessation_does_not_improve_materially() -> 
         }
     )
     verdict = ee._no_trade_verdict("A", baseline, "C", candidate)
-    assert verdict["cessation_improved"] is False
-    assert verdict["status"] == "not_satisfied"
+    assert isinstance(verdict, ee.NoTradeNoImprovement)
 
 
 def test_no_trade_degradation_tolerance_absorbs_small_wiggle() -> None:
     """A steady regime moving slightly further from nominal, within
-    NO_TRADE_DEGRADATION_TOLERANCE, must not count as a regression."""
+    NO_TRADE_DEGRADATION_TOLERANCE, must not count as a degradation in
+    EITHER direction."""
     baseline = _fake_report(
         {
             "cessation": _regime_block(20, 0.0),
@@ -357,8 +386,30 @@ def test_no_trade_degradation_tolerance_absorbs_small_wiggle() -> None:
         }
     )
     verdict = ee._no_trade_verdict("A", baseline, "C", candidate)
-    assert verdict["any_steady_degraded"] is False
-    assert verdict["status"] == "satisfied"
+    assert isinstance(verdict, ee.NoTradePass)
+
+
+def test_no_trade_overconfident_fail_wins_over_a_simultaneous_cost() -> None:
+    """A candidate degrading one steady regime toward overconfidence and
+    another toward underconfidence must fail outright -- the cost side
+    cannot offset the non-negotiable side."""
+    baseline = _fake_report(
+        {
+            "cessation": _regime_block(20, 0.0),
+            "static": _regime_block(50, 0.95),
+            "sustained": _regime_block(50, 0.95),
+        }
+    )
+    candidate = _fake_report(
+        {
+            "cessation": _regime_block(20, 0.9, mixture_coverage=0.9),
+            "static": _regime_block(50, 0.5, mixture_coverage=0.5),  # overconfident
+            "sustained": _regime_block(50, 0.99, mixture_coverage=0.99),  # underconf.
+        }
+    )
+    verdict = ee._no_trade_verdict("A", baseline, "C", candidate)
+    assert isinstance(verdict, ee.NoTradeFailOverconfident)
+    assert verdict.regime == "static"
 
 
 # ---------------------------------------------------------------------------
