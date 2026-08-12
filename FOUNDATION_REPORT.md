@@ -7175,3 +7175,403 @@ exactly. `main` unchanged. `git push --tags`: up to date.
     2 above but recorded separately since single-entity identity
     resolution and multi-entity component membership are related, not
     identical, problems.
+
+# Day 27
+
+**No timing, throughput, CPU-percentage, or latency claim is made
+anywhere in this section** — unchanged hard scope rule from Day 20-26.
+Component counts and sizes remain explicitly in scope as structural
+properties of the scene. Everything below is accuracy, consistency, and
+structural/documentation measurement.
+
+**Headline: the architecture this project has been reasoning from for
+27 days was running on conversational memory, not on anything checked
+into version control — and it was the whole numbering scheme, not one
+citation.** Day 26 found a single sparsity claim cited as "Data model
+v0.3 §3" that did not exist anywhere in the repo. Today's audit
+(Objective 3) checked how far that pattern extended: `src/model/__init__.py`
+has claimed to implement "IRON_DATA_MODEL v0.3... built Day 13 from
+three rounds of architecture review" since Day 13, and no file with
+that content, at that version, with numbered sections, existed anywhere
+until today. §0, §10, §15, and §17 — every section number this codebase
+has ever cited as part of the data model — were each real, implemented,
+tested code, cited dozens of times combined, and never once collected
+into an addressable document. Two provisions audited today have no
+implementation AND no prior record at all: constraint typing (hard vs.
+twin-dependent) traces to a single stub label explicitly marked "not yet
+implemented," and the hypothesis store's `PRUNED_BY_BUDGET` death cause
+— named with enough precision that some real specification of it
+plausibly existed once — appears zero times in 27 days of commits,
+ADRs, or reports. `docs/data_model/v0.3.md` is now real, and a
+structural lint (`tests/test_data_model_citations.py`) makes a future
+citation to an unwritten section fail the suite rather than sit
+unnoticed for another 27 days.
+
+Two other results anchor the day. Objective 1 confirmed the Day 26
+cross-covariance bug did NOT explain the carrier's measured
+overconfidence (it never could have — the carrier's own covariance is a
+direct sub-block, no summation involved), then instrumented the actual
+mechanism directly: the constant slip model shrinks the carrier's
+covariance by a roughly uniform 32-41% regardless of regime while the
+real benefit ranges from +47.6% to −7.7%, and a physically-derived
+acceleration-scaled alternative fixes the worst of it (cessation's
+unjustified gain: +19.3% → +0.9%) at the direct cost of the asset's own
+benefit (margin +0.0425m → −0.0051m) — reported as a real trade, not
+adopted as a fix. Objective 2 gave the solver a hard, justified cap
+(6, the exact bound Day 26's own gate used) with a structurally
+un-skippable degradation path, and found — honestly, including the
+caveat about what the specific test actually measures — that capping a
+badly-mismatched component helps, not hurts, which is a different and
+arguably more important safety property than the one originally asked
+about.
+
+## Verdicts
+
+- **Does the carrier-overconfidence finding survive the cross-covariance
+  confounder?** Yes, cleanly — the fix and the finding landed in the
+  same commit, and the carrier's own covariance was never derived via
+  the buggy formula (it's a direct sub-block, no summation needed). →
+  Objective 1.
+- **What is the mechanism, instrumented directly?** The constant slip
+  model shrinks the carrier's covariance ~32-41% uniformly regardless of
+  regime; actual error reduction ranges from +47.6% (static) to −7.7%
+  (onset, genuinely worse). The gap is worst in cessation (+19.3%
+  unjustified gain) and onset (+39.7%). → Objective 1.
+- **Does the physically-derived acceleration-scaled slip model fix it
+  without costing the asset improvement?** No — it fixes the carrier
+  (cessation unjustified gain +19.3%→+0.9%, overall verdict
+  FAIL_OVERCONFIDENT→PASS) but destroys the asset's own benefit on both
+  golden sets (margin +0.0425m→−0.0051m on v5-cessation,
+  +0.0265m→−0.0049m on v3-indoor). A trade, not a fix; neither model
+  adopted as default. → Objective 1.
+- **What cap value, and why?** 6 — not a round number, the exact bound
+  Day 26 Objective 2's own decision gate used to authorize building the
+  solver at all. Degradation action: independent fallback (this project
+  has only ever measured coupling density, never coupling
+  informativeness, so a ranking heuristic would be another unmeasured
+  claim). → Objective 2.
+- **What does the cap cost?** Measured as negative (capping HELPS) on
+  the one real 6-entity test available — but that test forces six
+  independent walkers into one rigid-coupling component, an honestly-
+  labeled mechanism check, not a genuinely-coupled group. This measures
+  the cap's safety value against inappropriate coupling, not the cost
+  of degrading a well-matched component (that number, from the actual
+  carrier+asset evaluation, is ~+0.03-0.04m). → Objective 2.
+- **Does "IRON_DATA_MODEL v0.3" exist as a real document?** No, until
+  today — confirmed absent despite being cited as built and versioned
+  since Day 13. §0/§10/§15/§17 are all real, implemented, tested code
+  that had never been collected into one addressable document.
+  `docs/data_model/v0.3.md` now exists, reconstructed from
+  implementation, with a structural lint against future dangling
+  citations. → Objective 3.
+- **Are any provisions assumed-nowhere-recorded — no implementation,
+  no documentation, anywhere?** Yes, two: constraint typing (hard vs.
+  twin-dependent constraints raising "twin-revision hypotheses") and the
+  hypothesis store's `PRUNED_BY_BUDGET` death cause. Both are named with
+  enough specificity that a real prior specification plausibly existed —
+  just never in this repository. Documented as explicitly unspecified,
+  not retroactively invented. → Objective 3.
+
+## Objective 0 — push, start of day
+
+`foundation/day-27` branched from `foundation/day-26` (`d00510e`), pushed
+clean before any Day-27 commit landed — verified local matched
+`origin/foundation/day-27` exactly. `main` unchanged since Day 16 (ADR
+0009 still Proposed). (End of day: see the closing Objective 0/5 section
+below.)
+
+## Objective 1 — the carrier-overconfidence mechanism: confirmed, and the derived fix trades the motivating case away
+
+Full derivation, both slip-model tables, and the complete reasoning are
+in ADR 0011's "Day 27, Objective 1" section; summarized here.
+
+**The cross-covariance confounder, ruled out first, per instruction.**
+Day 26's covariance-cross-term fix and the eval script that produced the
+carrier finding landed in the SAME commit (`cd0f763`) — there was never
+a "before the fix" version of that measurement. More directly: the
+carrier's own marginal covariance (`joint_estimate.cov_array()[:6,
+:6]`) is a direct sub-block of the joint covariance, needing no
+summation at all — the bug that was fixed only affected the ASSET's
+derived absolute-position covariance, a genuinely different, additional
+computation. The finding stands on its own math.
+
+**The mechanism, instrumented directly (Day 25's rule: a closed-form
+prediction about a running system is a hypothesis, not a measurement).**
+`scripts/eval_joint_estimator.py` now reports, per regime, the carrier's
+covariance shrinkage from coupling against the ACTUAL error reduction it
+delivers:
+
+| regime (v5-cessation) | covariance shrinkage | actual error reduction | unjustified gain |
+| --- | ---: | ---: | ---: |
+| static | 40.2% | 47.6% | −7.3% (conservative) |
+| onset | 32.0% | **−7.7%** (worse!) | **+39.7%** |
+| sustained | 38.6% | 26.0% | +12.7% |
+| cessation | 40.8% | 21.5% | **+19.3%** |
+
+The constant slip model shrinks the carrier's covariance by a roughly
+uniform 32-41% regardless of what the carrier is actually doing; the
+real benefit varies from strongly-justified (static) to negative
+(onset). The gap is worst exactly where Day 26's no-trade criterion
+flagged it.
+
+**Derived fix: `OffsetSlipModel="acceleration_scaled"`** — slip sigma
+scales with the carrier's own estimated acceleration relative to
+`PERSON_SIGMA_A_MPS2`, both already-declared constants, no new fitted
+parameter, acceleration estimated causally from the two most recent
+carrier velocity states already in the factor chain.
+
+| regime (v5-cessation) | cov shrinkage | error reduction | unjustified gain |
+| --- | ---: | ---: | ---: |
+| static | 13.4% | 18.2% | −4.8% |
+| onset | 14.2% | −8.1% | +22.3% (still bad) |
+| sustained | 11.1% | 11.5% | −0.4% |
+| cessation | 12.4% | 11.4% | **+0.9%** (was +19.3%) |
+
+Overall carrier verdict on v5-cessation: **FAIL_OVERCONFIDENT → PASS**
+(coverage 0.9089→0.9109). Cessation's unjustified gain drops over 20x —
+the fix works exactly where targeted, and confirms the mechanism.
+
+**But the asset's own benefit — the motivating case — is destroyed on
+both golden sets:**
+
+| set | asset margin, constant | asset margin, acceleration-scaled |
+| --- | ---: | ---: |
+| v5-cessation | **+0.0425m** | **−0.0051m** |
+| v3-indoor | +0.0265m | **−0.0049m** |
+
+Mechanism: acceleration-scaled slip noise collapses toward the
+regularization floor whenever estimated carrier acceleration is near
+zero — most of a walking track — which also collapses the Kalman gain
+that let the filter keep averaging in new asset observations to refine
+the offset. The constant model's uniform slip noise was, inadvertently,
+doing double duty (physical slip AND estimate elasticity); the
+acceleration-scaled model removes both together.
+
+**Verdict: the derived model confirms the physics and reveals a real
+trade, not an adoptable fix.** Neither slip model is the default;
+`offset_slip_model` stays an explicit opt-in (`"constant"` unchanged).
+No same-session tuning attempted — Day 28's first item is a two-term
+slip model (acceleration-scaled component ADDED to a small constant
+floor, not replacing it), to be derived and tested with the same
+discipline. (`bb31adc`.)
+
+## Objective 2 — a hard component-size cap with a specified degradation path
+
+Full type definitions, the STRUCTURAL test list, and the cap-cost
+caveat are in ADR 0011's "Day 27, Objective 2" section; summarized here.
+
+**Cap: 6, `degradation_action="independent_fallback"`.** `ComponentCapConfig`
+is config-driven and versioned (`.sha`, same convention as `ImmConfig`).
+6 is not a round number — it is the exact bound Day 26 Objective 2's own
+decision gate used to authorize building the solver at all ("proceed
+only if p95 component size ≤ 6"); capping the solver's own operation at
+that same measured bound means it never runs where nothing has
+validated it. Independent fallback, not split-weakest-coupling: this
+project has only ever measured coupling DENSITY (Day 26), never
+coupling INFORMATIVENESS — a ranking heuristic today would be another
+unmeasured analytical claim.
+
+**STRUCTURAL, tested explicitly.** `DegradedComponentEstimate` is a
+distinct type (not a flag on `JointStateEstimate`) with two required
+fields, no default. `resolve_joint_state`'s return type becomes
+`StateEstimate | JointStateEstimate | DegradedComponentEstimate` — a
+caller must `isinstance`-branch, so a capped result can never be
+silently treated as genuinely coupled. Tested: the overflow path
+degrades and records provenance; entity coverage is enforced at
+construction (no entity silently dropped); a desynchronized observation
+stream raises rather than partially degrading; `graph_rev`
+reproducibility is re-tested for the degraded path specifically.
+
+**Cost measured, with an important caveat stated plainly, not
+buried.** No general person-to-person proximity coupling is
+implemented (only carrier+carried), so there is no genuinely-6-PERSON
+joint solve in this codebase to cap. `scripts/measure_component_cap_cost.py`
+uses `v3-indoor`'s real `crowded_6agents` scene (the one Day 26 found
+merges at 1.10m), with one HONESTLY LABELED "carrier" and the other five
+"carried," purely to exercise a real 6-entity component using the
+topology that exists:
+
+| entity | uncapped RMSE | capped RMSE | cost (capped − uncapped) |
+| --- | ---: | ---: | ---: |
+| agent-0 (carrier) | 0.3822m | 0.1335m | **−0.2487m** |
+| agent-1..5 (mean) | 0.2681m | 0.1449m | **−0.1232m** |
+
+**The measured cost is negative on every entity — capping HELPS,
+substantially.** This is real and correctly measured, and it is NOT
+evidence joint estimation is generally worse: these six people are
+genuinely independent walkers, so forcing them into one rigid-coupling
+component is a badly-mismatched physical model, and falling back to
+independent filtering is strictly better. This measures the cap's
+safety value in the OPPOSITE failure mode from the one asked about:
+protection against inappropriately coupling unrelated entities, not the
+accuracy given up when a well-matched component gets capped. The
+carrier+actual-asset evaluation (Day 26/27) already answers that
+question directly: joint beat independent by +0.0425m/+0.0265m RMSE —
+the plausible cost of capping a genuinely well-coupled 6-entity
+component, if one existed, would be of that order, not the ~0.15-0.25m
+"improvement" this specific test shows. What remains open: whether a
+real, genuinely-coupled multi-entity group would show a positive cost
+when capped — unanswerable without real coupled data or a larger
+authored scene, both already on the punch list. (`e17573a`.)
+
+## Objective 3 — the data-model-of-record audit
+
+Full provision-by-provision evidence, the complete citation census, and
+the reconstructed document itself are in `docs/data_model/v0.3.md`;
+summarized here.
+
+**The claim that started this: does "IRON_DATA_MODEL v0.3" exist as a
+checked-in document? No — confirmed absent, despite `src/model/__init__.py`
+claiming it built and versioned since Day 13.** Every `§N` citation this
+codebase has made — grep-verified across `src/`, `tests/`, `docs/adr/`,
+excluding RFC citations (`src/ingest/`'s own, legitimate external
+references) and `docs/site_zero_consent_TEMPLATE.md`'s own,
+separately-governed section numbers — resolves to exactly four real
+section numbers: §0, §10, §15, §17.
+
+| Provision | Citations | Status |
+| --- | ---: | --- |
+| §0 — Twin-revision consistency | multiple, `src/model/world.py` | IMPLEMENTED, never previously collected into a document |
+| §10 — Confidence calibration | multiple, `src/model/evidence.py`, `src/estimator/` | IMPLEMENTED, informally documented in Day-13's report table only |
+| §15 — Estimator contract (4 stages) | 20+ across `src/estimator/` | IMPLEMENTED; only "stage 4" (consistency) was ever named anywhere — stages 1-3 reconstructed today from actual code structure for the first time |
+| §17 — Prior firewall | 13+ across `src/estimator/`, tests | IMPLEMENTED and tested (`inspect.signature` checks re-run on every new code path since Day 20) |
+| Constraint typing (hard vs. twin-dependent) | audit target only | **ASSUMED, NOWHERE RECORDED** — traces to one stub label, `"twin-revision hypothesis (not yet implemented)"` |
+| Hypothesis store / `PRUNED_BY_BUDGET` | audit target only | **ASSUMED, NOWHERE RECORDED** — zero hits anywhere in 27 days of commits, ADRs, or reports |
+| Merkle reproducibility/erasure commitment | ADR 0007 | IMPLEMENTED, matches its ADR (`compute_merkle_root`, `EvidenceCommitment`) |
+| Coverage / Absence | ADR 0004 | IMPLEMENTED, matches its ADR exactly |
+| Bitemporal relationships | ADR 0005 | IMPLEMENTED, matches its ADR |
+| The four event classes | ADR 0003 | IMPLEMENTED, matches its ADR exactly |
+| ActivityMode | — | IMPLEMENTED, documented in Day-13's report table, no dedicated ADR |
+| Episode with roled participants | ADR 0006 | IMPLEMENTED, matches its ADR |
+| Multi-entity coupling / component sparsity | ADR 0011 | Was ASSUMED, NOWHERE RECORDED until Day 26 found the gap; now governed |
+
+**The two ASSUMED-NOWHERE-RECORDED provisions are the sharpest finding
+of the audit, sharper than the missing document itself.** The missing
+document (§0/§10/§15/§17) was real, tested, working architecture that
+simply never got written down — a promotion gap, structurally identical
+in shape to Day 25's Verdicts finding. Constraint typing and
+`PRUNED_BY_BUDGET` are different in kind: they are cited with enough
+specificity (a literal named enum value) that some real specification
+plausibly existed once, in a conversation, and NOTHING in this
+repository — not a stub, not a punch-list item with that precision, not
+an ADR — has ever recorded it. This document does not manufacture that
+missing content; inventing plausible rules for them here would repeat
+the exact failure this whole objective exists to close, one level down.
+
+`docs/data_model/v0.3.md` is the reconstructed document — real sections
+only, each traced to its actual implementation, with the two
+unspecified provisions marked as exactly that rather than silently
+dropped. **STRUCTURAL:** `tests/test_data_model_citations.py` scans
+`src/`, `tests/`, `docs/adr/` for any `§N` citation not defined in the
+new document and fails the suite — the same shape as the Day-25
+Verdicts lint, so a new dangling citation is caught at the moment it is
+added, not discovered by someone grepping for it later. Tested against
+itself: a dangling citation is confirmed to fire the lint before
+trusting that the real tree passing means anything; the exclusion logic
+for RFC/consent-template citations is confirmed narrow (a genuine §15
+citation on the same fixture survives, the external ones do not).
+(`3890bf2`, `7120aa1`.)
+
+## What remains skeleton, and the order it should land in
+
+1. **A two-term slip model** (Objective 1) — acceleration-scaled
+   component ADDED to a small constant floor, not replacing it, so the
+   offset never becomes too rigid to keep averaging in new observations
+   while still suppressing unjustified confidence during transients.
+2. **Real coupled multi-entity data, or a larger authored scene**
+   (Objective 2) — the only way to measure the cap's cost on a
+   genuinely well-matched component, as opposed to today's
+   honestly-caveated mismatched-component measurement.
+3. **A decision on constraint typing and the hypothesis store**
+   (Objective 3) — now that both are documented as explicitly
+   unspecified rather than silently assumed, a real decision (build,
+   defer with a stated reason, or drop) can be made instead of the
+   provisions continuing to be cited as if settled.
+
+## Full suite and mypy
+
+`mypy` (scoped per `mypy.ini`): **0 errors, 59 files** — unchanged from
+Day 26 (today's `src/` change was `src/model/__init__.py`'s docstring
+only; `src/model` is not in `mypy.ini`'s strict-scope list, so this is
+consistent, not an omission — `src/estimator` remains in scope and
+clean). `black --check` / `flake8` clean on every file touched today
+(`src/estimator/joint.py`, `src/model/__init__.py`,
+`scripts/eval_joint_estimator.py`,
+`scripts/measure_component_cap_cost.py`,
+`tests/test_estimator_joint.py`,
+`tests/test_measure_component_cap_cost.py`,
+`tests/test_data_model_citations.py`,
+`docs/adr/0011-multi-entity-factor-graph.md`,
+`docs/data_model/v0.3.md`).
+
+Repo-wide `-m "not requires_weights and not slow"`: **1072 passed, 1
+skipped, 21 deselected, 0 failures** — up from Day 26's 1048 (+24: 6
+slip-model tests, 13 component-cap tests across two files, 5
+data-model-citation lint tests).
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 26 — today's work was
+entirely unblocked by design:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification** — ranked #1 in Day 23's ordered list,
+   highest product impact of any pending data item; now 4 days older.
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 16 days old.
+5. **The `main`/`origin/main` divergence decision** (ADR 0009, Day 18,
+   still Proposed).
+6. **Reference hardware procurement decision**
+   (`docs/reference_hardware.md`) — now 9 days old.
+
+## Objective 0/5 — push, end of day
+
+`git push --all origin`: `foundation/day-27` pushed clean, matches
+origin exactly. `main` unchanged. `git push --tags`: up to date.
+
+## Day 28, in order
+
+1. **A two-term slip model** — acceleration-scaled slip ADDED to a
+   small constant floor, derived and tested with the same discipline
+   Day 27 used (rule out confounders first, instrument the mechanism
+   directly, report a derived model's failure as a finding). Re-run
+   both the carrier calibration check and the asset margin check; both
+   must pass together or the trade is not resolved.
+2. **A decision on constraint typing and the hypothesis store** — now
+   documented as explicitly unspecified (Day 27 Objective 3); decide
+   whether to build, defer with a stated reason, or drop each, rather
+   than continuing to cite them as settled.
+3. **Real coupled multi-entity data, or a larger authored scene** — the
+   only way to measure the component-size cap's cost on a genuinely
+   well-matched component (Day 27 Objective 2's own open question).
+4. **Hypothesis management** (`resolve_data_association`) — depends on
+   item 2's decision.
+5. **The discrete/continuous hybrid** (`HybridDiscreteContinuousState`)
+   — dynamic component membership; also depends on item 2.
+6. **Smoothing across the joint graph** — still depends on the
+   coupling's own calibration being trustworthy first (item 1).
+7. **MEVA licence verification** — still blocked on a human, highest
+   product impact of any pending data item.
+8. **DA-2K licence verification** — adapter built and tested, zero
+   engineering lag once cleared.
+9. **Reference hardware procurement decision** — now 9 days old.
+10. **Declare a target fps for real camera ingest** — still open from
+    Day 19.
+11. **Cascade bench, clean, on interim or reference hardware** — still
+    pending hardware.
+12. **Depth validity re-measurement** (`scripts/eval_depth.py`) — still
+    deferred; gates on item 8 for a real depth number.
+13. **The `main`/`origin/main` decision** (ADR 0009) — a human call.
+14. **The generator has no sensor-noise model** — unchanged.
+15. **Order cameras and run the office capture** — now 16 days old.
+16. **The motion-gate precision/selectivity investigation** — still
+    deferred.
+17. **A canonical `Observation -> hash` function** (ADR 0007) — still
+    open from Day 13.
+18. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should
+    be replaced** — unchanged.
+19. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+20. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued — a
+    DPDP process decision, not a coding task.
+21. **The `resolve_joint_state` cross-component filtering gap** (ADR
+    0011) — cheap to fix, not yet needed by any real call site.
