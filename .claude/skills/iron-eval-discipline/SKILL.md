@@ -223,6 +223,46 @@ Some baselines are theoretical boundaries no real system can beat (always-wake's
 zero false negatives) — these still render as context but are excluded from the margin/flag
 computation, or every system would flag against a bound nothing can cross.
 
+## Closed-Form vs Instrumented — a prediction about a running system is a hypothesis
+
+**If the real thing can be instrumented, instrument it. A closed-form comparison against a
+running system is a hypothesis about that system, not a measurement of it, no matter how
+carefully the closed form is derived.** The two are easy to conflate because a closed-form
+value is exact — but exact about the formula, not about what the system actually did with it.
+
+Worked example (ADR 0010, Days 22-25). The velocity-covariance floor's derivation was correct
+from Day 22 onward. What was never correct was how "does it bind" got answered:
+`scripts/velocity_floor_frame_rate_sweep.py` computed the floor's closed-form value and compared
+it against a SEPARATE run of the filter with the floor disabled — a natural-convergence number,
+not the floor-enabled filter's own output. Day 22 through Day 24 all read "closed-form floor >
+natural convergence" as "the floor binds," and it does follow logically — but nobody had actually
+run the floor-enabled filter and read `estimate.cov_array()` back to check. Day 25 did exactly
+that (`scripts/velocity_floor_binding_audit.py`): ran config B for real on real tracks, and found
+the floor's minimum reading equalled the closed-form value to floating-point precision on every
+scored frame — the inference was correct, but two days (Day 22's "measurably inert" and Day 23's
+"never binds at any frame rate 1-1000fps") had already been spent on a derivation bug whose
+symptom was, itself, only ever checked against the same kind of closed-form stand-in.
+
+This is a different failure shape than a bug that produces a wrong number about the system: it
+is an analytical shortcut standing in for a measurement, and it can produce a wrong number about
+a component that is working exactly as designed. The closed-form side of the comparison was never
+false — the floor's formula was correct at every step once Day 24 fixed it. What was false was
+treating "the formula says X" as equivalent to "the running system does X."
+
+**In practice:**
+
+- Before shipping a claim of the form "component A's output implies component B's behavior,"
+  check whether B can be run directly and its actual output read back. If yes, that reading is
+  the measurement; the closed-form inference is at best a cross-check, never a substitute.
+- A closed-form check is legitimate as a FAST proxy during iteration, but the claim that ships in
+  a report or gates a decision needs the instrumented number, not the proxy's inference from it.
+- Treat "verified against a synthetic/analytical comparison" as a flag to ask "was the real
+  system ever actually run and read?" — the same way a fitted metric (Bounded Nulls, above) is a
+  flag to ask "was this rescued by the fit?"
+- Any analytical claim that a design or a scaling argument rests on (e.g. "coupling is sparse, so
+  components stay small") gets the same treatment before code is built on top of it: measure it
+  against real or synthetic GT before treating it as a constraint the implementation may assume.
+
 ## Honesty Clauses
 
 - Report the metric that looks bad. Omitting an unfavorable bucket is falsification.

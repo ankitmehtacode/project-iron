@@ -1,18 +1,23 @@
 # ADR 0010 — Estimator configuration: config B (velocity covariance floor) now adopted
 
 - **Status:** Accepted; revised 2026-08-11 (Day 23); revised again
-  2026-08-11 (Day 24); **revised again 2026-08-12 (Day 25) — the adopted
-  configuration CHANGES, from A to B.** See "Day 25 revision
-  (Objective 1)" (confirms the floor binds on a real run — no remaining
-  defect) and "Day 25 revision (Objective 3)" (the no-trade criterion
-  made directional; under it, config B clears the bar on both golden
-  sets with one stated, bounded, safe-direction cost, and is adopted).
-  Day 24's summary, for continuity: Objective 1 traced Day 21's founding
-  NEES-815 number to n=1 hand-traced track, not an aggregate —
-  under-supported as originally reported, though the underlying finding
-  is independently established at real n (373 frames, Day 23). Objective
-  2 found the velocity floor Day 22-23 measured as permanently inert was
-  itself mis-derived; corrected, it binds at every practical frame rate.
+  2026-08-11 (Day 24); revised again 2026-08-12 (Day 25) — the adopted
+  configuration CHANGES, from A to B. **Revised again 2026-08-13 (Day
+  26) — the A→B flip's provenance is settled with numbers: config B now
+  produces materially different POSITION ESTIMATES from config A (RMSE
+  deltas of up to 62% per regime), not merely a different pass/fail
+  label under a redesigned criterion. See "Day 26 revision
+  (Objective 1)".** See "Day 25 revision (Objective 1)" (confirms the
+  floor binds on a real run — no remaining defect) and "Day 25 revision
+  (Objective 3)" (the no-trade criterion made directional; under it,
+  config B clears the bar on both golden sets with one stated, bounded,
+  safe-direction cost, and is adopted). Day 24's summary, for continuity:
+  Objective 1 traced Day 21's founding NEES-815 number to n=1 hand-traced
+  track, not an aggregate — under-supported as originally reported,
+  though the underlying finding is independently established at real n
+  (373 frames, Day 23). Objective 2 found the velocity floor Day 22-23
+  measured as permanently inert was itself mis-derived; corrected, it
+  binds at every practical frame rate.
 - **Date:** 2026-08-10
 - **Decides for:** which of the four Day-22 estimator configurations
   (single model / single model + velocity floor / IMM / IMM + velocity
@@ -897,3 +902,109 @@ happened to flip.
   directional criterion gives the same rejection Day 21-24 already
   established a more specific, falsifiable reason (`FAIL_OVERCONFIDENT`,
   not just "regressed").
+
+## Day 26 revision (Objective 1) — provenance of the A→B flip
+
+**The adopted configuration changed after the criterion that judges it
+was redesigned. That sequence is the shape that reads as motivated in
+hindsight, so this section answers the one question that settles whether
+it was: did the ESTIMATOR change, or only the SCORING of it?**
+
+### The question, answered plainly: (i)
+
+Day 22 measured config B as bit-for-bit identical to config A — "every
+RMSE, every coverage figure, to displayed precision." Day 25 found the
+corrected floor binds on essentially every scored frame. A constraint
+binding constantly changes the Kalman gain (a wider floored covariance
+means new measurements are weighted more heavily in the update step),
+which changes the POSTERIOR MEAN, not just its reported uncertainty — so
+(i) and (ii) make different, checkable predictions: if (i), position RMSE
+per regime must differ between A and B today; if (ii), it must not.
+
+Re-measured directly (`scripts/eval_estimator.py --config A --config B`,
+current codebase, both golden sets) — position RMSE per regime, config A
+vs config B:
+
+**v5-cessation:**
+
+| regime | n | A RMSE (m) | B RMSE (m) | Δ (m) | Δ (%) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| static | 260 | 0.1381 | 0.1923 | +0.0542 | +39.2% |
+| onset | 91 | 0.1991 | 0.1988 | −0.0003 | −0.2% |
+| sustained | 282 | 0.1470 | 0.1887 | +0.0417 | +28.4% |
+| cessation | 373 | 0.2499 | 0.1990 | **−0.0509** | **−20.4%** |
+| maneuver | 15 | 0.1789 | 0.1697 | −0.0092 | −5.1% |
+
+**v4.1-gate:**
+
+| regime | n | A RMSE (m) | B RMSE (m) | Δ (m) | Δ (%) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| static | 139 | 0.1023 | 0.1437 | +0.0414 | +40.5% |
+| onset | 12 | 0.1899 | 0.1833 | −0.0066 | −3.5% |
+| cessation | 39 | 0.4643 | 0.1748 | **−0.2895** | **−62.4%** |
+
+**(i) is true: the Day-22 equivalence predated the floor actually being
+reached, and B now produces materially different POINT ESTIMATES from A —
+not merely a different reported confidence around the same estimates.**
+The mechanism is exactly the Kalman-gain argument above, and it cuts both
+ways, which is itself evidence this is a real estimator effect and not an
+artifact: `static`/`sustained` RMSE gets WORSE under B (the floor forces
+more weight onto each new position measurement even when the filter's own
+prior velocity estimate was already accurate, adding noise it didn't
+need), while `cessation` RMSE improves dramatically (the same extra
+weight is exactly what lets the filter track a real, sudden velocity
+change instead of coasting on a stale, overconfident prior). A pure
+criterion change, with A and B computing identical estimates, could not
+produce a bidirectional accuracy effect like this — it can only relabel
+an unchanged number as pass or fail. Day 22's bit-identical finding was
+real and correctly measured — for the per-timestep floor formula that
+existed then, which the clamp's own `max()` semantics meant almost never
+fired. It stopped describing config B the moment Day 24 corrected that
+formula; nothing between Day 24 and today re-checked whether the RMSE
+table itself, not just the coverage table, had moved.
+
+### This was decided as an estimator change, not laundered through a criterion change
+
+Three facts, each checkable independently of the others and of today's
+own re-measurement above, are what keep this decision from reading as
+"the criterion was loosened until something passed":
+
+1. **The asymmetry argument was stated before the re-scoring, not
+   after.** Day 24's ADR revision closed with an explicit, forward-dated
+   instruction: "settle whether the no-trade criterion should weight
+   over-confidence and under-confidence deviations asymmetrically —
+   decided on its own methodological merits, stated in advance of
+   re-scoring B against it." Day 25's "Day 25 revision (Objective 3)"
+   section states the rationale (overconfidence is a lie the filter tells
+   about its own certainty; underconfidence is merely inefficient) and
+   commits it to code and unit tests BEFORE the four-config
+   re-evaluation is run in that same section — the file diff order
+   (`_no_trade_verdict`'s rewrite, then its tests, then the re-evaluation
+   call) is checkable directly in commit `3cbc556`.
+2. **IMM still failed under the new criterion — the load-bearing evidence
+   against motivated reasoning.** If the redesign had been tuned, however
+   subtly, to let B through, the cheapest tell would be IMM ALSO
+   slipping through on some regime where its degradation happened to
+   read as underconfidence. It did not: IMM (C/D) hits
+   `FAIL_OVERCONFIDENT` on both golden sets, `static` coverage collapsing
+   to 0.0808 (v5-cessation) and 0.5468 (v4.1-gate), both decisively below
+   the 0.95 nominal — the criterion still fails the exact thing it was
+   built to fail. A criterion redesigned specifically to rescue B would
+   have had no principled reason to keep rejecting IMM this hard.
+3. **B's cost is numeric, not waved away.** `NoTradePassWithCost` on
+   v5-cessation names the regime and the magnitude directly:
+   `sustained`, coverage moving 0.9574→0.9929 (further above the 0.95
+   nominal — underconfident, the safe direction), magnitude **0.0355**
+   coverage points. On v4.1-gate there is no cost at all (`static` moves
+   0.9928→1.0000, itself an improvement, not a degradation) — B is a
+   clean `PASS` there. A bounded cost with a number attached, on exactly
+   one regime of one set, is a decision; "the criterion changed and B
+   happened to pass" would not have a number to point to at all.
+
+Read together with today's RMSE deltas: config B is not "config A with a
+different pass/fail label." It is a measurably different estimator —
+worse raw position accuracy on two steady regimes, dramatically better on
+the regime the whole investigation exists to fix — adopted because the
+criterion that judges the tradeoff was redesigned first, on its own
+merits, and then applied to a config that turned out, independently, to
+have actually changed underneath it.
