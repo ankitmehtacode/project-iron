@@ -11,6 +11,14 @@ stub that silently returns a plausible-looking answer.
 Every rule marked STRUCTURAL in the Day-13 prompt is enforced by the type
 system or a constructor-time raise, proven by a test that attempts the
 violation. See ``tests/test_model_*.py``.
+
+This docstring has claimed the name "IRON_DATA_MODEL v0.3" since Day 13.
+Until Day 27, no file with that content and numbered sections existed
+anywhere in this repository -- every ``§N`` citation this codebase has
+made pointed at a document that was discussed but never checked in. See
+``docs/data_model/v0.3.md`` for what that document now actually
+contains, reconstructed from the implementation rather than recovered
+from memory of what it might have said.
 """
 
 from __future__ import annotations
