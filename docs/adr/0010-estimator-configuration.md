@@ -656,3 +656,93 @@ against it — and only then revisit config B's adoption.
 - **The velocity floor (config B)** — NOT rejected. Explicitly
   un-rejected by this section; carried forward as an open, high-priority
   candidate rather than retired machinery.
+
+## Day 25 revision (Objective 1) — the floor vs converged σ_v contradiction was never real; both numbers now measured directly
+
+Day 25 opened by treating Day 24's "binds hard, 34.6x" claim as unverified
+rather than settled: that number came from comparing the floor's
+closed-form value against `scripts/velocity_floor_frame_rate_sweep.py`'s
+synthetic-walk convergence measurement — never from running the actual
+floor-enabled filter (config B) on a real golden set and reading its
+posterior covariance back. A floor that is correctly wired should never
+be readable below itself once enabled (`apply_velocity_covariance_floor`
+is a `max()` clamp on the posterior — `src/estimator/filter.py:193-199`),
+but "should" is not "was measured to."
+
+**Method.** New script, `scripts/velocity_floor_binding_audit.py`: runs
+config A (floor disabled) and config B (floor enabled) for real on
+v5-cessation's actual tracks, and reads `estimate.cov_array()`'s
+velocity-diagonal entries back per scored frame — the same real per-frame
+covariance `eval_estimator.py`'s coverage numbers are already computed
+from, now also surfaced as a distribution (`FrameRecord.velocity_variance_diag_mps2`,
+new field; `_sigma_v_distribution`, new helper — both in
+`scripts/eval_estimator.py`, and both consumed by the regular
+`--version`/`by_regime` report path, not just this audit script).
+
+**Floor value** (unchanged from Day 24, re-derived here with units shown
+at every step): `PERSON_SIGMA_A_MPS2 [1.5 m/s²] * PEDESTRIAN_STOP_DURATION_S
+[1.0 s] = 1.5000 m/s` → floor variance `2.2500 (m/s)²`.
+
+**Converged σ_v, v5-cessation, config A (floor DISABLED — natural convergence)**:
+
+| regime | n | min (m/s) | p50 (m/s) | max (m/s) | p50/floor |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| static | 260 | 0.2294 | 0.2562 | 0.3110 | 0.1708 |
+| onset | 91 | 0.2482 | 0.5954 | 1.8014 | 0.3969 |
+| sustained | 282 | 0.2400 | 0.2728 | 0.5182 | 0.1819 |
+| cessation | 373 | 0.2297 | 0.2548 | 0.3352 | 0.1699 |
+
+**Converged σ_v, v5-cessation, config B (floor ENABLED)**:
+
+| regime | n | min (m/s) | p50 (m/s) | max (m/s) |
+| --- | ---: | ---: | ---: | ---: |
+| static | 260 | 1.5000 | 1.5000 | 1.5000 |
+| onset | 91 | 1.5000 | 1.5000 | 1.8014 |
+| sustained | 282 | 1.5000 | 1.5000 | 1.5000 |
+| cessation | 373 | 1.5000 | 1.5000 | 1.5000 |
+
+Cross-checked on v4.1-gate (static/onset/cessation; `sustained` is empty
+by construction on that set) — same shape: config A natural p50 0.17-0.38x
+the floor in every populated regime, config B pinned at exactly 1.5000 in
+every populated regime.
+
+**Verdict: none of (a)/(b)/(c).** The contradiction the objective set out
+to resolve does not survive contact with a real run:
+
+- **Not (b).** Config B's minimum observed σ_v equals the floor to
+  floating-point precision in every regime on both golden sets — the
+  clamp fires on essentially every scored frame. `onset`'s max (1.8014)
+  exceeding the floor is not a bypass; it is the clamp correctly doing
+  nothing on the frames where natural uncertainty is *already* above the
+  floor (onset is exactly where velocity is genuinely changing fast, so
+  higher natural uncertainty there is expected, not a defect). There is
+  no P0 finding here — the floor is implemented, wired into the
+  covariance-update path at exactly the line the module docstring says it
+  is, and reached by real production configs.
+- **Not (a).** The floor (1.5 m/s) is not far below converged σ_v; it is
+  far *above* natural convergence (~0.25-0.60 m/s, 0.17-0.40x the floor)
+  in every regime — the opposite of (a)'s premise.
+- **Not (c).** Natural convergence does not exceed 0.8 m/s in every
+  regime — only `onset`'s max (1.8014) and a handful of high frames do;
+  every regime's p50 sits at 0.25-0.60 m/s, comfortably inside the
+  "confident" range (c) describes as absent.
+
+**What actually happened:** Day 23's original "the floor never binds
+anywhere from 1-1000fps" finding was entirely a consequence of the
+dt_s-scaling bug Day 24 already found and fixed. Day 24's fix and its own
+re-measurement (the 34.6x/binds-hard finding, and the four-way table
+showing B's cessation coverage jumping 0.5013→0.9946) were both already
+correct; today's contribution is confirming that conclusion against a
+real run's actual posterior covariance rather than a closed-form
+comparison, closing the one gap in how it had been checked. The 0.5-0.8
+m/s order-of-magnitude estimate in the objective's own framing (a
+"walking speed" argument) differs from the derivation's actual output
+(1.5 m/s, a "stopping deceleration × duration" argument) by roughly 2x —
+both are legitimate, independently-reasoned order-of-magnitude estimates
+of the same physical quantity from different starting facts, not a new
+discrepancy; Day 24 already used the acceleration-based derivation and
+this is not revisited today per the objective's own instruction not to
+adjust a constant to make the floor bind.
+
+No constant was adjusted to reach this result — both numbers were
+measured as-is, from the code as Day 24 left it.

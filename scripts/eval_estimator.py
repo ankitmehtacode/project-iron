@@ -179,6 +179,15 @@ class FrameRecord:
     copy_previous_sq_error: float
     cv_no_update_sq_error: float
     cv_no_update_velocity_sq_error: float
+    velocity_variance_diag_mps2: tuple[float, float, float]
+    """Day 25, Objective 1: the filter's own POSTERIOR velocity-diagonal
+    covariance entries (x/y/z, (m/s)^2) at this frame -- read directly off
+    ``estimate.cov_array()``, i.e. after any velocity-covariance floor has
+    already been applied (:func:`~src.estimator.filter.run_single_entity_filter`
+    clamps before returning). This is what settles whether the floor
+    actually binds in a real run, as opposed to comparing its closed-form
+    value against a synthetic walk's convergence (see
+    ``scripts/velocity_floor_frame_rate_sweep.py``)."""
     nees_mixture: ConsistencyResidual | None = None
     """Day 22, Objective 1(b): probability-weighted per-mode NEES -- valid
     for a gaussian_mixture posterior. None for single-model records (no
@@ -340,6 +349,9 @@ def _evaluate_track(
                 ),
                 cv_no_update_sq_error=float(np.dot(cv_err, cv_err)),
                 cv_no_update_velocity_sq_error=float(np.dot(cv_vel_err, cv_vel_err)),
+                velocity_variance_diag_mps2=tuple(  # type: ignore[arg-type]
+                    np.diag(estimate.cov_array())[3:6].tolist()
+                ),
             )
         )
 
@@ -457,6 +469,9 @@ def _evaluate_track_imm(
                 ),
                 cv_no_update_sq_error=float(np.dot(cv_err, cv_err)),
                 cv_no_update_velocity_sq_error=float(np.dot(cv_vel_err, cv_vel_err)),
+                velocity_variance_diag_mps2=tuple(  # type: ignore[arg-type]
+                    np.diag(estimate.cov_array())[3:6].tolist()
+                ),
                 nees_mixture=compute_mixture_nees(
                     full_gt, mode_weights, mode_means, mode_covs
                 ),
@@ -514,6 +529,32 @@ def _mixture_coverage_stats(records: list[FrameRecord]) -> dict[str, Any]:
         "empirical_coverage_by_sampling_95": (
             float(np.mean(sampled)) if sampled else float("nan")
         ),
+    }
+
+
+def _sigma_v_distribution(records: list[FrameRecord]) -> dict[str, Any]:
+    """Day 25, Objective 1: the filter's own converged sigma_v (m/s) over
+    ``records``, as a distribution -- a single mean hides exactly the
+    question this objective asks (does the floor bind on SOME frames of a
+    regime, or none). Per frame, sigma_v is sqrt of the mean of the 3
+    velocity-diagonal variance entries (isotropic collapse -- the floor
+    itself is applied identically to all three axes, see
+    ``apply_velocity_covariance_floor``)."""
+    if not records:
+        return {
+            "n": 0,
+            "min_mps": float("nan"),
+            "p50_mps": float("nan"),
+            "max_mps": float("nan"),
+        }
+    sigma_v = np.sqrt(
+        np.array([np.mean(r.velocity_variance_diag_mps2) for r in records])
+    )
+    return {
+        "n": len(records),
+        "min_mps": float(np.min(sigma_v)),
+        "p50_mps": float(np.median(sigma_v)),
+        "max_mps": float(np.max(sigma_v)),
     }
 
 
@@ -728,6 +769,7 @@ def _score_golden_set(
     for regime_name in MOTION_REGIMES:
         regime_records = [r for r in all_records if r.regime == regime_name]
         block = _baseline_margin_block(regime_records)
+        block["sigma_v_mps"] = _sigma_v_distribution(regime_records)
         block["consistency"] = _coverage_stats(regime_records)
         if filter_kind == "imm":
             block["consistency_mixture"] = _mixture_coverage_stats(regime_records)
@@ -835,11 +877,16 @@ def _print_report(report: dict[str, Any]) -> None:
             continue
         cons = block["consistency"]
         innov = block["innovation"]
+        sv = block["sigma_v_mps"]
         print(
             f"    {name:12} n={block['n']:5}  "
             f"filter {block['filter_rmse_m']:.4f} m  "
             f"copy-prev margin {block['margin_vs_copy_previous_m']:+.4f}  "
             f"const-vel margin {block['margin_vs_constant_velocity_m']:+.4f}{thin}"
+        )
+        print(
+            f"                 converged sigma_v (m/s) min/p50/max: "
+            f"{sv['min_mps']:.4f} / {sv['p50_mps']:.4f} / {sv['max_mps']:.4f}"
         )
         print(
             f"                 NEES coverage {cons['empirical_coverage_95']:.4f} "

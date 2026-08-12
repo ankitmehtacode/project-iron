@@ -119,6 +119,74 @@ def test_evaluate_track_on_a_straight_line_walker() -> None:
     assert all(0.0 <= r.distance_m for r in result.frames)
 
 
+def test_evaluate_track_records_posterior_velocity_variance() -> None:
+    """Day 25, Objective 1: FrameRecord.velocity_variance_diag_mps2 must be
+    the REAL posterior covariance the filter produced (post-floor, if a
+    floor is enabled) -- not re-derived separately, so it can never drift
+    from what the coverage numbers are already computed against."""
+    frames = 10
+    fps = 12.0
+    track = np.zeros((frames, 3))
+    track[:, 0] = np.arange(frames) * 0.5
+    extrinsics = _identity_world_to_camera_at((0.0, 0.0, -10.0))
+
+    result = ee._evaluate_track(
+        track,
+        extrinsics,
+        "test-sensor",
+        fps,
+        motion_model_for("person", velocity_covariance_floor=True),
+        measurement_model_for("test-sensor"),
+        np.random.default_rng(1),
+    )
+    assert result is not None
+
+    from src.estimator.motion_model import pedestrian_velocity_covariance_floor_mps2
+
+    floor = pedestrian_velocity_covariance_floor_mps2(1.0 / fps)
+    for record in result.frames:
+        assert len(record.velocity_variance_diag_mps2) == 3
+        # A floor-enabled config's posterior can never read below the
+        # floor on any axis -- exactly the check Day 25 Objective 1 ran
+        # against a real golden set; here it runs against a synthetic
+        # track so it stays in the fast suite.
+        for variance in record.velocity_variance_diag_mps2:
+            assert variance >= floor - 1e-9
+
+
+def test_sigma_v_distribution_reports_min_p50_max() -> None:
+    records = [
+        ee.FrameRecord(
+            regime="static",
+            distance_m=1.0,
+            position_sq_error=0.0,
+            axis_sq_error=np.zeros(3),
+            velocity_sq_error=0.0,
+            nees=ee.compute_nees(np.zeros(6), np.eye(6)),
+            standardized_innovation_x=None,
+            copy_previous_sq_error=0.0,
+            cv_no_update_sq_error=0.0,
+            cv_no_update_velocity_sq_error=0.0,
+            velocity_variance_diag_mps2=variance_diag,
+        )
+        for variance_diag in [(1.0, 1.0, 1.0), (4.0, 4.0, 4.0), (9.0, 9.0, 9.0)]
+    ]
+    # sigma_v per frame = sqrt(mean of the 3 diagonal entries): 1.0, 2.0, 3.0
+    dist = ee._sigma_v_distribution(records)
+    assert dist["n"] == 3
+    assert dist["min_mps"] == pytest.approx(1.0)
+    assert dist["p50_mps"] == pytest.approx(2.0)
+    assert dist["max_mps"] == pytest.approx(3.0)
+
+
+def test_sigma_v_distribution_empty_is_nan_not_a_crash() -> None:
+    dist = ee._sigma_v_distribution([])
+    assert dist["n"] == 0
+    assert np.isnan(dist["min_mps"])
+    assert np.isnan(dist["p50_mps"])
+    assert np.isnan(dist["max_mps"])
+
+
 def test_evaluate_track_too_short_returns_none() -> None:
     track = np.zeros((2, 3))  # fewer frames than FIRST_COMPARABLE_INDEX + 1
     extrinsics = _identity_world_to_camera_at((0.0, 0.0, -10.0))
