@@ -4584,6 +4584,36 @@ because every downstream confidence inherits the error and the system is
 most certain exactly where it is most wrong. It is diagnosed, not fixed,
 today — see Day 21, item 1.
 
+## Verdicts
+
+- **Are the motion/measurement models correctly specified?** Yes — `Q` is
+  strictly positive-definite at every kind/`dt` tested; `R` is
+  monotonically increasing in distance, with a 5x sigma inflation outside
+  the calibrated envelope. → Objective 1.
+- **Does `solve_state` now resolve a real single-entity state?** Yes —
+  Falsification test 5 moves BLOCKED → PARTIAL; reproducibility (re-solving
+  an earlier `graph_rev`) and occlusion-gap extrapolation are both proven
+  structurally. → Objective 2.
+- **Is the always-on consistency stage (NIS/NEES) wired in and
+  structurally enforced?** Yes — a `StateEstimate` cannot be constructed
+  without at least one `nis`-kind residual; stub vs. computed are distinct
+  types, not a null used for both. → Objective 3.
+- **Does the filter beat the trivial baselines (copy-previous,
+  constant-velocity dead reckoning)?** Yes, on both golden sets —
+  v3-indoor +0.1053 m / +2.8477 m/s margin, v4.1-gate +0.0263 m / +4.0670
+  m/s. → Objective 4.
+- **Is the filter well-calibrated?** No, not uniformly — v3-indoor (mostly
+  steady walking) covers 99.1% of its own 95% bound; v4.1-gate (quiet
+  scenes plus a motion onset) covers only 80.5%, concentrated in the three
+  `brief_entry*` tracks (63-71%). Diagnosed as the filter's covariance not
+  widening fast enough at the moment motion starts. → Objective 4 /
+  headline.
+- **Is baseline margin stated per GT distance bucket, not just pooled?**
+  NEVER MEASURED as a printed table this day — "Position error by GT
+  distance bucket" shows filter RMSE only, no baseline comparison within a
+  bucket (found missing Day 21 Objective 1; the code was fixed then but
+  the table itself was still never printed until Day 25 Objective 2).
+
 ## Objective 0 — push, start and end of day
 
 Start of day: `foundation/day-20` branched from `foundation/day-19`
@@ -4913,6 +4943,40 @@ diagnosis that motivated building IMM (§ Objective 2 below) stands;
 today's mode set and transition matrix do not yet deliver it. The Day-20
 single-model filter remains what should be used until this is resolved
 — see Day 22, item 1.
+
+## Verdicts
+
+- **Is baseline margin now stated per GT distance bucket, not just
+  pooled?** Code fixed to compute it per bucket and per regime, and pooled
+  margins reconfirmed positive on both sets — but the actual bucket-level
+  table itself was not printed in this section (still NEVER MEASURED as a
+  printed table until Day 25 Objective 2). → Objective 1.
+- **Where does the calibration failure actually happen — at motion onset,
+  or somewhere else?** Not at onset — v3-indoor's onset is well-calibrated
+  (96.5%, white innovations). The actual mechanism is the RECOVERY TAIL
+  after a stop: a hand-traced `brief_entry` track shows NEES climbing to
+  ~815 immediately after cessation and decaying to nominal over ~10-14
+  frames, confirmed as model mis-specification (not mistuning) by
+  innovation whiteness — v4.1-gate is severely NOT WHITE (+0.837
+  autocorrelation). → Objective 2.
+- **Was IMM built?** Yes — a 3-mode mixture (`static`/`constant_velocity`/
+  `maneuvering`). A real bug was found and fixed before it landed: the
+  first `static` mode shared `constant_velocity`'s F, so it kept
+  propagating any mixed-in velocity while merely claiming tighter
+  confidence — replaced with a model that has no velocity-to-position
+  coupling at all. → Objective 3.
+- **Does IMM satisfy the no-trade criterion stated in advance (transient
+  regime improves materially, steady regimes do not degrade)?** No — NOT
+  SATISFIED on both sets. Pooled NEES coverage itself gets worse (not
+  hidden behind an improving aggregate); v3-indoor sustained degrades
+  99.4%→65.9%, v4.1-gate static degrades 81.7%→43.4% even as its raw
+  accuracy improves roughly 4x. → Objective 4.
+- **Is IMM's mode probability wired into the event compiler or validated
+  against real motion labels?** No — documented as a future product
+  output (POSE verbs, dwell detection, motion-onset triggering,
+  `low_activity`), explicitly marked uncalibrated in its own docstring.
+  Validation against real motion labels is a separate, later objective.
+  → Objective 5.
 
 ## Objective 0 — push, start and end of day
 
@@ -5254,6 +5318,34 @@ on v4.1-gate, both below this project's own 10-frame floor for a
 conclusion. Config A (Day 20's single model, unchanged) remains in use.
 See ADR 0010 for the full decision record.
 
+## Verdicts
+
+- **Is pooled NEES a valid metric for judging IMM (a mixture posterior)?
+  Does using a mixture-valid metric rescue IMM?** Partially invalid —
+  NEES assumes a single Gaussian; two mixture-valid alternatives were
+  built (`compute_mixture_nees`, `empirical_coverage_by_sampling`). It
+  does NOT rescue IMM: only the magnitude of the degradation moves
+  (v3-indoor sustained softens from a ~33pt to a ~20pt regression under
+  the sampling metric; v4.1-gate static is identical, 43.4%, under every
+  metric). → Objective 1.
+- **Does the physically-derived velocity covariance floor fix the
+  cessation problem?** Measured as numerically INERT on both golden sets
+  at this project's 12fps — floor (~0.0156 (m/s)²) sits 4-6x looser than
+  natural steady-state convergence (~0.065-0.09 (m/s)²); config B is
+  bit-for-bit identical to config A everywhere. (Later found Day 24 to be
+  a per-timestep derivation bug, not a physical result about this filter
+  — see Day 24 Objective 2 and Day 25 Objective 1.) → Objective 2.
+- **Does any config (B/C/D) clear the no-trade criterion against config
+  A?** UNSCOREABLE on every set/candidate — cessation has 0 (v3-indoor) or
+  3 (v4.1-gate) frames, both below the 10-frame floor for a conclusion.
+  Independent of that, static/sustained measurably regressed under C/D
+  regardless (v3-indoor sustained −0.110, v4.1-gate static −0.383). →
+  Objective 3.
+- **Which configuration is adopted, and why?** Config A (Day 20's single
+  model), unchanged — the blocker is identified as a DATA gap (no
+  cessation volume to score against), not an unbuilt estimator. →
+  Objective 4 / ADR 0010.
+
 ## Objective 0 — push, start and end of day
 
 Start of day: `foundation/day-22` branched from `foundation/day-21`
@@ -5491,6 +5583,41 @@ datasets registered with validity-matrix cells, an ordered
 licence-verification list (confirms MEVA, then DA-2K), and a new
 `C_pending_consent` lane closing a real DPDP gap around the company's
 existing CCTV archive.
+
+## Verdicts
+
+- **How many frames actually support Day 21's NEES-815 diagnosis?** More
+  than believed at Day 22, but still layered: a labeling defect (not a
+  data gap) had absorbed the entire post-stop recovery tail into `static`;
+  fixed, v4.1-gate's cessation count rises 3→39 (12x) — still only ~2
+  underlying trajectories, highly autocorrelated, not 39 independent
+  samples. v3-indoor remains genuinely 0 (no stop events exist in that
+  set). (Day 24 Objective 1 later found the "815" figure specifically
+  traces to n=1 hand-traced track, distinct from this n=39 aggregate —
+  see Day 24/25.) → Objective 1.
+- **Can the no-trade criterion be scored with real statistical power?**
+  Yes — new `synthetic-indoor-v5-cessation` golden set, 373 cessation
+  frames from 19 diverse stop events, minted only after clearing its own
+  volume gate (≥200 cessation, ≥30 every other non-exempt regime),
+  enforced at mint time by `RegimeVolumeError`. → Objective 2.
+- **Does any config clear the no-trade bar on v5-cessation? Does the
+  velocity floor bind at any frame rate from 1-1000fps?** No config
+  clears the bar (NOT_SATISFIED for B/C/D on both scoreable sets); IMM
+  makes cessation coverage worse (0.5013→0.3727) while regressing static
+  harder than any set measured to date (0.9962→0.0808). The floor never
+  binds at ANY tested frame rate. (Both the "never binds" finding and the
+  no-trade verdicts were later found Day 24/25 to rest on a mis-derived,
+  per-timestep floor formula — corrected, the floor binds and B's verdict
+  changes; see Day 24 Objective 2 and Day 25 Objectives 1 and 3.) Config A
+  remains adopted today, now correct-by-measurement rather than
+  correct-by-elimination. → Objective 3.
+- **What is the state of the legal/licensing data path?** 12 research
+  datasets registered with validity-matrix cells; MEVA ranked #1 for
+  licence verification (best structural fit, most permissive-terms
+  hypothesis), DA-2K #2 (adapter ready, only path to a real, non-refused
+  `depth` number). New `C_pending_consent` lane refuses both training and
+  eval use of non-consented footage (DPDP-grounded), covering the
+  company's own existing CCTV archive. → Objective 4.
 
 ## Objective 0 — push, start of day
 
@@ -5918,6 +6045,41 @@ at n=373 (Day 23), but the two questions are distinct: whether the
 diagnosis was well-supported when made, and whether the thing it
 diagnosed turned out to be true. The first answer is no; the second is
 yes.
+
+## Verdicts
+
+- **How many frames actually supported Day 21's NEES-815 number
+  originally?** Under-supported as originally reported: n=1 hand-traced
+  track, not an aggregate, and not even the same frames Day 21's own
+  printed `cessation` row (n=3) referred to. The underlying phenomenon is
+  now independently established at n=373 (Day 23) — Days 21-22 are better
+  read as "established the problem existed" than "measured how bad it
+  was." → Objective 1.
+- **Is the velocity floor's per-timestep derivation the bug behind its
+  measured inertness?** Yes — the floor used the CURRENT PREDICT STEP's
+  own `dt_s` instead of the absolute physical stop duration it was meant
+  to bound. Corrected to an absolute form, it binds at every practical
+  frame rate; config B clears the no-trade bar outright on v4.1-gate and
+  is blocked on v5-cessation only by `sustained` moving in the SAFE
+  (underconfident) direction under the (then-)symmetric scoring. Config A
+  remains adopted today, pending the scoring-asymmetry question. (Resolved
+  Day 25: the criterion was made directional and config B is adopted —
+  see Day 25 Objectives 1 and 3.) → Objective 2.
+- **Is the validity matrix generated from the registry, or hand-copied?**
+  Was hand-copied — the same defect caught Day 16 for `point_tracking`.
+  Now derived live from `GATES` at runtime, with a structural test.
+  Parallel-maintenance audit found and fixed three more instances
+  (`LANE_DESCRIPTIONS`, `CONFIG_DESCRIPTIONS`/`CONFIG_SPECS`,
+  `_REQUIRED_PARAMS`); four other candidates checked and explicitly not
+  flagged, with reasons on record. → Objective 3.
+- **Are the genuinely expensive tests in `test_synthetic_indoor.py`
+  marked `@pytest.mark.slow`, and does the full suite now run in bounded
+  time?** Yes — 13 tests marked (every one calling `gen.generate()`);
+  this file's `not slow` subset drops 957.71s→6.93s. Repo-wide `not
+  requires_weights and not slow`: 1001 passed, 1 skipped, 21 deselected, 0
+  failures — closing Day 23's open caveat. A repo-wide duration-threshold
+  gate (`tests/conftest.py`, 15s) now fails any future unmarked test that
+  exceeds it. → Objective 4.
 
 ## Objective 0 — push, start of day
 
