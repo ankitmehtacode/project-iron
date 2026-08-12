@@ -6801,3 +6801,377 @@ filesystem/codebase before carrying every item forward (per the process
 note Day 24 established after the `raise_alert()` incident); every item
 above is either still genuinely open or explicitly re-scoped in place
 (items 1, 3, 4) rather than silently renumbered.
+
+# Day 26
+
+**No timing, throughput, CPU-percentage, or latency claim is made
+anywhere in this section** — unchanged hard scope rule from Day 20-25.
+Component COUNTS and SIZES are structural properties of the scene GT, not
+performance figures, and are explicitly in scope today. Everything below
+is accuracy, consistency, and structural measurement: the A→B flip's
+provenance settled with numbers, a coupling-density measurement taken
+before any solver code was written, the multi-entity factor graph itself,
+and an honest joint-vs-independent evaluation.
+
+**Headline: the multi-entity factor graph's motivating case is real and
+measured — and it has a cost that was not assumed away.** Joint
+estimation beats independent per-entity filtering on a carried asset by a
+real, consistent margin on both golden sets (+0.0425m RMSE on
+v5-cessation, +0.0265m on v3-indoor), with no overconfidence degradation
+on the asset itself. Applying Day 25's own directional no-trade criterion
+to this new comparison — exactly as today's objective anticipated it
+might — found that the CARRIER's own calibration is not neutral: it
+degrades toward overconfidence on v5-cessation specifically
+(FAIL_OVERCONFIDENT), concentrated in dynamic regimes and worst in
+cessation, the exact regime Days 21-25 already found most fragile. No
+same-session fix was attempted. Two other results anchor the day: the
+A→B flip (Day 25) is confirmed to be a real estimator change, not a
+criterion-only relabeling (RMSE deltas up to 62% per regime); and the
+component-sparsity claim the multi-entity design has rested on since Day
+13 — never actually written down anywhere in this repository — was
+measured for the first time and passed its own gate narrowly, not
+comfortably.
+
+## Verdicts
+
+- **A→B flip: does the estimator's OUTPUT differ, or only the criterion
+  that scores it (i vs ii)?** (i) — config B now produces materially
+  different position estimates from config A: RMSE deltas of +39.2%
+  (static, worse) to −62.4% (cessation, better) per regime, on both
+  golden sets. The Day-22 "B≡A" finding was correct for the per-timestep
+  floor formula that existed then; it stopped describing B the moment
+  Day 24's fix made the clamp actually fire. → Objective 1.
+- **Component-size distribution: what does it show, and what's the
+  threshold-sensitivity knee?** The claimed sparsity source document
+  ("Data model v0.3 §3") does not exist anywhere in this repo —
+  grep-verified before measuring. Of the three named relationship types,
+  only proximity is measurable on this project's data; carried-object and
+  shared-zone coupling have zero GT support anywhere. On v3-indoor (the
+  only set with multi-agent clips), the knee is sharp: the one 6-agent
+  scene fully merges into one component at just 1.10m proximity
+  threshold. At the declared default (1.5m), pooled p95=3 but max=6 — a
+  narrow pass against the gate's own "≤6" bound, not a comfortable one.
+  → Objective 2.
+- **Did Objective 3 proceed, and why?** Yes — Objective 2's gate passed
+  (narrowly). Built `src/estimator/joint.py`: components as the unit of
+  inference, rigid-coupling-plus-slip state layout, size-1 components
+  delegate verbatim to Day 20/25's single-entity filter (bit-identical by
+  construction), NEES dof correctness tested at component sizes 1/2/3
+  (6/9/12). → Objective 3.
+- **Does joint estimation beat independent filtering on the carried
+  asset (the headline claim)?** Yes, clearly, on both golden sets:
+  +0.0425m RMSE margin on v5-cessation, +0.0265m on v3-indoor, no
+  overconfidence degradation on the asset itself. → Objective 4.
+- **Is joint estimation neutral for the carrier, as hoped?** No — PASSES
+  on v3-indoor (calibration actually improves) but FAILS the directional
+  no-trade criterion on v5-cessation (coverage 0.9089→0.8874,
+  FAIL_OVERCONFIDENT), concentrated in dynamic regimes and worst in
+  cessation (Δ −0.0375, nearly double the pooled effect). A mechanism is
+  hypothesized, not confirmed; no same-session fix was attempted. →
+  Objective 4.
+
+## Objective 0 — push, start of day
+
+`foundation/day-26` branched from `foundation/day-25` (`27b7b23`), pushed
+clean before any Day-26 commit landed — verified local matched
+`origin/foundation/day-26` exactly. `main` unchanged since Day 16 (ADR
+0009 still Proposed). (End of day: see the closing Objective 0/5 section
+below.)
+
+## Objective 1 — ADR 0010 provenance for the A→B flip: (i), with numbers
+
+Full derivation and both per-regime delta tables are in ADR 0010's "Day
+26 revision (Objective 1)" section; summarized here.
+
+Day 22 measured config B as bit-for-bit identical to config A. Day 25
+found the corrected floor binds on essentially every scored frame — a
+constraint binding constantly changes the Kalman gain, which changes the
+POSTERIOR MEAN, not just its reported uncertainty. Re-measured directly,
+position RMSE per regime, config A vs B, current codebase:
+
+**v5-cessation:** static +39.2% (worse), onset −0.2%, sustained +28.4%
+(worse), **cessation −20.4%** (better), maneuver −5.1%.
+**v4.1-gate:** static +40.5% (worse), onset −3.5%, **cessation −62.4%**
+(better).
+
+**(i) is true.** The effect is bidirectional — worse on steady regimes,
+dramatically better on cessation — which is itself evidence this is a
+real estimator effect and not an artifact: a pure criterion change, with
+identical underlying estimates, could not produce a bidirectional
+accuracy effect. Three facts, each independently checkable, keep this
+from reading as motivated: the asymmetry argument was stated before
+re-scoring (Day 24's own closing instruction, executed in that order);
+IMM still fails under the new criterion (`FAIL_OVERCONFIDENT` on both
+sets — the load-bearing evidence the criterion did not become permissive
+in general); and B's cost is a named number (`sustained`, magnitude
+0.0355), not waved away. Also added: the closed-form-vs-instrumented rule
+to `iron-eval-discipline`'s `SKILL.md`, with the velocity floor as the
+worked example — applied pre-emptively to Objective 2 below, before any
+solver code was built on an unmeasured claim. (`aa9db8c`.)
+
+## Objective 2 — component-size distribution: measured, narrow pass
+
+Full tables, the per-clip knee, and the honest limitation are in ADR
+0011; summarized here.
+
+**The claimed source document does not exist.** "Data model v0.3 §3,"
+recalled as claiming coupling is sparse ("components stay small,
+typically 1-6 entities"), was grep-verified absent from `docs/`,
+`src/model/`, and `FOUNDATION_REPORT.md` before any measurement code was
+written — unwritten, not merely unmeasured, treated as the implicit
+assumption underlying `episode.py`'s and `motion_model.py`'s deferred
+multi-entity work rather than a cited decision.
+
+Of the three named relationship types (proximity, carried-object,
+shared-zone), only proximity has any GT support in this project's data;
+carried-object and shared-zone coupling have zero GT anywhere. Only
+v3-indoor has multi-agent clips (1/2/3/6 agents, 30 clips); v4.1-gate and
+v5-cessation are component-size 1 everywhere by construction.
+
+New `scripts/measure_component_sparsity.py` builds the proximity coupling
+graph from GT and sweeps the threshold. **The knee: 1.05m→1.10m** — the
+one 6-agent scene (`crowded_6agents`) fully merges from several small
+pairs into one 6-entity block at just **1.10m**. At the declared default
+(1.5m, proxemics' "close social" boundary): pooled p95=3, max=6 — at the
+decision gate's own stated bound, not comfortably below it. Merges that
+DO form persist most of a clip's duration (p50=21 of 40 frames) — not
+transient blips.
+
+**Honest limitation, stated plainly:** these are 30 authored synthetic
+clips, only two of which reach 6 agents. The crowded-lobby case (dozens
+of people) that would actually break sparsity cannot be measured on data
+this project owns. What this DOES show: even this project's own small
+"crowded" scene fully merges at a threshold well inside ordinary
+personal/social space — sparsity is not structurally guaranteed by
+"people happen to be far apart" indoors; it depends on keeping the
+coupling threshold tight (≤1.0m, where sparsity held cleanly) or on
+scenes staying genuinely uncrowded. What would settle it: a larger
+authored scene (20-50+ agents) or real capture data, neither of which
+exists in this project's golden sets today.
+
+**Decision gate: PASS, narrowly — proceeded to Objective 3.** (`40dc718`.)
+
+## Objective 3 — the multi-entity factor graph: built, conditional on the gate above
+
+Full design record is in ADR 0011; summarized here.
+
+`src/estimator/joint.py`. Components as the unit of inference — a
+`Component` is one carrier plus zero or more carried entities, declared
+statically (Objective 2's proximity graph was a pre-build sanity
+measurement, not the grouping key the filter itself uses; the actual
+coupling factor implemented is `carrier_entity_id` specifically).
+Rigid-coupling-plus-slip state layout (6 carrier dims + 3 offset dims per
+carried entity) — exactly the design `motion_model.py`'s `asset_carried`
+docstring named since Day 20 and left unimplemented pending this day.
+
+**Size-1 components delegate to Day 20/25's own filter, verbatim** — not
+a reimplementation that happens to agree, the actual function call — so
+they reproduce single-entity behaviour (including config B's floor)
+bit-for-bit by construction, tested directly.
+
+**The motivating case, tested directly:** bootstrap a carrier+carried
+component, feed ONLY carrier observations for several further steps (no
+carried-entity observation at all), and confirm the carried entity's
+implied absolute position moves with the carrier. This falls out of the
+predict step automatically once the state layout is correct — no
+special-cased propagation logic was needed.
+
+**NEES dof, tested at sizes 1/2/3:** `consistency.compute_nees` already
+infers dof from array size — no joint-specific metric function was
+needed, only correctly-sized joint state. Confirmed: size-1 reports
+dof=6 (identical to Day 25), size-2 reports dof=9, size-3 reports dof=12.
+
+STRUCTURAL, re-tested against the single-entity precedent: prior firewall
+(`inspect.signature`, no prior-shaped parameter), consistency residuals
+required (`JointStateEstimate` independently re-checks the rule, a
+genuinely separate type since `StateEstimate.mean` is hard-validated to
+exactly 6), graph_rev reproducibility (re-solving a component at an
+earlier revision after more, unrelated factors are appended reproduces
+bit-identically).
+
+**Not implemented today, as skeletons naming what fills them, not silent
+gaps:** hypothesis management (`resolve_data_association`) and the
+discrete/continuous hybrid (`HybridDiscreteContinuousState`, dynamic
+component membership) — bootstrap requires every declared member observed
+at the component's first timestep, a real scope limit stated in the
+docstring, not discovered later. (`4d97b79`.)
+
+## Objective 4 — joint vs independent: the motivating case passes; the carrier's calibration does not, on one set
+
+Full tables and the hypothesized mechanism are in ADR 0011; summarized
+here.
+
+No golden set carries real carried-object GT (Objective 2's finding), so
+`scripts/eval_joint_estimator.py` synthesizes one: the carrier's own GT
+plus a fixed, rigid, declared offset. Baseline (Day 12 rule): INDEPENDENT
+per-entity filtering — the `asset_carried` motion model that has existed,
+unused, since Day 20.
+
+**Carried asset — the motivating case, PASSES cleanly on both sets:**
+
+| set | asset RMSE: indep → joint | margin | asset coverage: indep → joint | verdict |
+| --- | --- | ---: | --- | --- |
+| v5-cessation (n=1021) | 0.2051m → 0.1626m | **+0.0425m** | 0.8570 → 0.8737 | PASS |
+| v3-indoor (n=2736) | 0.1691m → 0.1426m | **+0.0265m** | 0.9635 → 0.9269 | PASS |
+
+**Carrier — set-dependent, and fails on v5-cessation:**
+
+| set | carrier RMSE: indep → joint | margin | carrier coverage: indep → joint | verdict |
+| --- | --- | ---: | --- | --- |
+| v5-cessation (n=1021) | 0.1888m → 0.1608m | **+0.0280m** | 0.9089 → 0.8874 | **FAIL_OVERCONFIDENT** |
+| v3-indoor (n=2736) | 0.1552m → 0.1408m | **+0.0144m** | 0.9912 → 0.9675 | PASS (improves) |
+
+On BOTH sets the carrier's raw accuracy improves under joint estimation
+(more measurements per step lowers RMSE, as expected). The calibration
+effect is where the sets diverge — and per-regime breakdown on
+v5-cessation shows it is not uniform: `static` coverage IMPROVES
+(+0.0067 toward nominal) under coupling; every regime with real carrier
+motion degrades, and `cessation` degrades hardest (Δ −0.0375, nearly
+double the pooled −0.0215). This is the exact regime Days 21-25 already
+found the estimator's calibration most fragile, and it is exactly the
+danger this objective's own framing named in advance: "a joint solve
+that sharpens covariance without justification is the exact danger the
+criterion now names."
+
+**A mechanism is hypothesized, not confirmed:** during a regime where the
+carrier's true velocity is changing, the coupled update may let the
+asset's own independently-noisy position observation contribute extra
+apparent confidence to the carrier's state through the shared Kalman
+gain, exactly when the carrier's motion is least predictable. **No
+same-session fix was attempted** — Days 21-25 have repeatedly shown that
+tuning a parameter in the same session that found a miscalibration reads
+as motivated regardless of whether the reasoning is sound. Recorded as
+Day 27's first item: confirm the mechanism with a second measurement
+before changing anything.
+
+A real covariance bug was caught and fixed before this shipped: a carried
+entity's absolute-position covariance is NOT
+`Cov(carrier_pos) + Cov(offset)` — that silently drops the
+cross-covariance term the Joseph-form update actually builds. Fixed via
+`JointStateEstimate.carried_position_cov_m2`, computed with the same H
+projection matrix used to score a carried-entity observation, so mean and
+covariance cannot silently drift apart under two independently-derived
+formulas.
+
+Day-10 validity gate: **PASS** `state_estimation` on both sets, re-run,
+unchanged. Falsification test 5: re-run, still **PASSES/PARTIAL** exactly
+as Day 20 left it (8/8 green) — joint estimation produces a richer
+estimate but still nothing resolves to an `ActivityMode` behaviour label.
+
+**Status: capability validated, not yet a production recommendation.**
+The carried-asset improvement is real and holds on both sets; the
+carrier's own calibration cost on v5-cessation means this is a stated
+trade, not a clean win, until the mechanism above is confirmed. ADR 0011
+stays Proposed, not Accepted. (`cd0f763`.)
+
+## What remains skeleton, and the order it should land in
+
+1. **Confirm the carrier-overconfidence mechanism** (Objective 4's own
+   finding) — a second measurement (e.g. sweep
+   `OFFSET_SLIP_SIGMA_MPS_SQRT_S` and check whether cessation-regime
+   overconfidence tracks it monotonically) before any parameter changes.
+2. **Hypothesis management** (`resolve_data_association`) — discrete
+   data-association uncertainty; `Component` membership is declared, not
+   inferred, today.
+3. **The discrete/continuous hybrid** (`HybridDiscreteContinuousState`) —
+   dynamic component membership (a "picked up"/"set down" event), needed
+   before a carried entity can be discovered mid-track rather than
+   declared upfront.
+4. **Smoothing across the joint graph** (`horizon_kind="smoothed"`) —
+   same secondary-to-calibration reasoning Day 21 gave for the
+   single-entity case, now re-stated for joint: smoothing a coupling
+   whose calibration cost is not yet understood tightens a number that is
+   not yet honest.
+5. **A larger authored crowded scene, or real capture data** — the only
+   way to settle Objective 2's own open question (does sparsity hold past
+   6 agents at a realistic coupling threshold).
+
+## Full suite and mypy
+
+`mypy` (scoped per `mypy.ini`; `src/estimator` picked up `joint.py`
+automatically as a package member): **0 errors, 59 files** — up from Day
+25's 58. `black --check` / `flake8` clean on every file touched today
+(`.claude/skills/iron-eval-discipline/SKILL.md`,
+`docs/adr/0010-estimator-configuration.md`,
+`docs/adr/0011-multi-entity-factor-graph.md`,
+`scripts/measure_component_sparsity.py`,
+`scripts/eval_joint_estimator.py`, `src/estimator/joint.py`,
+`tests/test_measure_component_sparsity.py`,
+`tests/test_estimator_joint.py`, `tests/test_eval_joint_estimator.py`).
+
+Repo-wide `-m "not requires_weights and not slow"`: **1048 passed, 1
+skipped, 21 deselected, 0 failures** — up from Day 25's 1009 (+39: 9
+component-sparsity tests, 19 joint-filter structural tests, 11
+joint-evaluation tests).
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 25 — today's work was
+entirely unblocked by design:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification** — ranked #1 in Day 23's ordered list,
+   highest product impact of any pending data item; now 3 days older.
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 15 days old.
+5. **The `main`/`origin/main` divergence decision** (ADR 0009, Day 18,
+   still Proposed).
+6. **Reference hardware procurement decision**
+   (`docs/reference_hardware.md`) — now 8 days old.
+
+## Objective 0/5 — push, end of day
+
+`git push --all origin`: `foundation/day-26` pushed clean, matches origin
+exactly. `main` unchanged. `git push --tags`: up to date.
+
+## Day 27, in order
+
+1. **Confirm the carrier-overconfidence mechanism** (Objective 4) — sweep
+   `OFFSET_SLIP_SIGMA_MPS_SQRT_S`, check whether cessation-regime
+   overconfidence tracks it monotonically, before any parameter change.
+   Decide, on the result, whether joint estimation for a `person`-kind
+   carrier needs a directional fix (e.g. a floor on the offset's own
+   contribution to the carrier's covariance shrinkage) or whether the
+   cost is inherent and should simply be documented as a tradeoff.
+2. **Hypothesis management** (`resolve_data_association`) — furthest-out
+   multi-entity item, now with a real interface to build against.
+3. **The discrete/continuous hybrid** (`HybridDiscreteContinuousState`) —
+   dynamic component membership.
+4. **Smoothing across the joint graph** — depends on item 1 for the same
+   reason single-entity smoothing was deferred (Day 21): tightening a
+   number whose calibration is not yet trustworthy is not progress.
+5. **A larger authored crowded scene** (20-50+ agents), if pursued — the
+   only way to extend Objective 2's sparsity measurement past 6 agents
+   without real capture data.
+6. **MEVA licence verification** — still blocked on a human, highest
+   product impact of any pending data item.
+7. **DA-2K licence verification** — adapter built and tested, zero
+   engineering lag once cleared.
+8. **Reference hardware procurement decision** — now 8 days old.
+9. **Declare a target fps for real camera ingest** — still open from
+   Day 19.
+10. **Cascade bench, clean, on interim or reference hardware** — still
+    pending hardware.
+11. **Depth validity re-measurement** (`scripts/eval_depth.py`) — still
+    deferred; gates on item 7 for a real depth number.
+12. **The `main`/`origin/main` decision** (ADR 0009) — a human call.
+13. **The generator has no sensor-noise model** — unchanged.
+14. **Order cameras and run the office capture** — now 15 days old.
+15. **The motion-gate precision/selectivity investigation** — still
+    deferred.
+16. **A canonical `Observation -> hash` function** (ADR 0007) — still
+    open from Day 13.
+17. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced** — unchanged.
+18. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+19. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued — a DPDP
+    process decision, not a coding task.
+20. **The `resolve_joint_state` cross-component filtering gap** (ADR
+    0011's closing note) — cheap to fix (filter `_joint_payload_factors`
+    by component identity) but not yet needed by any real call site;
+    revisit once a multi-component orchestrator exists.
+21. **Hypothesis management (single-entity data association)** — the
+    original, pre-Day-26 punch-list item, now partially subsumed by item
+    2 above but recorded separately since single-entity identity
+    resolution and multi-entity component membership are related, not
+    identical, problems.
