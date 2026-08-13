@@ -7575,3 +7575,422 @@ origin exactly. `main` unchanged. `git push --tags`: up to date.
     DPDP process decision, not a coding task.
 21. **The `resolve_joint_state` cross-component filtering gap** (ADR
     0011) — cheap to fix, not yet needed by any real call site.
+
+# Day 28
+
+**No timing, throughput, CPU-percentage, or latency claim is made
+anywhere in this section** — unchanged hard scope rule from Day 20-27.
+Everything below is accuracy, consistency, and structural/documentation
+measurement.
+
+**Headline: the two-term slip model's derivation was well-determined —
+no ratio was swept — and it still fails the acceptance criterion, for a
+reason the derivation itself could not have caught.** Objective 1
+combined Day 26's constant floor and Day 27's acceleration-scaled term
+by variance addition, the physically correct combination for two
+independent noise sources, reusing the same already-declared constants
+with no new, separately-tuned parameter between them — the trap the
+day's prompt named (sweeping a ratio until both checks pass) never
+applied, because there was no ratio to sweep. Measured anyway, the model
+tracks `acceleration_scaled` almost exactly on every statistic, on both
+golden sets, because the causal acceleration ESTIMATE that feeds the
+second term sits 2-7x the reference constant even during GT-labeled
+steady regimes — the floor's variance is 25-49x smaller than the
+acceleration term's and never gets the chance to dominate the way the
+physical story assumed. **Not adopted; the physics was right and the
+estimator feeding it was the thing nobody had characterized.** Objectives
+2-3 closed the two provisions Day 27's audit found assumed-nowhere-
+recorded — constraint typing and the hypothesis store's
+`PRUNED_BY_BUDGET` — and Objective 4 traced how each went unrecorded in
+the first place: one was an honestly-caveated stub whose caveat quietly
+stopped being read; the other never touched version control at all
+before the audit that found it missing, existing only in the
+conversational reasoning between day-to-day prompts. No lint fixes the
+second kind — the fix is citation discipline, not tooling.
+
+## Verdicts
+
+- **Did the two-term slip model's ratio fall out of the physics, or was
+  the derivation underdetermined?** Fell out of the physics — both
+  terms reuse the same two already-declared constants
+  (`OFFSET_SLIP_SIGMA_MPS_SQRT_S`, `PERSON_SIGMA_A_MPS2`), combined by
+  variance addition with no third, separately-tuned parameter. No sweep
+  was run; none was needed to combine them. → Objective 1.
+- **Does the two-term model meet the acceptance criterion (both must
+  hold, or it's a trade)?** No. Carrier cessation overconfidence
+  resolves (unjustified gain +19.3%→+0.9%, matching
+  `acceleration_scaled`). Asset RMSE margin does NOT survive
+  (+0.0425m→−0.0052m on v5-cessation, +0.0265m→−0.0050m on v3-indoor) —
+  within 0.0001-0.0002 of `acceleration_scaled` alone on every
+  statistic, on both sets. Reported as another measured trade, not
+  adopted; `offset_slip_model` default stays `"constant"`. → Objective 1.
+- **Why does the floor term fail to protect the asset when the
+  derivation says it should, at low acceleration?** Measured directly:
+  the causal, one-step-lagged acceleration ESTIMATE that feeds the
+  second term sits 2-7x `PERSON_SIGMA_A_MPS2` even in GT-labeled
+  `sustained`/`static` regimes — it never reads "low" the way steady
+  motion should make it read. `PERSON_SIGMA_A_MPS2` bounds plausible
+  TRUE human acceleration; it was never validated as a bound on the
+  NOISE FLOOR of a 12fps finite-difference acceleration estimate. Those
+  are different quantities; the derivation assumed they were
+  interchangeable. → Objective 1.
+- **Is constraint typing (hard vs. twin-dependent) implemented, with the
+  STRUCTURAL rules the objective asked for?** Yes. `TwinDependentConstraint`
+  is unconstructable without `twin_rev` (undefaulted field, same shape as
+  `WorldPosition`, §0). The pruning path (`prune_for_hard_violation`)
+  accepts only `HardConstraintViolation`; `raise_twin_revision` has no
+  `HypothesisStore` parameter at all, so a twin-dependent violation is
+  structurally incapable of reaching the prune path — routed apart by
+  type, not a runtime `if`. `TwinRevisionHypothesis` is a recorded type
+  with no consumer yet, noted explicitly. Tested:
+  `tests/test_model_constraint.py`, `tests/test_estimator_constraints.py`
+  (32 tests total across constraint typing + the hypothesis store). →
+  Objective 2.
+- **Is the hypothesis store's typed death-cause discipline implemented?**
+  Yes. `HypothesisStore.kill` requires a typed `DeathCause` with no
+  default — there is no discard/remove/pop that skips it.
+  `PRUNED_BY_BUDGET` hypotheses are retained as records (proposition +
+  support at death, no full state) and `considered_alternatives()`
+  surfaces them unfiltered — tested directly
+  (`test_budget_pruned_hypotheses_are_not_filtered_out_of_considered_alternatives`).
+  Full multi-hypothesis management stays skeleton, as scoped. →
+  Objective 3.
+- **How did constraint typing and `PRUNED_BY_BUDGET` go unrecorded, and
+  what would have caught it?** Different mechanisms for each. Constraint
+  typing: first committed Day 20 as an honestly-caveated stub label
+  ("not yet implemented") inside §15, a section that genuinely exists —
+  never a dangling `§N` citation, so the existing citation lint could
+  never have caught it; what would have is a provision registry
+  requiring a status from the moment a named-but-unbuilt capability is
+  introduced. `PRUNED_BY_BUDGET`: zero committed trace anywhere before
+  the Day-27 audit that found it missing — cited as settled only in
+  conversational reasoning across day-boundaries, never in anything a
+  repo-scoped lint could see. No lint change closes that gap; the
+  finding is that a claim's specificity is not evidence of its
+  provenance. → Objective 4.
+- **Updated provision-audit counts — any provision still
+  assumed-nowhere-recorded?** None. Both provisions traced today now
+  read `IMPLEMENTED` with resolving pointers
+  (`src/model/constraint.py` + `src/estimator/constraints.py`;
+  `src/model/hypothesis.py`), verified by a new structural lint
+  (`tests/test_data_model_citations.py::test_no_broken_implemented_pointer`)
+  that fails on any provision marked `IMPLEMENTED` whose pointer does
+  not resolve. → Objective 4.
+
+## Objective 0 — push, start of day
+
+`foundation/day-28` branched from `foundation/day-27` (`c01daa4`, the
+Day-27 report commit), pushed clean before any Day-28 commit landed —
+`origin/foundation/day-28` matched local exactly. `main` unchanged since
+Day 16 (ADR 0009 still Proposed). (End of day: see the closing
+Objective 0/5 section below.)
+
+## Objective 1 — the two-term slip model: derivation clean, acceptance criterion not met
+
+Full derivation, the complete three-way comparison tables (both golden
+sets), the instrumented acceleration-estimate trace, and the root-cause
+analysis are in ADR 0011's "Day 28, Objective 1" section; summarized
+here.
+
+**The derivation.** `OffsetSlipModel = "two_term"`
+(`src/estimator/joint.py`): `"constant"` PLUS `"acceleration_scaled"`,
+combined as VARIANCES — the physically correct combination for two
+independent noise sources (variances add; sigmas do not):
+
+    offset_variance = OFFSET_SLIP_SIGMA_MPS_SQRT_S^2
+                     + (OFFSET_SLIP_SIGMA_MPS_SQRT_S * |a_hat|/PERSON_SIGMA_A_MPS2)^2
+
+Both terms reuse the same two already-declared constants from Day 26/27.
+No third, separately-tuned ratio parameter exists to sweep — the trap
+named explicitly in the day's prompt does not apply to this specific
+model, because there was nothing free to fit. A real implementation bug
+was found and fixed along the way: the causal acceleration estimate was
+only ever computed when `offset_slip_model == "acceleration_scaled"`,
+so `"two_term"` silently ran with `carrier_acceleration_mps2=None` at
+every step and was bit-identical to `"constant"` for an entire
+evaluation run before this was caught — regression-guarded with a new
+test.
+
+**Three-way comparison (constant / acceleration_scaled / two_term),
+v5-cessation:**
+
+| model | carrier margin | carrier no-trade | asset margin | asset no-trade |
+| --- | ---: | --- | ---: | --- |
+| constant (Day 26) | +0.0280m | FAIL_OVERCONFIDENT (Δ −0.0215) | +0.0425m | PASS (Δ +0.0167) |
+| acceleration_scaled (Day 27) | +0.0115m | PASS (Δ +0.0020) | −0.0051m | PASS (Δ +0.0137) |
+| two_term (Day 28) | +0.0115m | PASS (Δ +0.0020) | **−0.0052m** | PASS (Δ +0.0137) |
+
+Same pattern on v3-indoor (carrier margin +0.0144m→+0.0066m→+0.0066m;
+asset margin +0.0265m→−0.0049m→−0.0050m). two_term lands within
+0.0001-0.0002m of acceleration_scaled on every statistic, on both sets
+— not partway between constant and acceleration_scaled the way a
+protective floor term should place it.
+
+**Acceptance criterion, stated in advance, evaluated explicitly.**
+Carrier cessation overconfidence resolves (unjustified gain +19.3% →
++0.9%): YES. Asset RMSE margin survives: NO (goes negative on both
+sets, matching acceleration_scaled's collapse almost exactly). Both
+were required; one failed. **Not adopted** — reported as another
+measured trade, same disposition as Day 27's acceleration_scaled.
+`offset_slip_model` default stays `"constant"`.
+
+**Root cause, measured directly, not inferred.** Instrumented `|a_hat|`
+(the estimate feeding the acceleration term) frame-by-frame against
+`PERSON_SIGMA_A_MPS2` on a real track: every sampled step from a
+GT-labeled `sustained` or `static` regime showed `|a_hat|` at 1.8-6.5x
+the reference constant — never once reading "low" the way steady motion
+should. The estimate is built from the difference of two consecutive
+Kalman-filtered velocity states divided by `dt_s ≈ 0.083s` (12fps), a
+division that amplifies ordinary estimation noise into an apparent
+acceleration several times `PERSON_SIGMA_A_MPS2` regardless of the
+carrier's TRUE acceleration. `PERSON_SIGMA_A_MPS2` was derived as a
+bound on plausible true human acceleration; it was never validated as a
+bound on the NOISE FLOOR of a finite-difference estimate of that
+acceleration at this frame rate. The two-term model's derivation
+silently assumed those were the same quantity. They are not, and this
+is a measuring-apparatus finding in the same family as Day 24's and
+Day 25's — the apparatus this time is the state estimator's own causal
+acceleration estimate, used here for the first time as an input to
+another model's noise term rather than as an output to report.
+
+ADR 0011 updated with this section, Day 26 and Day 27's results kept
+visible alongside per instruction.
+
+## Objective 2 — constraint typing: hard vs. twin-dependent, implemented
+
+`src/model/constraint.py` (typing) + `src/estimator/constraints.py`
+(estimator wiring). `HardConstraint` (true regardless of twin
+correctness — violation prunes) and `TwinDependentConstraint` (only as
+true as `twin_rev` — violation raises a `TwinRevisionHypothesis`
+instead) are disjoint types. `TwinDependentConstraint` makes `twin_rev`
+a required, undefaulted field — unconstructable without it, same shape
+`WorldPosition` already enforces (§0); confirmed by
+`test_twin_dependent_constraint_unconstructable_without_twin_rev`
+(`TypeError` on omission).
+
+**STRUCTURAL: closed-world dispatch, not an `if`.**
+`evaluate_constraint`'s `@overload` pair gives a `HardConstraint` caller
+`HardConstraintViolation | None` and a `TwinDependentConstraint` caller
+`TwinRevisionHypothesis | None` — routed apart by type at the mypy
+level. `prune_for_hard_violation` (the only function that calls
+`HypothesisStore.kill`) takes a `HardConstraintViolation` parameter,
+full stop. `raise_twin_revision` has no `HypothesisStore` parameter at
+all — confirmed by
+`test_raise_twin_revision_has_no_hypothesis_store_parameter`, which
+inspects the live signature rather than trusting a docstring claim.
+There is no shared function anywhere that inspects `violation.kind` and
+branches on whether to prune.
+
+**Concrete constraints.** `one_body_one_place` (hard) is fully
+implemented — no site geometry, no twin, no calibrated constant beyond
+a floating-point tolerance, true by definition. `gravity_floor_transition`,
+`max_pedestrian_velocity`, `mass_conservation` (hard) and
+`wall_impermeability`, `portal_required`, `stair_or_lift_for_floor_change`,
+`visibility_and_accessibility` (twin-dependent, per-`twin_rev` factories)
+are named and typed correctly but raise `NotImplementedError` naming what
+would fill them — same convention as `src/model/__init__.py`'s own
+placeholder rule, deriving their thresholds is future work, not guessed
+today (Day 29 list).
+
+**Wired as a hypothesis-pruning factor.** `check_hard_constraints`
+evaluates a sequence of hard constraints and prunes the store on the
+first violation — the actual mechanism a real multi-hypothesis tracker
+will call once one exists.
+`test_one_body_one_place_violated_prunes_the_hypothesis` and
+`test_twin_dependent_violation_does_not_prune_and_emits_a_revision_hypothesis`
+confirm both routing directions end-to-end, including that the store's
+`alive()` set is untouched by a twin-dependent violation.
+
+`TwinRevisionHypothesis` is recorded, with no consumer yet, noted
+explicitly in its own docstring. Repeated violations of the same
+constraint at the same location, tracked over time, would be the twin
+drift detector this project has wanted — falls out of typing
+constraints correctly rather than needing separate engineering, per
+instruction; the tracking loop itself is not built today.
+
+## Objective 3 — the hypothesis store's typed death causes, implemented
+
+`src/model/hypothesis.py`. `Hypothesis` (live) and `DeadHypothesis`
+(retained record: proposition + support at death, deliberately WITHOUT
+full state) are separate types.
+`DeathCause = RefutedByHardConstraint | RefutedByObservation |
+DominatedByLikelihood | MergedInto(id) | ExpiredHorizon | PrunedByBudget`.
+
+**STRUCTURAL: a hypothesis cannot die without a typed cause.**
+`HypothesisStore.kill(hypothesis_id, cause: DeathCause)` is the only way
+a hypothesis leaves the alive set — no `discard`/`remove`/`pop` exists
+that skips the `cause` argument, confirmed by
+`test_kill_requires_a_death_cause_argument` (`TypeError` on omission).
+Every death, regardless of cause, is unconditionally recorded as a
+`DeadHypothesis` before `kill` returns.
+
+**`PRUNED_BY_BUDGET` is not a rejection.** "We ruled it out" and "we
+never evaluated it" are different answers to a forensic query, and
+`considered_alternatives()` surfaces budget-pruned records alongside
+refuted ones by construction — no separate "rejected only" query exists
+for a caller to reach for by mistake.
+`test_budget_pruned_hypotheses_are_not_filtered_out_of_considered_alternatives`
+constructs one refuted and one budget-pruned hypothesis and confirms
+both appear in the forensic query, with the budget-pruned one's cause
+still typed as `PrunedByBudget`, not silently dropped or relabeled.
+
+Full multi-hypothesis management stays skeleton, as scoped: nothing
+here decides when to spawn, merge, or budget-prune a hypothesis — only
+the store, the lifecycle, and the death-cause discipline exist, so that
+when hypothesis management arrives it cannot be built without them.
+
+## Objective 4 — how did two provisions go unrecorded, and what would have caught it
+
+**Constraint typing, traced.** First committed appearance: Day 20
+(`22f4f49`, 2026-08-10), `src/estimator/consistency.py`:
+`_CONSTRAINT_CONSUMER = "twin-revision hypothesis (not yet
+implemented)"`. Not a false claim at the time — the caveat is in the
+string. Not a `§N` citation either — `tests/test_data_model_citations.py`
+scans for `§\d+`, and this is a bare English phrase inside a Python
+string constant. It lived inside §15's own stub-residual machinery, a
+section that genuinely exists, so this was never a dangling citation to
+an undefined destination — it was an unrecorded, separately-verifiable
+PROMISE inside a destination that was itself real. What would have
+caught it: not a stricter `§N` scanner, but a provision registry that
+requires a status field the moment a named-but-unbuilt capability this
+specific (a distinguishable "hard vs. twin-dependent" split, not just
+"handle constraint violations somehow") is introduced — added below.
+
+**`PRUNED_BY_BUDGET`, traced.** First committed appearance: none.
+`git log --all -S PRUNED_BY_BUDGET` shows the literal string first
+appearing in the Day-27 commit that reported it MISSING — there is no
+earlier stub, no earlier punch-list line at that precision, nothing.
+"Hypothesis management" as a general topic IS real and repo-visible
+(carried on this project's ordered day-lists since Day 5); the specific
+claim `PRUNED_BY_BUDGET` names was never written down at that precision
+anywhere a repo-scoped mechanism could see it — it was cited as settled
+only in the conversational reasoning that produced day-to-day prompts.
+**What would have caught it: nothing that scans this repository.** A
+claim that never touches version control is outside the reach of any
+lint that only reads version-controlled files, by construction. The
+actual lesson: a claim's specificity is not evidence of its provenance —
+`PRUNED_BY_BUDGET` read as settled precisely BECAUSE it was so
+precisely named (a literal `SCREAMING_CASE` constant reads as something
+already built, not a vague gesture inviting scrutiny), and that
+resemblance to a recorded fact is exactly backwards from how much
+confidence a genuinely unrecorded claim deserves. The closing action is
+citation discipline (grep before using a specific technical claim in
+argument), not a tooling change.
+
+**Lint extension, applied.** Every `§N` section's `**Status: ...**` line
+and every Catalog table row in `docs/data_model/v0.3.md` now states a
+status, and an `IMPLEMENTED` status names a pointer (a path, optionally
+`path::symbol`) that must resolve — file/directory exists, and a named
+symbol is actually defined in it (text search, not an import).
+`tests/test_data_model_citations.py::test_no_broken_implemented_pointer`
+enforces this, with its own falsifiability test
+(`test_the_lint_actually_catches_a_broken_implemented_pointer`) proving
+the check fires on a genuinely broken pointer before trusting that it
+passing on the real document means anything. This closes the gap for
+provisions that ARE written down somewhere in the doc (constraint
+typing's own failure mode); it does not and cannot close
+`PRUNED_BY_BUDGET`'s (see above).
+
+**Updated audit classification.** Re-ran the Day-27 census after today's
+two implementations: `docs/data_model/v0.3.md` now records constraint
+typing and the hypothesis store as `IMPLEMENTED` (pointers:
+`src/model/constraint.py` + `src/estimator/constraints.py`;
+`src/model/hypothesis.py` — both resolve). **No provision in the
+document remains ASSUMED, NOWHERE RECORDED.**
+
+## Full suite and mypy
+
+`mypy` (scoped per `mypy.ini`): clean, 0 errors — `src/model/constraint.py`,
+`src/model/hypothesis.py`, and `src/estimator/constraints.py` (new
+today) all pass. `black --check` / `flake8` clean on every file touched
+today (`src/estimator/joint.py`, `src/model/constraint.py`,
+`src/model/hypothesis.py`, `src/estimator/constraints.py`,
+`scripts/eval_joint_estimator.py`, `tests/test_estimator_joint.py`,
+`tests/test_model_constraint.py`, `tests/test_model_hypothesis.py`,
+`tests/test_estimator_constraints.py`, `tests/test_data_model_citations.py`,
+`docs/adr/0011-multi-entity-factor-graph.md`, `docs/data_model/v0.3.md`).
+
+Repo-wide `-m "not requires_weights and not slow"`: **1119 passed, 1
+skipped, 21 deselected, 0 failures** — up from Day 27's 1072 (+47: 8
+two-term slip-model tests, 32 constraint-typing/hypothesis-store tests
+across three files (9 + 14 + 9), 7 provision-status/pointer-lint tests).
+Also ran the full suite with no marker exclusions at all (including the
+13 `@pytest.mark.slow` tests): **1127 passed, 7 skipped, 0 failures**,
+22m34s — clean. One transient failure was observed and diagnosed during
+today's work: `test_synthetic_indoor.py`'s duration-threshold gate
+(Day 24 Objective 4) tripped on
+`test_stationary_v5_cessation_agent_silhouette_is_bit_identical` at
+17-18s under three concurrent pytest processes contending for CPU;
+re-run alone it completes in 5.92s, comfortably under the 15s
+threshold. Confirmed CPU-contention flake, not a regression, before
+this section was written.
+
+## Blocked on humans, restated
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 27 — today's work was
+entirely unblocked by design:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification** — ranked #1 in Day 23's ordered list,
+   highest product impact of any pending data item; now 5 days older.
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 17 days old.
+5. **The `main`/`origin/main` divergence decision** (ADR 0009, Day 18,
+   still Proposed).
+6. **Reference hardware procurement decision**
+   (`docs/reference_hardware.md`) — now 10 days old.
+
+## Objective 0/5 — push, end of day
+
+`git push --all origin`: `foundation/day-28` pushed clean, matches
+origin exactly. `main` unchanged. `git push --tags`: up to date.
+
+## Day 29, in order
+
+1. **Characterize the causal acceleration estimator's own noise floor**
+   (or re-derive `PERSON_SIGMA_A_MPS2`, or a separate reference constant,
+   from that floor rather than from true-human-acceleration bounds) —
+   the specific blocker Day 28 found for decoupling the two-term slip
+   model's confidence-calibration and estimate-elasticity effects.
+2. **Derive real predicates for the seven stubbed constraints**
+   (`gravity_floor_transition`, `max_pedestrian_velocity`,
+   `mass_conservation`, `wall_impermeability`, `portal_required`,
+   `stair_or_lift_for_floor_change`, `visibility_and_accessibility`) —
+   today only established their typed place in the registry.
+3. **Hypothesis management itself** (spawn/score/budget-prune logic) —
+   the store and lifecycle exist; nothing yet decides when to use them.
+4. **Real coupled multi-entity data, or a larger authored scene** — the
+   only way to measure the component-size cap's cost on a genuinely
+   well-matched component (Day 26/27's own open question, still open).
+5. **The twin drift detector** — falls out of typing constraints
+   correctly (Day 28), but the tracking loop over repeated
+   `TwinRevisionHypothesis` occurrences at one location is not built.
+6. **The discrete/continuous hybrid** (`HybridDiscreteContinuousState`)
+   — dynamic component membership; depends on item 3.
+7. **Smoothing across the joint graph** — still depends on the
+   coupling's own calibration being trustworthy first.
+8. **MEVA licence verification** — still blocked on a human, highest
+   product impact of any pending data item.
+9. **DA-2K licence verification** — adapter built and tested, zero
+   engineering lag once cleared.
+10. **Reference hardware procurement decision** — now 10 days old.
+11. **Declare a target fps for real camera ingest** — still open from
+    Day 19.
+12. **Cascade bench, clean, on interim or reference hardware** — still
+    pending hardware.
+13. **Depth validity re-measurement** (`scripts/eval_depth.py`) — still
+    deferred; gates on item 9 for a real depth number.
+14. **The `main`/`origin/main` decision** (ADR 0009) — a human call.
+15. **The generator has no sensor-noise model** — unchanged.
+16. **Order cameras and run the office capture** — now 17 days old.
+17. **The motion-gate precision/selectivity investigation** — still
+    deferred.
+18. **A canonical `Observation -> hash` function** (ADR 0007) — still
+    open from Day 13.
+19. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should
+    be replaced** — unchanged.
+20. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+21. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued — a
+    DPDP process decision, not a coding task.
+22. **The `resolve_joint_state` cross-component filtering gap** (ADR
+    0011) — cheap to fix, not yet needed by any real call site.
