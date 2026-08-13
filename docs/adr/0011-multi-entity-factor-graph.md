@@ -575,3 +575,162 @@ items carried by one person) would show a positive cost when capped.
 Answering that needs either real multi-entity carried-object data or a
 larger authored synthetic scene with a genuine group relationship — both
 already on the Day 26 punch list, unresolved by today's work.
+
+## Day 28, Objective 1 — the two-term model: derivation well-determined, acceptance criterion not met
+
+### The derivation, and why the trap named in the prompt does not apply here
+
+`OffsetSlipModel = "two_term"` (`src/estimator/joint.py`): `"constant"`
+PLUS `"acceleration_scaled"`, combined as VARIANCES — the physically
+correct combination for two independent noise sources, whose variances
+add while their sigmas do not:
+
+    offset_variance = OFFSET_SLIP_SIGMA_MPS_SQRT_S^2
+                     + (OFFSET_SLIP_SIGMA_MPS_SQRT_S * |a_hat|/PERSON_SIGMA_A_MPS2)^2
+
+The constant term is baseline grip compliance under steady carry (Day
+26's own physical reading, unchanged). The acceleration term is slip
+induced by a change in motion (Day 27's own physical reading,
+unchanged). Both terms reuse the SAME already-declared constants —
+`OFFSET_SLIP_SIGMA_MPS_SQRT_S` and `PERSON_SIGMA_A_MPS2` — and no third,
+separately-tuned parameter was introduced to weight one term against the
+other. The instantaneous ratio between what each term contributes is
+therefore not free: it falls out of the acceleration ratio
+`|a_hat|/PERSON_SIGMA_A_MPS2` already established Day 27 — exactly 1 at
+the nominal acceleration bound, below 1 in steady motion (floor
+dominates), above 1 in a sharp transient (acceleration term dominates).
+No sweep was run to find this ratio; it was not adjustable in the first
+place. **The derivation is not underdetermined** — the trap the Day 28
+prompt named (a fitted ratio wearing a physics costume) does not apply
+to this specific failure, which is a different one, below.
+
+### Three-way comparison, v5-cessation (n=1021 carrier, n=1021 asset)
+
+| model | carrier margin | carrier no-trade | asset margin | asset no-trade |
+| --- | ---: | --- | ---: | --- |
+| constant (Day 26) | +0.0280m | **FAIL_OVERCONFIDENT** (Δ −0.0215) | +0.0425m | PASS (Δ +0.0167) |
+| acceleration_scaled (Day 27) | +0.0115m | PASS (Δ +0.0020) | −0.0051m | PASS (Δ +0.0137) |
+| two_term (Day 28) | +0.0115m | PASS (Δ +0.0020) | **−0.0052m** | PASS (Δ +0.0137) |
+
+Cessation-regime unjustified gain, the number this whole investigation
+exists to fix:
+
+| model | static | onset | sustained | cessation |
+| --- | ---: | ---: | ---: | ---: |
+| constant | −7.3% | +39.7% ⚠ | +12.7% ⚠ | +19.3% ⚠ |
+| acceleration_scaled | −4.8% | +22.3% ⚠ | −0.4% | +0.9% |
+| two_term | −4.8% | +22.1% ⚠ | −0.5% | +0.9% |
+
+### Three-way comparison, v3-indoor (n=2736 carrier, n=2736 asset)
+
+| model | carrier margin | carrier no-trade | asset margin | asset no-trade |
+| --- | ---: | --- | ---: | --- |
+| constant (Day 26) | +0.0144m | PASS (Δ +0.0238) | +0.0265m | PASS (Δ −0.0096) |
+| acceleration_scaled (Day 27) | +0.0066m | PASS (Δ +0.0000) | −0.0049m | PASS (Δ +0.0134) |
+| two_term (Day 28) | +0.0066m | PASS (Δ +0.0000) | **−0.0050m** | PASS (Δ +0.0134) |
+
+### two_term is numerically almost indistinguishable from acceleration_scaled alone
+
+Both golden sets, every regime, every reported statistic: two_term
+lands within 0.0001–0.0002 of acceleration_scaled and nowhere near
+constant's numbers. Most tellingly, the ASSET's `static`-regime margin —
+the regime where the floor term should matter most, since a held object
+is (by GT construction) not accelerating and the acceleration term
+should collapse toward zero, leaving the floor to do its Day-26 job —
+does not recover:
+
+| model | asset margin, v5-cessation `static` | asset margin, v3-indoor `static` |
+| --- | ---: | ---: |
+| constant | **+0.0581m** | +0.0221m |
+| acceleration_scaled | +0.0001m | −0.0037m |
+| two_term | **−0.0000m** | **−0.0038m** |
+
+If the floor term were doing the protective work the derivation
+predicts, two_term's `static` margin should sit near constant's. It
+sits at acceleration_scaled's instead, on both sets.
+
+### Root cause, measured directly: the acceleration ESTIMATE, not the model, is the problem
+
+Instrumented `|a_hat|` (the causal, one-step-lagged carrier acceleration
+estimate that feeds the acceleration term) directly against
+`PERSON_SIGMA_A_MPS2` frame-by-frame on a v5-cessation track:
+
+| step | GT regime | \|a_hat\| (m/s²) | ratio to PERSON_SIGMA_A_MPS2 |
+| ---: | --- | ---: | ---: |
+| 6 | sustained | 7.32 | 4.9x |
+| 10 | sustained | 8.81 | 5.9x |
+| 20 | sustained | 9.75 | 6.5x |
+| 28 | sustained | 2.65 | 1.8x |
+| 49 | static | 8.82 | 5.9x |
+
+Every value shown is from a regime GT labels as steady (no motion
+change) — the exact regime the derivation depends on `|a_hat|` reading
+LOW so the floor can dominate. Instead the causal acceleration estimate
+sits 2–7x the reference constant throughout, never once dropping near
+zero. The mechanism: `a_hat` is built from the DIFFERENCE of two
+consecutive Kalman-filtered velocity ESTIMATES divided by `dt_s ≈
+0.083s` (12 fps) — a division that amplifies whatever estimation noise
+sits in each velocity state, and that amplified noise floor turns out
+to be several times `PERSON_SIGMA_A_MPS2` regardless of the carrier's
+TRUE acceleration. Given
+
+    acceleration_variance = floor_variance * ratio^2
+
+a ratio of 5–7x (typical, per the table above, not an outlier) puts the
+acceleration term at 25–49x the floor's variance — the floor is
+mathematically present in every step's sum but numerically negligible
+in all but a handful of them, which is exactly why two_term tracks
+acceleration_scaled instead of interpolating toward constant during
+steady regimes.
+
+**This is a measuring-apparatus finding, in the same family as Day 24's
+and Day 25's — but the apparatus at fault is not a test or a metric,
+it is the state estimator's own causal acceleration ESTIMATE, which
+this project had not previously used as an INPUT to another model's
+noise term and had therefore never characterized as a noise source in
+its own right.** `PERSON_SIGMA_A_MPS2 = 1.5` m/s² is a bound on
+plausible TRUE human acceleration; it was never validated as a bound on
+the NOISE FLOOR of a finite-difference estimate of that acceleration at
+12 fps from filtered velocity states. Those are different quantities,
+and the two-term model's derivation silently assumed they were
+interchangeable.
+
+### Acceptance criterion, evaluated explicitly — NOT MET
+
+Stated in advance: *"the carrier's cessation overconfidence must resolve
+AND the asset's RMSE margin over independent filtering must survive.
+Both, or the model is reported as another measured trade and not
+adopted."*
+
+- Carrier cessation overconfidence resolves: **YES** (unjustified gain
+  +19.3% → +0.9%, matching acceleration_scaled almost exactly).
+- Asset RMSE margin survives: **NO** (+0.0425m → −0.0052m on
+  v5-cessation, +0.0265m → −0.0050m on v3-indoor — the same collapse
+  Day 27 measured for acceleration_scaled alone, to within 0.0001m).
+
+Both were required. One failed. **two_term is not adopted.** Per the
+acceptance criterion's own wording, this is reported as another
+measured trade, the same disposition as Day 27's acceleration_scaled.
+`offset_slip_model` default stays `"constant"`, unchanged since Day 26;
+`"two_term"` is available as an explicit opt-in alongside the other two,
+carrying this section's caveat.
+
+### What today adds to Day 27's open question
+
+Day 27 closed by suggesting a floor term would "decouple" confidence
+calibration from estimate elasticity. Today's measurement shows that
+suggestion was half right: the floor term as derived is real, is
+correctly combined, and would decouple the two effects PROVIDED its
+input — the acceleration estimate — reads near zero during steady
+motion. It does not, at this frame rate, with this estimator. The
+decoupling Day 27 predicted requires either (a) an acceleration
+estimate with a noise floor genuinely below `PERSON_SIGMA_A_MPS2`
+during steady motion (e.g. smoothed over more than two consecutive
+velocity states, at the cost of more lag), or (b) re-deriving
+`PERSON_SIGMA_A_MPS2` itself — or a separate reference constant — from
+the ESTIMATOR's own measured noise floor rather than from a physical
+bound on true human acceleration. Neither was attempted today: doing so
+under the "must resolve, not merely improve" pressure of this
+objective's own acceptance criterion is exactly the condition under
+which a fitted-looking number stops being distinguishable from a
+derived one. Recorded for Day 29, not attempted same-session.

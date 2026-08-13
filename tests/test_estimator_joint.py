@@ -799,3 +799,181 @@ def test_degraded_graph_rev_reproducibility() -> None:
     assert isinstance(after, DegradedComponentEstimate)
     assert before.entity_estimates == after.entity_estimates
     assert before.ts_ns == after.ts_ns == BASE_TS + 3 * SECOND_NS
+
+
+# ---------------------------------------------------------------------------
+# Day 28, Objective 1 -- the two-term slip model
+# ---------------------------------------------------------------------------
+
+
+def test_offset_slip_model_literal_includes_two_term() -> None:
+    from src.estimator.joint import OffsetSlipModel
+
+    assert "two_term" in OffsetSlipModel.__args__  # type: ignore[attr-defined]
+
+
+def test_two_term_variance_is_floor_alone_with_no_acceleration_estimate() -> None:
+    from src.estimator.joint import _offset_slip_variance_mps2
+
+    base = 0.05
+    variance = _offset_slip_variance_mps2(base, "two_term", None)
+    assert variance == pytest.approx(base**2)
+
+
+def test_two_term_variance_at_reference_acceleration_is_double_the_floor() -> None:
+    """At |a_hat| == PERSON_SIGMA_A_MPS2, the acceleration term equals the
+    floor term exactly (Day 27's own "at the nominal bound, effective_sigma
+    equals the baseline" finding) -- so the combined VARIANCE (not sigma)
+    is exactly twice the floor variance, with no separate ratio chosen."""
+    from src.estimator.joint import _offset_slip_variance_mps2
+    from src.estimator.motion_model import PERSON_SIGMA_A_MPS2
+
+    base = 0.05
+    variance = _offset_slip_variance_mps2(base, "two_term", PERSON_SIGMA_A_MPS2)
+    assert variance == pytest.approx(2 * base**2)
+
+
+def test_two_term_variance_reduces_toward_the_floor_when_steady() -> None:
+    from src.estimator.joint import _offset_slip_variance_mps2
+
+    base = 0.05
+    steady = _offset_slip_variance_mps2(base, "two_term", 0.01)
+    assert steady == pytest.approx(base**2, rel=0.05)
+
+
+def test_two_term_variance_exceeds_the_floor_during_a_sharp_stop() -> None:
+    from src.estimator.joint import _offset_slip_variance_mps2
+    from src.estimator.motion_model import PERSON_SIGMA_A_MPS2
+
+    base = 0.05
+    sharp_stop = _offset_slip_variance_mps2(base, "two_term", 4.0 * PERSON_SIGMA_A_MPS2)
+    floor_alone = base**2
+    assert sharp_stop > floor_alone
+    # Never LESS than either single-term model would give alone at the
+    # same acceleration -- the whole point of adding rather than choosing.
+    from src.estimator.joint import _effective_offset_slip_sigma
+
+    accel_only = (
+        _effective_offset_slip_sigma(
+            base, "acceleration_scaled", 4.0 * PERSON_SIGMA_A_MPS2
+        )
+        ** 2
+    )
+    assert sharp_stop > floor_alone
+    assert sharp_stop > accel_only
+
+
+def test_two_term_model_never_produces_less_variance_than_the_floor() -> None:
+    """The two-term model's whole physical point: unlike acceleration_scaled
+    alone, it never collapses below the constant model's own floor,
+    regardless of estimated acceleration."""
+    from src.estimator.joint import _offset_slip_variance_mps2
+
+    base = 0.05
+    floor_alone = base**2
+    for accel in (0.0, 0.001, 0.5, 1.5, 3.0, 10.0):
+        assert _offset_slip_variance_mps2(base, "two_term", accel) >= floor_alone
+
+
+def test_two_term_model_runs_end_to_end_and_stays_positive_definite() -> None:
+    component = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    walk = _walking_track(6, step_m=0.5, dt_s=1.0 / 12.0)
+    stop = [
+        _obs(
+            x_m=walk[-1].measurement.x_m,  # type: ignore[union-attr]
+            y_m=0.0,
+            z_m=0.0,
+            ts_ns=walk[-1].ts_ns + (i + 1) * int(SECOND_NS / 12),
+        )
+        for i in range(6)
+    ]
+    carrier_obs = walk + stop
+    carried_bootstrap = _obs(
+        x_m=carrier_obs[0].measurement.x_m + 0.3,  # type: ignore[union-attr]
+        y_m=0.0,
+        z_m=0.0,
+        ts_ns=BASE_TS,
+    )
+    joint_obs = [JointObservation("A", o) for o in carrier_obs]
+    joint_obs.append(JointObservation("laptop-7", carried_bootstrap))
+
+    graph = StateGraph()
+    run_joint_filter(
+        graph,
+        component,
+        joint_obs,
+        motion_model_for("person"),
+        measurement_model_for("cam-1"),
+        manifest_sha="m",
+        offset_slip_model="two_term",
+    )
+    query = StateQuery(
+        at_ts_ns=carrier_obs[-1].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev
+    )
+    estimate = resolve_joint_state(query, graph)
+    cov = estimate.cov_array()
+    eigenvalues = np.linalg.eigvalsh(cov)
+    assert np.all(
+        eigenvalues > 0
+    ), f"joint covariance not PD: eigenvalues={eigenvalues}"
+
+
+def test_two_term_model_actually_differs_from_constant_during_real_deceleration() -> (
+    None
+):
+    """Regression guard for a real Day 28 bug: the causal acceleration
+    estimate was only ever computed when ``offset_slip_model ==
+    "acceleration_scaled"`` -- "two_term" silently ran with
+    ``carrier_acceleration_mps2=None`` at every step and collapsed to
+    bit-identical output with "constant" for an entire evaluation run
+    before this was caught. A track with a real, abrupt deceleration
+    must produce a LARGER carrier-offset covariance under "two_term"
+    than under "constant" at the step right after the stop -- if it does
+    not, the acceleration term is not being fed at all."""
+    component = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    walk = _walking_track(6, step_m=0.5, dt_s=1.0 / 12.0)
+    stop = [
+        _obs(
+            x_m=walk[-1].measurement.x_m,  # type: ignore[union-attr]
+            y_m=0.0,
+            z_m=0.0,
+            ts_ns=walk[-1].ts_ns + (i + 1) * int(SECOND_NS / 12),
+        )
+        for i in range(4)
+    ]
+    carrier_obs = walk + stop
+    carried_bootstrap = _obs(
+        x_m=carrier_obs[0].measurement.x_m + 0.3,  # type: ignore[union-attr]
+        y_m=0.0,
+        z_m=0.0,
+        ts_ns=BASE_TS,
+    )
+    joint_obs = [JointObservation("A", o) for o in carrier_obs]
+    joint_obs.append(JointObservation("laptop-7", carried_bootstrap))
+
+    def _final_offset_variance(offset_slip_model: str) -> float:
+        graph = StateGraph()
+        run_joint_filter(
+            graph,
+            component,
+            joint_obs,
+            motion_model_for("person"),
+            measurement_model_for("cam-1"),
+            manifest_sha="m",
+            offset_slip_model=offset_slip_model,  # type: ignore[arg-type]
+        )
+        query = StateQuery(
+            at_ts_ns=carrier_obs[-1].ts_ns, horizon_ns=0, graph_rev=graph.graph_rev
+        )
+        estimate = resolve_joint_state(query, graph)
+        assert isinstance(estimate, JointStateEstimate)
+        offset_slice = component.offset_slice("laptop-7")
+        return float(estimate.cov_array()[offset_slice, offset_slice].trace())
+
+    constant_variance = _final_offset_variance("constant")
+    two_term_variance = _final_offset_variance("two_term")
+    assert two_term_variance > constant_variance, (
+        f"two_term ({two_term_variance}) did not exceed constant "
+        f"({constant_variance}) after a real stop -- the acceleration "
+        "term is not being fed"
+    )

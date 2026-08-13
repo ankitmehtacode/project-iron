@@ -142,13 +142,15 @@ This is the CONSTANT slip model's value -- see :data:`OffsetSlipModel`
 for the Day 27 alternative that scales this baseline by relative
 acceleration instead of applying it uniformly."""
 
-OffsetSlipModel = Literal["constant", "acceleration_scaled"]
-"""Day 27, Objective 1: which physical model governs the offset's process
-noise. ``"constant"`` (Day 26's original) applies
-:data:`OFFSET_SLIP_SIGMA_MPS_SQRT_S` uniformly at every step, regardless
-of what the carrier is doing. ``"acceleration_scaled"`` is the
-physically-derived alternative -- a grip slips when motion CHANGES, not
-when it is steady, so the effective slip sigma at a step is
+OffsetSlipModel = Literal["constant", "acceleration_scaled", "two_term"]
+"""Which physical model governs the offset's process noise.
+
+``"constant"`` (Day 26) applies :data:`OFFSET_SLIP_SIGMA_MPS_SQRT_S`
+uniformly at every step, regardless of what the carrier is doing.
+
+``"acceleration_scaled"`` (Day 27) is the physically-derived
+alternative -- a grip slips when motion CHANGES, not when it is steady,
+so the effective slip sigma at a step is
 :data:`OFFSET_SLIP_SIGMA_MPS_SQRT_S` scaled by the carrier's own
 estimated acceleration relative to :data:`~src.estimator.motion_model.
 PERSON_SIGMA_A_MPS2` (this module's already-declared pedestrian
@@ -156,26 +158,95 @@ acceleration bound, reused rather than a new fitted reference):
 
     effective_sigma = OFFSET_SLIP_SIGMA_MPS_SQRT_S * (|a_hat| / PERSON_SIGMA_A_MPS2)
 
-At the nominal acceleration bound, effective_sigma equals the declared
-baseline; well below it (steady walking), slip noise shrinks toward the
-Q regularization floor; above it (a sharp stop), slip noise grows. Carrier
-acceleration is estimated causally from the two most recent carrier
-velocity states already in the factor chain (no new state dimension) --
-see :func:`run_joint_filter`'s own loop for where it is computed, one
-step behind the predict it informs (the acceleration during step k-1→k
-sets the slip noise for step k→k+1), since acceleration during the
-CURRENT step cannot be known before its own update completes."""
+Measured (Day 27): fixes the carrier's cessation-regime overconfidence
+(unjustified information gain +19.3% -> +0.9%) but the effective sigma
+collapses toward the Q-regularization floor whenever estimated
+acceleration is near zero -- most of a walking track -- which also
+collapses the Kalman gain the filter needs to keep averaging in new
+asset observations, destroying the asset's own RMSE margin over
+independent filtering (+0.0425m -> -0.0051m on v5-cessation).
+
+``"two_term"`` (Day 28) is ``"constant"`` PLUS ``"acceleration_scaled"``,
+combined as VARIANCES (the physically correct combination for two
+independent noise sources -- their variances add; their sigmas do not):
+
+    offset_variance = OFFSET_SLIP_SIGMA_MPS_SQRT_S^2
+                     + (OFFSET_SLIP_SIGMA_MPS_SQRT_S * |a_hat|/PERSON_SIGMA_A_MPS2)^2
+
+Physical reading: the constant term is baseline grip compliance under
+STEADY carry (a held object is never perfectly rigid even when nothing
+is accelerating -- the same physical fact Day 26's constant model was
+already built on). The acceleration term is slip specifically INDUCED
+by a change in motion (Day 27's own physical reading, unchanged). Both
+terms use the SAME already-declared baseline
+(:data:`OFFSET_SLIP_SIGMA_MPS_SQRT_S`) and the SAME already-declared
+acceleration reference (:data:`~src.estimator.motion_model.PERSON_SIGMA_A_MPS2`)
+-- no new, separately-tuned ratio between the two terms was introduced
+to combine them. The ratio between what each term contributes at any
+given moment is therefore not a free parameter: it falls out entirely
+from the instantaneous acceleration ratio |a_hat|/PERSON_SIGMA_A_MPS2
+already established Day 27, which is exactly 1 (the two terms
+contribute equally) at the nominal acceleration bound, below 1 during
+steady motion (floor term dominates -- Day 26's regime, where the
+asset's benefit was measured), and above 1 during a sharp transient
+(acceleration term dominates -- Day 27's regime, where the carrier's
+overconfidence was measured). See ADR 0011's "Day 28" section for
+whether this recovers both Day 26's asset margin and Day 27's carrier
+calibration fix simultaneously, measured, not assumed from the
+derivation being clean.
+
+Carrier acceleration is estimated causally from the two most recent
+carrier velocity states already in the factor chain (no new state
+dimension) -- see :func:`run_joint_filter`'s own loop for where it is
+computed, one step behind the predict it informs (the acceleration
+during step k-1->k sets the slip noise for step k->k+1), since
+acceleration during the CURRENT step cannot be known before its own
+update completes."""
 
 
 def _effective_offset_slip_sigma(
     base_slip_sigma_mps_sqrt_s: float,
-    offset_slip_model: OffsetSlipModel,
+    offset_slip_model: Literal["constant", "acceleration_scaled"],
     carrier_acceleration_mps2: float | None,
 ) -> float:
+    """Day 26/27's original single-term dispatch, unchanged -- reused by
+    :func:`_offset_slip_variance_mps2` for both of its non-two-term cases
+    and directly by "two_term"'s acceleration component, so neither
+    existing model's numeric behavior can silently drift when a third
+    model is added alongside them."""
     if offset_slip_model == "constant" or carrier_acceleration_mps2 is None:
         return base_slip_sigma_mps_sqrt_s
     ratio = carrier_acceleration_mps2 / PERSON_SIGMA_A_MPS2
     return base_slip_sigma_mps_sqrt_s * ratio
+
+
+def _offset_slip_variance_mps2(
+    base_slip_sigma_mps_sqrt_s: float,
+    offset_slip_model: OffsetSlipModel,
+    carrier_acceleration_mps2: float | None,
+) -> float:
+    """The offset's process-noise VARIANCE for one predict step (before
+    multiplying by ``dt_s`` -- see :func:`_joint_process_noise`). Variance
+    is the unit two independent noise sources combine at ("two_term");
+    sigma is not."""
+    if offset_slip_model != "two_term":
+        sigma = _effective_offset_slip_sigma(
+            base_slip_sigma_mps_sqrt_s, offset_slip_model, carrier_acceleration_mps2
+        )
+        return sigma**2
+    floor_variance = base_slip_sigma_mps_sqrt_s**2
+    if carrier_acceleration_mps2 is None:
+        # No acceleration estimate yet (first post-bootstrap step) --
+        # nothing to add a transient term FOR, so this is the floor alone,
+        # not a second copy of it (see acceleration_scaled's own
+        # None-handling for why that mode instead falls back to the
+        # baseline itself: the two models answer a different question
+        # when the estimate is unavailable).
+        return floor_variance
+    acceleration_sigma = _effective_offset_slip_sigma(
+        base_slip_sigma_mps_sqrt_s, "acceleration_scaled", carrier_acceleration_mps2
+    )
+    return floor_variance + acceleration_sigma**2
 
 
 _JOINT_Q_REGULARIZATION = 1e-6
@@ -512,10 +583,10 @@ def _joint_process_noise(
     dim = component.state_dim
     Q = np.zeros((dim, dim), dtype=np.float64)
     Q[:STATE_DIM, :STATE_DIM] = carrier_motion_model.Q(dt_s)
-    effective_slip_sigma = _effective_offset_slip_sigma(
+    offset_variance = _offset_slip_variance_mps2(
         offset_slip_sigma_mps_sqrt_s, offset_slip_model, carrier_acceleration_mps2
     )
-    slip_var = (effective_slip_sigma**2) * dt_s
+    slip_var = offset_variance * dt_s
     for i in range(len(component.carried_entity_ids)):
         start = STATE_DIM + OFFSET_DIM * i
         Q[start : start + OFFSET_DIM, start : start + OFFSET_DIM] = slip_var * np.eye(
@@ -714,8 +785,9 @@ def run_joint_filter(
         offset_slip_model: See :data:`OffsetSlipModel`. Default
             ``"constant"`` preserves Day 26's exact behaviour;
             ``"acceleration_scaled"`` is the Day 27 physically-derived
-            alternative. Ignored for a size-1 component (no offset exists
-            to apply either model to).
+            alternative; ``"two_term"`` is Day 28's, adding the two
+            rather than choosing between them. Ignored for a size-1
+            component (no offset exists to apply any of them to).
         sensor_origin_m: Same meaning as ``run_single_entity_filter``'s.
         cap_config: See :data:`DEFAULT_COMPONENT_CAP_CONFIG`. When
             ``component.size`` exceeds ``cap_config.max_component_size``,
@@ -871,7 +943,7 @@ def run_joint_filter(
                 f"{previous.estimate.ts_ns} and {ts}"
             )
         carrier_acceleration_mps2: float | None = None
-        if offset_slip_model == "acceleration_scaled":
+        if offset_slip_model in ("acceleration_scaled", "two_term"):
             carrier_acceleration_mps2 = float(
                 np.linalg.norm(
                     previous.estimate.carrier_velocity_mps() - prior_carrier_velocity

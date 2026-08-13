@@ -550,7 +550,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--root", default=None)
     parser.add_argument(
         "--offset-slip-model",
-        choices=["constant", "acceleration_scaled"],
+        choices=["constant", "acceleration_scaled", "two_term"],
         default="constant",
     )
     args = parser.parse_args(argv)
