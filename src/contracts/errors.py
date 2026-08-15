@@ -36,6 +36,22 @@ class GeometryMismatch(ContractError):
     """
 
 
+class AxisConventionMismatch(ContractError):
+    """Raised when two ground-truth arrays declare different axis orders.
+
+    The motivating defect (Day 29): ``agent_xyz`` is ``[x, y_up, z_depth]``,
+    ``src/model/world.py``'s world frame is ``[x, y, z_up]``, and a
+    measuring script read index 2 as vertical while citing the latter. It
+    reported 16 impossible-fall violations at 3.7x free fall — the agent's
+    DEPTH motion, relabelled as height. Nothing raised, because a bare
+    ``ndarray`` makes no statement about which convention it is in.
+
+    Distinct from :class:`GeometryMismatch`, which is about pixel rasters:
+    this one is about the ordering of metric world axes, and a caller that
+    wants to catch one almost never wants to catch the other.
+    """
+
+
 class UncalibratedIntrinsics(ContractError):
     """Raised when placeholder intrinsics are used to produce 3D geometry.
 

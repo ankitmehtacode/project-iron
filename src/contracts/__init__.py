@@ -16,6 +16,7 @@ Envelope             Carries                               Bug it makes impossib
 ``PatchTokens``      span (with tubelet), grid, encoder    temporal off-by-2
 ``Intrinsics``       fx, fy, cx, cy, distortion, valid_for stale focal after resize
 ``AffineTransform``  stage space to canonical space        letterbox / stretch drift
+``GtPositionTrack``  axis convention, units (by type)      depth axis read as vertical
 ===================  ====================================  ==========================
 
 Consumers raise, they never coerce. :func:`unproject` rejects non-metric depth
@@ -27,24 +28,44 @@ half-integer coordinates; see :mod:`src.contracts.frames` for why that
 convention was chosen and what it buys.
 """
 
-from src.contracts.errors import ContractError, GeometryMismatch, UnitsError
+from src.contracts.errors import (
+    AxisConventionMismatch,
+    ContractError,
+    GeometryMismatch,
+    UnitsError,
+)
 from src.contracts.fields import ALL_UNITS, METRIC_UNITS, DepthField, Units
 from src.contracts.frames import AffineTransform, FrameGeometry, Intrinsics
 from src.contracts.geometry import unproject
+from src.contracts.ground_truth import (
+    GENERATOR_AXES,
+    GroundTruthAxes,
+    GtAccelerationTrack,
+    GtPositionTrack,
+    GtVelocityTrack,
+    gt_position_track,
+)
 from src.contracts.tokens import PatchTokens, TemporalSpan
 
 __all__ = [
     "ALL_UNITS",
+    "GENERATOR_AXES",
     "METRIC_UNITS",
     "AffineTransform",
+    "AxisConventionMismatch",
     "ContractError",
     "DepthField",
     "FrameGeometry",
     "GeometryMismatch",
+    "GroundTruthAxes",
+    "GtAccelerationTrack",
+    "GtPositionTrack",
+    "GtVelocityTrack",
     "Intrinsics",
     "PatchTokens",
     "TemporalSpan",
     "Units",
     "UnitsError",
+    "gt_position_track",
     "unproject",
 ]

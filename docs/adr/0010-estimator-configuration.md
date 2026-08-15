@@ -1,6 +1,15 @@
 # ADR 0010 — Estimator configuration: config B (velocity covariance floor) now adopted
 
-- **Status:** Accepted; revised 2026-08-11 (Day 23); revised again
+- **Status:** Accepted, **with the cessation evidence marked PROVISIONAL
+  2026-08-16 (Day 30)** — every cessation number in this ADR was measured
+  on v5-cessation, whose stop events are physically impossible (median
+  peak GT deceleration 15.13 m/s² = 1.54g across its 22 stop events, max
+  36.58 m/s² = 3.7g; 63.6% of events above 1g, where a world-class
+  sprinter peaks near 1g). The config A→B adoption rests on cessation
+  behaviour, so it rests on that data. **No prior text is edited or
+  retracted** — see "Day 30 revision (Objective 1)" at the end for what
+  is provisional, what is not, and what re-measurement would settle it.
+  Prior status line, unchanged: Accepted; revised 2026-08-11 (Day 23); revised again
   2026-08-11 (Day 24); revised again 2026-08-12 (Day 25) — the adopted
   configuration CHANGES, from A to B. **Revised again 2026-08-13 (Day
   26) — the A→B flip's provenance is settled with numbers: config B now
@@ -1008,3 +1017,114 @@ the regime the whole investigation exists to fix — adopted because the
 criterion that judges the tradeoff was redesigned first, on its own
 merits, and then applied to a config that turned out, independently, to
 have actually changed underneath it.
+
+## Day 30 revision (Objective 1) — the cessation evidence is measured on impossible motion, and is marked PROVISIONAL
+
+**Nothing above is edited. This section states which of it survives.**
+
+### The measurement
+
+`scripts/measure_gt_acceleration_distribution.py` reports GT acceleration
+magnitude per regime, using the same `classify_track` partition every
+per-regime number in this ADR was computed against. On v5-cessation
+(1021 frames with a defined acceleration, 19 tracks, 22 stop events):
+
+| regime | n | p50 | p95 | max | frames >1g |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| static | 260 | 0.000 | 0.000 | 0.000 | 0 (0.00%) |
+| onset | 91 | 0.000 | 1.593 | 20.259 | 2 (2.20%) |
+| sustained | 282 | 0.000 | 0.000 | 5.976 | 0 (0.00%) |
+| cessation | 373 | 0.000 | **15.281** | **36.581** | 26 (6.97%) |
+| maneuver (exempt) | 15 | 9.566 | 24.255 | 27.854 | 7 (46.67%) |
+
+All values m/s². 1g = 9.80665 m/s².
+
+**The gating question, answered: yes, they concentrate in cessation.**
+74.3% of every >1g frame in the set (26/35) is cessation-regime, and
+cessation is the only populated regime whose p95 is itself above 1g.
+
+The frame fraction understates it, because a cessation regime is mostly a
+recovery tail sitting at exactly zero acceleration while the transient
+itself is one or two frames. Counted by EVENT instead: **14 of the set's
+22 moving-to-static transitions (63.6%) peak above 1g, with a median peak
+of 15.13 m/s² — 1.54g.** The median stop event in the set built to
+measure stopping is not a stop; it is a collision.
+
+Split by the set's own authored deceleration profile
+(`PathSegment.ease_out`), which is the parameter that was supposed to make
+half of them gradual:
+
+| profile | events | peak range (m/s²) | above 1g |
+| --- | ---: | --- | ---: |
+| abrupt (`ease_out=False`) | 12 | 11.74 – 36.58 | **12/12** |
+| gradual (`ease_out=True`) | 10 | 3.89 – 27.62 | 2/10 |
+
+Every abrupt stop is impossible, which is by construction — an
+`ease_out=False` leg ends at constant velocity and the next leg is a
+zero-length pause, so the velocity step is the full approach speed in one
+frame. The gradual ones are impossible only when fast
+(`radial_fast_far_gradual` 27.62, `lateral_fast_near_gradual` 22.20),
+because the quadratic ease-out's derivative is `2(1 - tail_t)`: it *jumps
+speed to 2x* at the tail's start and then has one `ease_fraction` (0.3 of
+a 1.2s leg ≈ 0.36s) to shed all of it. "Gradual" was never a physiological
+profile; it was a smoothing of the second half of a discontinuity.
+
+v3-indoor, for contrast: max GT acceleration 0.0001 m/s² over 2736 frames
+— exactly constant-velocity to float32 storage precision, zero stop
+events, zero cessation frames. The two golden sets bracket reality
+without containing it.
+
+### What this does and does not invalidate
+
+**Provisional (measured on motion no body can produce):**
+
+- Day 21's founding NEES ~815 diagnosis, and Day 23's re-measurement of
+  it at n=373. The filter's covariance was responding to a velocity
+  discontinuity — `PathSegment(ease_out=False)` is an *instantaneous* stop
+  by construction, and even `ease_out=True`'s quadratic ramp doubles speed
+  instantaneously at the tail's start. A filter is overconfident against a
+  teleport-to-zero by definition, and no calibration is achievable against
+  one, so "config A is overconfident at cessation" was never a falsifiable
+  claim on this data.
+- Every `cessation` row of every four-way table above, on v5-cessation and
+  on v4.1-gate alike (v4.1-gate's `brief_entry` stops are built by the same
+  mechanism).
+- The A→B adoption's *load-bearing* evidence: cessation coverage
+  0.5013→0.9946 (v5-cessation) and 0.1282→1.0000 (v4.1-gate).
+
+**Not provisional:**
+
+- **IMM's rejection.** C/D hit `FAIL_OVERCONFIDENT` on `static`
+  (0.9962→0.0808 on v5-cessation, 0.9928→0.5468 on v4.1-gate). `static`'s
+  GT acceleration is identically zero in this set — 0 frames above 1g, max
+  0.000 m/s² — so IMM's static regression is measured on motion that is
+  not merely physical but trivially so. Unaffected.
+- **The directional criterion itself** (Day 25 Objective 3). A scoring
+  rule is not a measurement.
+- **Day 26's finding that A and B produce different point estimates.**
+  That is a Kalman-gain fact about the two configurations, visible in
+  `static` and `sustained` RMSE (+39.2%, +28.4%) as much as in cessation.
+- **Day 29's slip NO.** Explicitly survives *a fortiori*: larger true
+  acceleration means higher SNR, so a model that failed on the easier
+  signal fails harder on the real one. That protection is directional and
+  does **not** extend to the cessation diagnosis, which is why this
+  section exists.
+
+### The adoption is NOT retracted here
+
+Config B remains adopted as of this revision. Contaminated evidence is not
+disproof, and retracting a decision on the strength of "the data was
+wrong" without measuring the alternative would substitute one
+unsupported conclusion for another. Two things settle it, both scoped to
+Day 30 and reported in `FOUNDATION_REPORT.md` §Day-30:
+
+1. **Re-measurement on physical motion** — v6-motion, generated under
+   physiological acceleration bounds (Objective 2), with the four-way
+   evaluation re-run against it (Objective 3).
+2. **A test of config B on its own terms** — whether its velocity
+   uncertainty is a floor that binds on every frame, in which case B
+   satisfies a calibration criterion by refusing to become confident
+   rather than by estimating better (Objective 3).
+
+Whichever way those land, this ADR's cessation evidence is
+provisional until they are in.
