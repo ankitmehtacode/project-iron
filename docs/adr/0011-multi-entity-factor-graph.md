@@ -734,3 +734,300 @@ under the "must resolve, not merely improve" pressure of this
 objective's own acceptance criterion is exactly the condition under
 which a fitted-looking number stops being distinguishable from a
 derived one. Recorded for Day 29, not attempted same-session.
+
+## Day 29 — the slip question closed: NO, at this frame rate and sensor quality
+
+**Framing.** Day 28's root cause was not that the two-term model's physics
+was wrong — it was that the physical bound (`PERSON_SIGMA_A_MPS2`, a bound
+on plausible TRUE human acceleration) was being compared against a
+quantity that had never been characterized as a NOISE SOURCE in its own
+right: the causal, finite-difference acceleration estimate `|a_hat|`. The
+general rule this closes with (also added to
+`.claude/skills/iron-eval-discipline/SKILL.md`, Day 29): **before deriving
+a model from a measured quantity, characterize that quantity's noise floor
+against the scale the model depends on.** This is the fourth attempt at
+slip (Day 26 constant, Day 27 acceleration-scaled, Day 28 two-term, Day 29
+closing measurement) and Objective 2 existed to close the question, not
+open a fifth.
+
+### Objective 1 — the noise floor, measured over the full population
+
+`scripts/measure_acceleration_noise_floor.py`. Day 28's finding (`|a_hat|`
+2-7x `PERSON_SIGMA_A_MPS2` on a five-point spot check of one v5-cessation
+track) is confirmed and sharpened over every scored frame of both golden
+sets, at the one frame rate either set carries (12fps — no other frame
+rate exists in this project's data; reported as a bounded null, not
+extrapolated):
+
+| set | steady-regime noise floor (std) | SNR vs `PERSON_SIGMA_A_MPS2` (1.5 m/s²) |
+| --- | ---: | ---: |
+| v5-cessation | 6.8607 m/s² | 0.2186 |
+| v3-indoor | 7.3290 m/s² | 0.2047 |
+
+Per-regime SNR, using each regime's OWN mean GT `\|accel\|` as the signal
+(not a pooled median across onset/cessation/maneuver — an early version of
+this measurement used a pooled median and it washed out to ~0.0, because
+"cessation" per Day 23's own redefinition mixes genuine anticipatory
+deceleration with post-stop recovery frames whose GT acceleration is
+already back near zero; caught by inspecting the divergence between that
+number and the per-regime means, not trusted on first read):
+
+| regime | v5-cessation SNR | v3-indoor SNR |
+| --- | ---: | ---: |
+| onset | 0.0739 | 0.0000 |
+| cessation | 0.3506 | (n=0 — v3-indoor carries no cessation frames) |
+| maneuver | **1.9421** | (n=0) |
+
+Only `maneuver` — sharp heading/speed jumps, `MANEUVER_SPEED_THRESHOLD_MPS_PER_FRAME`'s
+own ~6 m/s² definition — clears SNR=1. `onset` and `cessation`, the
+regimes this entire investigation exists to fix, do not, by a wide margin.
+
+**Attribution, instrumented (three configs, identical observation draws):**
+
+| config | steady-regime noise floor (std), v5-cessation / v3-indoor |
+| --- | --- |
+| baseline (real Q, real R) | 6.8607 / 7.3290 m/s² |
+| `q_near_zero` (process noise ≈ 0) | 6.8439 / 7.3117 m/s² — **unchanged** |
+| `r_near_zero` (measurement noise ≈ 0) | 0.7423 / 0.0211 m/s² — **9x/300x collapse** |
+
+The noise floor is almost entirely MEASUREMENT noise propagated through
+the filter, not process-noise inflation. This is what Objective 2's
+candidate selection rests on.
+
+**Closed-form cross-check, per the closed-form-vs-instrumented rule** (report
+both, note divergence): the naive independent-sample formula
+(`sqrt(2 * mean(Var(v)) / dt²)`) predicts 34.99 / 36.96 m/s² — roughly 5x
+the instrumented number. The naive formula assumes consecutive filtered
+velocity estimates are independent; they are not (a Kalman filter smooths
+velocity across updates, so `v[t-1]` and `v[t-2]` are strongly positively
+correlated, and their difference has far lower variance than independence
+would predict). Reported as its own instance of this project's
+closed-form-vs-instrumented finding family — the closed form was not
+wrong about its own formula, it was wrong about what physical assumption
+the formula silently required.
+
+### Objective 2 — Candidate B tested, prediction confirmed, verdict NO
+
+Given the R-dominated attribution, Candidate A (a Kalman-filtered,
+model-based acceleration state) and Candidate B (an explicit windowed
+average of the existing causal `a_hat` sequence) are, physically, the same
+remedy: more temporal averaging to suppress measurement-noise-driven
+error. A Kalman smoother's advantage over a boxcar average is a better
+small-N constant and adaptive weighting, not a different asymptotic
+noise-vs-window-length scaling once R dominates. **Only Candidate B was
+tested** — it needs no state-model change (no new motion-model kind, no
+touching `STATE_DIM=6` anywhere `src/estimator/joint.py`/`filter.py`
+assume it), and its lag cost is directly, transparently measurable as a
+window length. If B's lag cost disqualifies it against this project's own
+already-declared `PEDESTRIAN_STOP_DURATION_S` bound, Candidate A would
+need to beat the same underlying averaging physics to do meaningfully
+better, which the ablation gives no reason to expect — so B's result
+closes the question for both, consistent with today's own discipline
+against a fifth attempt.
+
+**Prediction, stated before running** (`scripts/measure_slip_remedy_smoothing.py`):
+naive `1/sqrt(K)` noise scaling from Objective 1's pooled noise floor
+predicts `SNR>=1` needs `K ≈ (7.1/1.5)² ≈ 22` frames (~1.83s at 12fps),
+~1.83x `PEDESTRIAN_STOP_DURATION_S` (1.0s) — predicted, before running, to
+be self-defeating for cessation: a slip model reacting ~1.8s after a stop
+would still be averaging in pre-stop motion for most of the stop's own
+~1s settling window.
+
+**Measured** (causal boxcar average of the already-causal `a_hat`
+sequence, Fibonacci-spaced window sweep):
+
+| K (frames) | lag (s) | v5-cessation SNR | v3-indoor SNR |
+| ---: | ---: | ---: | ---: |
+| 1 | 0.083 | 0.2186 | 0.2047 |
+| 3 | 0.250 | 0.4405 | 0.3918 |
+| 8 | 0.667 | 0.4116 | 0.4702 |
+| 13 | 1.083 | 0.6042 | 0.6448 |
+| 21 | 1.750 | 0.8620 | 0.8468 |
+| 34 | 2.833 | **1.4557** | **1.0544** |
+
+SNR crosses 1.0 between K=21 and K=34 on both sets — roughly K≈25-30
+frames, ~2.1-2.5s — close to, and if anything worse than, the
+pre-registered prediction of ~1.83s. Even under the most charitable
+reading (using cessation's own higher mean GT acceleration, 2.4057 m/s²
+on v5-cessation, instead of the generic `PERSON_SIGMA_A_MPS2` reference),
+crossing SNR=1 lands around K≈13-14 frames (~1.1-1.2s) — still at or just
+past `PEDESTRIAN_STOP_DURATION_S`, not comfortably inside it. **The
+prediction holds under every reading tried:** the lag needed to suppress
+this estimator's noise floor to the scale the slip model needs is
+comparable to or longer than the physical duration of the cessation event
+itself.
+
+### Verdict
+
+**NO — acceleration-conditioned slip is not achievable at this frame rate
+(12fps) and this sensor quality (this project's illustrative,
+unmeasured-but-declared measurement envelope) with any remedy tested:
+the causal acceleration estimate's noise floor is measurement-noise-
+dominated, and the smoothing window needed to suppress it below the scale
+the slip model depends on introduces a lag comparable to or exceeding the
+~1s duration of the cessation event the model exists to react to.** This
+retires a question that has consumed four days (Day 26-29). It is a good
+outcome per this project's own stated framing: a negative answer with
+evidence closes an open problem and lets the carrier/asset trade below be
+made as a stated engineering decision with quantified cost, rather than
+staying an unresolved question blocking `offset_slip_model`'s default.
+
+`offset_slip_model` stays `"constant"` by default (unchanged since Day
+26); `"acceleration_scaled"` and `"two_term"` remain available as explicit
+opt-ins, each carrying its own day's measured trade, and no fourth
+acceleration-conditioned variant will be derived against this same noise
+floor — the floor itself, not any one derivation, is now the documented
+reason.
+
+### The carrier/asset trade, restated as a decision, not an open problem
+
+With acceleration-conditioned slip closed, Day 26-27's original finding
+stands as the production choice to make explicitly: joint estimation with
+`"constant"` slip measurably helps the carried asset (RMSE margin
++0.0425m/+0.0265m, Day 26 Objective 4) at a measurable calibration cost to
+the carrier specifically in the cessation regime (coverage 0.9089→0.8874,
+`FAIL_OVERCONFIDENT`, Day 26). Two production postures are available,
+and this project has not yet chosen between them:
+
+- **Carrier calibration protects evidence integrity.** Ship joint
+  estimation only where the carrier's own posterior calibration is not
+  degraded (e.g. gated off in cessation-heavy scenes, or off by default
+  with `offset_slip_model` opt-in), accepting that the carried-asset
+  accuracy benefit is foregone in exactly the regime — cessation, a
+  handoff or set-down moment — where a carried asset's position often
+  matters most.
+- **Asset accuracy protects the coupling's motivating case.** Ship joint
+  estimation by default, accepting the carrier's measured cessation-regime
+  overconfidence as a stated, bounded cost, on the grounds that the
+  carried asset's own accuracy is coupling's entire reason to exist.
+
+Both sides are now fully measured (Day 26 Objective 4, Day 27 Objective 1,
+this section). **Which side to ship is a product decision, not an
+engineering one, and should be made explicitly by whoever owns that
+tradeoff — not left to whichever default this ADR happens to already
+carry.** Recorded here as the punch-list item Day 26 originally deferred
+("capability validated, not yet a production recommendation") now that the
+one open technical question blocking that decision (could acceleration-
+conditioning avoid the trade entirely) has a measured NO.
+
+### Objective 3 — the seven stubbed predicates, filled
+
+Day 28 typed seven constraints and left every predicate raising
+`NotImplementedError`. All seven now run. Status, by name:
+
+| constraint | kind | status |
+| --- | --- | --- |
+| `one_body_one_place` | hard | implemented Day 28 |
+| `max_pedestrian_velocity` | hard | **implemented** — `speed <= PEDESTRIAN_MAX_SPEED_MPS` (12.5 m/s) |
+| `mass_conservation` | hard | **implemented** — gap displacement reachable at that bound |
+| `gravity_floor_transition` | hard | **implemented** — `a_z >= -g`, free-fall bound |
+| `wall_impermeability` | twin_dependent | **`Unevaluable("no twin geometry")`** |
+| `portal_required` | twin_dependent | **`Unevaluable("no twin geometry")`** |
+| `stair_or_lift_for_floor_change` | twin_dependent | **`Unevaluable("no twin geometry")`** |
+| `visibility_and_accessibility` | twin_dependent | **`Unevaluable("no twin geometry")`** |
+
+**The third outcome, enforced by type.** `evaluate_constraint` no longer
+returns `None`. Its outcome set is closed and three-valued per kind —
+`Satisfied | Unevaluable | HardConstraintViolation` and
+`Satisfied | Unevaluable | TwinRevisionHypothesis` — and the pruning path
+still accepts only `HardConstraintViolation`. Removing `None` rather than
+adding `Unevaluable` beside it is the substance of the fix: a caller
+writing `if evaluate_constraint(...) is None` would have classified
+`Unevaluable` as a violation, and `is not None` would have classified it
+as one too; one of the two readings is wrong whichever way the caller
+guesses, and neither looks wrong at the call site. With `None` gone there
+is no `is None` idiom left to get backwards. `check_hard_constraints`
+returns a `HardConstraintCheck` carrying the unevaluable set explicitly,
+so "nothing objected" is no longer readable as "everything passed"; its
+`match` is exhaustive, verified by removing a case and confirming `mypy`
+errors, so a fourth outcome type cannot be silently skipped later.
+
+**Two of Day 28's three "hard" constraints were described in
+twin-dependent terms.** `gravity_floor_transition` was described as
+requiring a "modeled transition (stairs, lift, ramp)" — word for word the
+claim `stair_or_lift_for_floor_change` already makes as a *twin-dependent*
+constraint; one physical claim filed under both kinds.
+`mass_conservation` was described via "a modeled portal or occlusion
+boundary" — also twin geometry. Both keep their names and both are
+genuinely hard once reduced to their twin-free core (free-fall bound;
+reachability bound), with the twin-dependent halves left where they
+already were. The general tell: a hard constraint whose description names
+the twin is mis-typed.
+
+**A new constant was needed, and why that is a finding.** The objective
+asked for thresholds cited from the pedestrian bounds the motion model
+already declares. None could serve: **every pedestrian constant this
+project declared before today is TYPICAL-scale, and a hard constraint
+needs an IMPOSSIBILITY-scale bound.** `PERSON_SIGMA_A_MPS2` is a Gaussian
+process-noise density — in the model it parameterizes, acceleration is
+unbounded, so it bounds nothing — and `PERSON_SIGMA_A_MPS2 *
+PEDESTRIAN_STOP_DURATION_S` = 1.5 m/s is, by its own docstring, a
+comfortable walking pace. Used as a hard max-speed threshold it would
+irreversibly prune anyone jogging. `PEDESTRIAN_MAX_SPEED_MPS = 12.5` is
+declared instead, cited to human physiology (~12.4 m/s peak sprint), with
+the reasoning recorded at the constant. A hard constraint's job is to be
+never-wrong, not tight; it sits on an irreversible path, so its error
+budget is one-sided, and discriminating power at the typical scale
+belongs in the likelihood where being wrong is recoverable.
+
+**GT violation count: 0**, across 9,507 constraint evaluations on both
+golden sets (`scripts/measure_gt_constraint_violations.py`) — the result a
+correctly-derived hard-constraint set requires. Four qualifications, all
+measured rather than left as caveats, and each one a limit on how much
+that zero establishes:
+
+1. *The measurement does discriminate.* The rejected typical-scale
+   threshold (1.5 m/s) would violate on **46.0% of v5-cessation GT frames
+   (487/1059)** and 5.6% of v3-indoor. This corrects the reasoning that
+   first justified `PEDESTRIAN_MAX_SPEED_MPS`, which argued the
+   mis-derivation would *pass* the acceptance test because "the golden
+   sets' walkers move at ~0.5 m/s" — a figure taken from the Day-21 report
+   rather than measured against the sets as they stand. v5-cessation
+   postdates that report: mean GT speed 1.24 m/s, peak 7.74 m/s. Asserting
+   a property of the data from a stale document instead of measuring it is
+   this day's own subject matter, committed while documenting it.
+2. *`gravity_floor_transition` is untested by this data.* `agent_xyz`'s
+   vertical component is a constant 0.86 m in every golden track (the
+   generator places each agent at `height_m / 2.0` and never moves it
+   vertically), so GT vertical acceleration is identically zero. Its zero
+   is a bounded null, not a pass. `one_body_one_place` is likewise vacuous
+   on v5-cessation (single-agent clips, 0 pairs evaluated); it is
+   exercised on v3-indoor (2,680 pairs, closest approach 0.0185 m).
+3. *The generator does produce unphysical motion, in a quantity no
+   constraint bounds.* v5-cessation GT reaches **36.58 m/s² of horizontal
+   acceleration — 3.7g, 24x `PERSON_SIGMA_A_MPS2` — with 3.4% of frames
+   above 1g.** A human on foot cannot decelerate at 3.7g. Not fixed by
+   adding a fifth constraint today: the bound that would catch it needs
+   the same impossibility-vs-typical derivation above, and inventing it
+   inside an acceptance measurement is how a threshold gets fitted to the
+   data it is meant to judge. Day-30 item.
+4. *v3-indoor GT is exactly constant-velocity* — peak GT acceleration
+   0.00 m/s². Nothing in that set can test an acceleration-conditioned
+   model in either direction, which is the concrete reason its per-regime
+   SNR column above reads 0.0000 for `onset` and n=0 elsewhere.
+
+**These do not weaken Objective 2's NO — they strengthen it.** The slip
+verdict was measured against a GT whose cessation transients are *larger
+than physically possible* (up to 24x the declared human acceleration
+bound). A real pedestrian's cessation acceleration is smaller, so the true
+signal is smaller, so the real-world SNR is *lower* than the 0.35 measured
+for cessation. The question closes on a favorable-case measurement.
+
+The first run of the GT measurement reported 16 `gravity_floor_transition`
+violations at up to -36.58 m/s², 3.7x free fall. Every one was a defect in
+the measuring script, which read `agent_xyz` index 2 as vertical, citing
+`src/model/world.py`'s +z-up world frame — a real convention, just not the
+one that array is in. Index 1 is vertical; z is camera-facing depth, and
+an abrupt depth-axis speed change reads exactly like an impossible fall
+when the axis is mislabelled. Verified against the generator
+(`scripts/gen_synthetic_indoor.py:198`) rather than re-assumed. The
+nonzero count was the instrument, not the subject — again — which is why
+it was diagnosed rather than reported.
+
+Status: **Accepted** for the joint-estimation capability and the
+`offset_slip_model="constant"` default; the carrier/asset production
+posture above is a separate, still-open decision, not part of this
+acceptance. The constraint registry is **Accepted** for its four hard
+constraints and the typed `Unevaluable` outcome; the four twin-dependent
+constraints are **Blocked on twin geometry**, which is a real dependency
+with a named interface (`TwinGeometry`), not an unimplemented predicate.
