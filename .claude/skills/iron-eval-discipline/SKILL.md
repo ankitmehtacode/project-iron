@@ -263,6 +263,61 @@ treating "the formula says X" as equivalent to "the running system does X."
   components stay small") gets the same treatment before code is built on top of it: measure it
   against real or synthetic GT before treating it as a constraint the implementation may assume.
 
+## Noise Floor First — characterize the input before deriving a model from it
+
+**Before deriving a model from a measured quantity, characterize that quantity's noise floor
+against the scale the model depends on.** A physically correct model fed a signal whose noise
+exceeds its operating range fails in ways that look exactly like the model being wrong — so the
+failure gets attributed to the physics, a new model gets derived, and the cycle repeats against
+the same unmeasured input.
+
+This is a distinct failure from a wrong metric (Bounded Nulls) or an un-instrumented inference
+(Closed-Form vs Instrumented). Here the metric is right, the system IS instrumented, and the
+model's physics is sound. What was never checked is whether the *input* carries enough signal at
+the scale the model reads it at. The tell: a bound derived from the physical world is being
+compared, in code, against an ESTIMATE of that quantity — and only the bound was ever validated.
+
+Worked example (ADR 0011, Days 26-29 — the acceleration estimator). `offset_slip_model` needed
+carrier acceleration to scale a slip term. The comparison in code was
+`|a_hat| / PERSON_SIGMA_A_MPS2`: a causal, finite-differenced acceleration ESTIMATE over a
+declared bound on plausible TRUE human acceleration (1.5 m/s²). The bound was derived carefully
+and was never in question. `|a_hat|` was never characterized as a noise source at all.
+
+Three slip models were derived against that ratio and all three failed their acceptance criteria
+— Day 26's constant (kept as default only because the alternatives were worse), Day 27's
+acceleration-scaled, Day 28's two-term. Each failure was read as evidence about the slip physics,
+and each read produced the next model. Day 29 finally measured the input instead
+(`scripts/measure_acceleration_noise_floor.py`): `|a_hat|`'s steady-regime noise floor is
+6.86 / 7.33 m/s² on v5-cessation / v3-indoor — **SNR ≈ 0.21 and 0.20 against the very constant it
+is divided by.** The ratio driving all three models was roughly 5x noise. Only the `maneuver`
+regime (SNR 1.94) cleared 1.0; `onset` (0.07) and `cessation` (0.35) — the regimes the whole
+investigation existed to fix — were never resolvable, and no model derived from that ratio could
+have worked. Three days of derivation were spent on a physics question that a one-day measurement
+of the input would have closed first.
+
+**In practice:**
+
+- Name the scale before measuring: "this model reads X at the scale of S" (here: the slip term
+  reads `|a_hat|` at the scale of `PERSON_SIGMA_A_MPS2`). SNR = S / noise-floor(X). SNR < 1 means
+  the model cannot work, whatever its physics.
+- Measure the noise floor where the true signal is known to be ~zero (here: GT-labeled `static`
+  and `sustained` frames — any reading there is definitionally noise), and report it PER REGIME.
+  A pooled floor hides the case that matters; Day 29's `maneuver` cleared 1.0 while `onset` was
+  at 0.07, and only the per-regime split makes the model's actual failure mode legible.
+- Attribute the floor before shopping for remedies — an ablation over each candidate source
+  (process noise, measurement noise, differencing) says which remedies are even worth testing.
+  Day 29's ablation collapsed the floor 9x/300x under near-zero R and left it unchanged under
+  near-zero Q: measurement-noise dominated, which ruled out every process-noise remedy without
+  running one.
+- **State the SNR prediction before running the remedy.** A remedy that must raise SNR from 0.2 to
+  1.0 by averaging needs ~25x the samples; at 12fps that is a ~2s window, longer than the ~1s
+  event being tracked. Day 29 predicted that self-defeat in writing, then measured it (SNR crossed
+  1.0 between K=21 and K=34 frames), and the confirmed prediction is what made the NO trustworthy
+  enough to close the question rather than open a fifth attempt.
+- A negative verdict here is a *result*, not a failure: it retires the question and converts the
+  downstream tradeoff into a stated engineering decision with a quantified cost. Record it where
+  the next person will look before deriving model number five.
+
 ## Honesty Clauses
 
 - Report the metric that looks bad. Omitting an unfavorable bucket is falsification.
