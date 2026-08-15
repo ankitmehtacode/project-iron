@@ -132,6 +132,65 @@ tracking a steady gait. Declared, same convention as
 trajectory) — used only as the narrative cross-check below, not as a
 free parameter in the floor formula itself."""
 
+PEDESTRIAN_MAX_SPEED_MPS = 12.5
+"""An IMPOSSIBILITY bound on human ground speed — the fastest a human
+body is known to travel on foot, ~12.4 m/s (the peak instantaneous speed
+recorded in elite 100m sprinting), rounded up. A declared fact about
+human physiology, not fitted to any observed trajectory, same convention
+as :data:`PERSON_SIGMA_A_MPS2` and :data:`PEDESTRIAN_STOP_DURATION_S`.
+
+Why this constant had to be added rather than derived from the two above
+-------------------------------------------------------------------------
+Day 29, Objective 3 was asked to derive the hard constraints' thresholds
+from "the same declared pedestrian bounds the motion model already
+uses," citing them rather than introducing new numbers. Attempting that
+surfaced a distinction this module had never had to make: **every
+pedestrian constant declared here before today is TYPICAL-scale, and a
+hard constraint needs an IMPOSSIBILITY-scale bound.** They are different
+kinds of number and neither substitutes for the other.
+
+:data:`PERSON_SIGMA_A_MPS2` (1.5 m/s²) is a Gaussian process-noise
+DENSITY: in the model it parameterizes, acceleration is unbounded, so it
+is not a bound on anything in the first place. The product
+``PERSON_SIGMA_A_MPS2 * PEDESTRIAN_STOP_DURATION_S`` = 1.5 m/s is a
+velocity scale, and the docstring of
+:func:`pedestrian_velocity_covariance_floor_mps2` says plainly what it
+is: a *comfortable adult walking pace*. Used as a hard max-speed
+threshold it would refute — and, via
+``src/estimator/constraints.py::prune_for_hard_violation``, irreversibly
+PRUNE — the hypothesis of anyone jogging.
+
+That mis-derivation is not hypothetical, and the acceptance measurement
+does catch it: a 1.5 m/s threshold violates on **46.0% of v5-cessation
+GT frames (487/1059) and 5.6% of v3-indoor (160/2880)**
+(``scripts/measure_gt_constraint_violations.py``, Day 29). It would have
+pruned nearly half of all true hypotheses in the set this project's
+hardest open question lives in.
+
+That number also corrects the reasoning that first justified this
+constant. The original argument here was that the mis-derivation would
+PASS the acceptance test, on the grounds that "the golden sets' walkers
+move at ~0.5 m/s" — taken from the Day-21 report rather than measured
+against the sets as they stand today. v5-cessation postdates that report
+and is much faster: mean GT speed 1.24 m/s, peak **7.74 m/s**. Asserting
+a property of the data from a stale document instead of measuring it is
+the same class of error this whole day is about, committed while
+documenting it; the measured version is stronger than the assumed one,
+and is what belongs here.
+
+The derivation above stands unchanged on its own terms — a hard
+constraint needs an impossibility bound and this module declared none —
+but the reason to trust it is now the derivation plus a measurement, not
+the derivation plus an assumption about the data.
+
+A hard constraint's job is to be NEVER WRONG, not to be tight. It sits on
+an irreversible path (pruning), so its error budget is one-sided: a
+threshold so loose it rarely binds costs almost nothing, and one slightly
+too tight silently deletes true hypotheses. Discriminating power at the
+typical scale belongs in the likelihood, where being wrong is recoverable
+— which is where the typical-scale constants above already act.
+"""
+
 
 def pedestrian_velocity_covariance_floor_mps2(dt_s: float) -> float:
     """The physically-derived floor under a person-kind (or asset_carried,
