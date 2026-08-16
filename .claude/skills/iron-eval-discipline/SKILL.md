@@ -318,6 +318,62 @@ of the input would have closed first.
   downstream tradeoff into a stated engineering decision with a quantified cost. Record it where
   the next person will look before deriving model number five.
 
+## Noise Parameters Are Not Physical Bounds — the units match and the meanings do not
+
+**A process-noise density parameterizes a distribution with UNBOUNDED SUPPORT. A hard constraint
+needs a SUPPORT BOUNDARY. Neither can substitute for the other, and the reason the substitution
+survives review is that they have compatible units.**
+
+Dimensional analysis is the check most reviewers actually run, and it passes here every time.
+`PERSON_SIGMA_A_MPS2` is m/s²; so is a maximum acceleration. `PERSON_SIGMA_A_MPS2 *
+PEDESTRIAN_STOP_DURATION_S` is m/s; so is a maximum speed. The expression type-checks, it
+dimension-checks, it reads as derived-from-first-principles rather than invented, and it is
+wrong — because a σ says "values this far out are *unlikely*" while a bound says "values past
+here are *impossible*", and a Gaussian assigns positive probability to every real number.
+
+The failure is one-directional and asymmetrically expensive. A bound used as a noise scale makes
+a filter sluggish, which is recoverable. A noise scale used as a bound REFUTES true states — and
+in this codebase a hard-constraint violation reaches `prune_for_hard_violation`, which is
+irreversible.
+
+**Worked example (Day 29).** `PEDESTRIAN_MAX_SPEED_MPS` was asked to be derived from "the same
+declared pedestrian bounds the motion model already uses." The only candidates were
+`PERSON_SIGMA_A_MPS2` (1.5 m/s²) and `PEDESTRIAN_STOP_DURATION_S` (1.0 s), whose product is
+1.5 m/s. That is a comfortable adult walking pace, and the function that already used it
+(`pedestrian_velocity_covariance_floor_mps2`) said so in its own docstring. Used as a maximum
+speed it violates on **46.0% of v5-cessation's GT frames (487/1059)** and 5.6% of v3-indoor's —
+it would have pruned nearly half of all TRUE hypotheses in the set this project's hardest open
+question lives in. The declared impossibility bound is 12.5 m/s, from sprint physiology: **8.3x
+larger, and a different kind of number.**
+
+**The same conflation, from the other side (Day 30).** The same 1.5 m/s, used as the velocity
+covariance floor in estimator config B, sits **2.5-6x ABOVE** the filter's own natural converged
+σ_v (0.25-0.60 m/s) — so the clamp fires on **99.12% / 99.89%** of scored frames on
+v5-cessation / v3-indoor. Config B does not estimate velocity uncertainty; it reports a constant.
+It then passes a calibration criterion, because a filter that is never confident cannot be caught
+being overconfident. A noise parameter promoted to a bound is not merely too tight or too loose —
+it silently converts an estimator into a lookup table, and the calibration metric applauds.
+
+**In practice:**
+
+- Before using a constant as a threshold, ask what DISTRIBUTION it parameterizes. If the answer
+  is "a Gaussian", it is not a bound, whatever its units.
+- Typical scale and impossibility scale are different numbers with different sources and belong
+  in different places: the typical scale goes in the likelihood (being wrong is recoverable), the
+  impossibility scale goes in the hard constraint (being wrong is not). Expect them to differ by
+  most of an order of magnitude; if a candidate bound is within ~2x of the typical scale,
+  something is wrong.
+- Name them so the distinction is visible at the call site: `*_SIGMA_*` for a density,
+  `*_MAX_*` / `*_MIN_*` for a bound. Never derive one from the other by multiplication.
+- Measure the counterfactual, not just the chosen value: run the rejected derivation against GT
+  and report its violation rate. "46.0% of frames" is what turns "I reasoned about this" into
+  evidence — and Day 29's own first justification for the new constant was an ASSERTION about the
+  data taken from a stale report ("the walkers move at ~0.5 m/s"), which the measurement then
+  contradicted (peak 7.74 m/s).
+- A bound that is always active is a red flag in both directions: as a constraint it is refuting
+  everything, and as a floor it has replaced the quantity it was meant to protect. Report the
+  fraction of frames on which it binds, every time.
+
 ## Honesty Clauses
 
 - Report the metric that looks bad. Omitting an unfavorable bucket is falsification.
