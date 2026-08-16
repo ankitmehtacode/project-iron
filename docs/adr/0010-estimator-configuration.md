@@ -1,14 +1,20 @@
 # ADR 0010 — Estimator configuration: config B (velocity covariance floor) now adopted
 
-- **Status:** Accepted, **with the cessation evidence marked PROVISIONAL
-  2026-08-16 (Day 30)** — every cessation number in this ADR was measured
-  on v5-cessation, whose stop events are physically impossible (median
-  peak GT deceleration 15.13 m/s² = 1.54g across its 22 stop events, max
-  36.58 m/s² = 3.7g; 63.6% of events above 1g, where a world-class
-  sprinter peaks near 1g). The config A→B adoption rests on cessation
-  behaviour, so it rests on that data. **No prior text is edited or
-  retracted** — see "Day 30 revision (Objective 1)" at the end for what
-  is provisional, what is not, and what re-measurement would settle it.
+- **Status:** **Superseded 2026-08-16 (Day 30) — the adopted
+  configuration REVERTS from B to A.** Config B's velocity uncertainty is
+  a constant (pinned at the 1.5 m/s floor on 100.00% of scored frames on
+  v6-motion, 99.12%/99.89% on v5-cessation/v3-indoor), so it never
+  estimated the quantity its calibration result was credited to; and on
+  physically reachable motion the cessation overconfidence it was adopted
+  to fix does not exist (config A coverage 0.9920 on v6-motion, against
+  0.5013 on v5-cessation). See "Day 30 revision (Objective 3)" at the
+  end. Every cessation number in this ADR before that section was
+  measured on v5-cessation, whose stop events are physically impossible
+  (median peak GT deceleration 15.13 m/s² = 1.54g across its 22 stop
+  events, max 36.58 m/s² = 3.7g; 63.6% of events above 1g, where a
+  world-class sprinter peaks near 1g) — marked PROVISIONAL in "Day 30
+  revision (Objective 1)", which also contains a claim about IMM that
+  Objective 3 then corrects. **No prior text is edited or retracted.**
   Prior status line, unchanged: Accepted; revised 2026-08-11 (Day 23); revised again
   2026-08-11 (Day 24); revised again 2026-08-12 (Day 25) — the adopted
   configuration CHANGES, from A to B. **Revised again 2026-08-13 (Day
@@ -1128,3 +1134,148 @@ Day 30 and reported in `FOUNDATION_REPORT.md` §Day-30:
 
 Whichever way those land, this ADR's cessation evidence is
 provisional until they are in.
+
+## Day 30 revision (Objective 3) — config B is not adopted. It never estimated velocity uncertainty, and the defect it was adopted to fix does not exist on physical motion
+
+**Nothing above is edited. This section reverses the decision and says on
+what evidence.**
+
+### Finding 1 — config B's velocity uncertainty is a constant
+
+`scripts/velocity_floor_pinning_audit.py`, and a new
+`fraction_at_floor` in `scripts/eval_estimator.py`'s
+`_sigma_v_distribution` so every report path carries it:
+
+| set | scored frames | pinned at the floor |
+| --- | ---: | ---: |
+| v6-motion | 1558 | **1558 (100.00%)** |
+| v5-cessation | 1021 | 1012 (99.12%) |
+| v3-indoor | 2736 | 2733 (99.89%) |
+
+Per regime, the only frames not pinned are in `onset` on two sets (90.1%
+and 98.9% pinned) — the one regime where velocity genuinely changes fast
+enough that natural uncertainty already exceeds the floor. Every other
+regime on every set is at 100.0%.
+
+Day 25 measured the same underlying quantity and reported
+`min == p50 == max == 1.5000` per regime, reading it as confirmation
+that the clamp fires. It is that. It is also the signature of something
+Day 25 had no reason to look for, because it was asking a wiring
+question: **config B does not estimate velocity uncertainty. It reports
+1.5 m/s.**
+
+Config A's own natural converged σ_v is 0.2548–0.5954 m/s (v5-cessation,
+p50 per regime), so the floor sits **2.5–5.9x above** what the filter
+actually converges to. And 1.5 m/s is not a bound — Day 29 established it
+is `PERSON_SIGMA_A_MPS2 × PEDESTRIAN_STOP_DURATION_S`, a comfortable adult
+walking pace, the same product that `PEDESTRIAN_MAX_SPEED_MPS`'s docstring
+rejects as a maximum speed.
+
+**A filter that is never confident cannot be caught being overconfident.**
+Config B's cessation coverage moving 0.5013 → 0.9946 on v5-cessation is
+therefore not evidence that it models cessation better. Any sufficiently
+large constant would have produced it.
+
+### Finding 2 — on physical motion there is no overconfidence to fix
+
+Four-way re-run on v6-motion, under the **unchanged** directional
+criterion (`scripts/eval_estimator.py --version v6-motion --config A
+--config B --config C --config D`). v5-cessation was re-run in the same
+invocation and reproduces Day 25/26 exactly, so the two sets differ only
+in the data:
+
+| regime | n | A RMSE / cov | B RMSE / cov | C RMSE / cov | D RMSE / cov |
+| --- | ---: | --- | --- | --- | --- |
+| static | 328 | 0.0839m / 0.9909 | 0.1260m / 0.9970 | 0.0546m / 0.9726 | 0.0535m / 0.9970 |
+| onset | 110 | 0.1126m / 0.9727 | 0.1279m / 1.0000 | 0.0714m / 1.0000 | 0.0713m / 1.0000 |
+| sustained | 746 | 0.0956m / 0.9879 | 0.1326m / 0.9987 | 0.1380m / 0.9464 | 0.1459m / 0.9584 |
+| cessation | 374 | **0.0946m / 0.9920** | 0.1280m / 0.9973 | 0.0747m / 0.9572 | 0.0736m / 0.9920 |
+| maneuver | 0 | empty | empty | empty | empty |
+
+**Config A's cessation coverage on physical motion is 0.9920 —
+essentially nominal.** On v5-cessation the same configuration, the same
+code, the same criterion measured 0.5013. The cessation overconfidence
+this ADR has been about since Day 21 is a response to a
+teleport-to-zero, not to a person stopping.
+
+No-trade verdicts on v6-motion:
+
+| A→ | cessation Δtoward-nominal | verdict |
+| --- | --- | --- |
+| B | −0.0053 | **NO_IMPROVEMENT** |
+| C | +0.0348 | NO_IMPROVEMENT |
+| D | +0.0000 | NO_IMPROVEMENT |
+
+And config B's cost on physical motion is no longer one bounded,
+safe-direction deviation. It is worse in **every** regime: static
++50.2%, onset +13.6%, sustained +38.7%, cessation **+35.3%** position
+RMSE — including the regime it was adopted for.
+
+### Decision: config A is re-adopted. Config B's adoption is withdrawn
+
+Following the same framework Day 25 used, applied to better data:
+
+1. **Problem.** As stated on Day 25: config A is overconfident at
+   cessation. **That premise is now measured to be false on physical
+   motion** (coverage 0.9920).
+2. **Constraints.** Unchanged. The directional criterion is not
+   revisited here — it is applied exactly as Day 25 committed it, which
+   is what makes this a re-scoring rather than a re-litigation.
+3. **Alternatives compared.** A, B, C, D on v6-motion.
+4. **Tradeoffs.** B costs 13–50% position RMSE across every regime and
+   buys a calibration improvement of −0.0053 at cessation, i.e. none.
+5. **Recommendation: config A.** No candidate satisfies the criterion on
+   v6-motion, and the status quo is the only one that does not pay for
+   the failure.
+6. **Why it wins.** It is the only configuration that still estimates
+   velocity uncertainty at all.
+7. **Future maintenance cost.** Reverting is a configuration change, not
+   a code change — `velocity_covariance_floor_enabled` stays as tested,
+   documented, opt-in machinery, exactly as Day 22 left it. The floor
+   itself is not deleted: it is a correctly-implemented constraint whose
+   *derivation* uses a typical-scale constant where a bound is needed,
+   and that is a live open question, not dead code.
+
+### The criterion has a blind spot, and it is separate from this reversal
+
+Config B fails on v6-motion, so the criterion happens to reject it. It
+would not have caught the pinning: a constant-uncertainty filter
+satisfies both halves of the directional criterion trivially — cessation
+coverage improves, and no steady regime moves toward overconfidence,
+because nothing moves at all. **The criterion never asks whether the
+reported uncertainty is informative.** That is a defect in the criterion
+independent of today's verdict, and it is carried to Day 31 rather than
+patched here, for the same reason Day 24 declined to redesign a criterion
+in the session that discovered it mattered.
+
+### Correction — Day 30 Objective 1's own claim about IMM was wrong
+
+The "Day 30 revision (Objective 1)" section above lists **IMM's
+rejection** under *"Not provisional"*, arguing that `static`'s GT
+acceleration is identically zero on v5-cessation so IMM's static
+regression was measured on trivially physical motion. **That reasoning
+is invalid, and the v6-motion re-run refutes it directly.**
+
+| set | A static coverage | C static coverage |
+| --- | ---: | ---: |
+| v5-cessation | 0.9962 | **0.0808** |
+| v6-motion | 0.9909 | **0.9726** |
+
+IMM's catastrophic static-coverage collapse does not reproduce on
+physical motion. The error in the argument: a per-frame GT regime label
+describes the *world* at that frame, not the *filter's state*, and a
+filter's covariance at frame `t` is a function of the entire preceding
+trajectory. IMM's mode probabilities are explicitly history-dependent, so
+an impossible transient contaminates the static frames that follow it,
+however physical those frames' own GT is. Checking that a regime's GT is
+clean is not sufficient to establish that a measurement taken during that
+regime is clean.
+
+This does **not** make IMM adoptable: on v6-motion it is
+`NO_IMPROVEMENT` like everything else, because there is no cessation
+defect left to improve, and it is worse than A on `sustained` RMSE
+(0.1380 vs 0.0956) while better on the other three. What it does mean is
+that **the recorded reason for rejecting IMM — a dangerous, measured
+overconfidence regression in `static` — is not supported by physical
+data**, and Days 21–25's rejection of IMM is now provisional on the same
+grounds as everything else measured on v5-cessation.

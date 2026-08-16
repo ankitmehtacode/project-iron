@@ -8292,3 +8292,495 @@ entirely unblocked by design:
     DPDP process decision.
 24. **The `resolve_joint_state` cross-component filtering gap** (ADR
     0011) — cheap to fix, not yet needed by any real call site.
+
+# Day 30
+
+**No timing, throughput, CPU-percentage, or latency claim is made
+anywhere in this section** — unchanged hard scope rule from Day 20-29.
+Everything below is accuracy, consistency, and structural measurement.
+
+**Headline: config B is not an estimator improvement, and the defect it
+was adopted to fix does not exist.** Its velocity uncertainty is pinned
+at the 1.5 m/s floor on **100.00%** of scored frames on the new physical
+golden set and 99.12%/99.89% on the old ones — it does not estimate
+velocity uncertainty, it reports a walking pace. And on physically
+reachable motion, config A's cessation coverage is **0.9920**, essentially
+nominal, against the 0.5013 measured on v5-cessation. The overconfidence
+diagnosed on Day 21, built for on Day 22, re-measured on Day 23, audited
+on Day 24, and adopted against on Day 25 was a filter responding correctly
+to a teleport-to-zero. **ADR 0010 reverts to config A.** A second
+casualty: the recorded reason for rejecting IMM — a static-coverage
+collapse to 0.0808 — does not reproduce on physical motion (0.9726), and
+the argument in this day's own Objective 1 that IMM's rejection was safe
+from contamination was wrong; it is corrected below.
+
+## Verdicts
+
+- **Do the >1g transients concentrate in the cessation regime?** **YES.**
+  74.3% of every >1g frame in v5-cessation (26/35) is cessation-regime,
+  and cessation is the only populated regime whose p95 |a| is itself
+  above 1g (15.28 m/s²). Counted by EVENT rather than frame — the
+  sharper number, since a cessation regime is mostly a recovery tail
+  sitting at zero acceleration while the transient is one or two frames —
+  **14 of 22 stop events peak above 1g, median peak 15.13 m/s² (1.54g),
+  max 36.58 (3.7g)**. All 12 abrupt stops violate; 2 of 10 "gradual"
+  ones do. → Objective 1.
+- **Is the cessation diagnosis contaminated?** **YES, substantially.**
+  NEES 815 measured a filter's response to a velocity discontinuity, not
+  to a person stopping. Confirmed independently by Objective 3: on
+  v6-motion the same configuration measures cessation coverage 0.9920.
+  → Objectives 1, 3.
+- **Does v6-motion mint under physiological bounds?** **YES**, and it is
+  the first set to pass a mint-time GT physicality gate: 19 clips, 1596
+  frames, **0 hard-constraint violations**, max GT |a| **1.9955 m/s²
+  (0.20g)** against v5's 36.58 (3.7g), and **0 of 22 stop events above
+  1g** (median peak 0.7362 m/s², a **20.6x** reduction from v5's 15.13).
+  Regime volume carried forward and cleared; observability 1.0000 mean
+  AND min. `content_sha` identical across two independent renders.
+  → Objective 2.
+- **Does config B's velocity uncertainty ever fall below walking pace?**
+  **Essentially never.** Pinned at the floor on **1558/1558 (100.00%)**
+  scored frames on v6-motion, 1012/1021 (99.12%) on v5-cessation,
+  2733/2736 (99.89%) on v3-indoor. Every unpinned frame is in `onset`,
+  the one regime where velocity genuinely changes fast enough to exceed
+  the floor naturally. Config A's own natural σ_v converges to 0.25-0.60
+  m/s, so the floor sits 2.5-5.9x above it. → Objective 3.
+- **Is config B a genuine estimator improvement, or a floor that
+  satisfies the calibration criterion by refusing to estimate?** **The
+  latter, and worse.** It is a constant-uncertainty filter, so its
+  calibration result is not evidence about cessation modelling — any
+  sufficiently large constant would produce it. On v6-motion it is also
+  worse in position RMSE in **every** regime (static +50.2%, onset
+  +13.6%, sustained +38.7%, cessation **+35.3%**), and its no-trade
+  verdict is `NO_IMPROVEMENT`. → Objective 3.
+- **Does ADR 0010 stand?** **NO.** The config A→B adoption is withdrawn
+  and config A is re-adopted, under the **unchanged** Day-25 directional
+  criterion — a re-scoring on better data, not a re-litigation of the
+  criterion. → Objective 3.
+- **Which raw-array boundaries carry an implicit axis convention?**
+  **Eleven found, nine closed, two left with a stated reason.** Two of
+  them were making a FALSE declaration rather than none. Full census in
+  Objective 4. → Objective 4.
+
+## Objective 1 — where the unphysical accelerations fall
+
+`scripts/measure_gt_acceleration_distribution.py`. Same regime partition
+(`classify_track`) every per-regime estimator number since Day 21 has
+been computed against, so the numbers are directly comparable to those.
+
+**v5-cessation** (19 tracks, 1021 frames with a defined acceleration):
+
+| regime | n | p50 | p95 | max | frames >1g |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| static | 260 | 0.000 | 0.000 | 0.000 | 0 (0.00%) |
+| onset | 91 | 0.000 | 1.593 | 20.259 | 2 (2.20%) |
+| sustained | 282 | 0.000 | 0.000 | 5.976 | 0 (0.00%) |
+| cessation | 373 | 0.000 | **15.281** | **36.581** | 26 (6.97%) |
+| maneuver | 15 | 9.566 | 24.255 | 27.854 | 7 (46.67%) |
+
+All m/s². 1g = 9.80665. Overall p50 0.000, p95 8.692, max 36.581; 35
+frames (3.43%) above 1g, of which **74.3% are cessation**.
+
+**The frame fraction understates it.** A cessation regime is mostly a
+recovery tail at exactly zero acceleration; the transient is one or two
+frames. By event: **14/22 stop events peak above 1g, median 15.13 m/s²**.
+Split by the set's own authored deceleration profile:
+
+| profile | events | peak range (m/s²) | above 1g |
+| --- | ---: | --- | ---: |
+| abrupt (`ease_out=False`) | 12 | 11.74 – 36.58 | **12/12** |
+| gradual (`ease_out=True`) | 10 | 3.89 – 27.62 | 2/10 |
+
+Every abrupt stop is impossible by construction: the leg ends at constant
+velocity and the next leg is a zero-length pause, so the velocity step is
+the full approach speed in one frame. The gradual ones are impossible
+when fast, because the quadratic ease-out's derivative is `2(1 - tail_t)`
+— it **jumps speed to 2x** at the tail's start and then has one
+`ease_fraction` (0.3 of a 1.2s leg ≈ 0.36s) to shed all of it. "Gradual"
+was never a physiological profile; it was a smoothing of the second half
+of a discontinuity.
+
+**v3-indoor**, for contrast: max GT |a| **0.0001 m/s²** over 2736 frames
+— exactly constant-velocity to float32 storage precision — zero stop
+events, zero cessation frames. The two golden sets bracketed reality
+without containing it.
+
+**Two corrections to Day 29's own version of this measurement**, both in
+the instrument. Day 29 computed acceleration from `t >= 1`; under this
+project's mirror convention `v[0] == v[1]`, which forces `a[1] == 0`
+identically for every track, so that put one guaranteed zero into every
+distribution. Acceleration needs three positions, and this script reports
+from `t >= 2`, saying how many frames it drops and why. It does not move
+the maximum; it does move every percentile, and the two scripts'
+distributions are therefore not interchangeable.
+
+ADR 0010's cessation finding was marked **PROVISIONAL** on this evidence,
+with no prior text edited, and the config B adoption deliberately left
+standing for Objective 3 to test on its own terms.
+
+## Objective 2 — v6-motion: physical motion, and a mint gate that enforces it
+
+**Constrained, not post-filtered.** `PhysicalAgent` walks rest-to-rest
+legs under a jerk-limited smoothstep speed profile. For a ramp of
+duration `T` to cruise `v`, peak `|a| = 1.5v/T` and peak
+`|jerk| = 6v/T²`; inverting those gives the ramp duration, so every bound
+holds **by construction** — there is no clip, clamp, or smoothing pass
+anywhere in the class. A leg too short to reach its requested speed and
+brake again gets a lower cruise speed (bisection on a monotone function),
+and both the request and the achieved value are recorded per clip.
+
+**`V6_GAIT_BOUNDS`, each cited at the constant:**
+
+| bound | value | source |
+| --- | ---: | --- |
+| max speed | 2.0 m/s | brisk walk; normative comfortable gait 1.2-1.4 m/s (Bohannon reference values) |
+| max acceleration | 1.1 m/s² | gait-initiation COM acceleration, ~1-1.5 m/s² over 2-3 steps |
+| max deceleration | 2.0 m/s² | gait termination — **asymmetric**, humans stop faster than they start |
+| max jerk | 8.0 m/s³ | minimum-jerk models of voluntary movement |
+
+The asymmetry is enforced at construction, not merely intended:
+`GaitBounds` raises if deceleration does not exceed acceleration, and
+raises if any value exceeds the corresponding **impossibility** bound in
+`src/estimator/motion_model.py` (12.0 / 20.0 / 200.0 m/s^n, also added
+today). Typical scale for authoring, impossibility scale for refutation,
+and the inequality between them checked rather than assumed — this day's
+Objective 5 rule, applied to itself.
+
+**Corroboration, reported and not used to choose the value:** 2.0 m/s²
+applied to a 1.4 m/s walk gives a stop duration of `1.5 × 1.4 / 2.0 =
+1.05 s`, against `PEDESTRIAN_STOP_DURATION_S = 1.0 s`, declared on Day 22
+from an entirely unrelated argument and never touched since. Two
+independently derived constants landing 5% apart.
+
+**STRUCTURAL: every heading change happens at zero speed.** A moving
+agent that turns instantaneously has unbounded lateral acceleration
+however carefully its speed profile is shaped — v5's velocity steps in a
+different hat. No leg type turns while moving, so it is unreachable
+rather than avoided by care. The stated cost: `maneuver` stays out of
+scope (`V6_MOTION_EXEMPT_REGIMES`), because physical maneuvers need a
+curved-path model with its own lateral-acceleration budget.
+
+**A fifth hard constraint, derived outside the measurement that judges
+it.** `max_pedestrian_acceleration` closes the gap Day 29 reported and
+declined to close from inside an acceptance measurement. The four
+existing constraints could not catch 3.7g: `max_pedestrian_velocity`
+cannot, because every one of those frames is at an ordinary walking
+SPEED arrived at impossibly fast; `gravity_floor_transition` cannot,
+because the motion is entirely horizontal (which is also exactly why
+misreading the depth axis as vertical made it look like a gravity
+violation). Its `is_braking` argument is required, not inferred — a
+magnitude cannot say which mechanism produced it, and the two bounds
+differ. **v5-cessation now records 23 violations under it.**
+
+**Mint-time gate.** `enforce_gt_physicality` walks
+`HARD_CONSTRAINTS` itself rather than re-implementing any predicate, so
+the bound a set mints against **is** the bound the estimator would prune
+a hypothesis for violating — there is no second copy to drift.
+`GtPhysicality.REQUIRED` is the default for every set from today; the
+pre-Day-30 sets must name `LEGACY_UNPHYSICAL_EXEMPT` at the call site,
+and the measurement still runs and still lands in their manifest.
+Falsifiability checked before trusting the pass: a synthetic
+teleporting track is refused, and the refusal names the constraint.
+
+**v6-motion, minted.** 19 clips, 1596 frames.
+
+| gate | result |
+| --- | --- |
+| GT physicality | **0 violations** / 5 constraints, worst |a| 1.9955 vs 2.0 bound |
+| regime volume (Day 23) | cessation **374** (floor 200); static 366, onset 110, sustained 746 (floor 30); maneuver 0, declared exempt |
+| observability floor (Day 16) | **1.0000 mean AND min** |
+| Day-10 validity matrix row | `motion_geometry` PASS · `state_estimation` PASS · `depth` REFUSED · `appearance_semantics` REFUSED · `point_tracking` PASS |
+| determinism | `content_sha` identical across two independent renders (19/19) |
+
+The validity row is identical to v5-cessation's — geometry yes,
+appearance no — exactly as the set's purpose predicts.
+
+**Acceleration distribution, v6 against v5:**
+
+| | v5-cessation | v6-motion |
+| --- | ---: | ---: |
+| max GT \|a\| | **36.5806** (3.7g) | **1.9955** (0.20g) |
+| overall p95 | 8.6917 | 1.3149 |
+| frames above 1g | 35 (3.43%) | **0 (0.00%)** |
+| stop events | 22 | 22 |
+| stop events above 1g | **14 (63.6%)** | **0 (0.0%)** |
+| median stop-event peak | **15.1313** | **0.7362** |
+
+A **20.6x** reduction in the median stop event, with the same number of
+stop events and the same cessation frame count (374 vs 373).
+
+**The first render was REFUSED, and re-authored rather than excused.**
+Observability 0.7978 against the 0.80 floor. The cause is a real
+consequence of the physics and was not obvious in advance: **physically
+bounded motion spends many frames moving slowly, and the measured motion
+gate demands a much larger silhouette from a slow mover** (535 gate px
+below 0.5 gate px/frame, versus 110 above 1.5). v5 cleared the floor at
+greater depths *because* its motion was abrupt — an instantaneous stop
+has no slow phase to be unobservable during. **The unphysical set was
+easier to see.** Radial clips get it worst: an agent walking toward the
+camera moves fast in the world and barely at all in pixels.
+
+`V6_MAX_DEPTH_M = 5.9 m` is the resulting authoring rule, derived rather
+than tuned: `sqrt(19000 / 535) = 5.96 m`, from the envelope's worst-case
+threshold and the measured silhouette law `area_gate_px ≈ 19000 /
+depth²` (which held to within 1.5% across three clips spanning depth
+4.1-9.9 m). Its cost is stated: the near/far axis compresses (stops at
+~3.4 m vs ~6.0 m rather than ~4.5 m vs ~11 m), and the radial lane is too
+short for a 2.0 m/s approach-and-stop — the solver reduced 7 of 19 clips'
+cruise speeds, visibly, in the manifest.
+
+## Objective 3 — config B's velocity uncertainty, and what it was hiding
+
+**Config B is a constant.** `fraction_at_floor`, added to
+`_sigma_v_distribution` so every report path carries it:
+
+| set | scored frames | pinned at the floor |
+| --- | ---: | ---: |
+| v6-motion | 1558 | **1558 (100.00%)** |
+| v5-cessation | 1021 | 1012 (99.12%) |
+| v3-indoor | 2736 | 2733 (99.89%) |
+
+Per regime, every unpinned frame is in `onset` (90.1% and 98.9% pinned) —
+the one regime where velocity genuinely changes fast enough that natural
+uncertainty already exceeds the floor. `static`, `sustained`, `cessation`
+and `maneuver` are at 100.0% on every set.
+
+Day 25 measured the same quantity, reported `min == p50 == max ==
+1.5000`, and read it as confirmation that the clamp fires. It is that.
+It is also the signature of a filter that has stopped estimating, and
+Day 25 had no reason to look for that — it was asking a wiring question.
+Config A's natural converged σ_v is 0.2548-0.5954 m/s per regime, so the
+floor sits **2.5-5.9x above** what the filter actually reaches. And
+1.5 m/s is `PERSON_SIGMA_A_MPS2 × PEDESTRIAN_STOP_DURATION_S` — a
+comfortable walking pace, per Day 29 — not a bound.
+
+**A filter that is never confident cannot be caught being
+overconfident.** Config B's cessation coverage moving 0.5013 → 0.9946 is
+therefore not evidence about cessation modelling. Any sufficiently large
+constant produces it.
+
+**And the defect does not exist on physical motion.** Four-way re-run on
+v6-motion under the unchanged directional criterion; v5-cessation re-run
+in the same invocation and reproducing Day 25/26 exactly, so the two sets
+differ only in the data:
+
+| regime | n | A RMSE / cov | B RMSE / cov | C RMSE / cov | D RMSE / cov |
+| --- | ---: | --- | --- | --- | --- |
+| static | 328 | 0.0839m / 0.9909 | 0.1260m / 0.9970 | 0.0546m / 0.9726 | 0.0535m / 0.9970 |
+| onset | 110 | 0.1126m / 0.9727 | 0.1279m / 1.0000 | 0.0714m / 1.0000 | 0.0713m / 1.0000 |
+| sustained | 746 | 0.0956m / 0.9879 | 0.1326m / 0.9987 | 0.1380m / 0.9464 | 0.1459m / 0.9584 |
+| cessation | 374 | **0.0946m / 0.9920** | 0.1280m / 0.9973 | 0.0747m / 0.9572 | 0.0736m / 0.9920 |
+
+**Config A's cessation coverage on physical motion is 0.9920.** The same
+configuration, the same code, the same criterion, measured 0.5013 on
+v5-cessation. No-trade verdicts on v6-motion: A→B **NO_IMPROVEMENT**
+(cessation Δ −0.0053), A→C NO_IMPROVEMENT (+0.0348), A→D
+NO_IMPROVEMENT (+0.0000).
+
+Config B's cost on physical motion is no longer one bounded,
+safe-direction deviation. It is worse in **every** regime: static +50.2%,
+onset +13.6%, sustained +38.7%, cessation **+35.3%** position RMSE —
+including the regime it was adopted for.
+
+**Which conclusions change.** ADR 0010's config A→B adoption is
+**withdrawn**; config A is re-adopted, under the criterion exactly as
+Day 25 committed it. Day 26's finding that A and B produce materially
+different point estimates still stands — it is a Kalman-gain fact, and
+today's v6 RMSE deltas are more of the same evidence. What does not stand
+is the interpretation: B's difference is a uniform accuracy cost, not a
+cessation fix.
+
+**The criterion has a blind spot, and it is separate from this
+reversal.** B fails on v6-motion, so the criterion happens to reject it.
+It would not have caught the pinning: a constant-uncertainty filter
+satisfies both halves trivially — cessation coverage improves and no
+steady regime moves toward overconfidence, because nothing moves at all.
+The criterion never asks whether the reported uncertainty is
+*informative*. Carried to Day 31 rather than patched here, for the same
+reason Day 24 declined to redesign a criterion in the session that
+discovered it mattered.
+
+**Correction — this day's own Objective 1 was wrong about IMM.** The
+Objective-1 ADR revision listed IMM's rejection under "not provisional",
+arguing that `static`'s GT acceleration is identically zero on
+v5-cessation so IMM's static regression was measured on trivially
+physical motion. The v6 re-run refutes it:
+
+| set | A static coverage | C static coverage |
+| --- | ---: | ---: |
+| v5-cessation | 0.9962 | **0.0808** |
+| v6-motion | 0.9909 | **0.9726** |
+
+The error: a per-frame GT regime label describes the *world* at that
+frame, not the *filter's state*, and a filter's covariance at frame `t`
+is a function of the entire preceding trajectory. IMM's mode
+probabilities are explicitly history-dependent, so an impossible
+transient contaminates the static frames that follow it, however physical
+those frames' own GT is. **Checking that a regime's GT is clean is not
+sufficient to establish that a measurement taken during that regime is
+clean.** This does not make IMM adoptable — on v6 it is
+`NO_IMPROVEMENT` like everything else, and worse than A on `sustained`
+RMSE — but the recorded *reason* for rejecting it is no longer supported,
+and Days 21-25's IMM rejection is now provisional on the same grounds as
+everything else measured on v5-cessation.
+
+## Objective 4 — the GT contract, and the raw-array census
+
+**`src/contracts/ground_truth.py`.** `GtPositionTrack` /
+`GtVelocityTrack` / `GtAccelerationTrack` (`[T, 3]`) and `GtPositionClip`
+(`[T, A, 3]`), each carrying a required, undefaulted `GroundTruthAxes` —
+the same treatment `WorldPosition` gives `twin_rev`, and for the same
+reason: there is no sensible default, and a default is exactly how an
+unstated convention becomes a silent one.
+
+- **STRUCTURAL: a GT array with no declared convention is
+  unconstructable.** `TypeError` on omission; `AxisConventionMismatch` on
+  a bare integer, which is the shape the bug actually took
+  (`VERTICAL_AXIS = 2`).
+- **STRUCTURAL: mixing conventions in one operation raises.** Every
+  binary operation goes through `combine`, which raises on disagreeing
+  axes. There is no coercion path — an axis permutation is exact and
+  lossless, which is precisely why auto-applying one would recreate the
+  original bug with more confidence attached. A caller that wants the
+  other convention names it, at the call site, via `values_in(...)`.
+- **Units are carried by the TYPE**, not a field, so handing a velocity
+  to something expecting a position is a `mypy` error rather than a value
+  wrong by a factor of `dt`.
+
+**The census — eleven boundaries, nine closed:**
+
+| # | boundary | risk | action |
+| --- | --- | --- | --- |
+| 1 | `measure_gt_constraint_violations.py` `VERTICAL_AXIS` | **the actual Day-29 bug**; shipped as `2` | **fixed** — the constant is gone; asks `vertical_component()` |
+| 2 | same file, `_gt_velocity` | a *third* copy of the difference convention, synced by comment | **deleted** — `differentiate` is the one implementation |
+| 3 | `src/data/scorecard.py` | wrapped `agent_xyz` in `WorldPositionArray`, whose module documents +z-up — a **false declaration** | **fixed** — `GtPositionClip` |
+| 4 | `src/inspector/artifacts.py` | same false declaration | **fixed** — `GtPositionClip` |
+| 5 | `eval_estimator.py` GT read | undeclared | **fixed** |
+| 6 | `eval_estimator.py` `axis_rmse_m_xyz` | a per-axis report key naming "xyz" without saying whose | **fixed** — `axis_convention` field; prints `x / y_up / z_depth` |
+| 7 | `eval_joint_estimator.py` | undeclared | **fixed** |
+| 8 | `measure_acceleration_noise_floor.py` | undeclared | **fixed** |
+| 9 | `measure_slip_remedy_smoothing.py` | undeclared | **fixed** |
+| 10 | `measure_component_sparsity.py` / `measure_component_cap_cost.py` | pairwise distances only | **left** — permutation-invariant, verified; no component is ever read |
+| 11 | `src/estimator/regime.py::classify_track` | takes a raw `[T, 3]` | **left** — uses only norms and dot products, so it is invariant under any axis permutation; changing its signature would touch every caller for no defect |
+
+The invariance claim behind rows 10 and 11 is itself pinned by a test
+(`test_magnitude_is_invariant_under_the_permutation`), so "safe because
+it only takes magnitudes" is a checked property rather than a reviewer's
+assertion.
+
+**A drift guard, from Day 24's lesson.**
+`measure_gt_constraint_violations.py` now asserts that the set of
+constraints it measures equals `HARD_CONSTRAINTS`. A constraint added to
+the registry that never reached that script would be a bound nobody ever
+measured against GT — which is how v5-cessation's 3.7g went unrefuted for
+eight days.
+
+**What this class of bug costs, restated.** Rows 3 and 4 are the
+important ones. Neither was producing a wrong number: both consumers take
+norms and apply the generator-frame extrinsics, which is correct. But a
+type asserting the *wrong* convention is worse than a bare array, which
+asserts nothing — the array makes no claim, while the mislabelled
+envelope makes one a future reader is entitled to trust.
+
+## Objective 5 — the skill rule
+
+Added to `.claude/skills/iron-eval-discipline/SKILL.md`: *Noise
+Parameters Are Not Physical Bounds*. A process-noise density
+parameterizes a distribution with unbounded support; a hard constraint
+needs a support boundary. They have compatible units and incompatible
+meanings, which is why dimensional analysis — the check reviewers
+actually run — passes every time.
+
+Both worked examples are this project's own, and they are the same
+constant from opposite sides. Day 29: `PERSON_SIGMA_A_MPS2 ×
+PEDESTRIAN_STOP_DURATION_S = 1.5 m/s` used as a maximum speed, violating
+on 46.0% of v5-cessation GT frames because 1.5 m/s is a walking pace.
+Day 30: the same 1.5 m/s used as a velocity floor, sitting 2.5-6x above
+the filter's own converged σ_v and binding on 99-100% of frames — which
+converts an estimator into a lookup table that the calibration metric
+then applauds.
+
+## Full suite, mypy, lint
+
+`mypy` (scoped per `mypy.ini`): **clean, 0 errors, 63 source files** —
+including the new `src/contracts/ground_truth.py`. `black --check` and
+`flake8` clean on every file touched today. Two pre-existing `E501`s in
+`measure_acceleration_noise_floor.py`/`measure_slip_remedy_smoothing.py`
+and two in `scorecard.py` are unchanged from before today (verified
+against a stash) and left alone rather than mixed into this diff.
+
+## Still blocked on a human
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 29 — today's work was
+entirely unblocked by design:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification** — now 7 days older than Day 23's
+   ranking, still the highest-product-impact pending data item.
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 19 days old.
+5. **The `main`/`origin/main` divergence decision** (ADR 0009, Day 18,
+   still Proposed).
+6. **Reference hardware procurement decision** — now 12 days old.
+7. **The carrier/asset production posture** (ADR 0011).
+
+## Day 31, in order
+
+1. **Re-measure every Day 21-29 estimator conclusion on v6-motion.** The
+   four-way table is done; the slip models, the noise floor, the joint
+   estimator, and the component-cap cost are not. Every one of them was
+   measured on v5-cessation or v3-indoor, i.e. on impossible motion or on
+   exactly-constant velocity. This is the largest block of provisional
+   work in the repository and it is now cheap to close.
+2. **The calibration criterion cannot see a constant-uncertainty
+   filter.** `_no_trade_verdict` should require that the candidate's
+   reported uncertainty be *informative* — e.g. reject a configuration
+   whose σ_v is pinned on more than some share of frames — decided on its
+   own methodological merits and stated before re-scoring anything, per
+   Day 24's ordering rule.
+3. **Re-derive the velocity floor, or retire it.** Its implementation is
+   correct; its derivation multiplies a noise density by a duration and
+   calls the product a bound. Day 22's own open question (a floor from
+   the actual stopping deceleration profile) is now answerable —
+   v6-motion contains real deceleration profiles for the first time.
+4. **Re-examine IMM on physical motion.** Its recorded rejection reason
+   does not survive v6 (static coverage 0.9726, not 0.0808), and it has
+   the best RMSE in three of four regimes there.
+5. **Vertical motion in the golden sets.** GT height is still a constant
+   0.86 m, so `gravity_floor_transition` remains a bounded null and no
+   floor-transition capability is testable.
+6. **Physical `maneuver`.** Needs a curved-path model with a
+   lateral-acceleration budget; the regime is exempt on both cessation
+   sets and its v5 numbers (p50 9.57 m/s², 46.67% above 1g) were the
+   worst in the set.
+7. **Hypothesis management itself** (spawn/score/budget-prune) — the
+   store, lifecycle, death causes and all five constraint predicates
+   exist; nothing decides when to use them.
+8. **Real coupled multi-entity data, or a larger authored scene** —
+   Day 26/27's open question, still open.
+9. **Twin geometry** (`TwinGeometry`) — four typed constraints are
+   `Unevaluable` pending it.
+10. **The twin drift detector** — sits behind item 9.
+11. **The discrete/continuous hybrid** — depends on item 7.
+12. **Smoothing across the joint graph** — depends on the coupling's own
+    calibration being trustworthy, which now depends on item 1.
+13. **MEVA licence verification** — blocked on a human.
+14. **DA-2K licence verification** — zero engineering lag once cleared.
+15. **Reference hardware procurement decision** — now 12 days old.
+16. **Declare a target fps for real camera ingest** — open since Day 19.
+17. **Cascade bench, clean, on interim or reference hardware.**
+18. **Depth validity re-measurement** — gates on item 14.
+19. **The `main`/`origin/main` decision** (ADR 0009).
+20. **The generator has no sensor-noise model** — unchanged, and now the
+    largest remaining known gap between v6-motion and reality.
+21. **Order cameras and run the office capture** — now 19 days old.
+22. **The motion-gate precision/selectivity investigation** — deferred,
+    and Objective 2 gave it a new datum: the envelope's low-speed
+    threshold is what forced v6's depth ceiling.
+23. **A canonical `Observation -> hash` function** (ADR 0007).
+24. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced.**
+25. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+26. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued.
+27. **The `resolve_joint_state` cross-component filtering gap** (ADR
+    0011).
