@@ -67,7 +67,11 @@ import math
 from dataclasses import dataclass
 from typing import Callable, Protocol, Sequence
 
-from src.estimator.motion_model import PEDESTRIAN_MAX_SPEED_MPS
+from src.estimator.motion_model import (
+    PEDESTRIAN_MAX_ACCELERATION_MPS2,
+    PEDESTRIAN_MAX_DECELERATION_MPS2,
+    PEDESTRIAN_MAX_SPEED_MPS,
+)
 from src.model.constraint import (
     HardConstraint,
     HardConstraintViolation,
@@ -450,18 +454,81 @@ GRAVITY_FLOOR_TRANSITION = HardConstraint(
 )
 
 
+def _max_pedestrian_acceleration_satisfied(
+    acceleration_mps2: float, is_braking: bool
+) -> bool:
+    """Ground acceleration magnitude within the declared impossibility
+    bound for its DIRECTION (Day 30).
+
+    Thresholds are :data:`~src.estimator.motion_model.
+    PEDESTRIAN_MAX_ACCELERATION_MPS2` when speeding up and
+    :data:`~src.estimator.motion_model.PEDESTRIAN_MAX_DECELERATION_MPS2`
+    when braking — see those constants for why the two differ and by how
+    much. ``is_braking`` is required, not inferred: this predicate is fed
+    a magnitude, and a magnitude cannot say which mechanism produced it.
+    Defaulting it either way would silently apply the wrong ceiling to
+    half of all frames, and the looser default would make the constraint
+    vacuous exactly where braking is not the mechanism.
+
+    Why this constraint had to exist
+    ---------------------------------
+    Day 29 measured zero GT violations against the four constraints that
+    existed, and reported alongside that zero: v5-cessation's GT reaches
+    36.58 m/s^2, which none of them bounds. `max_pedestrian_velocity`
+    cannot catch it — every one of those frames is at a perfectly
+    ordinary walking SPEED, arrived at impossibly fast.
+    `gravity_floor_transition` cannot catch it either: it bounds VERTICAL
+    acceleration, and this motion is entirely horizontal (which is also
+    exactly why misreading the depth axis as vertical made it look like a
+    gravity violation).
+
+    Negative acceleration magnitude is malformed, not gentle.
+    """
+    _require_finite(acceleration_mps2=acceleration_mps2)
+    if acceleration_mps2 < 0.0:
+        raise ConstraintInputError(
+            f"acceleration_mps2={acceleration_mps2} is negative; this "
+            "predicate takes a MAGNITUDE and reads direction from "
+            "is_braking, so a negative value is a sign error at the call "
+            "site, not a constraint verdict"
+        )
+    limit = (
+        PEDESTRIAN_MAX_DECELERATION_MPS2
+        if is_braking
+        else PEDESTRIAN_MAX_ACCELERATION_MPS2
+    )
+    return acceleration_mps2 <= limit
+
+
+MAX_PEDESTRIAN_ACCELERATION = HardConstraint(
+    name="max_pedestrian_acceleration",
+    description=(
+        "an entity on foot cannot change speed faster than "
+        f"{PEDESTRIAN_MAX_ACCELERATION_MPS2} m/s^2 accelerating or "
+        f"{PEDESTRIAN_MAX_DECELERATION_MPS2} m/s^2 braking; violation "
+        "means the track has associated observations across two "
+        "different bodies, or the trajectory is not a body at all"
+    ),
+    predicate=_max_pedestrian_acceleration_satisfied,
+)
+
+
 HARD_CONSTRAINTS: tuple[HardConstraint, ...] = (
     ONE_BODY_ONE_PLACE,
     MAX_PEDESTRIAN_VELOCITY,
+    MAX_PEDESTRIAN_ACCELERATION,
     MASS_CONSERVATION,
     GRAVITY_FLOOR_TRANSITION,
 )
-"""Every hard constraint, all four with running predicates as of Day 29.
-Not a registry with lookup or registration — a tuple, because the only
-thing anything needs from it is to iterate the complete set (see
+"""Every hard constraint: four with running predicates as of Day 29, plus
+``max_pedestrian_acceleration`` (Day 30). Not a registry with lookup or
+registration — a tuple, because the only thing anything needs from it is
+to iterate the complete set (see
 ``scripts/measure_gt_constraint_violations.py``, which measures exactly
-these against GT). Note each takes DIFFERENT arguments, so this cannot
-be passed to :func:`check_hard_constraints` as one batch; that is a
+these against GT, and ``scripts/gen_synthetic_indoor.py``'s
+``enforce_gt_physicality``, which refuses to mint a set that violates
+any of them). Note each takes DIFFERENT arguments, so this cannot be
+passed to :func:`check_hard_constraints` as one batch; that is a
 property of the constraints, not a defect in the collection."""
 
 

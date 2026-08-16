@@ -30,6 +30,7 @@ from src.estimator.constraints import (
     GRAVITY_FLOOR_TRANSITION,
     HARD_CONSTRAINTS,
     MASS_CONSERVATION,
+    MAX_PEDESTRIAN_ACCELERATION,
     MAX_PEDESTRIAN_VELOCITY,
     NO_TWIN_GEOMETRY,
     ONE_BODY_ONE_PLACE,
@@ -45,7 +46,13 @@ from src.estimator.constraints import (
     visibility_and_accessibility,
     wall_impermeability,
 )
-from src.estimator.motion_model import PEDESTRIAN_MAX_SPEED_MPS
+from src.estimator.motion_model import (
+    PEDESTRIAN_MAX_ACCELERATION_MPS2,
+    PEDESTRIAN_MAX_DECELERATION_MPS2,
+    PEDESTRIAN_MAX_JERK_MPS3,
+    PEDESTRIAN_MAX_SPEED_MPS,
+    PERSON_SIGMA_A_MPS2,
+)
 from src.model.constraint import (
     HardConstraint,
     HardConstraintViolation,
@@ -203,10 +210,16 @@ def test_check_hard_constraints_stops_at_the_first_violation() -> None:
 
 
 def test_named_hard_constraints_cover_the_four_examples_from_the_objective() -> None:
+    """Day 28's four, plus Day 30's `max_pedestrian_acceleration` — added
+    because Day 29 measured GT at 3.7g that none of the original four
+    could refute (a walking SPEED arrived at impossibly fast, entirely
+    horizontal, so neither the speed bound nor the free-fall bound
+    applies)."""
     assert {c.name for c in HARD_CONSTRAINTS} == {
         "one_body_one_place",
         "gravity_floor_transition",
         "max_pedestrian_velocity",
+        "max_pedestrian_acceleration",
         "mass_conservation",
     }
     assert all(c.kind == "hard" for c in HARD_CONSTRAINTS)
@@ -254,6 +267,88 @@ def test_max_pedestrian_velocity_violated_above_the_bound() -> None:
     outcome = evaluate_constraint(MAX_PEDESTRIAN_VELOCITY, PEDESTRIAN_MAX_SPEED_MPS + 0.1)
     assert isinstance(outcome, HardConstraintViolation)
     assert outcome.constraint_name == "max_pedestrian_velocity"
+
+
+# ---------------------------------------------------------------------------
+# Day 30 — max_pedestrian_acceleration, and the asymmetry it encodes
+# ---------------------------------------------------------------------------
+
+
+def test_acceleration_bound_is_asymmetric_and_braking_is_the_looser_side() -> None:
+    """Humans stop faster than they start — different mechanisms (leg
+    propulsion vs friction and eccentric load), different ceilings. The
+    ordering is the physical claim; the exact values are declared bounds."""
+    assert PEDESTRIAN_MAX_DECELERATION_MPS2 > PEDESTRIAN_MAX_ACCELERATION_MPS2
+
+
+def test_acceleration_bound_admits_ordinary_gait_and_a_sprint_start() -> None:
+    for magnitude in (0.0, 1.0, 1.5, 9.80665):
+        assert isinstance(
+            evaluate_constraint(MAX_PEDESTRIAN_ACCELERATION, magnitude, False),
+            Satisfied,
+        ), f"{magnitude} m/s^2 accelerating should be admissible"
+
+
+def test_acceleration_bound_refutes_the_generator_defect_it_was_added_for() -> None:
+    """v5-cessation's worst measured GT frame: 36.58 m/s^2, 3.7g. Refuted
+    as braking (the direction it occurred in) AND as acceleration, so the
+    verdict does not depend on getting `is_braking` right for this one."""
+    v5_worst_mps2 = 36.58
+    for is_braking in (True, False):
+        outcome = evaluate_constraint(
+            MAX_PEDESTRIAN_ACCELERATION, v5_worst_mps2, is_braking
+        )
+        assert isinstance(outcome, HardConstraintViolation)
+        assert outcome.constraint_name == "max_pedestrian_acceleration"
+
+
+def test_a_value_between_the_two_bounds_depends_on_direction() -> None:
+    """The whole reason `is_braking` is a required argument: 15 m/s^2 is
+    an impossible way to speed up and a survivable way to stop."""
+    between = (PEDESTRIAN_MAX_ACCELERATION_MPS2 + PEDESTRIAN_MAX_DECELERATION_MPS2) / 2
+    assert isinstance(
+        evaluate_constraint(MAX_PEDESTRIAN_ACCELERATION, between, True), Satisfied
+    )
+    assert isinstance(
+        evaluate_constraint(MAX_PEDESTRIAN_ACCELERATION, between, False),
+        HardConstraintViolation,
+    )
+
+
+def test_acceleration_bound_is_not_the_process_noise_density() -> None:
+    """Objective 5's rule, pinned as a test. PERSON_SIGMA_A_MPS2 (1.5) is
+    a noise density with unbounded support; using it as a hard bound would
+    refute ordinary gait initiation. The two must stay far apart."""
+    assert PEDESTRIAN_MAX_ACCELERATION_MPS2 > PERSON_SIGMA_A_MPS2 * 4
+    ordinary_gait_initiation_mps2 = 2.0
+    assert ordinary_gait_initiation_mps2 > PERSON_SIGMA_A_MPS2
+    assert isinstance(
+        evaluate_constraint(
+            MAX_PEDESTRIAN_ACCELERATION, ordinary_gait_initiation_mps2, False
+        ),
+        Satisfied,
+    )
+
+
+def test_acceleration_bound_rejects_a_negative_magnitude_as_malformed() -> None:
+    with pytest.raises(ConstraintInputError, match="MAGNITUDE"):
+        evaluate_constraint(MAX_PEDESTRIAN_ACCELERATION, -1.0, False)
+
+
+def test_acceleration_bound_rejects_nan_rather_than_reporting_a_violation() -> None:
+    """`not (nan <= x)` is True, so without the finiteness guard every
+    NaN frame would silently PRUNE. Same hazard as every other predicate
+    here."""
+    with pytest.raises(ConstraintInputError):
+        evaluate_constraint(MAX_PEDESTRIAN_ACCELERATION, float("nan"), True)
+
+
+def test_jerk_bound_is_declared_and_admits_the_deceleration_bound() -> None:
+    """A jerk bound below `max deceleration / 0.1 s` would make the
+    deceleration bound unreachable, which would mean one of the two is
+    wrong. They are declared independently, so this consistency is worth
+    asserting rather than assuming."""
+    assert PEDESTRIAN_MAX_JERK_MPS3 >= PEDESTRIAN_MAX_DECELERATION_MPS2 / 0.1
 
 
 def test_mass_conservation_admits_a_reachable_gap_and_refutes_teleportation() -> None:
@@ -481,6 +576,7 @@ def test_no_hard_constraint_predicate_is_unevaluable_today() -> None:
         "max_pedestrian_velocity": (1.0,),
         "mass_conservation": (1.0, 1.0),
         "gravity_floor_transition": (0.0, 1.0),
+        "max_pedestrian_acceleration": (1.0, False),
     }
     for constraint in HARD_CONSTRAINTS:
         outcome = evaluate_constraint(constraint, *probes[constraint.name])

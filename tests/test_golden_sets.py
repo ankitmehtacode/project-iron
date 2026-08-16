@@ -51,7 +51,12 @@ def test_every_minted_version_is_retained() -> None:
 
     v2 is retained even though v3 replaced it: it is the record of what was
     measured before, and deleting it would erase the instrument that produced
-    every number reported against it. v1 is retained on the same grounds.
+    every number reported against it. v1 is retained on the same grounds, and
+    so is v5-cessation after v6-motion superseded it on Day 30 — v5's GT is
+    physically impossible (14 of its 22 stop events peak above 1g), which is
+    exactly why it must be kept: every Day 21-29 cessation number was measured
+    against it, and those numbers are uninterpretable without the instrument
+    that produced them.
     """
     assert set(available_versions(SEEDED)) == {
         "v1-driving",
@@ -60,6 +65,7 @@ def test_every_minted_version_is_retained() -> None:
         "v4-gate",
         "v4.1-gate",
         "v5-cessation",
+        "v6-motion",
     }
 
 

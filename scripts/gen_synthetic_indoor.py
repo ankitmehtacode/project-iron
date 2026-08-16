@@ -40,8 +40,10 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import math
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
@@ -49,6 +51,12 @@ import numpy as np
 
 from src.config import IronConfig
 from src.data.golden import Condition
+from src.estimator.motion_model import (
+    PEDESTRIAN_MAX_ACCELERATION_MPS2,
+    PEDESTRIAN_MAX_DECELERATION_MPS2,
+    PEDESTRIAN_MAX_JERK_MPS3,
+    PEDESTRIAN_MAX_SPEED_MPS,
+)
 
 DATASET_NAME = "synthetic-indoor-v1"
 
@@ -58,6 +66,7 @@ DATASET_NAMES = {
     "v4-gate": "synthetic-indoor-v4-gate",
     "v4.1-gate": "synthetic-indoor-v4.1-gate",
     "v5-cessation": "synthetic-indoor-v5-cessation",
+    "v6-motion": "synthetic-indoor-v6-motion",
 }
 """Scene set -> dataset directory and registry name.
 
@@ -337,6 +346,527 @@ def _seconds_to_path_fractions(seconds: list[float]) -> list[float]:
     return [s / total for s in seconds]
 
 
+# ===========================================================================
+# Day 30, Objective 2 — physically bounded agent kinematics (v6-motion only)
+#
+# Why a third agent class rather than a flag on MultiSegmentAgent
+# ---------------------------------------------------------------
+# MultiSegmentAgent's defining property is that its legs are traversed at
+# CONSTANT velocity with an instantaneous stop at the waypoint
+# (`ease_out=False`), or with a quadratic tail that *doubles speed
+# instantaneously* at its start (`ease_out=True`). Day 30 Objective 1
+# measured the result: 14 of v5-cessation's 22 stop events peak above 1g,
+# median 15.13 m/s^2, max 36.58 (3.7g). There is no flag that makes those
+# legs physical, because the discontinuity IS the leg model.
+#
+# It is also not fixable by post-filtering the output. Smoothing a
+# trajectory after the fact would bound the acceleration and leave the
+# authored timing meaningless (the agent would no longer be where the
+# scene says it is, when the scene says it is), and it would make the
+# bound a property of a filter rather than of the generator. The
+# deceleration profile of a person coming to a stop is the phenomenon
+# v6-motion exists to contain; it has to be MODELLED.
+#
+# v5-cessation and its classes are untouched. Its bytes are cited by a
+# frozen manifest, and it remains the record of what every Day 21-29
+# cessation measurement was actually made against.
+# ===========================================================================
+
+
+def _smoothstep(u: float) -> float:
+    """``S(u) = 3u^2 - 2u^3`` on ``[0, 1]``. ``S(0)=0``, ``S(1)=1``,
+    ``S'(0)=S'(1)=0``."""
+    return u * u * (3.0 - 2.0 * u)
+
+
+def _smoothstep_integral(u: float) -> float:
+    """``∫₀ᵘ S = u^3 - u^4/2``. Note ``_smoothstep_integral(1.0) == 0.5``:
+    a smoothstep ramp covers exactly half the distance a constant-velocity
+    leg at the same peak speed would, which is what makes the profile
+    solve below closed-form."""
+    return u**3 - 0.5 * u**4
+
+
+@dataclass(frozen=True)
+class GaitBounds:
+    """The physiological envelope a :class:`PhysicalAgent` is generated
+    under. Every value is TYPICAL-scale pedestrian gait, not an
+    impossibility bound — see the class invariant below for how the two
+    relate, and Objective 5's rule in
+    ``.claude/skills/iron-eval-discipline/SKILL.md`` for why conflating
+    them is the specific error this project keeps making.
+
+    Attributes:
+        max_speed_mps: Peak walking speed any leg may cruise at.
+        max_acceleration_mps2: Peak |dv/dt| while speeding up.
+        max_deceleration_mps2: Peak |dv/dt| while braking. Must exceed
+            ``max_acceleration_mps2``: humans stop faster than they start,
+            because braking is limited by friction and eccentric load
+            while starting is limited by propulsive force. The asymmetry
+            is the point, not a rounding artifact.
+        max_jerk_mps3: Peak |da/dt|. Without this, a bounded-acceleration
+            profile still admits an instantaneous onset of maximal
+            braking, which is a step change in force at the foot — a
+            collision, not a stop.
+
+    INVARIANT, enforced at construction: every bound here is at or below
+    the corresponding IMPOSSIBILITY bound in
+    :mod:`src.estimator.motion_model`. A generator authored looser than
+    the constraint that judges its output would be a set built to fail its
+    own mint gate; a generator authored at exactly the impossibility bound
+    would produce sprint-start dynamics in an office corridor. Typical
+    scale for authoring, impossibility scale for refutation, and the
+    inequality between them checked rather than assumed.
+    """
+
+    max_speed_mps: float
+    max_acceleration_mps2: float
+    max_deceleration_mps2: float
+    max_jerk_mps3: float
+
+    def __post_init__(self) -> None:
+        for name in (
+            "max_speed_mps",
+            "max_acceleration_mps2",
+            "max_deceleration_mps2",
+            "max_jerk_mps3",
+        ):
+            value = float(getattr(self, name))
+            if not np.isfinite(value) or value <= 0.0:
+                raise ValueError(f"GaitBounds.{name} must be finite and positive")
+        if self.max_deceleration_mps2 <= self.max_acceleration_mps2:
+            raise ValueError(
+                "GaitBounds.max_deceleration_mps2 must exceed "
+                "max_acceleration_mps2: a person stops faster than they "
+                "start, and a symmetric profile is not the phenomenon "
+                "v6-motion exists to contain "
+                f"(got decel={self.max_deceleration_mps2}, "
+                f"accel={self.max_acceleration_mps2})"
+            )
+        for name, ceiling, ceiling_name in (
+            ("max_speed_mps", PEDESTRIAN_MAX_SPEED_MPS, "PEDESTRIAN_MAX_SPEED_MPS"),
+            (
+                "max_acceleration_mps2",
+                PEDESTRIAN_MAX_ACCELERATION_MPS2,
+                "PEDESTRIAN_MAX_ACCELERATION_MPS2",
+            ),
+            (
+                "max_deceleration_mps2",
+                PEDESTRIAN_MAX_DECELERATION_MPS2,
+                "PEDESTRIAN_MAX_DECELERATION_MPS2",
+            ),
+            ("max_jerk_mps3", PEDESTRIAN_MAX_JERK_MPS3, "PEDESTRIAN_MAX_JERK_MPS3"),
+        ):
+            if float(getattr(self, name)) > ceiling:
+                raise ValueError(
+                    f"GaitBounds.{name}={getattr(self, name)} exceeds the "
+                    f"impossibility bound {ceiling_name}={ceiling}. A "
+                    "generator may not author motion its own hard "
+                    "constraints would refute."
+                )
+
+
+V6_GAIT_BOUNDS = GaitBounds(
+    max_speed_mps=2.0,
+    max_acceleration_mps2=1.1,
+    max_deceleration_mps2=2.0,
+    max_jerk_mps3=8.0,
+)
+"""v6-motion's authored gait envelope. Each value, with its source:
+
+``max_speed_mps = 2.0`` — normative adult gait speed is ~1.2-1.4 m/s
+(Bohannon's reference values for comfortable walking speed); 2.0 is a
+brisk walk bordering a slow jog, which is the fastest thing a monitoring
+product should expect indoors. Well below
+:data:`~src.estimator.motion_model.PEDESTRIAN_MAX_SPEED_MPS` (12.5), which
+is the sprint-record impossibility bound and would be absurd in a
+corridor.
+
+``max_acceleration_mps2 = 1.1`` — gait-initiation studies put the
+anterior-posterior acceleration of the whole-body centre of mass during
+the transition from standing to steady walking at roughly 1-1.5 m/s^2,
+spread over two to three steps.
+
+``max_deceleration_mps2 = 2.0`` — gait TERMINATION is faster than
+initiation, which is the asymmetry :class:`GaitBounds` requires. This
+value carries an independent corroboration worth recording: applied to a
+1.4 m/s walk, the profile below gives a stop duration of
+``1.5 * 1.4 / 2.0 = 1.05 s``, and
+:data:`~src.estimator.motion_model.PEDESTRIAN_STOP_DURATION_S` — declared
+on Day 22 from an entirely unrelated argument, and never touched since —
+is 1.0 s. Two independently declared constants landing 5% apart is
+corroboration of both. It is reported as such and NOT used as the basis
+for choosing either; the value here was picked from the termination
+literature's scale before the comparison was made.
+
+``max_jerk_mps3 = 8.0`` — minimum-jerk models of voluntary human movement
+put whole-body jerk in the single-digit-to-tens m/s^3 range for
+comfortable, non-protective motion. This is the constant that makes the
+onset of braking gradual rather than a step.
+
+HONESTY NOTE, same as the impossibility constants these sit under: these
+are declared order-of-magnitude values sourced from the general
+biomechanics literature, cited rather than re-derived, with no paper
+consulted while writing them. They are not fitted to any trajectory. Site
+Zero footage supersedes them for anything tighter, and the gap between
+these and the impossibility bounds is deliberately wide so that error in
+the citation cannot make the HARD constraint wrong."""
+
+
+@dataclass(frozen=True)
+class _SpeedProfile:
+    """A rest-to-rest, jerk-limited speed profile over one straight leg.
+
+    Three phases, each a smoothstep in speed:
+
+    * accelerate ``0 -> cruise`` over ``accel_seconds``
+    * hold ``cruise`` for ``cruise_seconds`` (possibly zero)
+    * decelerate ``cruise -> 0`` over ``decel_seconds``
+
+    Speed is ``cruise * S(t / T)``, so for a ramp of duration ``T``:
+    peak ``|a| = 1.5 * cruise / T`` (at the midpoint, where ``S' = 1.5``)
+    and peak ``|jerk| = 6 * cruise / T^2`` (at the ends, where
+    ``|S''| = 6``). Inverting those two gives :func:`_ramp_seconds`, which
+    is why every bound is satisfied BY CONSTRUCTION rather than checked
+    afterwards — there is no clip, no clamp, and no post-filter anywhere
+    in this class.
+
+    Jerk is discontinuous at the phase joins (it steps to or from zero)
+    but never unbounded, which is the same property a textbook bang-bang
+    jerk-limited profile has. Bounded jerk is the physical requirement;
+    continuous jerk is not.
+    """
+
+    cruise_mps: float
+    accel_seconds: float
+    cruise_seconds: float
+    decel_seconds: float
+    length_m: float
+
+    @property
+    def duration_s(self) -> float:
+        return self.accel_seconds + self.cruise_seconds + self.decel_seconds
+
+    def distance_at(self, t: float) -> float:
+        """Arc length covered by time ``t`` seconds into this leg."""
+        if t <= 0.0:
+            return 0.0
+        if t >= self.duration_s:
+            return self.length_m
+        speed = self.cruise_mps
+        if self.accel_seconds > 0.0 and t < self.accel_seconds:
+            return (
+                speed
+                * self.accel_seconds
+                * _smoothstep_integral(t / self.accel_seconds)
+            )
+        accel_distance = 0.5 * speed * self.accel_seconds
+        if t < self.accel_seconds + self.cruise_seconds:
+            return accel_distance + speed * (t - self.accel_seconds)
+        tail = t - self.accel_seconds - self.cruise_seconds
+        cruise_distance = accel_distance + speed * self.cruise_seconds
+        if self.decel_seconds <= 0.0:
+            return self.length_m
+        # v(tail) = cruise * S(1 - tail/T_d), so the integral is
+        # cruise * T_d * (Sint(1) - Sint(1 - tail/T_d)), and Sint(1) = 0.5.
+        remaining = 1.0 - tail / self.decel_seconds
+        return cruise_distance + speed * self.decel_seconds * (
+            0.5 - _smoothstep_integral(remaining)
+        )
+
+
+def _ramp_seconds(speed_mps: float, accel_limit: float, jerk_limit: float) -> float:
+    """Shortest smoothstep ramp between rest and ``speed_mps`` that
+    respects both limits.
+
+    ``1.5 * v / a`` is the acceleration-limited duration and
+    ``sqrt(6 * v / j)`` the jerk-limited one; the binding constraint is
+    whichever is longer. Which one binds is itself informative — at low
+    speeds jerk binds and at high speeds acceleration does — so both are
+    computed rather than one being assumed dominant.
+    """
+    if speed_mps <= 0.0:
+        return 0.0
+    return max(1.5 * speed_mps / accel_limit, math.sqrt(6.0 * speed_mps / jerk_limit))
+
+
+def solve_speed_profile(
+    length_m: float,
+    target_speed_mps: float,
+    bounds: GaitBounds,
+    deceleration_mps2: float | None = None,
+) -> _SpeedProfile:
+    """Fastest rest-to-rest profile over ``length_m`` within ``bounds``.
+
+    The authored ``target_speed_mps`` is a REQUEST, not a guarantee: a leg
+    too short to accelerate to it and brake again cannot reach it, and the
+    profile returned then cruises slower. The bounds win over the
+    authoring intent, which is what "constrain the generator" means — and
+    the achieved speed is recorded per clip in the manifest, so a leg
+    where the request was not met says so rather than silently pretending.
+
+    Args:
+        length_m: Straight-line distance of the leg.
+        target_speed_mps: Requested cruise speed, capped at
+            ``bounds.max_speed_mps``.
+        bounds: The gait envelope.
+        deceleration_mps2: Braking limit for THIS leg, for authoring a
+            gentle stop against a firm one — the physical replacement for
+            :class:`PathSegment`'s ``ease_out`` flag. Must not exceed
+            ``bounds.max_deceleration_mps2``. Defaults to that bound.
+    """
+    if length_m <= 0.0:
+        raise ValueError(f"leg length must be positive, got {length_m}")
+    decel = (
+        bounds.max_deceleration_mps2 if deceleration_mps2 is None else deceleration_mps2
+    )
+    if decel <= 0.0 or decel > bounds.max_deceleration_mps2:
+        raise ValueError(
+            f"per-leg deceleration {decel} must be in "
+            f"(0, {bounds.max_deceleration_mps2}]"
+        )
+    target = min(target_speed_mps, bounds.max_speed_mps)
+    if target <= 0.0:
+        raise ValueError(f"target speed must be positive, got {target_speed_mps}")
+
+    def ramp_distance(speed: float) -> float:
+        accel_t = _ramp_seconds(
+            speed, bounds.max_acceleration_mps2, bounds.max_jerk_mps3
+        )
+        decel_t = _ramp_seconds(speed, decel, bounds.max_jerk_mps3)
+        return 0.5 * speed * (accel_t + decel_t)
+
+    speed = target
+    if ramp_distance(target) > length_m:
+        # ramp_distance is continuous and strictly increasing in speed
+        # (both ramp durations grow with speed), so a bisection is exact
+        # to floating point and cannot land on a spurious root.
+        low, high = 0.0, target
+        for _ in range(80):
+            middle = 0.5 * (low + high)
+            if ramp_distance(middle) > length_m:
+                high = middle
+            else:
+                low = middle
+        speed = low
+
+    accel_seconds = _ramp_seconds(
+        speed, bounds.max_acceleration_mps2, bounds.max_jerk_mps3
+    )
+    decel_seconds = _ramp_seconds(speed, decel, bounds.max_jerk_mps3)
+    covered = 0.5 * speed * (accel_seconds + decel_seconds)
+    cruise_seconds = max(0.0, (length_m - covered) / speed) if speed > 0.0 else 0.0
+    return _SpeedProfile(
+        cruise_mps=speed,
+        accel_seconds=accel_seconds,
+        cruise_seconds=cruise_seconds,
+        decel_seconds=decel_seconds,
+        length_m=length_m,
+    )
+
+
+@dataclass(frozen=True)
+class PhysicalWalk:
+    """One straight, rest-to-rest leg of a :class:`PhysicalAgent`'s path.
+
+    Attributes:
+        end: World ``(x, z)`` this leg walks to.
+        cruise_speed_mps: Requested cruise speed. See
+            :func:`solve_speed_profile` for when it is not met.
+        deceleration_mps2: This leg's braking limit — the physical
+            replacement for :class:`PathSegment`'s ``ease_out`` boolean.
+            ``None`` uses the agent's full braking bound (a firm stop). A
+            smaller value is a gentler stop. Both are physical; the
+            difference between them is the deceleration-profile axis this
+            set varies, and unlike ``ease_out`` neither end of it is a
+            discontinuity.
+    """
+
+    end: tuple[float, float]
+    cruise_speed_mps: float
+    deceleration_mps2: float | None = None
+
+
+@dataclass(frozen=True)
+class PhysicalHold:
+    """A stationary hold. Position is EXACTLY constant for its whole
+    duration, which is what makes the stopped-agent silhouette
+    bit-identical (Day 17/23 discipline, carried forward — see
+    :meth:`PhysicalAgent.progress_at`)."""
+
+    seconds: float
+
+
+@dataclass
+class PhysicalAgent:
+    """A person-shaped primitive walking a piecewise-linear path under
+    physiological kinematic bounds (Day 30, v6-motion only).
+
+    Duck-typed to the same interface :func:`render_frame` and
+    :func:`generate` already call polymorphically (``agent_id``,
+    ``height_m``, ``position_at``, ``progress_at``), exactly as
+    :class:`MultiSegmentAgent` is, so v6-motion's scenes mix into the same
+    rendering pipeline with no change to either.
+
+    STRUCTURAL: every heading change happens at zero speed
+    ---------------------------------------------------------
+    Each :class:`PhysicalWalk` starts and ends at rest, so the direction
+    change at a waypoint between two non-collinear legs occurs while the
+    agent is stationary. That is not a stylistic choice — it is what makes
+    the acceleration bound MEAN anything. A moving agent turning a corner
+    instantaneously has unbounded lateral acceleration no matter how
+    carefully its speed profile is shaped, which is the same class of
+    defect as v5-cessation's velocity steps wearing a different hat. There
+    is no leg type here that turns while moving, so the defect is
+    unreachable rather than avoided by care.
+
+    The cost is honest and stated: v6-motion therefore contains no
+    heading-change ``maneuver`` frames, the same regime v5-cessation
+    declared out of scope, for a related but different reason (v5: its
+    straight legs could not produce them; v6: producing them physically
+    needs a curved-path model with a lateral-acceleration budget, which is
+    a separate capability and is not built here). See
+    :data:`V6_MOTION_EXEMPT_REGIMES`.
+
+    Attributes:
+        timeline_seconds: Clip duration this agent's normalised ``[0, 1]``
+            time maps onto. Defaults to the agent's own motion duration.
+            :func:`build_scenes_v6_motion` sets it to ``(frames - 1) /
+            fps`` so that the sample interval is EXACTLY ``1 / fps`` — the
+            interval every consumer (`classify_track`, `eval_estimator`,
+            the mint-time physicality gate) assumes when it differences
+            these positions. v5-cessation sized clips as ``round(seconds *
+            fps)``, which leaves the true interval ~2% off ``1/fps``; that
+            is harmless for a regime label and not harmless for a
+            measurement whose whole purpose is to compare an acceleration
+            against a bound.
+    """
+
+    agent_id: int
+    start: tuple[float, float]
+    legs: list[PhysicalWalk | PhysicalHold]
+    bounds: GaitBounds = V6_GAIT_BOUNDS
+    height_m: float = 1.72
+    timeline_seconds: float | None = None
+
+    def __post_init__(self) -> None:
+        if not self.legs:
+            raise ValueError("PhysicalAgent needs at least one leg")
+        point = self.start
+        self._waypoints: list[tuple[float, float]] = [self.start]
+        self._profiles: list[_SpeedProfile | None] = []
+        self._durations: list[float] = []
+        for leg in self.legs:
+            if isinstance(leg, PhysicalHold):
+                if leg.seconds <= 0.0:
+                    raise ValueError(f"PhysicalHold.seconds must be positive: {leg}")
+                self._waypoints.append(point)
+                self._profiles.append(None)
+                self._durations.append(leg.seconds)
+                continue
+            length = float(np.hypot(leg.end[0] - point[0], leg.end[1] - point[1]))
+            if length <= 0.0:
+                raise ValueError(
+                    f"PhysicalWalk to {leg.end} has zero length; use a "
+                    "PhysicalHold to stand still — a zero-length walk would "
+                    "have no heading, and this class's whole invariant is "
+                    "that heading is well-defined whenever speed is nonzero"
+                )
+            profile = solve_speed_profile(
+                length, leg.cruise_speed_mps, self.bounds, leg.deceleration_mps2
+            )
+            self._waypoints.append(leg.end)
+            self._profiles.append(profile)
+            self._durations.append(profile.duration_s)
+            point = leg.end
+        self.motion_seconds = float(sum(self._durations))
+        self.total_distance_m = float(
+            sum(p.length_m for p in self._profiles if p is not None)
+        )
+        if self.timeline_seconds is None:
+            self.timeline_seconds = self.motion_seconds
+        elif self.timeline_seconds < self.motion_seconds - 1e-9:
+            raise ValueError(
+                f"timeline_seconds={self.timeline_seconds} is shorter than "
+                f"this agent's own motion ({self.motion_seconds:.4f}s); "
+                "truncating a stop mid-deceleration would put a velocity "
+                "step back into the GT at the clip boundary"
+            )
+
+    def _seconds_at(self, t: float) -> float:
+        assert self.timeline_seconds is not None
+        return min(max(t, 0.0), 1.0) * self.timeline_seconds
+
+    def _locate(self, seconds: float) -> tuple[int, float]:
+        """``(leg index, seconds into that leg)``, clamped past the end."""
+        remaining = seconds
+        for index, duration in enumerate(self._durations):
+            if remaining < duration or index == len(self._durations) - 1:
+                return index, min(remaining, duration)
+            remaining -= duration
+        return len(self._durations) - 1, self._durations[-1]
+
+    def position_at(self, t: float) -> np.ndarray:
+        index, local_seconds = self._locate(self._seconds_at(t))
+        profile = self._profiles[index]
+        start_point = self._waypoints[index]
+        end_point = self._waypoints[index + 1]
+        if profile is None or profile.length_m <= 0.0:
+            return np.array([start_point[0], self.height_m / 2.0, start_point[1]])
+        fraction = profile.distance_at(local_seconds) / profile.length_m
+        x = start_point[0] + (end_point[0] - start_point[0]) * fraction
+        z = start_point[1] + (end_point[1] - start_point[1]) * fraction
+        return np.array([x, self.height_m / 2.0, z])
+
+    def progress_at(self, t: float) -> float:
+        """Cumulative DISTANCE travelled as a fraction of the whole path.
+
+        Gait phase drives off this (:func:`render_frame`), so the same two
+        properties :class:`MultiSegmentAgent` established hold here for
+        free, and now hold more strongly:
+
+        * **Speed-coupled animation (Day 17).** Phase advances with
+          distance, so the legs swing slowly during the acceleration ramp
+          and fastest at cruise. Under a constant-velocity leg this was
+          binary — full speed or nothing; under a real speed profile the
+          gait visibly ramps, which is what a walking person does.
+        * **Stopped-agent bit-identity (Day 23).** A :class:`PhysicalHold`
+          contributes exactly zero distance, so phase is constant for its
+          whole duration and the rendered silhouette is bit-identical
+          frame to frame. The same holds through the instant of arrival:
+          the profile's own speed reaches zero smoothly, so there is no
+          final-frame twitch.
+        """
+        if self.total_distance_m <= 0.0:
+            return 0.0
+        index, local_seconds = self._locate(self._seconds_at(t))
+        travelled = 0.0
+        for i in range(index):
+            profile = self._profiles[i]
+            if profile is not None:
+                travelled += profile.length_m
+        here = self._profiles[index]
+        if here is not None:
+            travelled += here.distance_at(local_seconds)
+        return travelled / self.total_distance_m
+
+    def frames_for(self, fps: float) -> int:
+        """Clip length in frames such that the sample interval is exactly
+        ``1 / fps`` and the whole motion fits. See
+        :attr:`timeline_seconds`."""
+        return max(2, int(math.ceil(self.motion_seconds * fps - 1e-9)) + 1)
+
+    @property
+    def walk_profiles(self) -> list[_SpeedProfile]:
+        """The solved profile of every walking leg, holds excluded.
+
+        Public because the ACHIEVED cruise speed can differ from the
+        requested one on a leg too short to reach it, and a manifest that
+        records only the request would be recording an intention rather
+        than the data."""
+        return [p for p in self._profiles if p is not None]
+
+
 @dataclass
 class Furniture:
     """An axis-aligned box: desk, cabinet or partition."""
@@ -382,7 +912,7 @@ class Scene:
     name: str
     room_size: tuple[float, float, float]
     cameras: list[CameraSpec]
-    agents: list[Agent | MultiSegmentAgent]
+    agents: list[Agent | MultiSegmentAgent | PhysicalAgent]
     furniture: list[Furniture]
     conditions: tuple[Condition, ...]
     frames: int
@@ -1300,6 +1830,371 @@ def build_scenes_v5_cessation(frames: int, fps: float) -> list[Scene]:
     return scenes
 
 
+V6_MAX_DEPTH_M = 5.9
+"""Camera-frame depth ceiling every v6-motion agent is authored within.
+
+DERIVED, with the arithmetic shown, from two things already measured
+elsewhere in this repository — not tuned until the mint gate passed:
+
+1. ``MeasuredEnvelope.wake_threshold_px`` (Day 7, `src/cascade/envelope.py`)
+   plateaus at **535 gate px** for every image-plane speed at or below 0.5
+   gate px/frame. That is the worst case, and physically bounded motion
+   visits it on every ramp.
+2. This generator's own agent silhouette obeys ``area_gate_px ≈ 19000 /
+   depth_m^2`` — measured directly off v6's first render across three
+   clips spanning depth 4.1-9.9 m, where ``area * depth^2`` held to within
+   1.5% (18.5k-19.3k).
+
+So the deepest an agent may be and still clear the envelope at ANY speed
+is ``sqrt(19000 / 535) = 5.96 m``. Rounded down to 5.9 for margin against
+the frame-edge clipping that trims a silhouette near the image border.
+
+Not enforced by an assertion here: the mint-time observability floor
+already enforces the property this rule exists to produce, and measures
+it rather than trusting the arithmetic. This constant is how a scene
+author gets it right the first time, not a second gate."""
+
+
+V6_MOTION_EXEMPT_REGIMES = frozenset({"maneuver"})
+"""v6-motion's declared scope, and why it matches v5-cessation's for a
+different reason.
+
+v5-cessation exempted ``maneuver`` because its straight-leg
+:class:`MultiSegmentAgent` could not produce heading changes without
+dozens of hand-authored turns. v6-motion exempts it because
+:class:`PhysicalAgent` turns only at zero speed BY CONSTRUCTION — see
+that class's structural invariant. A moving agent that changes heading
+instantaneously has unbounded lateral acceleration however carefully its
+speed profile is shaped, so producing physical maneuvers needs a curved
+path model with its own lateral-acceleration budget. That is a separate
+capability, and authoring one here in order to fill a regime count would
+be exactly the contrivance v5's own exemption note refused.
+
+Declared, not accidental, and still MEASURED and reported by
+:func:`enforce_regime_volume` — same discipline as v5's."""
+
+
+def _physical_stop_scene(
+    scene_name: str,
+    room: tuple[float, float, float],
+    camera: CameraSpec,
+    furniture: list[Furniture],
+    conditions: tuple[Condition, ...],
+    fps: float,
+    start_xz: tuple[float, float],
+    legs: list[PhysicalWalk | PhysicalHold],
+    notes: str,
+) -> Scene:
+    """One :class:`PhysicalAgent` clip, sized so the sample interval is
+    exactly ``1 / fps``.
+
+    The clip's frame count is DERIVED from the motion, not authored: the
+    agent's legs are stated as distances and requested speeds, the gait
+    bounds determine how long that takes, and the clip is however long it
+    needs to be. v5-cessation worked the other way — timing was authored
+    in seconds and the motion was whatever fit — which is precisely how an
+    authored 1.2s approach over 4.3m became a 3.7g stop. Here the physics
+    sets the clock.
+    """
+    agent = PhysicalAgent(agent_id=0, start=start_xz, legs=legs)
+    frame_count = agent.frames_for(fps)
+    agent.timeline_seconds = (frame_count - 1) / fps
+
+    achieved = [round(p.cruise_mps, 4) for p in agent.walk_profiles]
+    requested = [
+        round(min(leg.cruise_speed_mps, agent.bounds.max_speed_mps), 4)
+        for leg in legs
+        if isinstance(leg, PhysicalWalk)
+    ]
+
+    return Scene(
+        scene_name,
+        room,
+        [camera],
+        [agent],
+        furniture,
+        conditions,
+        frame_count,
+        fps,
+        notes,
+        extra={
+            "speed_band": "physical-cessation-varied",
+            "path_metres": round(agent.total_distance_m, 2),
+            # Recorded so a leg whose requested cruise speed was not
+            # reachable within the leg's own length says so in the
+            # manifest instead of silently reporting the request. See
+            # solve_speed_profile.
+            "requested_cruise_mps": requested,
+            "achieved_cruise_mps": achieved,
+            "motion_seconds": round(agent.motion_seconds, 4),
+        },
+    )
+
+
+def build_scenes_v6_motion(frames: int, fps: float) -> list[Scene]:
+    """The v6-motion scene set: v5-cessation's coverage, physically
+    reachable (Day 30, Objective 2).
+
+    Same room, same two cameras, same furniture, same walk/stop/restart
+    coverage as v5-cessation, with one thing changed: every trajectory is
+    generated under :data:`V6_GAIT_BOUNDS` instead of being a
+    constant-velocity leg that stops instantly. Holding the optical
+    geometry fixed is deliberate — the two sets are meant to be compared
+    directly (Objective 3 re-runs the four-way evaluation on both), and a
+    camera change would confound a kinematics finding with a geometry one.
+
+    The camera definitions below are duplicated from
+    :func:`build_scenes_v5_cessation` rather than factored into a shared
+    helper. v5-cessation's bytes are cited by a frozen manifest, so
+    editing its builder to call a new function risks its content hashes
+    for a cosmetic gain; duplication with a test that pins the two
+    definitions equal (``tests/test_synthetic_indoor.py``) is the safer
+    trade, and it makes the drift this project already found twice
+    (Day 16, Day 23 — a hand-maintained list beside a registry) fail
+    loudly instead of silently.
+
+    ``frames`` is accepted for signature parity and unused, exactly as in
+    :func:`build_scenes_v5_cessation`: each clip's length is derived from
+    its own motion under the bounds.
+
+    The deceleration-profile axis
+    -------------------------------
+    v5-cessation varied ``abrupt`` vs ``gradual``
+    (:class:`PathSegment`'s ``ease_out``), and Objective 1 measured that
+    both ends of that axis are unphysical when fast — 12/12 abrupt stops
+    and 2/10 gradual ones exceed 1g. Here the axis is ``firm``
+    (the full :data:`V6_GAIT_BOUNDS` braking bound) vs ``gentle`` (half
+    of it), and both ends are physical by construction. That is the same
+    scene-level variation, re-expressed in a quantity that has a
+    physiological meaning.
+
+    Why v6's scenes are nearer the cameras than v5's
+    --------------------------------------------------
+    The first authored version of this set copied v5-cessation's depths
+    (world z out to ~11 m) and was REFUSED by the mint-time observability
+    floor at 0.7978 against the 0.80 bar — see
+    :data:`~src.data.golden.MIN_OBSERVABLE_FRACTION`. The refusal is a
+    real consequence of the physics, not a nuisance, and it is worth
+    stating because it is not obvious in advance:
+
+    **Physically bounded motion spends many frames moving slowly, and a
+    slow mover needs a much larger silhouette to clear the measured motion
+    gate.** ``MeasuredEnvelope.wake_threshold_px`` rises from 110 gate px
+    at >=1.5 gate px/frame to 535 at <=0.5 — and v5-cessation cleared the
+    floor at those depths precisely BECAUSE its motion was abrupt: an
+    instantaneous stop has no slow phase to be unobservable during. The
+    unphysical set was easier to see.
+
+    Radial clips get this worst: an agent walking toward the camera moves
+    fast in the world and barely at all in pixels, so the whole approach
+    sits in the steep part of the envelope curve.
+
+    :data:`V6_MAX_DEPTH_M` is the resulting authoring rule, derived from
+    the measurement rather than tuned until the gate passed. Its cost is
+    stated plainly: the near/far distance axis is compressed (stops at
+    ~3.4 m vs ~6.0 m rather than ~4.5 m vs ~11 m), and the radial lane is
+    short enough that a 2.0 m/s approach-and-stop does not fit in it —
+    :func:`solve_speed_profile` reduces those legs' cruise speed and the
+    manifest records the achieved value. The long, fast walks live on the
+    lateral camera, whose depth is set by ``x`` and stays constant across
+    an arbitrarily long crossing.
+    """
+    room = (10.0, 3.0, 14.0)
+    daylight = Condition.DAYLIGHT
+    far = Condition.FAR_FIELD
+
+    # Identical to build_scenes_v5_cessation's cameras, field for field.
+    # See this function's docstring for why they are duplicated and what
+    # keeps them from drifting.
+    cam_radial = CameraSpec(
+        "cam_radial",
+        1280,
+        720,
+        900.0,
+        900.0,
+        (0.0, 2.6, 0.4),
+        0.0,
+        "looking straight down-room; radial approach/retreat view",
+        16.0,
+    )
+    cam_lateral = CameraSpec(
+        "cam_lateral",
+        1280,
+        720,
+        900.0,
+        900.0,
+        (-6.5, 2.6, 6.0),
+        -90.0,
+        "mounted on the side wall, looking across the room width; lateral view",
+        14.0,
+    )
+    furniture = [Furniture("desk", (4.3, 0.4, 2.0), (1.2, 0.8, 0.8))]
+
+    firm = V6_GAIT_BOUNDS.max_deceleration_mps2
+    gentle = V6_GAIT_BOUNDS.max_deceleration_mps2 / 2.0
+
+    def person(*extra: Condition) -> tuple[Condition, ...]:
+        return (Condition.SINGLE_PERSON, daylight, *extra)
+
+    scenes: list[Scene] = []
+
+    # --- Radial: toward/away from cam_radial along z (camera at z=0.4).
+    # World z in [3.3, 6.1]. The near end is v5-cessation's own empirically
+    # verified in-frame floor for this camera's fixed height and pitch; the
+    # far end is V6_MAX_DEPTH_M (depth runs ~0.2 m behind world z here).
+    # `near`/`far` name where the STOP happens, the same sense
+    # v5-cessation used them in -- both directions traverse the whole lane.
+    radial_specs = [
+        # (name, start, end, cruise, decel, hold_s, extra_conditions)
+        ("radial_slow_near_firm", (0.3, 6.0), (0.3, 3.6), 0.8, firm, 1.5, ()),
+        ("radial_slow_far_gentle", (0.3, 3.6), (0.3, 6.0), 0.8, gentle, 1.5, (far,)),
+        ("radial_medium_near_firm", (-0.5, 6.0), (-0.5, 3.4), 1.4, firm, 2.0, ()),
+        (
+            "radial_medium_far_gentle",
+            (-0.5, 3.4),
+            (-0.5, 6.0),
+            1.4,
+            gentle,
+            2.0,
+            (far,),
+        ),
+        # Requests 2.0 m/s in a 2.8 m lane, which needs 4.23 m to reach and
+        # shed. solve_speed_profile reduces it and the manifest records the
+        # achieved value -- the bound wins over the request, visibly.
+        ("radial_fast_near_firm", (0.8, 6.0), (0.8, 3.3), 2.0, firm, 1.5, ()),
+        ("radial_fast_far_gentle", (0.8, 3.3), (0.8, 6.0), 2.0, gentle, 1.5, (far,)),
+        ("radial_long_stop_near", (-0.2, 6.0), (-0.2, 3.5), 1.4, firm, 4.0, ()),
+        ("radial_long_stop_far", (-0.2, 3.5), (-0.2, 6.0), 1.4, gentle, 4.0, (far,)),
+    ]
+
+    # --- Lateral: crossing cam_lateral's view along z at fixed x, which
+    # sets depth and holds it constant for the whole crossing -- so this
+    # camera can carry the long, fast walks the radial lane is too short
+    # for. Depth is roughly `x + 6.5`: NEAR_X sits at ~3.0 m and FAR_X at
+    # ~5.3 m, both inside V6_MAX_DEPTH_M. FAR_FIELD is tagged on the deeper
+    # lane in its literal sense here -- at ~5.3 m a slow mover's silhouette
+    # (~680 gate px) is within 1.3x of the 535-px wake threshold, i.e.
+    # genuinely at the far edge of the measured capability envelope.
+    NEAR_X, FAR_X = -3.5, -1.5
+    lateral_specs = [
+        ("lateral_slow_near_firm", (NEAR_X, 4.2), (NEAR_X, 7.0), 0.8, firm, 1.5, ()),
+        (
+            "lateral_slow_far_gentle",
+            (FAR_X, 3.0),
+            (FAR_X, 6.0),
+            0.8,
+            gentle,
+            1.5,
+            (far,),
+        ),
+        ("lateral_medium_near_firm", (NEAR_X, 7.6), (NEAR_X, 4.2), 1.4, firm, 2.0, ()),
+        (
+            "lateral_medium_far_gentle",
+            (FAR_X, 9.0),
+            (FAR_X, 4.0),
+            1.4,
+            gentle,
+            2.0,
+            (far,),
+        ),
+        ("lateral_fast_near_firm", (NEAR_X, 4.0), (NEAR_X, 7.9), 2.0, firm, 1.5, ()),
+        (
+            "lateral_fast_far_gentle",
+            (FAR_X, 3.0),
+            (FAR_X, 9.0),
+            2.0,
+            gentle,
+            1.5,
+            (far,),
+        ),
+        ("lateral_long_stop_near", (NEAR_X, 7.6), (NEAR_X, 4.2), 1.4, firm, 4.0, ()),
+        ("lateral_long_stop_far", (FAR_X, 9.0), (FAR_X, 4.0), 1.4, gentle, 4.0, (far,)),
+    ]
+
+    for camera, specs in ((cam_radial, radial_specs), (cam_lateral, lateral_specs)):
+        for name, start, end, cruise, decel, hold_s, extra in specs:
+            profile_word = "firm" if decel == firm else "gentle"
+            scenes.append(
+                _physical_stop_scene(
+                    name,
+                    room,
+                    camera,
+                    furniture,
+                    person(*extra),
+                    fps,
+                    start,
+                    [
+                        PhysicalWalk(end, cruise, decel),
+                        PhysicalHold(hold_s),
+                    ],
+                    f"{camera.name.removeprefix('cam_')} {profile_word} stop, "
+                    f"cruise {cruise} m/s, brake {decel} m/s^2, hold {hold_s}s",
+                )
+            )
+
+    # --- Stop-then-restart, and a double stop: a second cessation event
+    # per clip. Each direction change happens at zero speed, which is
+    # PhysicalAgent's invariant rather than an authoring convention.
+    scenes.append(
+        _physical_stop_scene(
+            "stop_then_restart_radial",
+            room,
+            cam_radial,
+            furniture,
+            person(),
+            fps,
+            (0.5, 6.0),
+            [
+                PhysicalWalk((0.5, 4.8), 1.2, firm),
+                PhysicalHold(1.2),
+                PhysicalWalk((0.5, 3.4), 1.2, gentle),
+                PhysicalHold(1.0),
+            ],
+            "radial: walk, firm stop, restart further in, gentle stop",
+        )
+    )
+    scenes.append(
+        _physical_stop_scene(
+            "stop_then_restart_lateral",
+            room,
+            cam_lateral,
+            furniture,
+            person(),
+            fps,
+            (FAR_X, 3.5),
+            [
+                PhysicalWalk((FAR_X, 7.5), 1.4, gentle),
+                PhysicalHold(1.5),
+                # Reverses direction. Legal precisely because the previous
+                # leg ended at rest -- see PhysicalAgent's invariant.
+                PhysicalWalk((FAR_X, 5.5), 1.0, firm),
+                PhysicalHold(1.0),
+            ],
+            "lateral: walk, gentle stop, restart the other way, firm stop",
+        )
+    )
+    scenes.append(
+        _physical_stop_scene(
+            "double_stop_radial",
+            room,
+            cam_radial,
+            furniture,
+            person(),
+            fps,
+            (-0.3, 6.0),
+            [
+                PhysicalWalk((-0.3, 4.8), 1.2, firm),
+                PhysicalHold(1.2),
+                PhysicalWalk((-0.3, 3.4), 1.2, firm),
+                PhysicalHold(3.0),
+            ],
+            "radial: walk, brief stop, walk on, long final stop",
+        )
+    )
+
+    return scenes
+
+
 def build_scenes(frames: int, fps: float) -> list[Scene]:
     """The scene set: coverage, overlap, a gap, and degenerates."""
     room = (8.0, 3.0, 12.0)
@@ -1522,6 +2417,7 @@ def generate(
         "v4-gate": build_scenes_v4_gate,
         "v4.1-gate": build_scenes_v4_gate,
         "v5-cessation": build_scenes_v5_cessation,
+        "v6-motion": build_scenes_v6_motion,
     }
     if scene_set not in builders:
         raise ValueError(
@@ -1629,6 +2525,16 @@ def generate(
                     # exercised.
                     "speed_band": scene.extra.get("speed_band", "unspecified"),
                     "path_metres": scene.extra.get("path_metres"),
+                    # v6-motion only (absent elsewhere): the cruise speed
+                    # each walking leg was AUTHORED to reach, and the one
+                    # the gait bounds actually allowed in the space
+                    # available. A leg where these differ is the bounds
+                    # winning over the request, which is the design intent
+                    # -- and it has to be visible, or the manifest records
+                    # an intention rather than the data.
+                    "requested_cruise_mps": scene.extra.get("requested_cruise_mps"),
+                    "achieved_cruise_mps": scene.extra.get("achieved_cruise_mps"),
+                    "motion_seconds": scene.extra.get("motion_seconds"),
                     "track_speed_gate_px": _speed_summary(
                         np.asarray(payload["track_uv"]), camera.width
                     ),
@@ -1717,7 +2623,46 @@ def _supersession_for(version: str) -> str | None:
         return None
     if version == "v5-cessation":
         return None
+    if version == "v6-motion":
+        # v6-motion DOES supersede v5-cessation, and is the second case in
+        # this file where a set exists because the old one should stop
+        # being quoted rather than because it measures something new (the
+        # first was v4.1-gate over v4-gate). Same capability, same
+        # cameras, same coverage; re-authored because v5-cessation's own
+        # GT is unphysical -- 14 of its 22 stop events peak above 1g, and
+        # the median one at 1.54g (Day 30, Objective 1). v5-cessation is
+        # never edited or deleted: it remains the record of what every Day
+        # 21-29 cessation measurement was actually made against, exactly
+        # as v4-gate stayed the record after v4.1-gate superseded it.
+        return "v5-cessation"
     return {"v2-indoor": "v1-driving"}.get(version, "v2-indoor")
+
+
+class GtPhysicalityError(RuntimeError):
+    """Raised when a golden set's own ground truth violates a hard
+    physical constraint — see :func:`enforce_gt_physicality`."""
+
+
+class GtPhysicality(Enum):
+    """Whether a set's GT must clear every hard constraint to mint.
+
+    An enum rather than a bool because the exemption has to be a visible,
+    greppable DECLARATION at its call site, not a ``False`` that reads as
+    a default and gets copy-pasted into the next set. Same discipline as
+    :class:`~src.data.golden.GoldenClip`'s ``low_activity`` and
+    :func:`enforce_regime_volume`'s ``exempt_regimes``.
+    """
+
+    REQUIRED = "required"
+    """The default, and the state every future set is in."""
+
+    LEGACY_UNPHYSICAL_EXEMPT = "legacy-unphysical-exempt"
+    """Only for the pre-Day-30 sets (v2, v3, v4-gate, v4.1-gate,
+    v5-cessation), whose bytes are cited by frozen manifests and which
+    were authored before any generator-side physics existed. v5-cessation
+    would NOT mint under ``REQUIRED``, which is the Day-30 finding, not a
+    reason to weaken the gate. The measurement still RUNS under this value
+    and is still recorded in the manifest — exempt is not unmeasured."""
 
 
 class RegimeVolumeError(RuntimeError):
@@ -1812,12 +2757,205 @@ def enforce_regime_volume(
     return counts
 
 
+def enforce_gt_physicality(
+    clip_root: Path,
+    manifest: dict[str, Any],
+    physicality: GtPhysicality = GtPhysicality.REQUIRED,
+) -> dict[str, Any]:
+    """Refuse to mint a golden set whose GROUND TRUTH violates a hard
+    physical constraint (Day 30, Objective 2).
+
+    Generator physics becomes a structural property of every set instead
+    of a thing someone remembers to check. The predicates are not
+    re-implemented here: this walks
+    :data:`src.estimator.constraints.HARD_CONSTRAINTS` and evaluates each
+    through :func:`~src.model.constraint.evaluate_constraint`, so the
+    bound a set is minted against is BY CONSTRUCTION the same bound the
+    estimator would prune a hypothesis for violating. There is no second
+    copy of a threshold to drift.
+
+    Why this gate had to exist, in one number: v5-cessation minted
+    cleanly, and its GT reaches 36.58 m/s^2 of horizontal acceleration
+    (3.7g). Day 29 measured zero hard-constraint violations on it and said
+    so — correctly, because no constraint in the registry bounded
+    acceleration at all. ``max_pedestrian_acceleration`` (Day 30) closes
+    that, and this function is what makes the closure act on the data
+    rather than sit in a registry.
+
+    Frames 0 and 1 of every track are excluded from the ACCELERATION check
+    only. Under this project's finite-difference convention ``v[0]`` is a
+    mirror of ``v[1]``, which forces ``a[1] == 0`` and ``a[0] == 0``
+    identically — checking them would test the convention, and the true
+    acceleration at those frames is not recoverable from the clip at all
+    (there is no frame -1). See
+    :class:`src.contracts.ground_truth.GtAccelerationTrack`.
+
+    Args:
+        physicality: :attr:`GtPhysicality.REQUIRED` raises on any
+            violation. :attr:`GtPhysicality.LEGACY_UNPHYSICAL_EXEMPT`
+            measures and reports without raising — for the pre-Day-30
+            sets only.
+
+    Returns:
+        Per-constraint evaluation counts, violation counts, and the worst
+        GT value seen, for the manifest to cite. Returned even when the
+        check passes and even when it is exempt: a declared exemption is
+        not an excuse to stop measuring.
+
+    Raises:
+        GtPhysicalityError: under ``REQUIRED``, if any GT frame violates
+            any hard constraint.
+    """
+    from src.contracts.ground_truth import GENERATOR_AXES, gt_position_track
+    from src.estimator.constraints import (
+        GRAVITY_FLOOR_TRANSITION,
+        MASS_CONSERVATION,
+        MAX_PEDESTRIAN_ACCELERATION,
+        MAX_PEDESTRIAN_VELOCITY,
+        ONE_BODY_ONE_PLACE,
+    )
+    from src.model.constraint import HardConstraintViolation, evaluate_constraint
+
+    tally: dict[str, dict[str, Any]] = {
+        constraint.name: {
+            "evaluated": 0,
+            "violations": 0,
+            "worst_gt_value": 0.0,
+            "worst_at": "",
+            "examples": [],
+        }
+        for constraint in (
+            ONE_BODY_ONE_PLACE,
+            MAX_PEDESTRIAN_VELOCITY,
+            MAX_PEDESTRIAN_ACCELERATION,
+            MASS_CONSERVATION,
+            GRAVITY_FLOOR_TRANSITION,
+        )
+    }
+
+    def record(name: str, outcome: object, value: float, where: str) -> None:
+        entry = tally[name]
+        entry["evaluated"] += 1
+        if isinstance(outcome, HardConstraintViolation):
+            entry["violations"] += 1
+            if len(entry["examples"]) < 5:
+                entry["examples"].append({"where": where, "value": round(value, 4)})
+        if value > entry["worst_gt_value"]:
+            entry["worst_gt_value"] = value
+            entry["worst_at"] = where
+
+    for record_row in manifest["clips"]:
+        clip_path = clip_root / f"{record_row['clip_id']}.npz"
+        with np.load(clip_path) as data:
+            if "agent_xyz" not in data:
+                continue
+            raw = np.asarray(data["agent_xyz"], dtype=np.float64)
+        dt_s = 1.0 / float(record_row["fps"])
+        n_frames, n_agents, _ = raw.shape
+
+        for agent_index in range(n_agents):
+            positions = gt_position_track(raw[:, agent_index, :], GENERATOR_AXES)
+            if positions.frames < 2:
+                continue
+            velocity = positions.differentiate(dt_s)
+            acceleration = velocity.differentiate(dt_s)
+            speed = velocity.speed()
+            accel_magnitude = acceleration.magnitude()
+            vertical_velocity = velocity.vertical_component()
+
+            for t in range(positions.frames):
+                where = f"{record_row['clip_id']}/agent{agent_index}/frame{t}"
+
+                record(
+                    MAX_PEDESTRIAN_VELOCITY.name,
+                    evaluate_constraint(MAX_PEDESTRIAN_VELOCITY, float(speed[t])),
+                    float(speed[t]),
+                    where,
+                )
+
+                if t >= 1:
+                    step = float(
+                        np.linalg.norm(positions.values[t] - positions.values[t - 1])
+                    )
+                    record(
+                        MASS_CONSERVATION.name,
+                        evaluate_constraint(MASS_CONSERVATION, step, dt_s),
+                        step,
+                        where,
+                    )
+                    delta_vertical = float(
+                        vertical_velocity[t] - vertical_velocity[t - 1]
+                    )
+                    record(
+                        GRAVITY_FLOOR_TRANSITION.name,
+                        evaluate_constraint(
+                            GRAVITY_FLOOR_TRANSITION, delta_vertical, dt_s
+                        ),
+                        abs(delta_vertical),
+                        where,
+                    )
+
+                if t >= acceleration.FIRST_MEANINGFUL_INDEX:
+                    magnitude = float(accel_magnitude[t])
+                    # Direction from the speed change, not the sign of any
+                    # one component: the two bounds differ (braking is the
+                    # looser one), so feeding the wrong flag would apply
+                    # the wrong ceiling.
+                    is_braking = bool(speed[t] < speed[t - 1])
+                    record(
+                        MAX_PEDESTRIAN_ACCELERATION.name,
+                        evaluate_constraint(
+                            MAX_PEDESTRIAN_ACCELERATION, magnitude, is_braking
+                        ),
+                        magnitude,
+                        where,
+                    )
+
+        for t in range(n_frames):
+            for i in range(n_agents):
+                for j in range(i + 1, n_agents):
+                    a = tuple(float(v) for v in raw[t, i])
+                    b = tuple(float(v) for v in raw[t, j])
+                    separation = float(np.linalg.norm(raw[t, i] - raw[t, j]))
+                    record(
+                        ONE_BODY_ONE_PLACE.name,
+                        evaluate_constraint(ONE_BODY_ONE_PLACE, a, b),
+                        separation,
+                        f"{record_row['clip_id']}/frame{t}/agents{i}-{j}",
+                    )
+
+    total_violations = sum(entry["violations"] for entry in tally.values())
+    report: dict[str, Any] = {
+        "policy": physicality.value,
+        "total_violations": total_violations,
+        "by_constraint": tally,
+    }
+    if total_violations and physicality is GtPhysicality.REQUIRED:
+        detail = "\n  ".join(
+            f"{name}: {entry['violations']}/{entry['evaluated']} frames, "
+            f"worst {entry['worst_gt_value']:.4f} at {entry['worst_at']}"
+            for name, entry in tally.items()
+            if entry["violations"]
+        )
+        raise GtPhysicalityError(
+            "ground truth violates a hard physical constraint and this set "
+            "must not mint -- a set whose own GT is impossible cannot "
+            "measure anything about a filter's response to real motion:\n  "
+            + detail
+            + "\nFix the GENERATOR, not the threshold. See "
+            "GaitBounds/PhysicalAgent for how v6-motion does it, and "
+            "docs/adr/0010 for what measuring against unphysical GT cost."
+        )
+    return report
+
+
 def write_golden_from_manifest(
     manifest: dict[str, Any],
     version: str,
     config: Any,
     clip_root: Path,
     regime_volume: dict[str, Any] | None = None,
+    physicality: GtPhysicality = GtPhysicality.REQUIRED,
 ) -> Path:
     """Mint a golden set from a freshly generated manifest.
 
@@ -1827,6 +2965,12 @@ def write_golden_from_manifest(
     regenerable by definition; a set containing captured footage is immutable
     and must go through ``GoldenSet.with_clips`` under a new version.
 
+    Acceptance order, cheapest-to-refuse first: GT physicality (Day 30),
+    then regime volume (Day 23), then the observability floor (Day 16,
+    inside ``mint_golden_set``). Physicality goes first deliberately — a
+    set whose GT is impossible cannot measure anything, so there is no
+    point telling its author that its cessation count is also thin.
+
     Args:
         regime_volume: When set, keyword arguments forwarded to
             :func:`enforce_regime_volume` — the check runs BEFORE
@@ -1835,7 +2979,15 @@ def write_golden_from_manifest(
             default, and every pre-Day-23 caller's behavior) skips it
             entirely — v3/v4-gate/v4.1-gate never gain a check they were
             never designed against.
+        physicality: Forwarded to :func:`enforce_gt_physicality`. Unlike
+            ``regime_volume`` this has NO skip value and defaults to
+            REQUIRED: every future set is gated, and the pre-Day-30 sets
+            must name their exemption at the call site. The measurement
+            runs either way and lands in the manifest either way.
     """
+    manifest["gt_physicality"] = enforce_gt_physicality(
+        clip_root, manifest, physicality
+    )
     if regime_volume is not None:
         measured_regime_counts = enforce_regime_volume(
             clip_root, manifest, **regime_volume
@@ -1895,15 +3047,16 @@ def write_golden_from_manifest(
     result = mint_golden_set(
         config.paths.project_root / "configs" / "golden", golden, observable, True
     )
-    if regime_volume is not None:
-        # Persist regime_counts (and observable_fraction, already computed
-        # above) back to the manifest this specific caller opted into the
-        # extra check for -- v3/v4-gate/v4.1-gate's manifests are
-        # unaffected, since they never pass regime_volume and this branch
-        # never runs for them.
-        (clip_root / "dataset_manifest.json").write_text(
-            json.dumps(manifest, indent=2, sort_keys=True) + "\n"
-        )
+    # Persist the acceptance measurements (regime_counts when the caller
+    # opted in, gt_physicality always, observable_fraction always) back
+    # into the manifest. Unconditional since Day 30: the physicality gate
+    # runs for every set including the exempt ones, and a measurement that
+    # was taken and then thrown away is the shape of an unrecorded caveat.
+    # Only the manifest changes; no clip byte does, so no content_sha
+    # moves and no frozen golden set is disturbed.
+    (clip_root / "dataset_manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n"
+    )
     return result
 
 
@@ -1949,13 +3102,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--scene-set",
         default="v2",
-        choices=["v2", "v3", "v4-gate", "v4.1-gate", "v5-cessation"],
+        choices=["v2", "v3", "v4-gate", "v4.1-gate", "v5-cessation", "v6-motion"],
         help=(
             "which authored scene set to render. v2 is frozen — its bytes are "
             "cited by a golden manifest — so re-authoring means a new set. "
             "v4-gate is authored quiet, to measure a motion gate. v4.1-gate "
             "is v4-gate's scenes re-rendered under the Day-17 gait-phase fix. "
-            "v5-cessation is authored for cessation-regime volume (Day 23)."
+            "v5-cessation is authored for cessation-regime volume (Day 23). "
+            "v6-motion is v5-cessation's coverage regenerated under "
+            "physiological kinematic bounds (Day 30) and supersedes it."
         ),
     )
     parser.add_argument(
@@ -1988,19 +3143,50 @@ def main(argv: list[str] | None = None) -> int:
     print(f"Manifest: {output / 'dataset_manifest.json'}")
 
     if args.write_golden:
+        # The cessation-volume floor applies to both cessation sets: v6
+        # carries forward v5's criterion unchanged (>= 200 cessation
+        # frames, >= 30 in every other non-exempt regime), because a
+        # physical re-authoring that could no longer SCORE the criterion
+        # would not be an improvement on v5 — it would be a different,
+        # smaller instrument.
         regime_volume = (
             {
                 "min_cessation_frames": 200,
                 "min_other_regime_frames": 30,
-                "exempt_regimes": V5_CESSATION_EXEMPT_REGIMES,
+                "exempt_regimes": (
+                    V5_CESSATION_EXEMPT_REGIMES
+                    if args.scene_set == "v5-cessation"
+                    else V6_MOTION_EXEMPT_REGIMES
+                ),
             }
-            if args.scene_set == "v5-cessation"
+            if args.scene_set in ("v5-cessation", "v6-motion")
             else None
         )
+        # GT physicality is REQUIRED for every set authored from Day 30 on.
+        # The pre-Day-30 sets predate any generator-side physics and their
+        # bytes are cited by frozen manifests, so re-minting one names its
+        # exemption here, in the open. v5-cessation would NOT mint under
+        # REQUIRED — that is Day 30's finding, and the exemption exists to
+        # keep the historical set reproducible, not to excuse it.
+        physicality = (
+            GtPhysicality.REQUIRED
+            if args.scene_set == "v6-motion"
+            else GtPhysicality.LEGACY_UNPHYSICAL_EXEMPT
+        )
         path = write_golden_from_manifest(
-            manifest, args.write_golden, config, output, regime_volume=regime_volume
+            manifest,
+            args.write_golden,
+            config,
+            output,
+            regime_volume=regime_volume,
+            physicality=physicality,
         )
         print(f"Golden set {args.write_golden}: {path}")
+        physical = manifest.get("gt_physicality", {})
+        print(
+            f"GT physicality ({physical.get('policy')}): "
+            f"{physical.get('total_violations')} hard-constraint violations"
+        )
     print(
         "\nSYNTHETIC-ONLY BASELINE. Real Site Zero footage supersedes this for "
         "product claims;\na scorecard from it must not be quoted externally."

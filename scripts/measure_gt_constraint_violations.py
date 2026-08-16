@@ -47,23 +47,42 @@ reported below as numbers rather than left as caveats:
    single-agent: 0 pairs evaluated, so 0 violations is vacuous there. It
    IS exercised on v3-indoor (2,680 pairs, closest approach 0.0185 m).
 
-3. **Unbounded quantities.** The zero is over the four constraints that
-   EXIST. v5-cessation GT reaches 36.58 m/s^2 of horizontal acceleration
-   -- 3.7g, 24x `PERSON_SIGMA_A_MPS2` -- with 3.4% of frames above 1g. A
-   human on foot cannot decelerate at 3.7g; that is a crash, not a stop,
-   and it means the generator DOES produce unphysical motion, in a
-   quantity no hard constraint currently bounds. Reported here rather
-   than fixed by adding a fifth constraint today, because the bound that
-   would catch it (a human deceleration limit) needs the same
-   impossibility-vs-typical derivation `PEDESTRIAN_MAX_SPEED_MPS` just
-   went through, and inventing it inside an acceptance measurement is how
-   a threshold gets fitted to the data it is supposed to judge.
+3. **Unbounded quantities.** A zero is only ever a zero over the
+   constraints that EXIST. Day 29 reported one here and said so: v5-
+   cessation GT reaches 36.58 m/s^2 (3.7g) of horizontal acceleration
+   with 3.4% of frames above 1g, and NO constraint in the registry
+   bounded it -- a walking SPEED, arrived at impossibly fast, is invisible
+   to a speed bound, and horizontal motion is invisible to a free-fall
+   bound. Day 29 declined to close that inside this measurement, on the
+   grounds that inventing a threshold here is how a threshold gets fitted
+   to the data it is supposed to judge.
+
+   **Day 30 closed it from outside.** `max_pedestrian_acceleration` was
+   derived from the biomechanics literature in
+   `src/estimator/motion_model.py` and stated before being run, then
+   measured here. v5-cessation now records **23 violations in 1021
+   evaluated frames** -- so this script's headline for that set is no
+   longer zero, and the nonzero is the generator, exactly as the second
+   bullet at the top of this docstring predicts. v5-cessation is not
+   re-rendered (its bytes are cited by a frozen manifest and it remains
+   the record of what Days 21-29 measured); v6-motion is the physical
+   replacement, and it mints only because its GT clears all five.
 
 Constraints measured, and how each is fed from GT
 ----------------------------------------------------
+The list is checked against `HARD_CONSTRAINTS` at runtime rather than
+kept in sync by hand -- see `_score_version`'s registry assertion, and
+Day 24's registry/consumer drift for why a hand-maintained list beside a
+registry is a promise rather than a mechanism.
+
   - `one_body_one_place`: every distinct agent PAIR at every frame.
   - `max_pedestrian_velocity`: per-frame GT speed, finite-differenced
     from GT position (same convention as `src.estimator.regime`).
+  - `max_pedestrian_acceleration`: per-frame |a|, with the braking flag
+    taken from the sign of the speed change (the accelerating and braking
+    bounds differ). Frames 0-1 are skipped: the frame-0 velocity mirror
+    forces a[1] == 0 identically, so checking them would test the
+    differencing convention rather than the data.
   - `mass_conservation`: consecutive OBSERVED frames of one track, with
     the elapsed gap -- on gapless synthetic GT this is one frame step,
     and the check is then "displacement reachable in dt", which is the
@@ -92,15 +111,25 @@ import numpy.typing as npt
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from src.config import IronConfig  # noqa: E402
+from src.contracts.ground_truth import (  # noqa: E402
+    GENERATOR_AXES,
+    gt_position_track,
+)
 from src.data.golden import GoldenSetError, load_golden_set  # noqa: E402
 from src.estimator.constraints import (  # noqa: E402
     GRAVITY_FLOOR_TRANSITION,
+    HARD_CONSTRAINTS,
     MASS_CONSERVATION,
+    MAX_PEDESTRIAN_ACCELERATION,
     MAX_PEDESTRIAN_VELOCITY,
     ONE_BODY_ONE_PLACE,
     STANDARD_GRAVITY_MPS2,
 )
-from src.estimator.motion_model import PEDESTRIAN_MAX_SPEED_MPS  # noqa: E402
+from src.estimator.motion_model import (  # noqa: E402
+    PEDESTRIAN_MAX_ACCELERATION_MPS2,
+    PEDESTRIAN_MAX_DECELERATION_MPS2,
+    PEDESTRIAN_MAX_SPEED_MPS,
+)
 from src.model.constraint import (  # noqa: E402
     HardConstraintViolation,
     Satisfied,
@@ -110,26 +139,26 @@ from src.model.constraint import (  # noqa: E402
 
 FloatArray = npt.NDArray[np.float64]
 
-VERTICAL_AXIS = 1
-"""y is vertical in `agent_xyz`. Verified against the generator, not
-assumed from a convention: `scripts/gen_synthetic_indoor.py:198` builds
-each agent position as `np.array([x, self.height_m / 2.0, z])`, so index
-1 is the agent's centroid HEIGHT (a constant 0.86 m for the default
-1.72 m walker) and x/z are the ground plane, with z the camera-facing
-depth axis.
+VERTICAL_AXIS_NOTE = """Why this file no longer declares a vertical axis.
 
-Recorded because the first run of this script got it wrong. It used
-index 2, citing `src/model/world.py`'s +z-up world frame -- a real
-convention, just not the one this array is in -- and reported 16
-`gravity_floor_transition` violations on v5-cessation, with a worst case
-of -36.58 m/s^2, 3.7x free fall. Every one of those was the agent's
-DEPTH motion being read as vertical motion: v5-cessation's walkers
-change speed abruptly by construction, and an abrupt speed change along
-the depth axis looks exactly like an impossible fall if the axis is
-mislabelled. The nonzero count was a defect in the measuring apparatus,
-not in either thing this script exists to measure -- the twelfth time
-this project has found the instrument rather than the subject at fault,
-and the reason the run was diagnosed instead of reported."""
+Day 29: `VERTICAL_AXIS = 1` was a hand-maintained integer sitting beside
+a raw `agent_xyz` array, and the first version of this script had it set
+to 2 -- citing `src/model/world.py`'s +z-up world frame, a real
+convention, just not the one this array is in. It reported 16
+`gravity_floor_transition` violations on v5-cessation, worst case
+-36.58 m/s^2, 3.7x free fall. Every one was the agent's DEPTH motion read
+as vertical motion: v5-cessation's walkers change speed abruptly by
+construction, and an abrupt speed change along the depth axis looks
+exactly like an impossible fall when the axis is mislabelled. The nonzero
+count was a defect in the measuring apparatus, not in either thing this
+script exists to measure -- the twelfth time this project found the
+instrument rather than the subject at fault.
+
+Day 30, Objective 4: the correct integer was never the fix. The fix is
+that the ARRAY carries its convention. This script now reads GT through
+`src.contracts.ground_truth.GtPositionTrack`, whose `axes` field is
+required and undefaulted, and asks it for `vertical_component()` instead
+of indexing. There is no integer here to set wrongly."""
 
 
 class _Counter:
@@ -161,9 +190,12 @@ class _Counter:
             self.unevaluable += 1
         elif not isinstance(outcome, Satisfied):
             raise AssertionError(f"unhandled outcome {outcome!r}")
-        if self.evaluated == 1 or (
-            value > self.extreme_value if larger_is_worse else value < self.extreme_value
-        ):
+        worse = (
+            value > self.extreme_value
+            if larger_is_worse
+            else value < self.extreme_value
+        )
+        if self.evaluated == 1 or worse:
             self.extreme_value = value
             self.extreme_where = where
 
@@ -178,18 +210,17 @@ class _Counter:
         }
 
 
-def _gt_velocity(track_xyz: FloatArray, dt_s: float) -> FloatArray:
-    """Same convention as `src.estimator.regime.classify_track` and
-    `scripts/eval_estimator.py`: forward difference, frame 0 mirrors
-    frame 1."""
-    velocity = np.zeros_like(track_xyz)
-    velocity[1:] = (track_xyz[1:] - track_xyz[:-1]) / dt_s
-    if track_xyz.shape[0] >= 2:
-        velocity[0] = velocity[1]
-    return velocity
+# Day 30, Objective 4: `_gt_velocity` was deleted here. It was this file's
+# own copy of the forward-difference convention already implemented in
+# `src.estimator.regime.classify_track` and `scripts/eval_estimator.py` --
+# a third copy, kept in sync by comment. `GtPositionTrack.differentiate`
+# is now the single implementation, and the convention travels with the
+# array rather than beside it.
 
 
-def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, Any] | None:
+def _score_version(
+    version: str, root: Path, config: IronConfig
+) -> dict[str, Any] | None:
     try:
         golden = load_golden_set(root, version)
     except GoldenSetError as exc:
@@ -207,6 +238,7 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
         fps_by_clip = {c["clip_id"]: float(c["fps"]) for c in manifest.get("clips", [])}
 
     speed = _Counter("max_pedestrian_velocity")
+    accel = _Counter("max_pedestrian_acceleration")
     mass = _Counter("mass_conservation")
     gravity = _Counter("gravity_floor_transition")
     one_body = _Counter("one_body_one_place")
@@ -233,14 +265,17 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
         n_frames, n_agents, _ = agent_xyz.shape
 
         for agent_index in range(n_agents):
-            track = agent_xyz[:, agent_index, :]
-            if track.shape[0] < 2:
+            positions = gt_position_track(agent_xyz[:, agent_index, :], GENERATOR_AXES)
+            track = positions.values
+            if positions.frames < 2:
                 continue
             tracks += 1
-            frames_total += track.shape[0]
-            velocity = _gt_velocity(track, dt_s)
+            frames_total += positions.frames
+            gt_velocity = positions.differentiate(dt_s)
+            velocity = gt_velocity.values
+            vertical_velocity = gt_velocity.vertical_component()
 
-            for t in range(track.shape[0]):
+            for t in range(positions.frames):
                 where = f"{clip.clip_id}/agent{agent_index}/frame{t}"
 
                 speed_mps = float(np.linalg.norm(velocity[t]))
@@ -259,6 +294,24 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
                     peak_gt_accel_mps2 = max(peak_gt_accel_mps2, accel_mps2)
                     if accel_mps2 > STANDARD_GRAVITY_MPS2:
                         frames_above_1g += 1
+                    # Day 30's fifth constraint. Frames 0-1 are skipped for
+                    # the same reason enforce_gt_physicality skips them: the
+                    # frame-0 velocity mirror forces a[1] == 0 identically,
+                    # so checking it would test the convention rather than
+                    # the data. Braking direction from the speed change --
+                    # the accelerating and braking bounds differ.
+                    if t >= 2:
+                        braking = bool(
+                            np.linalg.norm(velocity[t])
+                            < np.linalg.norm(velocity[t - 1])
+                        )
+                        accel.record(
+                            evaluate_constraint(
+                                MAX_PEDESTRIAN_ACCELERATION, accel_mps2, braking
+                            ),
+                            accel_mps2,
+                            where,
+                        )
                     displacement_m = float(np.linalg.norm(track[t] - track[t - 1]))
                     mass.record(
                         evaluate_constraint(MASS_CONSERVATION, displacement_m, dt_s),
@@ -266,7 +319,7 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
                         where,
                     )
                     delta_vz = float(
-                        velocity[t][VERTICAL_AXIS] - velocity[t - 1][VERTICAL_AXIS]
+                        vertical_velocity[t] - vertical_velocity[t - 1]
                     )
                     # Extremum tracked as the most-negative vertical
                     # acceleration -- the direction this bound binds in.
@@ -293,7 +346,20 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
                         larger_is_worse=False,
                     )
 
-    counters = [one_body, speed, mass, gravity]
+    counters = [one_body, speed, accel, mass, gravity]
+    measured_names = {counter.name for counter in counters}
+    registry_names = {constraint.name for constraint in HARD_CONSTRAINTS}
+    if measured_names != registry_names:
+        # Day 24's registry/consumer drift, pre-empted. This script is the
+        # instrument for HARD_CONSTRAINTS, and a constraint added to the
+        # registry that never reaches here would be a bound nobody ever
+        # measured against GT -- which is exactly how v5-cessation's 3.7g
+        # went unrefuted for eight days.
+        raise AssertionError(
+            "this script does not measure every registered hard constraint: "
+            f"missing {sorted(registry_names - measured_names)}, "
+            f"unknown {sorted(measured_names - registry_names)}"
+        )
     return {
         "version": version,
         "tracks": tracks,
@@ -340,6 +406,14 @@ def _print_version(result: dict[str, Any]) -> None:
         f"{counterfactual}/{result['frames']} GT frames "
         f"({100.0 * counterfactual / max(result['frames'], 1):.1f}%)"
     )
+    accel_row = by_name["max_pedestrian_acceleration"]
+    print(
+        f"  max_pedestrian_acceleration: worst GT |a| "
+        f"{accel_row['extreme_gt_value']:.4f} m/s^2 vs bounds "
+        f"{PEDESTRIAN_MAX_ACCELERATION_MPS2} (accelerating) / "
+        f"{PEDESTRIAN_MAX_DECELERATION_MPS2} (braking) m/s^2 -- "
+        f"{accel_row['violations']}/{accel_row['evaluated']} frames violate"
+    )
     mass_row = by_name["mass_conservation"]
     print(
         f"  mass_conservation       : fastest GT gap crossing "
@@ -375,8 +449,9 @@ def _print_version(result: dict[str, Any]) -> None:
         print(
             f"  NOTE: peak GT |acceleration| {peak_accel:.2f} m/s^2 "
             f"({result['frames_above_1g']} frames above 1g) -- unphysical "
-            "for a body on foot, and bounded by no constraint in the "
-            "registry. See this script's docstring, limit 3."
+            "for a body on foot. Bounded, since Day 30, by "
+            "max_pedestrian_acceleration; see its violation count above "
+            "and this script's docstring, limit 3."
         )
     elif peak_accel == 0.0:
         print(

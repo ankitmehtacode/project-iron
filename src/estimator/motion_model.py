@@ -191,6 +191,88 @@ typical scale belongs in the likelihood, where being wrong is recoverable
 — which is where the typical-scale constants above already act.
 """
 
+# ---------------------------------------------------------------------------
+# Day 30: the rest of the pedestrian IMPOSSIBILITY envelope.
+#
+# `PEDESTRIAN_MAX_SPEED_MPS` was the only impossibility-scale constant this
+# module had, and Day 29 measured the consequence: v5-cessation's GT reaches
+# 36.58 m/s^2 (3.7g) of horizontal acceleration with no constraint able to
+# refute it, because a speed bound says nothing about how fast that speed may
+# CHANGE. Every constant below is the same kind of number as
+# `PEDESTRIAN_MAX_SPEED_MPS` and carries the same one-sided error budget: a
+# hard bound's job is to be never wrong, not tight.
+#
+# All three are declared from the biomechanics literature at
+# order-of-magnitude precision and rounded UP, not fitted to any trajectory
+# in this repository. They are stated here BEFORE the acceptance measurement
+# that judges them (Day 29's own rule: inventing a threshold inside the
+# measurement it is supposed to survive is how a threshold gets fitted to the
+# data it judges). What they were measured against afterwards is reported in
+# `FOUNDATION_REPORT.md` §Day-30, including the fact that v5-cessation FAILS
+# the acceleration bound — which is the finding, not a reason to loosen it.
+#
+# HONESTY NOTE, applying to all three: the sources named are the standard
+# results these magnitudes come from, cited from the literature rather than
+# re-derived or re-measured here, and no paper PDF was consulted while
+# writing them. They are declared bounds in exactly the sense every other
+# "declared, not fitted" constant in this codebase is, and they are chosen
+# generously loose precisely so that the uncertainty in the citation cannot
+# make them wrong in the dangerous direction. Site Zero footage supersedes
+# them for anything tighter.
+# ---------------------------------------------------------------------------
+
+PEDESTRIAN_MAX_ACCELERATION_MPS2 = 12.0
+"""IMPOSSIBILITY bound on a human's forward ground acceleration, m/s^2.
+
+Source: sprint-start biomechanics. A world-class sprinter's peak horizontal
+acceleration out of the blocks is approximately 1g (~10 m/s^2) and decays
+through the acceleration phase; this is the largest sustained forward
+acceleration a human body is known to produce against the ground. Rounded up
+to 12.0 (~1.22g) for the one-sided error budget above.
+
+NOT to be confused with :data:`PERSON_SIGMA_A_MPS2` (1.5), which is a
+process-noise DENSITY parameterizing an unbounded Gaussian — it is not a
+bound on anything and cannot serve as one. See that constant, and the
+`iron-eval-discipline` skill's rule on the distinction."""
+
+PEDESTRIAN_MAX_DECELERATION_MPS2 = 20.0
+"""IMPOSSIBILITY bound on a human's braking deceleration, m/s^2.
+
+ASYMMETRIC with :data:`PEDESTRIAN_MAX_ACCELERATION_MPS2` by roughly 1.7x, and
+the asymmetry is the physically interesting part: forward acceleration is
+limited by how much propulsive force the legs can generate, while braking is
+limited by friction and by how much eccentric load the body will tolerate —
+different mechanisms with different ceilings, and braking's is the higher
+one. A person can stop faster than they can start.
+
+Source: cutting and deceleration studies in field-sport biomechanics, which
+report peak horizontal braking accelerations around 1.5-2g during hard
+decelerations and 180-degree cuts. Rounded up to 20.0 (~2.04g).
+
+An emergency stop is not a fall: a body that has genuinely left the ground
+and is impacting something is outside the pedestrian model entirely, and
+:data:`~src.estimator.constraints.STANDARD_GRAVITY_MPS2`'s free-fall bound is
+the constraint that applies there."""
+
+PEDESTRIAN_MAX_JERK_MPS3 = 200.0
+"""IMPOSSIBILITY bound on the rate of change of a human's ground
+acceleration, m/s^3.
+
+Why a jerk bound is needed at all, given the two above: a bound on
+acceleration alone still admits an INSTANTANEOUS onset of maximal
+deceleration, which is a step change in force at the foot-ground interface —
+physically a collision, not a stop. Jerk is the quantity that distinguishes
+"a person decided to stop" from "a person hit a wall," and it is the specific
+thing v5-cessation's generator had no notion of.
+
+Source: minimum-jerk models of voluntary human movement (Flash & Hogan's
+minimum-jerk trajectory result for reaching, extended to locomotion by the
+gait-initiation and gait-termination literature) put voluntary whole-body
+jerk in the tens of m/s^3. A hard bound must also admit involuntary and
+protective movement, which is faster; 200.0 corresponds to reaching this
+module's own maximum deceleration from rest in ~0.1 s, which is about as
+abrupt as a body can load a limb without injury."""
+
 
 def pedestrian_velocity_covariance_floor_mps2(dt_s: float) -> float:
     """The physically-derived floor under a person-kind (or asset_carried,

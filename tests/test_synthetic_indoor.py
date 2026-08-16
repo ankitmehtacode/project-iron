@@ -592,3 +592,314 @@ def test_content_sha_reproduces_across_processes(tmp_path: Path) -> None:
         )
         results.append(json.loads(out.stdout.strip().splitlines()[-1]))
     assert results[0] == results[1], "content_sha depends on the hash salt"
+
+
+# ===========================================================================
+# Day 30, Objective 2 — v6-motion: physically bounded agent kinematics
+# ===========================================================================
+
+
+V6_DT_S = 1.0 / 12.0
+
+
+def _v6_track(scene: "gen.Scene") -> np.ndarray:
+    """One scene's GT positions, sampled exactly as `generate` samples
+    them (`t = frame / (frames - 1)`)."""
+    agent = scene.agents[0]
+    return np.array(
+        [agent.position_at(f / max(1, scene.frames - 1)) for f in range(scene.frames)]
+    )
+
+
+def _finite_difference(track: np.ndarray, dt_s: float) -> tuple[np.ndarray, np.ndarray]:
+    """Speed and |acceleration| under this project's standing convention."""
+    from src.contracts.ground_truth import GENERATOR_AXES, gt_position_track
+
+    positions = gt_position_track(track, GENERATOR_AXES)
+    velocity = positions.differentiate(dt_s)
+    return velocity.speed(), velocity.differentiate(dt_s).magnitude()
+
+
+def test_v6_gait_bounds_reject_a_symmetric_profile() -> None:
+    """The asymmetry is a physical claim, not a rounding artifact: a
+    person stops faster than they start."""
+    with pytest.raises(ValueError, match="stops faster than they start"):
+        gen.GaitBounds(
+            max_speed_mps=2.0,
+            max_acceleration_mps2=2.0,
+            max_deceleration_mps2=2.0,
+            max_jerk_mps3=8.0,
+        )
+
+
+def test_v6_gait_bounds_reject_authoring_past_the_impossibility_envelope() -> None:
+    """A generator may not author motion its own hard constraints would
+    refute — the invariant that keeps the typical scale and the
+    impossibility scale from being confused for one another."""
+    from src.estimator.motion_model import PEDESTRIAN_MAX_DECELERATION_MPS2
+
+    with pytest.raises(ValueError, match="PEDESTRIAN_MAX_DECELERATION_MPS2"):
+        gen.GaitBounds(
+            max_speed_mps=2.0,
+            max_acceleration_mps2=1.1,
+            max_deceleration_mps2=PEDESTRIAN_MAX_DECELERATION_MPS2 + 1.0,
+            max_jerk_mps3=8.0,
+        )
+
+
+def test_v6_speed_profile_satisfies_every_bound_by_construction() -> None:
+    """Sampled finely (well above the 12fps the clips are rendered at, so
+    this tests the PROFILE rather than what the frame rate happens to
+    resolve): acceleration, deceleration, jerk and speed all stay inside
+    V6_GAIT_BOUNDS."""
+    bounds = gen.V6_GAIT_BOUNDS
+    profile = gen.solve_speed_profile(6.0, 1.4, bounds)
+    fine_dt = 1e-3
+    times = np.arange(0.0, profile.duration_s, fine_dt)
+    distance = np.array([profile.distance_at(t) for t in times])
+    speed = np.diff(distance) / fine_dt
+    accel = np.diff(speed) / fine_dt
+    jerk = np.diff(accel) / fine_dt
+
+    assert speed.max() <= bounds.max_speed_mps + 1e-6
+    assert accel.max() <= bounds.max_acceleration_mps2 + 1e-3
+    assert -accel.min() <= bounds.max_deceleration_mps2 + 1e-3
+    assert np.abs(jerk).max() <= bounds.max_jerk_mps3 + 1e-1
+
+
+def test_v6_speed_profile_covers_exactly_the_leg_length() -> None:
+    for length, target in ((6.0, 1.4), (2.5, 2.0), (0.9, 0.8)):
+        profile = gen.solve_speed_profile(length, target, gen.V6_GAIT_BOUNDS)
+        assert profile.distance_at(profile.duration_s) == pytest.approx(length)
+        assert profile.distance_at(0.0) == 0.0
+
+
+def test_v6_short_leg_reduces_cruise_speed_rather_than_breaking_the_bound() -> None:
+    """The bounds win over the authored request. A 2.5 m leg cannot reach
+    2.0 m/s and stop again (that needs 4.23 m), so the solver lowers the
+    cruise speed — it does not clip the acceleration."""
+    profile = gen.solve_speed_profile(2.5, 2.0, gen.V6_GAIT_BOUNDS)
+    assert profile.cruise_mps < 2.0
+    assert profile.cruise_seconds == pytest.approx(0.0, abs=1e-6)
+    peak_accel = 1.5 * profile.cruise_mps / profile.accel_seconds
+    assert peak_accel <= gen.V6_GAIT_BOUNDS.max_acceleration_mps2 + 1e-9
+
+
+def test_v6_physical_agent_rejects_a_zero_length_walk() -> None:
+    """A zero-length walk has no heading, and the class's invariant is
+    that heading is well defined whenever speed is nonzero."""
+    with pytest.raises(ValueError, match="zero length"):
+        gen.PhysicalAgent(0, (0.0, 0.0), [gen.PhysicalWalk((0.0, 0.0), 1.4)])
+
+
+def test_v6_physical_agent_rejects_a_timeline_shorter_than_its_motion() -> None:
+    with pytest.raises(ValueError, match="shorter than"):
+        gen.PhysicalAgent(
+            0,
+            (0.0, 0.0),
+            [gen.PhysicalWalk((0.0, 4.0), 1.4)],
+            timeline_seconds=0.5,
+        )
+
+
+def test_v6_clip_length_makes_the_sample_interval_exactly_one_over_fps() -> None:
+    """v5-cessation sized clips as round(seconds * fps), leaving the true
+    sample interval ~2% off 1/fps. Harmless for a regime label; not
+    harmless for a measurement whose whole purpose is to compare an
+    acceleration against a bound."""
+    for scene in gen.build_scenes_v6_motion(24, 12.0):
+        agent = scene.agents[0]
+        assert agent.timeline_seconds == pytest.approx((scene.frames - 1) / scene.fps)
+        assert agent.timeline_seconds >= agent.motion_seconds - 1e-9
+
+
+def test_v6_gt_respects_every_bound_at_the_rendered_frame_rate() -> None:
+    """The property the whole set exists for, measured on the GT exactly
+    as it lands in the clip — not on the continuous profile."""
+    bounds = gen.V6_GAIT_BOUNDS
+    for scene in gen.build_scenes_v6_motion(24, 12.0):
+        speed, accel = _finite_difference(_v6_track(scene), V6_DT_S)
+        assert speed.max() <= bounds.max_speed_mps + 1e-6, scene.name
+        # Frames 0-1 are convention artifacts, not measurements.
+        assert accel[2:].max() <= bounds.max_deceleration_mps2 + 1e-3, scene.name
+
+
+def test_v6_gt_is_far_below_one_g_where_v5_cessation_was_far_above() -> None:
+    """The Day-30 headline, as a test. v5-cessation's stop events peak at
+    a median 15.13 m/s^2 (1.54g) and a max of 36.58 (3.7g); v6-motion's
+    worst frame anywhere must sit under 1g by a wide margin."""
+    from src.estimator.constraints import STANDARD_GRAVITY_MPS2
+
+    worst = max(
+        float(_finite_difference(_v6_track(scene), V6_DT_S)[1][2:].max())
+        for scene in gen.build_scenes_v6_motion(24, 12.0)
+    )
+    assert worst < STANDARD_GRAVITY_MPS2 / 4.0, f"worst |a| = {worst}"
+
+
+def test_v6_every_heading_change_happens_at_zero_speed() -> None:
+    """PhysicalAgent's structural invariant. A moving agent that turns
+    instantaneously has unbounded lateral acceleration no matter how
+    carefully its speed profile is shaped — the same defect as
+    v5-cessation's velocity steps wearing a different hat."""
+    for scene in gen.build_scenes_v6_motion(24, 12.0):
+        track = _v6_track(scene)
+        speed, _ = _finite_difference(track, V6_DT_S)
+        velocity = np.diff(track, axis=0) / V6_DT_S
+        for t in range(1, len(velocity)):
+            previous, current = velocity[t - 1], velocity[t]
+            norms = float(np.linalg.norm(previous) * np.linalg.norm(current))
+            if norms < 1e-9:
+                continue
+            cosine = float(np.dot(previous, current) / norms)
+            if cosine < 0.99:  # a real heading change
+                assert min(speed[t], speed[t + 1]) < 0.05, (
+                    f"{scene.name}: heading changed at frame {t} while "
+                    f"still moving at {speed[t]:.3f} m/s"
+                )
+
+
+def test_v6_cameras_are_field_for_field_identical_to_v5_cessations() -> None:
+    """v6-motion duplicates v5-cessation's camera definitions rather than
+    factoring them out, because v5's bytes are cited by a frozen manifest
+    and editing its builder risks its content hashes. This is the test
+    that keeps the duplication from drifting — the same failure mode
+    (a hand-maintained value beside another) this project already hit on
+    Day 16 and Day 23."""
+    v5 = {
+        camera.name: camera
+        for scene in gen.build_scenes_v5_cessation(24, 12.0)
+        for camera in scene.cameras
+    }
+    v6 = {
+        camera.name: camera
+        for scene in gen.build_scenes_v6_motion(24, 12.0)
+        for camera in scene.cameras
+    }
+    assert set(v5) == set(v6) == {"cam_radial", "cam_lateral"}
+    for name in v5:
+        assert v5[name] == v6[name], f"{name} drifted between v5 and v6"
+
+
+def test_v6_stays_inside_the_observability_derived_depth_ceiling() -> None:
+    """V6_MAX_DEPTH_M is derived from the measured motion-gate envelope
+    (see its docstring). Authoring past it is what got the first version
+    of this set REFUSED by the mint-time observability floor at 0.7978."""
+    for scene in gen.build_scenes_v6_motion(24, 12.0):
+        extrinsics = scene.cameras[0].extrinsics()
+        track = _v6_track(scene)
+        homogeneous = np.concatenate([track, np.ones((len(track), 1))], axis=1)
+        depth = (extrinsics @ homogeneous.T)[2]
+        assert depth.max() <= gen.V6_MAX_DEPTH_M, (
+            f"{scene.name} reaches depth {depth.max():.2f} m, past the "
+            f"{gen.V6_MAX_DEPTH_M} m ceiling"
+        )
+
+
+def test_v6_carries_forward_the_day_23_regime_volume_criterion() -> None:
+    """>= 200 cessation frames and >= 30 in every other non-exempt
+    regime, measured with the same classifier the mint gate uses. A
+    physical re-authoring that could no longer SCORE v5's criterion would
+    not be an improvement on v5 — it would be a smaller instrument."""
+    from src.estimator.regime import MOTION_REGIMES, classify_track
+
+    counts = {regime: 0 for regime in MOTION_REGIMES}
+    for scene in gen.build_scenes_v6_motion(24, 12.0):
+        for regime in classify_track(_v6_track(scene), V6_DT_S):
+            counts[regime] += 1
+    assert counts["cessation"] >= 200, counts
+    for regime in MOTION_REGIMES:
+        if regime == "cessation" or regime in gen.V6_MOTION_EXEMPT_REGIMES:
+            continue
+        assert counts[regime] >= 30, counts
+
+
+def test_stationary_v6_motion_agent_silhouette_is_bit_identical() -> None:
+    """The Day-17 stopped-agent bit-identity check, carried forward to
+    v6-motion's PhysicalHold legs. Gait phase drives off distance
+    travelled, and a hold contributes exactly zero distance, so the
+    silhouette cannot shimmer."""
+    scene = next(
+        s
+        for s in gen.build_scenes_v6_motion(24, 12.0)
+        if s.name == "radial_long_stop_near"
+    )
+    camera = scene.cameras[0]
+    rng = np.random.default_rng(30)
+    texture = rng.normal(0.0, 3.0, size=(camera.height, camera.width))
+
+    agent = scene.agents[0]
+    walk_seconds = sum(profile.duration_s for profile in agent.walk_profiles)
+    assert agent.timeline_seconds is not None
+    held = [
+        f
+        for f in range(scene.frames)
+        if f / max(1, scene.frames - 1) * agent.timeline_seconds > walk_seconds + 0.1
+    ]
+    assert len(held) >= 3, "not enough held frames to test"
+
+    rendered = [gen.render_frame(scene, camera, f, texture) for f in held]
+    for key in ("rgb", "depth_m", "instances"):
+        first = rendered[0][key]
+        for index, later in enumerate(rendered[1:], start=1):
+            np.testing.assert_array_equal(
+                later[key],
+                first,
+                err_msg=f"{key} differs between held frames {held[0]} and "
+                f"{held[index]} -- a PhysicalHold must not shimmer",
+            )
+
+
+def test_mint_refuses_a_set_whose_gt_violates_a_hard_constraint(tmp_path: Path) -> None:
+    """The Day-30 mint gate, exercised on GT that is genuinely impossible.
+
+    A falsifiability check before trusting that v6-motion passing means
+    anything: a track that teleports must be refused, and the refusal must
+    name the constraint.
+    """
+    clip_root = tmp_path
+    teleport = np.zeros((5, 1, 3), dtype=np.float32)
+    teleport[:, 0, 1] = 0.86
+    teleport[:, 0, 2] = [0.0, 1.0, 2.0, 40.0, 41.0]  # a 38 m step in one frame
+    np.savez_compressed(clip_root / "teleport.npz", agent_xyz=teleport)
+    manifest = {"clips": [{"clip_id": "teleport", "fps": 12.0}]}
+
+    with pytest.raises(gen.GtPhysicalityError) as excinfo:
+        gen.enforce_gt_physicality(clip_root, manifest)
+    message = str(excinfo.value)
+    assert (
+        "max_pedestrian_acceleration" in message or "max_pedestrian_velocity" in message
+    )
+    assert "Fix the GENERATOR" in message
+
+
+def test_mint_gate_measures_even_when_a_legacy_set_is_exempt(tmp_path: Path) -> None:
+    """`LEGACY_UNPHYSICAL_EXEMPT` suppresses the raise, never the
+    measurement — declared-out-of-scope is not hidden-and-unmeasured, the
+    same rule v5-cessation's own `exempt_regimes` follows."""
+    clip_root = tmp_path
+    teleport = np.zeros((5, 1, 3), dtype=np.float32)
+    teleport[:, 0, 1] = 0.86
+    teleport[:, 0, 2] = [0.0, 1.0, 2.0, 40.0, 41.0]
+    np.savez_compressed(clip_root / "teleport.npz", agent_xyz=teleport)
+    manifest = {"clips": [{"clip_id": "teleport", "fps": 12.0}]}
+
+    report = gen.enforce_gt_physicality(
+        clip_root, manifest, gen.GtPhysicality.LEGACY_UNPHYSICAL_EXEMPT
+    )
+    assert report["policy"] == "legacy-unphysical-exempt"
+    assert report["total_violations"] > 0
+
+
+def test_mint_gate_passes_physical_gt(tmp_path: Path) -> None:
+    """The other direction: a PhysicalAgent's own GT clears all five hard
+    constraints, so the gate's zero on v6-motion is a pass and not a
+    predicate that never fires."""
+    scene = gen.build_scenes_v6_motion(24, 12.0)[0]
+    track = _v6_track(scene).astype(np.float32)[:, None, :]
+    np.savez_compressed(tmp_path / "physical.npz", agent_xyz=track)
+    manifest = {"clips": [{"clip_id": "physical", "fps": scene.fps}]}
+
+    report = gen.enforce_gt_physicality(tmp_path, manifest)
+    assert report["total_violations"] == 0
+    assert report["by_constraint"]["max_pedestrian_acceleration"]["evaluated"] > 0

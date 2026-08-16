@@ -540,6 +540,109 @@ datasets:
         license: ours — no third-party asset
         smpl_derived: "no"
 
+  - name: synthetic-indoor-v6-motion
+    lane: S
+    subsystem: everything
+    hypothesis_class: >-
+      Ours outright, same footing and same generator as synthetic-indoor-v3/
+      v4-gate/v4.1-gate/v5-cessation — scripts/gen_synthetic_indoor.py,
+      geometric primitives only, nothing imported, SMPL trap does not apply.
+    validity_matrix_cell: >-
+      motion_geometry / state_estimation — geometry-derived capabilities
+      this set can certify, since its GT is exact synthetic position.
+      Depth/appearance are NOT claims this set can make (Day-10 validity
+      gate; see the matrix row for the measured verdict).
+    content_sha: "minted by --write-golden; see configs/golden/v6-motion.golden.json"
+    notes: >-
+      Day 30. SUPERSEDES synthetic-indoor-v5-cessation — the second case in
+      this project where a set exists because the old one should stop being
+      quoted rather than because it measures something new (the first was
+      v4.1-gate over v4-gate). Same purpose, same room, same two cameras,
+      same walk/stop/restart coverage; re-authored because v5-cessation's
+      GT is physically impossible. Day 30 Objective 1 measured it: 14 of
+      v5's 22 stop events peak above 1g, MEDIAN peak 15.13 m/s^2 (1.54g),
+      max 36.58 (3.7g) — where a world-class sprinter peaks near 1g. All 12
+      of v5's abrupt stops violate; its "gradual" ease_out tail doubles
+      speed instantaneously at its start, so 2 of 10 gradual stops violate
+      too. Every Day 21-29 cessation number was measured on that.
+      v5-cessation is NOT edited or deleted: it remains the record of what
+      those days measured, exactly as v4-gate stayed the record after
+      v4.1-gate superseded it.
+      WHAT CHANGED: agent trajectories are GENERATED under physiological
+      kinematic bounds (GaitBounds/PhysicalAgent), not post-filtered. Each
+      leg is a rest-to-rest jerk-limited smoothstep speed profile, so peak
+      |a| = 1.5*v/T and peak |jerk| = 6*v/T^2 are satisfied BY
+      CONSTRUCTION — there is no clip, clamp, or smoothing pass anywhere.
+      Bounds (V6_GAIT_BOUNDS, each cited at the constant): max speed 2.0
+      m/s (brisk walk; normative comfortable gait is 1.2-1.4 m/s), max
+      acceleration 1.1 m/s^2 (gait-initiation COM acceleration), max
+      deceleration 2.0 m/s^2 (gait termination — ASYMMETRIC, humans stop
+      faster than they start), max jerk 8.0 m/s^3 (minimum-jerk models of
+      voluntary movement). Corroboration, not used to choose the value:
+      2.0 m/s^2 applied to a 1.4 m/s walk gives a 1.05 s stop, against
+      PEDESTRIAN_STOP_DURATION_S = 1.0 s declared independently on Day 22.
+      Measured GT: max |a| 1.995 m/s^2 (0.20g) across the whole set, zero
+      frames above 1g, zero stop events above 1g.
+      MINT-TIME PHYSICALITY GATE (new, Day 30): a set whose GT violates any
+      hard constraint in src.estimator.constraints.HARD_CONSTRAINTS does not
+      mint (enforce_gt_physicality/GtPhysicalityError). This is now the
+      DEFAULT for every set; the pre-Day-30 sets must name a
+      LEGACY_UNPHYSICAL_EXEMPT declaration at the call site, and the
+      measurement still runs and still lands in their manifest. v5-cessation
+      records 23 violations under it.
+      CARRIED FORWARD, unchanged: the Day-23 regime-volume floor (>= 200
+      cessation frames, >= 30 in every other non-exempt regime), the Day-16
+      observability floor, the low_activity exemption, Day-17 speed-coupled
+      gait animation (now genuinely ramped, since progress is a real speed
+      profile), and stopped-agent bit-identity on PhysicalHold legs.
+      `maneuver` is declared out of scope (V6_MOTION_EXEMPT_REGIMES), same
+      as v5 but for a sharper reason: PhysicalAgent turns ONLY at zero
+      speed, structurally, because a moving agent that changes heading
+      instantaneously has unbounded lateral acceleration however carefully
+      its speed profile is shaped. Physical maneuvers need a curved-path
+      model with a lateral-acceleration budget; that is not built here.
+      NEARER THAN v5, and why: physically bounded motion spends many frames
+      moving slowly, and the measured motion-gate envelope demands a much
+      larger silhouette from a slow mover (535 gate px below 0.5 gate
+      px/frame, vs 110 above 1.5). v5 cleared the observability floor at
+      greater depths precisely BECAUSE its motion was abrupt — an
+      instantaneous stop has no slow phase to be unobservable during. The
+      first v6 render, at v5's depths, was REFUSED at 0.7978 against the
+      0.80 floor; V6_MAX_DEPTH_M = 5.9 m is the resulting authoring rule,
+      derived from that envelope and the measured silhouette law
+      (area_gate_px ~ 19000 / depth^2), not tuned until the gate passed.
+      Its cost is stated: the near/far axis is compressed (stops at ~3.4 m
+      vs ~6.0 m rather than ~4.5 m vs ~11 m) and the radial lane is too
+      short for a 2.0 m/s approach-and-stop, so those legs' cruise speed is
+      reduced by the solver and the achieved value is recorded per clip.
+      GEOMETRY ONLY, same as v5: this set supplies physically reachable
+      cessation VOLUME for the estimator/regime layer, not the
+      appearance-learned signal a real stop also changes (gait dissipation,
+      balance micro-motion) — docs/capture_runbook.md's walk-then-stop block
+      exists because that gap is real and synthetic data cannot fill it.
+      SYNTHETIC-ONLY: Site Zero footage supersedes it for every product
+      claim.
+    asset_clearance:
+      - asset: room shell (floor, ceiling, four walls)
+        origin: axis-aligned planes generated by this file
+        license: ours — no third-party asset
+        smpl_derived: "no"
+      - asset: furniture (desk)
+        origin: axis-aligned box generated by this file
+        license: ours — no third-party asset
+        smpl_derived: "no"
+      - asset: agent (torso box, head sphere, two leg cylinders; path driven
+          by the new PhysicalAgent/PhysicalWalk/PhysicalHold classes under
+          GaitBounds, same primitive body as every other synthetic-indoor
+          set)
+        origin: articulated primitives generated by this file
+        license: ours — no third-party asset
+        smpl_derived: "NO — this is the SMPL trap, avoided by construction. No body model, no scan, no likeness of any person."
+      - asset: textures
+        origin: seeded procedural noise generated by this file
+        license: ours — no third-party asset
+        smpl_derived: "no"
+
   # -- real depth evaluation (day 10) ------------------------------------
   # Depth is appearance-learned and cannot be scored on anything this project
   # can generate — v2 and v3 both fail the depth validity gate. These are the
