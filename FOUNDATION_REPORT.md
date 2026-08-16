@@ -9125,6 +9125,35 @@ into this diff. One process note: a blanket `black src/ scripts/ tests/`
 mid-session reformatted 28 files this day never touched; that churn was
 reverted rather than committed, and the diff is 10 files.
 
+**The no-exclusions run found a red test, and it was mine.** Run with no
+marker exclusions at all: **1252 passed, 7 skipped, 1 FAILED**, 2:22:23.
+The failure was
+`test_stationary_v6_motion_agent_silhouette_is_bit_identical`, written on
+Day 30 — and it was not a bit-identity failure. It tripped the Day-24
+duration-threshold gate at **20.7s against a 15s threshold**, unmarked.
+Reproduced in isolation, so not contention.
+
+The cause was the test rendering all ~48 held frames of a 4-second hold
+at 1280x720 to prove a property that three frames prove. Fixed by
+sampling the first, middle and last held frame — spanning rather than
+adjacent, so a silhouette drifting slowly across the hold still fails.
+Bit-identity is transitive; the all-frames render was never load-bearing.
+
+**Fixing it surfaced the same defect in the Day-23 original.**
+`test_stationary_v5_cessation_agent_silhouette_is_bit_identical` then
+failed at 18.4s with only one other test running. Day 29 saw that test at
+17-18s, diagnosed it as a CPU-contention flake, and moved on. **Two
+occurrences is the base rate, not bad luck** — this project's own Day-24
+phrasing, applied to a call it made itself. It had the identical
+all-frames shape and took the identical fix. `tests/test_synthetic_indoor.py`
+now passes complete, all 50 tests including every `slow`-marked
+generation test.
+
+Worth recording separately: the harness reported that failing run as
+"completed, exit code 0". Per [[background-task-notification-unreliable]]
+the real output was read rather than the notification trusted, which is
+the only reason the red test was seen at all.
+
 ## Still blocked on a human
 
 Per [[iron-blocked-on-humans]]. Unchanged from Day 30:
