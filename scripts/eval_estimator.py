@@ -75,6 +75,7 @@ from src.data.depth_eval import DISTANCE_BUCKETS
 from src.data.golden import GoldenSetError, available_versions, load_golden_set
 from src.eval.baselines import compute_baselines, margin, require_baseline
 from src.estimator.consistency import (
+    chi2_upper_bound,
     compute_collapsed_gaussian_nees_diagnostic,
     compute_mixture_nees,
     compute_nees,
@@ -83,6 +84,16 @@ from src.estimator.consistency import (
 )
 from src.estimator.diagnostics import is_white
 from src.estimator.filter import run_single_entity_filter
+from src.estimator.informativeness import (
+    STATE_DOF,
+    UNINFORMATIVE_MARGIN_NATS,
+    CalibrationAndInformativeness,
+    ConstantCovarianceBaseline,
+    fit_constant_covariance,
+    constant_baseline_coverage,
+    gaussian_log_density,
+    mixture_log_density,
+)
 from src.estimator.imm import ImmConfig, default_imm_config, run_imm_filter
 from src.estimator.measurement_model import MeasurementModel, measurement_model_for
 from src.estimator.motion_model import (
@@ -194,6 +205,22 @@ class FrameRecord:
     actually binds in a real run, as opposed to comparing its closed-form
     value against a synthetic walk's convergence (see
     ``scripts/velocity_floor_frame_rate_sweep.py``)."""
+    log_predictive_density: float = float("nan")
+    """Day 31, Objective 1: log density of this frame's PREDICTIVE
+    distribution evaluated at the true state, nats.
+
+    For a single-Gaussian posterior this is derived from NEES and
+    ``log det P`` (see :func:`~src.estimator.informativeness.
+    gaussian_log_density`) rather than recomputed from the error vector,
+    so it cannot drift from the consistency stage's own number. For IMM it
+    is the exact MIXTURE density -- Day 22's collapsed-Gaussian caveat
+    does not apply to a log score, because a density has no
+    single-Gaussian assumption to violate.
+
+    Defaulted to NaN rather than required, deliberately: this is the one
+    field a FrameRecord constructed by an older test fixture can be
+    missing, and a NaN propagates into an unreportable margin instead of
+    into a plausible wrong one."""
     nees_mixture: ConsistencyResidual | None = None
     """Day 22, Objective 1(b): probability-weighted per-mode NEES -- valid
     for a gaussian_mixture posterior. None for single-model records (no
@@ -349,6 +376,9 @@ def _evaluate_track(
                 axis_sq_error=pos_err**2,
                 velocity_sq_error=float(np.dot(vel_err, vel_err)),
                 nees=compute_nees(error6, estimate.cov_array()),
+                log_predictive_density=_gaussian_frame_log_density(
+                    error6, estimate.cov_array()
+                ),
                 standardized_innovation_x=standardized_innovation_x,
                 copy_previous_sq_error=float(
                     np.dot(copy_previous_err, copy_previous_err)
@@ -469,6 +499,14 @@ def _evaluate_track_imm(
                 nees=compute_collapsed_gaussian_nees_diagnostic(
                     error6, estimate.cov_array()
                 ),
+                # The mixture's OWN density, not the collapsed one -- see
+                # FrameRecord.log_predictive_density.
+                log_predictive_density=mixture_log_density(
+                    full_gt,
+                    [mode_weights[name] for name in components],
+                    [mode_means[name] for name in components],
+                    [mode_covs[name] for name in components],
+                ),
                 standardized_innovation_x=None,
                 copy_previous_sq_error=float(
                     np.dot(copy_previous_err, copy_previous_err)
@@ -494,6 +532,28 @@ def _rmse(sq_errors: list[float]) -> float:
     return float(np.sqrt(np.mean(sq_errors))) if sq_errors else float("nan")
 
 
+def _gaussian_frame_log_density(error: FloatArray, cov: FloatArray) -> float:
+    """One frame's Gaussian log predictive density at the truth.
+
+    Derived from the same NEES the consistency stage computes, plus
+    ``log det P`` -- not recomputed from the error vector, so the two
+    numbers cannot disagree about the same frame. ``slogdet`` rather than
+    ``log(det(...))`` because a 6x6 posterior covariance with metres and
+    metres-per-second on its diagonal has a determinant small enough to
+    underflow to zero in float64 while every eigenvalue is perfectly
+    healthy.
+    """
+    sign, log_det = np.linalg.slogdet(cov)
+    if sign <= 0:
+        raise ValueError(
+            "posterior covariance is not positive-definite, so its log "
+            "predictive density is undefined; this is an estimator defect, "
+            "not a scoring one"
+        )
+    nees = float(error @ np.linalg.solve(cov, error))
+    return gaussian_log_density(nees, float(log_det))
+
+
 def _coverage_stats(records: list[FrameRecord]) -> dict[str, Any]:
     nees_list = [r.nees for r in records]
     within = [r.within_bound for r in nees_list if r.within_bound is not None]
@@ -506,6 +566,63 @@ def _coverage_stats(records: list[FrameRecord]) -> dict[str, Any]:
         "nees_pass_rate_within_95": float(np.mean(within)) if within else float("nan"),
         "empirical_coverage_95": coverage,
     }
+
+
+def _calibration_and_informativeness(
+    records: list[FrameRecord],
+    baseline: ConstantCovarianceBaseline,
+    filter_kind: FilterKind,
+) -> CalibrationAndInformativeness:
+    """Day 31, Objective 1 -- the coverage figure and its informativeness
+    margin, co-emitted.
+
+    Returns a type whose every field is required, so there is no
+    representation of "coverage, and no margin". Day 30's config B is the
+    worked example of why: a cessation coverage of 0.9946 was quoted,
+    adopted and defended across three ADR revisions while the velocity
+    uncertainty behind it was a constant, and nothing in the report shape
+    put the two facts next to each other.
+
+    ``filter_kind`` selects which coverage figure to pair with the
+    margin -- the mixture-VALID sampling coverage for IMM, the NEES-based
+    one for a genuinely single-Gaussian posterior -- so this cannot pair a
+    margin with a coverage number Day 22 already declared invalid for that
+    posterior family. The margin itself needs no such branch: a log
+    density is exact for both families.
+    """
+    if not records:
+        return CalibrationAndInformativeness(
+            coverage_95=float("nan"),
+            baseline_coverage_95=float("nan"),
+            elpd_nats=float("nan"),
+            baseline_elpd_nats=float("nan"),
+            n=0,
+        )
+    position_sq = [r.position_sq_error for r in records]
+    velocity_sq = [r.velocity_sq_error for r in records]
+
+    if filter_kind == "imm":
+        coverage = _mixture_coverage_stats(records)["empirical_coverage_by_sampling_95"]
+    else:
+        coverage = _coverage_stats(records)["empirical_coverage_95"]
+
+    densities = np.array([r.log_predictive_density for r in records], dtype=np.float64)
+    baseline_densities = np.array(
+        [
+            baseline.log_density(position, velocity)
+            for position, velocity in zip(position_sq, velocity_sq)
+        ],
+        dtype=np.float64,
+    )
+    return CalibrationAndInformativeness(
+        coverage_95=float(coverage),
+        baseline_coverage_95=constant_baseline_coverage(
+            baseline, position_sq, velocity_sq, chi2_upper_bound(STATE_DOF, 0.95)
+        ),
+        elpd_nats=float(np.mean(densities)),
+        baseline_elpd_nats=float(np.mean(baseline_densities)),
+        n=len(records),
+    )
 
 
 def _mixture_coverage_stats(records: list[FrameRecord]) -> dict[str, Any]:
@@ -775,6 +892,19 @@ def _score_golden_set(
             "note": "no agent track in this set had enough frames to evaluate",
         }
 
+    # -- the informativeness baseline (Day 31, Objective 1) -------------
+    #
+    # Fitted ONCE, over every scored frame of the set, and then used
+    # unchanged for every per-regime margin below. Fitting it per regime
+    # would hand the trivial predictor the ground-truth regime label --
+    # information no deployable predictor has, and enough of it to make a
+    # constant look like an estimator. See ConstantCovarianceBaseline.
+    informativeness_baseline = fit_constant_covariance(
+        [r.position_sq_error for r in all_records],
+        [r.velocity_sq_error for r in all_records],
+        fitted_on=f"{version}, all {len(all_records)} scored frames",
+    )
+
     # -- pooled, whole-set summary (Day 20 shape, preserved) -------------
     position_rmse = _rmse([r.position_sq_error for r in all_records])
     velocity_rmse = _rmse([r.velocity_sq_error for r in all_records])
@@ -816,6 +946,9 @@ def _score_golden_set(
         block = _baseline_margin_block(regime_records)
         block["sigma_v_mps"] = _sigma_v_distribution(regime_records)
         block["consistency"] = _coverage_stats(regime_records)
+        block["calibration"] = _calibration_and_informativeness(
+            regime_records, informativeness_baseline, filter_kind
+        ).as_dict()
         if filter_kind == "imm":
             block["consistency_mixture"] = _mixture_coverage_stats(regime_records)
         block["innovation"] = _innovation_block(innovations_by_regime[regime_name])
@@ -1040,6 +1173,16 @@ Named so the sign convention driving the Day 25 directional criterion is
 legible at every call site, not a repeated magic 0.95."""
 
 
+def _informativeness_margin(block: dict[str, Any]) -> float:
+    """One regime's ELPD margin over the fitted constant baseline, or NaN
+    if the regime is absent. See
+    :mod:`src.estimator.informativeness`."""
+    calibration = block.get("calibration")
+    if not isinstance(calibration, dict) or not calibration.get("n"):
+        return float("nan")
+    return float(calibration.get("elpd_margin_nats", float("nan")))
+
+
 def _regime_coverage(block: dict[str, Any]) -> float:
     """The one coverage figure to judge a regime by: the mixture-VALID
     sampling-based coverage when present (an IMM config's block), else the
@@ -1127,10 +1270,45 @@ class NoTradePassWithCost:
     n_cessation: int
 
 
+@dataclass(frozen=True)
+class NoTradeUninformative:
+    """Day 31, Objective 1. Cessation calibration improved, no steady
+    regime became overconfident — and the candidate's per-frame
+    uncertainty stopped carrying information a fitted constant does not
+    already carry.
+
+    A distinct type rather than a cost, because it is not a trade: there
+    is nothing on the other side of it. A constant-variance predictor
+    satisfies every clause of the directional criterion trivially —
+    cessation coverage improves, and no steady regime moves toward
+    overconfidence, because nothing moves at all. Config B (Day 30) is
+    the worked example, and this verdict exists so that the next one is
+    caught by the criterion rather than by someone re-reading a sigma_v
+    table two weeks later.
+
+    `regime` names the worst COLLAPSE: a regime where the baseline
+    configuration's uncertainty was informative and the candidate's is
+    not. A candidate that was already uninformative where the baseline
+    was too is not a collapse and is reported through the margins in the
+    per-regime table instead — this verdict is about what a change
+    DESTROYED, and both being degenerate is a fact about the pair, not
+    about the change.
+    """
+
+    baseline: str
+    candidate: str
+    regime: str
+    baseline_margin_nats: float
+    candidate_margin_nats: float
+    cessation_delta_toward_nominal: float
+    n_cessation: int
+
+
 NoTradeVerdict = (
     NoTradeUnscoreable
     | NoTradeNoImprovement
     | NoTradeFailOverconfident
+    | NoTradeUninformative
     | NoTradePass
     | NoTradePassWithCost
 )
@@ -1230,6 +1408,31 @@ def _no_trade_verdict(
             baseline_label, candidate_label, n_cessation, cessation_delta
         )
 
+    # Day 31, Objective 1: calibration improved -- but did the candidate
+    # keep ESTIMATING? Checked before any pass is issued, and after the
+    # overconfidence check, which stays non-negotiable and first.
+    collapses: list[tuple[str, float, float]] = []
+    for name in (*NO_TRADE_STEADY_REGIMES, NO_TRADE_CESSATION_REGIME):
+        base_margin = _informativeness_margin(baseline_regimes.get(name, {}))
+        cand_margin = _informativeness_margin(candidate_regimes.get(name, {}))
+        if np.isnan(base_margin) or np.isnan(cand_margin):
+            continue
+        base_informative = base_margin > UNINFORMATIVE_MARGIN_NATS
+        cand_informative = cand_margin > UNINFORMATIVE_MARGIN_NATS
+        if base_informative and not cand_informative:
+            collapses.append((name, base_margin, cand_margin))
+    if collapses:
+        worst = max(collapses, key=lambda item: item[1] - item[2])
+        return NoTradeUninformative(
+            baseline=baseline_label,
+            candidate=candidate_label,
+            regime=worst[0],
+            baseline_margin_nats=worst[1],
+            candidate_margin_nats=worst[2],
+            cessation_delta_toward_nominal=cessation_delta,
+            n_cessation=n_cessation,
+        )
+
     if costs:
         worst_regime, worst_magnitude = max(costs, key=lambda item: item[1])
         return NoTradePassWithCost(
@@ -1275,6 +1478,20 @@ def _print_no_trade_verdict(version: str, verdict: NoTradeVerdict) -> None:
             f"{NOMINAL_COVERAGE:.2f}) -- non-negotiable"
         )
         print("    NO-TRADE CRITERION: FAIL_OVERCONFIDENT")
+        return
+    if isinstance(verdict, NoTradeUninformative):
+        print(
+            f"    cessation delta-toward-nominal: "
+            f"{verdict.cessation_delta_toward_nominal:+.4f} "
+            f"(n={verdict.n_cessation}, IMPROVED)"
+        )
+        print(
+            f"    ...but {verdict.regime} informativeness COLLAPSED: "
+            f"{verdict.baseline_margin_nats:+.4f} -> "
+            f"{verdict.candidate_margin_nats:+.4f} nats over a fitted "
+            f"constant (threshold {UNINFORMATIVE_MARGIN_NATS:+.4f})"
+        )
+        print("    NO-TRADE CRITERION: UNINFORMATIVE")
         return
     # NoTradePass / NoTradePassWithCost both improved cessation materially.
     print(
@@ -1322,9 +1539,20 @@ def _print_four_way_summary(
                 "nees_pass_rate_within_95", float("nan")
             )
             thin = " [THIN EVIDENCE]" if block.get("thin_evidence") else ""
+            # Day 31: coverage never prints without its informativeness
+            # margin beside it. See CalibrationAndInformativeness.
+            margin_nats = _informativeness_margin(block)
+            informative = (
+                ""
+                if np.isnan(margin_nats)
+                else (
+                    "" if margin_nats > UNINFORMATIVE_MARGIN_NATS else " UNINFORMATIVE"
+                )
+            )
             print(
                 f"    {label}: n={n:5}  RMSE {block['filter_rmse_m']:.4f} m  "
-                f"coverage {coverage:.4f}  NEES/NIS pass {nees_pass:.4f}  "
+                f"coverage {coverage:.4f}  informativeness {margin_nats:+.4f} nats"
+                f"{informative}  NEES/NIS pass {nees_pass:.4f}  "
                 f"margin(copy-prev) {block['margin_vs_copy_previous_m']:+.4f}  "
                 f"margin(CV-dead-reckon) {block['margin_vs_constant_velocity_m']:+.4f}"
                 f"{thin}"

@@ -374,6 +374,56 @@ it silently converts an estimator into a lookup table, and the calibration metri
   everything, and as a floor it has replaced the quantity it was meant to protect. Report the
   fraction of frames on which it binds, every time.
 
+## A Collapsed Distribution Answers Two Questions At Once — and confirming one does not test the other
+
+**When a summary shows a distribution collapsed to a single value, it is simultaneously the
+answer to "is the mechanism applied?" and to "is the estimate informative?" — and those have
+opposite signs.** Confirming the first is not evidence for the second. It is weak evidence
+*against* it.
+
+The shape to watch for is any statistic where min == p50 == max, or a variance that is identical
+across every stratum, or a confidence interval whose width never changes. Each says a quantity
+that was supposed to vary with the data does not.
+
+**Worked example (Day 25 → Day 30).** Day 25 asked a wiring question: is the velocity-covariance
+floor actually reached by a real run, or is it implemented, unit-tested, and never hit? It
+measured config B's posterior and reported, per regime, `min == p50 == max == 1.5000 m/s`. It
+read that as **confirmation the clamp fires**, which is correct, and closed the question.
+
+The same three numbers were also the signature of something Day 25 had no reason to look for:
+config B had stopped estimating velocity uncertainty at all. Day 30 measured the discriminating
+statistic — the *fraction of frames pinned at the floor* — and got **100.00%** on v6-motion,
+99.12% / 99.89% on the older sets, against a natural converged sigma_v of 0.25–0.60 m/s. Config B
+reports a constant. Its cessation coverage moved 0.5013 → 0.9946, the directional criterion
+recorded a PASS, and it was adopted for five days.
+
+**A filter that is never confident cannot be caught being overconfident.** Calibration is a test
+of honesty, not of capability, and a constant-variance predictor passes it by declining to
+compete.
+
+**In practice:**
+
+- Any calibration figure must be co-emitted with an **informativeness margin** against a trivial
+  constant-variance baseline — the Day-12 trivial-baseline rule applied to the second moment
+  instead of the first. In this repo that is `src/estimator/informativeness.py`, and
+  `CalibrationAndInformativeness` makes emitting one without the other unconstructable.
+- Prefer a **strictly proper scoring rule** (expected log predictive density) over a variance
+  ratio. A ratio rewards reporting tiny covariance and is only safe when read together with
+  calibration — and this whole section is about two numbers that must be read together getting
+  separated.
+- Make the baseline **as strong as you can**: fit it by maximum likelihood on the data it is
+  scored against. It then dominates any calibration-tuned constant, so a failure against it is
+  unambiguous. A small positive margin is unimpressive; a zero or negative one is damning. Day
+  31 measured config B at **−0.94 to −1.11 nats/frame** across every regime — not merely
+  uninformative, *worse than a single fitted constant*.
+- When a summary statistic collapses, report the **fraction of samples at the collapsed value**
+  before concluding anything about the mechanism. It is one line and it separates "the clamp
+  fires sometimes" from "the clamp is the entire model".
+- Retro-score the metric against decisions already made. Day 31's extended criterion re-scores
+  Day 25's own data and returns `UNINFORMATIVE` where Day 25 returned `PASS_WITH_COST` — the
+  adoption that took five days to unwind is caught at the moment it was made. A new metric that
+  cannot change any past verdict is not yet known to do anything.
+
 ## Honesty Clauses
 
 - Report the metric that looks bad. Omitting an unfavorable bucket is falsification.
