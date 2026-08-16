@@ -8,6 +8,7 @@ scene coverage that actually contains the hard cases.
 from __future__ import annotations
 
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -903,3 +904,82 @@ def test_mint_gate_passes_physical_gt(tmp_path: Path) -> None:
     report = gen.enforce_gt_physicality(tmp_path, manifest)
     assert report["total_violations"] == 0
     assert report["by_constraint"]["max_pedestrian_acceleration"]["evaluated"] > 0
+
+
+# ===========================================================================
+# Day 31, Objective 2 — retired gate numbers are stamped, not caveated
+# ===========================================================================
+
+
+def test_superseded_gate_numbers_are_stamped_on_the_scorecard() -> None:
+    """A retired wake fraction must travel with its retirement.
+
+    Day 31's rule and the reason it is not a caveat: a caveat is read by
+    whoever reads the paragraph it sits in, and gate wake fractions get
+    quoted out of tables. Every set whose gate numbers were measured on
+    motion that does not exist carries the notice in the scorecard itself.
+    """
+    from src.config import IronConfig
+    from src.data.golden import load_golden_set
+    from src.data.scorecard import (
+        DO_NOT_QUOTE_PREFIX,
+        SUPERSEDED_GATE_MEASUREMENTS,
+        compute,
+    )
+
+    assert {"v3-indoor", "v4.1-gate", "v5-cessation"} <= set(
+        SUPERSEDED_GATE_MEASUREMENTS
+    )
+    assert "v6-motion" not in SUPERSEDED_GATE_MEASUREMENTS
+
+    config = IronConfig.load()
+    root = config.paths.resolve(config.eval.golden_sets_dir)
+    clip_root = config.paths.resolved_data_dir / "synthetic" / "synthetic-indoor-v3"
+    golden = load_golden_set(root, "v3-indoor")
+    # One clip is enough: the stamp is a property of the VERSION, not of
+    # what the clips happen to score.
+    trimmed = replace(golden, clips=golden.clips[:1])
+    card = compute(trimmed, clip_root, config.cascade.motion_gate_config())
+
+    stamped = [c for c in card.caveats if c.startswith(DO_NOT_QUOTE_PREFIX)]
+    assert len(stamped) == 1
+    assert "0.9067" in stamped[0], "the retired number itself must be named"
+
+
+def test_a_current_set_carries_no_retirement_stamp() -> None:
+    """The falsifiability half. If every set were stamped the stamp would
+    mean nothing."""
+    from src.config import IronConfig
+    from src.data.golden import load_golden_set
+    from src.data.scorecard import DO_NOT_QUOTE_PREFIX, compute
+
+    config = IronConfig.load()
+    root = config.paths.resolve(config.eval.golden_sets_dir)
+    clip_root = (
+        config.paths.resolved_data_dir / "synthetic" / "synthetic-indoor-v6-motion"
+    )
+    golden = load_golden_set(root, "v6-motion")
+    card = compute(
+        replace(golden, clips=golden.clips[:1]),
+        clip_root,
+        config.cascade.motion_gate_config(),
+    )
+    assert not [c for c in card.caveats if c.startswith(DO_NOT_QUOTE_PREFIX)]
+
+
+def test_a_retirement_notice_sorts_above_every_other_caveat() -> None:
+    """Insertion order cannot be relied on: `compute` adds the stamp
+    first, then callers append more afterwards."""
+    from src.data.scorecard import DO_NOT_QUOTE_PREFIX, Scorecard
+
+    card = Scorecard(
+        golden_set_version="vtest",
+        golden_set_sha="0" * 12,
+        domain="indoor",
+        clips_scored=0,
+    )
+    card.caveats.append("appended by a caller, later")
+    card.caveats.append(f"{DO_NOT_QUOTE_PREFIX} retired")
+    rendered = card.render().splitlines()
+    first = next(line for line in rendered if line.strip().startswith("- "))
+    assert DO_NOT_QUOTE_PREFIX in first

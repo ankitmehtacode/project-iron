@@ -331,7 +331,9 @@ def _metric_with_baselines(
         flagged = False
         metric_value: MetricValue = value
     else:
-        margin_value = _margin(value, list(baselines), higher_is_better=higher_is_better)
+        margin_value = _margin(
+            value, list(baselines), higher_is_better=higher_is_better
+        )
         flagged = bool(np.isfinite(margin_value) and margin_value <= 0.0)
         metric_value = float(value)
     return Metric(
@@ -521,7 +523,16 @@ class Scorecard:
                 )
         if self.caveats:
             lines.extend(["", "CAVEATS"])
-            lines.extend(f"  - {c}" for c in self.caveats)
+            # A retirement notice sorts to the top regardless of who
+            # appended what, and in what order. `compute` adds its own
+            # first, but callers (scripts/eval_report.py) append more
+            # afterwards, so relying on insertion order would put the one
+            # caveat that must not be scrolled past wherever it happened
+            # to land. See SUPERSEDED_GATE_MEASUREMENTS.
+            ordered = sorted(
+                self.caveats, key=lambda c: not c.startswith(DO_NOT_QUOTE_PREFIX)
+            )
+            lines.extend(f"  - {c}" for c in ordered)
         return "\n".join(lines)
 
 
@@ -737,9 +748,7 @@ def observability_partition(
         warm=gate_config.warmup_frames,
         envelope_gate_px=float(envelope_gate_px),
         world_moved_any=(
-            np.any(world_moved, axis=1)
-            if agents
-            else np.zeros(frames, dtype=bool)
+            np.any(world_moved, axis=1) if agents else np.zeros(frames, dtype=bool)
         ),
     )
 
@@ -814,7 +823,9 @@ def motion_gate_metrics(
         # ANY agent, over every presented frame -- not gated by observability,
         # because "how much of the scene moves" is a property of the scene,
         # not of what this one camera could resolve.
-        "frames_with_world_motion": int(np.sum(partition.world_moved_any[partition.warm :])),
+        "frames_with_world_motion": int(
+            np.sum(partition.world_moved_any[partition.warm :])
+        ),
     }
     rates = {
         "recall": tp / (tp + fn) if (tp + fn) else float("nan"),
@@ -989,10 +1000,78 @@ def current_measurement_environment() -> dict[str, Any]:
     }
 
 
+DO_NOT_QUOTE_PREFIX = "DO NOT QUOTE:"
+"""Prefix that sorts a caveat to the top of every rendered scorecard, and
+that a downstream consumer can grep for. See
+:data:`SUPERSEDED_GATE_MEASUREMENTS`."""
+
+
+SUPERSEDED_GATE_MEASUREMENTS: dict[str, str] = {
+    "v3-indoor": (
+        "gate numbers from v3-indoor are SUPERSEDED and MUST NOT BE QUOTED "
+        "(Day 31). Its GT is exactly constant-velocity -- peak GT "
+        "acceleration 0.0001 m/s^2 over 2736 frames, i.e. zero to float32 "
+        "storage precision -- so every agent is at full walking speed on "
+        "essentially every frame it is present. That is the easiest "
+        "possible input for a motion gate whose wake threshold RISES as a "
+        "mover slows (535 gate px below 0.5 gate px/frame, 110 above 1.5), "
+        "and it is why this set reported wake_fraction 0.9067 against a "
+        "moving_frame_fraction of 0.9667. Re-scored on v6-motion, whose "
+        "motion is physically reachable: wake_fraction 0.7504 against "
+        "moving_frame_fraction 0.5704."
+    ),
+    "v4-gate": (
+        "gate numbers from v4-gate are SUPERSEDED and MUST NOT BE QUOTED "
+        "-- superseded first by v4.1-gate (Day 17 gait-phase fix) and now "
+        "by the same physical-motion finding as v4.1-gate below."
+    ),
+    "v4.1-gate": (
+        "gate numbers from v4.1-gate are SUPERSEDED and MUST NOT BE QUOTED "
+        "(Day 31). Its moving_frame_fraction is 0.0000 -- the set was "
+        "authored quiet and, under the Day-17 gait fix, contains no "
+        "world-space motion at all -- so its wake_fraction of 0.1250 has "
+        "no motion in its denominator to be a fraction OF. It measures the "
+        "gate's false-wake behaviour on a static scene, which is a real "
+        "and narrower thing than the number has been read as."
+    ),
+    "v5-cessation": (
+        "gate numbers from v5-cessation are SUPERSEDED and MUST NOT BE "
+        "QUOTED (Day 31). 14 of its 22 stop events peak above 1g (median "
+        "1.54g, max 3.7g), so its agents are at full speed or at rest with "
+        "almost nothing in between -- the regime a speed-dependent wake "
+        "threshold is most sensitive to is the one this set does not "
+        "contain. v6-motion supersedes it."
+    ),
+}
+"""Golden sets whose GATE numbers are retired, with the reason attached.
+
+Not a caveat. Day 31's rule, and the difference matters: a caveat is read
+by whoever reads the paragraph it sits in, and gate wake fractions get
+quoted out of tables. A version listed here has the retirement stamped
+into every scorecard it produces, so the number cannot travel without it.
+
+The SETS are not retired -- v3-indoor still certifies motion_geometry and
+state_estimation, and v4.1-gate is still the gate's false-wake instrument
+on a static scene. Only the wake-fraction family is superseded, and only
+because Day 30 established that all three contain motion no body could
+produce (v5) or no motion at all (v4.1) or motion that never slows (v3).
+
+None of these numbers, superseded or current, is the Tier-1 economic
+claim. That requires wake fraction over 24 hours of real office footage
+including nights and weekends, which does not exist yet -- see
+`dataset.moving_frame_fraction`'s own note and `docs/capture_runbook.md`.
+"""
+
+
 def compute(
     golden: Any, clip_root: Path, gate_config: Any, envelope: Any | None = None
 ) -> Scorecard:
-    """Score every clip in a golden set."""
+    """Score every clip in a golden set.
+
+    A set listed in :data:`SUPERSEDED_GATE_MEASUREMENTS` still scores --
+    reproducing a retired number is how a supersession stays checkable --
+    but its scorecard carries the retirement as its FIRST caveat.
+    """
     from src.cascade.envelope import DEFAULT_ENVELOPE_PATH, MeasuredEnvelope
 
     if envelope is None:
@@ -1006,6 +1085,12 @@ def compute(
         envelope=envelope.provenance(),
         measurement_environment=current_measurement_environment(),
     )
+
+    superseded = SUPERSEDED_GATE_MEASUREMENTS.get(golden.version)
+    if superseded is not None:
+        # First, so it cannot be scrolled past. See the mapping's docstring
+        # for why this is not left to the reader of a paragraph.
+        card.caveats.append(f"{DO_NOT_QUOTE_PREFIX} {superseded}")
 
     totals = {
         "tp": 0,
