@@ -8797,3 +8797,398 @@ entirely unblocked by design:
 26. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued.
 27. **The `resolve_joint_state` cross-component filtering gap** (ADR
     0011).
+
+# Day 31
+
+**No timing, throughput, CPU-percentage, or latency claim is made
+anywhere in this section** — unchanged hard scope rule from Day 20-30.
+Gate wake fractions and dataset motion densities appear below; those are
+structural properties of a scene, not timing claims. Everything else is
+accuracy, consistency, and structural measurement.
+
+**Headline: the criterion now catches config B on the day it was
+adopted.** Day 30 spent a session establishing by hand that config B's
+velocity uncertainty was a constant. Day 31 makes that a number the
+evaluation emits by construction — an informativeness margin against the
+best constant-variance predictor — and re-scores every configuration ever
+evaluated. Config B is uninformative in **every** regime of v6-motion, and
+not marginally: **negative**, −0.94 to −1.11 nats/frame, i.e. worse than a
+single fitted constant. Re-scored on Day 25's own unchanged data, the
+A→B verdict that adopted config B moves from `PASS_WITH_COST` to
+**`UNINFORMATIVE`**.
+
+**The slip verdict survives, and its defence is now measured.** Day 29
+argued a fortiori that v5-cessation was the favourable case. v6-motion
+shows it was, by 7.7x: cessation SNR falls 0.3506 → **0.0458** as the
+regime's mean true acceleration falls 6.8x while the noise floor rises
+12.6%. Worse on both sides of the ratio. The question stays closed.
+
+## Verdicts
+
+- **Informativeness margins, all four configurations, v6-motion
+  (nats/frame over the best fitted constant):**
+
+  | regime | n | A | B | C (IMM) | D |
+  | --- | ---: | ---: | ---: | ---: | ---: |
+  | static | 328 | **+0.839** | **−1.002** | +1.440 | +1.407 |
+  | onset | 110 | **+3.320** | **−1.108** | **−5.990** | **−5.618** |
+  | sustained | 746 | **+0.930** | **−0.944** | +1.381 | **−0.133** |
+  | cessation | 374 | **+0.765** | **−1.060** | +1.857 | +1.126 |
+
+- **Does config B show a near-zero informativeness margin, as
+  predicted?** **It shows worse than that.** Negative in all four
+  regimes. It is not a constant in disguise — it is a *worse* constant,
+  reporting 1.5 m/s of velocity uncertainty against errors that warrant
+  far less. Config A is informative everywhere (the falsifiability half).
+  IMM is informative in three regimes and badly uninformative at `onset`,
+  where a coverage of 1.0000 reads as ideal under calibration alone and
+  costs ~6 nats/frame. → Objective 1.
+- **Does the new dimension change any past verdict?** **Yes, the one that
+  mattered.** A→B on v5-cessation was `PASS_WITH_COST` — the verdict that
+  adopted config B on Day 25. Under the extended criterion, on the same
+  unchanged data: `UNINFORMATIVE`, `static` collapsing +3.107 → −0.554.
+  → Objective 1.
+- **The four-set gate table, and which numbers are superseded:**
+
+  | set | wake_fraction | recall_retained | miss_cost | moving_frac | obs_frac | status |
+  | --- | ---: | ---: | ---: | ---: | ---: | --- |
+  | v3-indoor | 0.9067 | 0.9340 | 57 | 0.9667 | 0.9589 | **SUPERSEDED** |
+  | v4.1-gate | 0.1250 | undefined | 0 | 0.0000 | 1.0000 | **SUPERSEDED** |
+  | v5-cessation | 0.5754 | 0.7362 | 86 | 0.3959 | 0.9770 | **SUPERSEDED** |
+  | v6-motion | **0.7504** | **0.8862** | 95 | 0.5704 | 1.0000 | current |
+
+  The named 90.7% (v3) and 12.5% (v4.1) figures are both retired.
+  → Objective 2.
+- **Does the slip verdict's a fortiori direction still hold on physical
+  motion?** **Yes, and it is now measured rather than inferred.**
+  Cessation SNR 0.3506 (v5) → **0.0458** (v6), a 7.7x fall; pooled SNR
+  0.2186 → 0.1941; noise floor 6.8607 → 7.7275 m/s². v5-cessation was the
+  favourable case exactly as Day 29 claimed. `offset_slip_model` stays
+  `"constant"`; **the question closed on Day 29 stays closed.**
+  → Objective 3.
+- **Contract audit classification:** **13 construction sites. 2 false
+  (both fixed), 2 asserted-unverified (1 made structural, 1 reported), 9
+  verified.** → Objective 4.
+
+## Objective 1 — informativeness, co-emitted with calibration
+
+**The blind spot, stated precisely.** Calibration asks whether reported
+uncertainty is HONEST. It never asks whether it is INFORMATIVE, and a
+constant-variance predictor passes it by declining to estimate. A filter
+that is never confident cannot be caught being overconfident.
+
+**The baseline.** `src/estimator/informativeness.py` fits a
+block-isotropic constant covariance — one variance for the three position
+axes, one for the three velocity axes — by maximum likelihood on the
+estimator's own errors, and predicts with the estimator's own means. Two
+blocks rather than one scalar because the state is three metres and three
+metres-per-second, and a single variance across all six is dimensionally
+incoherent; NEES only gets away with a scalar because it divides by the
+estimator's own block-structured covariance.
+
+Two choices that make the baseline **stronger** than the objective
+requires, both stated so the margin can be read correctly:
+
+1. It is fitted on the data it is scored against. No deployable
+   predictor gets that; the baseline is an oracle.
+2. It is fitted by maximum likelihood rather than "tuned until
+   calibrated." Among constant-covariance predictors the MLE one
+   maximizes the log score, so it dominates any calibration-tuned
+   constant, and a margin against it is a **lower bound** on the margin
+   against the cheapest-way-to-pass predictor.
+
+Its own coverage is reported beside every margin so a reader can confirm
+it really does pass calibration: 0.89-0.97 in most cells. One exception,
+reported rather than buried — config A's `onset` cell has a baseline
+coverage of 0.6455, i.e. the fitted constant is itself overconfident
+there, so A's +3.320 is partly the baseline being poor. The safe reading
+of that one cell is its sign, not its magnitude.
+
+**The metric: expected log predictive density, not a variance ratio.** A
+variance ratio is not a proper scoring rule — it rewards reporting tiny
+covariance and is only safe read *together* with calibration, which is
+the exact failure mode being fixed. ELPD is strictly proper: over- and
+under-confidence are both penalized, so it cannot be gamed in either
+direction. It is also nearly free, because
+`log N(x; μ, P) = −0.5(d·log 2π + log det P + NEES)` and NEES is already
+computed per frame — only `log det P` is new. And it is **exact for a
+mixture**, so IMM is scored on the density it actually reports rather
+than the collapsed Gaussian Day 22 ruled invalid. This is the first
+consistency-adjacent number in the project valid for both posterior
+families without a mixture-only variant.
+
+**STRUCTURAL: `CalibrationAndInformativeness` has no defaulted fields**,
+so "a coverage number, and no margin" is unconstructable;
+`require_informativeness` is the runtime half for the JSON-shaped blocks
+where a dataclass cannot reach. Same co-emission rule as
+`gate.wake_fraction`/`gate.recall_retained` — and Day 30 is the worked
+example of why it is needed: config B's cessation coverage of 0.9946 was
+quoted, adopted and defended across three ADR revisions while the
+uncertainty behind it was a constant, and nothing in the report shape put
+the two facts next to each other.
+
+**`NoTradeUninformative`** is a new typed verdict, checked after the
+non-negotiable overconfidence test and before any pass. It fires on a
+*collapse* — a regime where the baseline configuration was informative
+and the candidate is not — because both configurations being degenerate
+is a fact about the pair, not about the change.
+
+Full retroactive table in ADR 0010's Day-31 revision.
+
+## Objective 2 — the gate, re-scored on motion that exists
+
+Every gate wake fraction this project has reported was measured against
+motion no body could produce, motion that never slows, or no motion at
+all. The four-set table is in the Verdicts block. What it shows:
+
+**Why v3's 0.9067 was flattering.** The gate's wake threshold *rises* as
+a mover slows — 535 gate px below 0.5 gate px/frame against 110 above 1.5
+(Day 30). v3-indoor's GT is exactly constant-velocity: peak acceleration
+0.0001 m/s² over 2736 frames, zero to float32 storage precision. Every
+agent is at full walking speed on essentially every frame it is present,
+which is the easiest possible input for a speed-dependent threshold.
+
+**Why v4.1's 0.1250 was not a wake fraction at all.** Its
+`moving_frame_fraction` is 0.0000. There is no motion in the denominator
+for the number to be a fraction *of*. It measures the gate's false-wake
+behaviour on a static scene — a real thing, and a much narrower one than
+the figure has been read as.
+
+**What is now known about the mechanism.** On physically reachable motion
+the gate wakes on 0.7504 of frames against a 0.5704 motion density and
+retains 0.8862 recall, missing 95 of 835 reportable frames. It wakes more
+than the scene moves, and the gap is smaller than v3's (0.9067 against
+0.9667 was *below* the scene's density, which sounds better and was an
+artifact of that set having almost no quiet frames to stay asleep
+through). `envelope.limited_misses` is 0 on v6 against 10 on v3 and 17 on
+v5, because v6's depth ceiling keeps every agent's silhouette large
+enough to resolve.
+
+**Marked, not caveated.** `SUPERSEDED_GATE_MEASUREMENTS` retires
+v3-indoor, v4-gate, v4.1-gate and v5-cessation, each with its reason and
+its retired number named in the text. The notice is stamped into every
+scorecard the version produces and sorts above every other caveat
+regardless of insertion order — callers append their own after
+`compute()` returns, so insertion order could not be relied on. A caveat
+is read by whoever reads the paragraph it sits in; wake fractions get
+quoted out of tables.
+
+**The SETS are not retired.** v3-indoor still certifies
+`motion_geometry` and `state_estimation`; v4.1-gate is still the gate's
+false-wake instrument on a static scene. Only the wake-fraction family.
+
+**None of this is the Tier-1 economic claim**, superseded or current.
+That still requires wake fraction over 24 hours of real office footage
+including nights and weekends, which does not exist. `compute_saved`
+remains an ESTIMATE under `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME`
+against an unimplemented `DetectorStage`, and is reported as one.
+
+## Objective 3 — every v5-cessation conclusion, re-run
+
+| conclusion | first measured | status on v6-motion |
+| --- | --- | --- |
+| Cessation overconfidence (NEES ~815) | Day 21, re-measured Day 23 | **REFUTED** — config A coverage 0.9920 vs 0.5013 (Day 30) |
+| Four-way A/B/C/D comparison | Days 22-25 | **RE-RUN** — all `NO_IMPROVEMENT`; config A adopted (Day 30) |
+| Config B's calibration win | Day 24-25 | **REFUTED** — and now also `UNINFORMATIVE` on v5's own data (Objective 1) |
+| IMM's static-coverage collapse | Days 21-25 | **NOT REPRODUCED** — 0.0808 → 0.9726 (Day 30) |
+| Joint vs independent | Day 26 | **SURVIVES** — +0.0253 m carrier, +0.0295 m carried asset |
+| Carrier overconfidence | Days 26-28 | **PARTIALLY SURVIVES** — see below |
+| Slip verdict NO, and its SNR | Day 29 | **SURVIVES**, a fortiori direction confirmed by measurement |
+| Component sparsity / cap cost | Days 26-27 | **NOT RE-RUN**, with reason — see below |
+
+**Carrier overconfidence: the surviving half is not the half the slip
+models were built for.** The signature is a covariance shrink larger than
+the error reduction justifying it (`unjustified gain`):
+
+| regime | v5-cessation | v6-motion |
+| --- | ---: | ---: |
+| static | −0.0735 | −0.0565 |
+| onset | **+0.3974** | **+0.1281** |
+| sustained | **+0.1269** | **+0.1367** |
+| cessation | **+0.1925** | **−0.0646** |
+| maneuver | **+0.5330** | (empty) |
+
+`onset` and `sustained` keep it; **`cessation` loses it entirely**, and
+the carrier's own directional no-trade check moves **FAIL_OVERCONFIDENT →
+PASS**. The cessation half is what motivated Days 26-28's three slip
+models, and it does not exist on physically reachable motion.
+
+**The slip SNR, re-derived.** The prompt's own check: v6 has far *lower*
+acceleration than v5, so the SNR on physical motion is lower, not higher
+— does the a fortiori argument still point the right way?
+
+| quantity | v5-cessation | v6-motion |
+| --- | ---: | ---: |
+| noise floor (steady-regime std of `â`) | 6.8607 m/s² | 7.7275 m/s² |
+| pooled SNR vs `PERSON_SIGMA_A_MPS2` | 0.2186 | 0.1941 |
+| `onset` SNR | 0.0739 | 0.0807 |
+| `cessation` SNR | **0.3506** | **0.0458** |
+| cessation-regime mean GT \|a\| | 2.4057 m/s² | 0.3543 m/s² |
+
+**It does, and by more than Day 29 could claim.** Cessation's SNR falls
+**7.7x** — the regime's mean true acceleration falls 6.8x while the noise
+floor *rises* 12.6%, so the ratio worsens on both sides. Day 29 closed
+the question at SNR 0.35 on the favourable set; the physical case is
+0.046. A model that could not be derived at the former cannot be derived
+at the latter. Ablation re-confirms the mechanism on the new set:
+near-zero R collapses the floor 7.7275 → 0.4788 (16x), near-zero Q leaves
+it at 7.7131. Measurement-noise dominated, as before, so every candidate
+remedy is still temporal averaging and the window is still longer than
+the event. **The verdict does not need restating.**
+
+**Not re-run, with the reason.** `measure_component_sparsity.py` and
+`measure_component_cap_cost.py` read agent POSITIONS to build pairwise
+adjacency and component sizes. v5-cessation's positions are ordinary — it
+is its *velocity* discontinuities that are impossible — and a component
+membership test never reads velocity. They are unaffected by
+construction, and re-running them would confirm an arithmetic identity
+rather than test a conclusion.
+
+**The state-carry caveat, applied.** Regime-partitioned metrics are not
+independent measurements when the estimator carries state across the
+partition boundary. A filter's covariance at frame `t` is a function of
+the entire preceding trajectory; a GT regime label describes the world at
+that frame, not the filter's state. Every per-regime number above, on
+both sets, carries this — strongest for `static` and `cessation`, which
+both sit immediately downstream of a stop, and weakest for `sustained`,
+which is mostly its own history. It is why the carrier-overconfidence
+shrink in `onset` (+0.3974 → +0.1281) is consistent with a real effect
+that v5 inflated, and is **not proof of one**.
+
+## Objective 4 — contracts that assert what the data lacks
+
+13 construction sites audited across `src/` and `scripts/`.
+
+**FALSE (2), both fixed.**
+
+1. **`TemporalSpan`**, at `src/semantics/semantic_extractor.py` and
+   `scripts/eval_semantics.py`. Both passed `start_ts_ns=0,
+   end_ts_ns=frames` — a frame count, in the field whose own docstring
+   says *"nanoseconds since the epoch, not frame indices"* and names
+   `(site_id, ts_ns)` as the join key for anything that must be joined.
+   Both sites carried an honest comment admitting it. **The comment is
+   not the contract**: a consumer joining on that key would have placed
+   encoder output at the epoch with a duration of a few nanoseconds, and
+   nothing would have raised. Timestamps are now `int | None`,
+   both-or-neither, with `TemporalSpan.without_wall_clock` as the named
+   constructor and `duration_ns` raising rather than returning the frame
+   count. Same explicit-absence pattern as `UNREGISTERED` and
+   `Unevaluable`, now used a third time.
+2. **`FrameOfReference.twin_rev`**, at `scripts/eval_estimator.py`. It
+   passed `twin_rev=1` for synthetic clips that record no twin at all,
+   while `src/data/scorecard.py` and `src/inspector/artifacts.py` wrap
+   **the same clips** as `UNREGISTERED`. One codebase, one dataset, two
+   contradictory revision claims — and the invented one was the more
+   confident. The honest value was literally unconstructable, because
+   `FrameOfReference` rejected every negative `twin_rev` while Day 15's
+   sentinel is −1. It now accepts it, `is_current_for` never returns
+   `True` for an unregistered frame (not even against `UNREGISTERED` —
+   "we do not know" must not read as "yes"), and the caller uses it.
+
+**ASSERTED-UNVERIFIED (2).**
+
+3. **`Intrinsics.calibrated`** defaulted to `True`, so a caller who said
+   nothing asserted a calibration it had not been shown to have — **the
+   default itself was the unverified claim**, and the cheapest possible
+   instance of the audited pattern. Made **STRUCTURAL**: required, no
+   default. There is no correct default for a fact about provenance, so
+   there is none. 8 call sites updated.
+4. **`PatchTokens.encoder_sha`** — nothing checks the tokens against the
+   hash they are labelled with, and `eval_semantics.py` passes the
+   literal `"ablation"`. Reported, not fixed: closing it needs the
+   encoder to report its own hash at inference, which is a wrapper change
+   rather than a contract change. On the Day-32 list.
+
+**VERIFIED (9).** `DepthField` in `dav2_wrapper` (`units="disparity_rel"`
+is what DAv2 emits, and `valid_mask` is computed, not asserted);
+`placeholder_intrinsics` ×2 (`calibrated=False` — the explicit-unverified
+variant done right, and the model for fix 3); `GtPositionTrack` /
+`GtPositionClip` (Day 30); `WorldPositionArray` via the Day-30 bridge
+(permutes, then declares); `WorldPosition.reproject` (`twin_rev` comes
+from the transform); `Uncertainty` ×2 in the eval scripts (`sigma` comes
+from the same measurement model that generated the noise); `PatchTokens`'
+`grid` (checked against the token count at construction).
+
+## Full suite, mypy, lint
+
+`mypy` (scoped per `mypy.ini`): **clean, 0 errors, 64 source files**,
+including the new `src/estimator/informativeness.py`. Repo-wide
+`-m "not requires_weights and not slow"`: **1238 passed, 1 skipped, 21
+deselected, 0 failures** — up from Day 30's 1216 (+22: 17
+informativeness/co-emission tests, 3 gate-supersession tests, 2
+`FrameOfReference` unregistered-frame tests). `black --check` and
+`flake8` clean on every file touched. Pre-existing `E501`s in
+`eval_semantics.py`, `measure_acceleration_noise_floor.py`,
+`measure_slip_remedy_smoothing.py` and `scorecard.py` are unchanged from
+before today (verified against a stash) and left alone rather than mixed
+into this diff. One process note: a blanket `black src/ scripts/ tests/`
+mid-session reformatted 28 files this day never touched; that churn was
+reverted rather than committed, and the diff is 10 files.
+
+## Still blocked on a human
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 30:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification** — now 8 days older than Day 23's
+   ranking, still the highest-product-impact pending data item.
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera** — now 20 days old.
+5. **The `main`/`origin/main` divergence decision** (ADR 0009).
+6. **Reference hardware procurement decision** — now 13 days old.
+7. **The carrier/asset production posture** (ADR 0011).
+
+## Day 32, in order
+
+1. **Re-derive the velocity floor, or retire it.** Its implementation is
+   correct and its derivation multiplies a noise density by a duration
+   and calls the product a bound. Day 22's own open question — a floor
+   from the actual stopping deceleration profile — is now answerable for
+   the first time, because v6-motion contains real deceleration profiles.
+   Informativeness is the metric that can now judge the answer.
+2. **IMM at `onset`, where it costs ~6 nats/frame.** Coverage 1.0000 read
+   as ideal for ten days. This is the first finding the new axis produced
+   that nothing else had shown, and it is unexplained.
+3. **Extend informativeness to the joint estimator.** ADR 0011's
+   carrier-overconfidence signature is a covariance-shrink-vs-error
+   ratio invented for that ADR; ELPD subsumes it and is proper. The two
+   should agree, and if they do not, that is a finding.
+4. **`PatchTokens.encoder_sha` is unverified** — the encoder should
+   report its own hash at inference.
+5. **Vertical motion in the golden sets.** GT height is still a constant
+   0.86 m, so `gravity_floor_transition` remains a bounded null.
+6. **Physical `maneuver`.** Needs a curved-path model with a
+   lateral-acceleration budget; the regime is empty on both cessation
+   sets.
+7. **Hypothesis management itself** (spawn/score/budget-prune) — store,
+   lifecycle, death causes and all five constraint predicates exist;
+   nothing decides when to use them.
+8. **A sensor-noise model for the generator** — now the largest known
+   gap between v6-motion and reality, and it bears directly on item 1:
+   the acceleration noise floor is measurement-noise dominated, and the
+   generator has no measurement noise at all.
+9. **Real coupled multi-entity data, or a larger authored scene** —
+   Day 26/27's open question, still open.
+10. **Twin geometry** (`TwinGeometry`) — four typed constraints are
+    `Unevaluable` pending it.
+11. **The twin drift detector** — sits behind item 10.
+12. **The discrete/continuous hybrid** — depends on item 7.
+13. **Smoothing across the joint graph** — depends on item 3.
+14. **MEVA licence verification** — blocked on a human.
+15. **DA-2K licence verification** — zero engineering lag once cleared.
+16. **Reference hardware procurement decision** — now 13 days old.
+17. **Declare a target fps for real camera ingest** — open since Day 19.
+18. **Cascade bench, clean, on interim or reference hardware.**
+19. **Depth validity re-measurement** — gates on item 15.
+20. **The `main`/`origin/main` decision** (ADR 0009).
+21. **Order cameras and run the office capture** — now 20 days old.
+22. **The motion-gate precision/selectivity investigation** — deferred,
+    and Objective 2 sharpened it: the envelope's low-speed threshold is
+    the mechanism behind every superseded wake fraction.
+23. **A canonical `Observation -> hash` function** (ADR 0007).
+24. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced.**
+25. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+26. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued.
+27. **The `resolve_joint_state` cross-component filtering gap** (ADR
+    0011).
