@@ -1279,3 +1279,113 @@ that **the recorded reason for rejecting IMM — a dangerous, measured
 overconfidence regression in `static` — is not supported by physical
 data**, and Days 21–25's rejection of IMM is now provisional on the same
 grounds as everything else measured on v5-cessation.
+
+## Day 31 revision — the criterion now catches config B at the moment it was adopted
+
+**Nothing above is edited.** Day 30 reverted the adopted configuration to
+A on two findings: config B's velocity uncertainty is a constant, and the
+cessation overconfidence it was adopted to fix does not exist on physical
+motion. Both were found by hand, months of report-days after the fact.
+This section records that the criterion itself now finds the first one.
+
+### The new dimension
+
+`src/estimator/informativeness.py` adds an informativeness margin: the
+estimator's expected log predictive density minus that of the best
+constant-variance predictor for the same errors, sharing the estimator's
+own means so the comparison isolates the second moment. Nats per frame.
+The baseline is fitted by maximum likelihood on the data it is scored
+against, which makes it stronger than any calibration-tuned constant and
+therefore makes a margin against it a lower bound. A calibration figure
+can no longer be emitted without one (`CalibrationAndInformativeness` has
+no defaulted fields).
+
+`NoTradeUninformative` is a new typed verdict, checked after the
+non-negotiable overconfidence test and before any pass.
+
+### All four configurations, both axes, v6-motion
+
+Coverage is unchanged from Day 30's table; the margin column is new.
+
+| regime | n | A cov / margin | B cov / margin | C cov / margin | D cov / margin |
+| --- | ---: | --- | --- | --- | --- |
+| static | 328 | 0.9909 / **+0.839** | 0.9970 / **−1.002** | 0.9726 / +1.440 | 0.9970 / +1.407 |
+| onset | 110 | 0.9727 / **+3.320** | 1.0000 / **−1.108** | 1.0000 / **−5.990** | 1.0000 / **−5.618** |
+| sustained | 746 | 0.9879 / **+0.930** | 0.9987 / **−0.944** | 0.9464 / +1.381 | 0.9584 / **−0.133** |
+| cessation | 374 | 0.9920 / **+0.765** | 0.9973 / **−1.060** | 0.9572 / +1.857 | 0.9920 / +1.126 |
+
+Margins in nats/frame; bold where the margin is at or below the declared
+`UNINFORMATIVE_MARGIN_NATS` of 0.05, or where it is the point of the row.
+
+**Config B is uninformative in every regime, as predicted — and not
+merely near zero. It is negative.** Config B's per-frame uncertainty
+makes the observed truth roughly `e` times *less* likely per frame than a
+single fitted constant does. It is not a constant in disguise; it is a
+worse constant, reporting a velocity uncertainty of 1.5 m/s against
+errors that warrant far less.
+
+**Config A is informative in every regime.** This is the falsifiability
+half: if the metric returned "uninformative" for everything it would be
+measuring nothing.
+
+**IMM (C/D) is informative in three regimes and badly uninformative at
+`onset`** — −5.99 and −5.62 nats. Its onset coverage of 1.0000 reads as
+ideal under calibration alone and costs about six nats a frame, which is
+a new finding about IMM that no previously-reported number showed. The
+mixture is scored on its own density here, not a collapsed Gaussian, so
+Day 22's `PosteriorFamilyError` caveat does not apply to it.
+
+Two honest limits on the table. First, the baseline's own coverage is
+reported alongside every margin and is near nominal in most cells
+(0.89-0.97) — confirming it really is a cheapest-way-to-pass predictor —
+but it is 0.6455 in config A's `onset` cell, where the fitted constant is
+itself overconfident. A's +3.320 there is therefore partly the baseline
+being poor rather than A being good, and the safe reading of that cell is
+its sign, not its magnitude. Second, every cell inherits the
+state-carry caveat below.
+
+### The retroactive result: the criterion would have caught the adoption
+
+Config B was adopted on Day 25 on v5-cessation, with an A→B verdict of
+`PASS_WITH_COST` (cessation +0.4040, cost: sustained 0.0355 toward
+underconfidence). Re-scored on that same data under the extended
+criterion:
+
+```
+A -> B (v5-cessation):
+  cessation delta-toward-nominal: +0.4040 (n=373, IMPROVED)
+  ...but static informativeness COLLAPSED: +3.1066 -> -0.5538 nats
+  NO-TRADE CRITERION: UNINFORMATIVE
+```
+
+**The verdict that adopted config B becomes `UNINFORMATIVE` on the
+unchanged data.** The five days between adoption and reversal were spent
+recovering a fact the criterion can now state on the day the
+configuration is first scored.
+
+On v6-motion every candidate is `NO_IMPROVEMENT` — cessation is not
+broken there, so the new verdict never has to fire, and config A remains
+adopted for the reasons Day 30 gave.
+
+A third confirmation of Day 30's contamination finding falls out of this
+axis independently: config A's own cessation margin is **−4.998 nats on
+v5-cessation** and **+0.765 on v6-motion**. On impossible motion even the
+adopted filter's uncertainty is worse than a constant.
+
+### The state-carry caveat, applied to every per-regime number in this ADR
+
+**Regime-partitioned metrics are not independent measurements when the
+estimator carries state across the partition boundary.** A filter's
+covariance at frame `t` is a function of the entire preceding trajectory;
+a GT regime label describes the world at that frame, not the filter's
+state. So a per-regime figure measures "the filter, during frames the
+world labelled X" — not "the filter on X".
+
+This is not hypothetical. Day 30's correction found IMM's `static`
+coverage moving 0.0808 → 0.9726 between two sets whose `static` GT
+acceleration is identically zero in both: nothing about the static frames
+changed, only what preceded them. Every per-regime row above, on both
+sets, in this ADR and in ADR 0011, carries that caveat. It is strongest
+for regimes that follow a transient (`static` and `cessation`, both of
+which sit downstream of a stop) and weakest for `sustained`, which is
+mostly its own history.

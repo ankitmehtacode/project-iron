@@ -1031,3 +1031,113 @@ acceptance. The constraint registry is **Accepted** for its four hard
 constraints and the typed `Unevaluable` outcome; the four twin-dependent
 constraints are **Blocked on twin geometry**, which is a real dependency
 with a named interface (`TwinGeometry`), not an unimplemented predicate.
+
+## Day 31 revision — every v5-cessation number re-run on v6-motion
+
+**Nothing above is edited.** Day 30 established that v5-cessation's GT is
+physically impossible (14 of its 22 stop events peak above 1g, median
+1.54g, max 3.7g), which made every conclusion in this ADR provisional.
+This section re-runs them on v6-motion and says which survive.
+
+### 1. Joint vs independent — SURVIVES, on both sets
+
+`scripts/eval_joint_estimator.py --version v6-motion`, 19 tracks, 1558
+scored frames:
+
+| quantity | independent | joint | margin |
+| --- | ---: | ---: | ---: |
+| carrier RMSE | 0.1258 m | 0.1005 m | **+0.0253 m** |
+| carried-asset RMSE | 0.1323 m | 0.1028 m | **+0.0295 m** |
+
+Positive on both entities, in the same direction and the same order of
+magnitude as v5-cessation's (+0.0425 m on the carried asset). Coupling
+helps, and it helps most where the ADR says it should. **Day 26's
+headline is unaffected by the contamination.**
+
+### 2. Carrier overconfidence — PARTIALLY SURVIVES, and the surviving half is not the half the slip models were built for
+
+The signature is a covariance shrink larger than the error reduction it
+is justified by. Per regime, `unjustified gain`:
+
+| regime | v5-cessation | v6-motion |
+| --- | ---: | ---: |
+| static | −0.0735 | −0.0565 |
+| onset | **+0.3974** | **+0.1281** |
+| sustained | **+0.1269** | **+0.1367** |
+| cessation | **+0.1925** | **−0.0646** |
+| maneuver | **+0.5330** | (empty) |
+
+`onset` and `sustained` keep the signature — smaller in `onset`, flat in
+`sustained`. **`cessation` loses it entirely**, and so does the headline:
+the carrier's own directional no-trade check moves from
+**FAIL_OVERCONFIDENT** (delta −0.0215) on v5-cessation to **PASS**
+(delta +0.0160) on v6-motion.
+
+This matters because the cessation half is the one that motivated Days
+26-28's three slip models. The carrier was measured as overconfident
+exactly where the generator was producing 3.7g stops, and on physically
+reachable motion it is not overconfident there at all. The `onset` and
+`sustained` signatures are real, were never the stated motivation, and
+are now the only live part of this finding.
+
+**The state-carry caveat applies here and is load-bearing.** A per-regime
+number is not an independent measurement: the joint filter carries
+covariance across the regime boundary, so `onset`'s and `sustained`'s
+signatures on v5-cessation were computed on frames whose filter state had
+just been through an impossible transient. That they shrink (onset,
++0.3974 → +0.1281) rather than vanish is consistent with a real effect
+that v5 was inflating. It is not proof of one.
+
+### 3. The slip verdict — SURVIVES, and the a fortiori argument is now measured rather than argued
+
+Day 29 closed the acceleration-conditioned slip question with a measured
+NO, and defended it a fortiori: v5-cessation's transients are larger than
+physically possible, so a real pedestrian's signal is smaller, so the
+real-world SNR is *lower* than the one the NO was measured at. That was an
+argument. v6-motion makes it a measurement.
+
+`scripts/measure_acceleration_noise_floor.py`, both sets:
+
+| quantity | v5-cessation | v6-motion |
+| --- | ---: | ---: |
+| noise floor (steady-regime std of `a_hat`) | 6.8607 m/s² | 7.7275 m/s² |
+| pooled SNR vs `PERSON_SIGMA_A_MPS2` | 0.2186 | **0.1941** |
+| `onset` SNR | 0.0739 | 0.0807 |
+| `cessation` SNR | **0.3506** | **0.0458** |
+| `maneuver` SNR | 1.9421 | (empty) |
+| cessation-regime mean GT \|a\| | 2.4057 m/s² | 0.3543 m/s² |
+
+**The direction holds.** Cessation's SNR falls **7.7x**, from 0.3506 to
+0.0458, because the regime's mean true acceleration falls 6.8x while the
+noise floor does not (it rises 12.6%). v5-cessation was the favourable
+case, exactly as Day 29 claimed without being able to show it. A slip
+model that could not be derived at SNR 0.35 cannot be derived at 0.046.
+
+The mechanism is unchanged and re-confirmed by ablation on the new set:
+near-zero R collapses the v6 floor 7.7275 → 0.4788 (16x), near-zero Q
+leaves it at 7.7131 (unchanged). Measurement-noise dominated on both
+sets, so every candidate remedy is still some form of temporal averaging,
+and the window needed is still longer than the event.
+
+**`offset_slip_model` stays `"constant"`. The question stays closed** —
+now on a measurement of the physical case rather than an inference about
+it.
+
+One number does move in the unfavourable direction and is reported rather
+than buried: the noise floor itself rose 6.8607 → 7.7275 m/s² (+12.6%).
+That makes the NO stronger, not weaker — a higher floor against a smaller
+signal is worse on both sides of the ratio.
+
+### 4. The component-size cap and the sparsity measurement — NOT re-run
+
+`scripts/measure_component_sparsity.py` and
+`measure_component_cap_cost.py` measure graph structure (pairwise
+adjacency, component sizes) rather than filter behaviour. Their inputs
+are agent POSITIONS, and v5-cessation's positions are ordinary — it is
+its velocity discontinuities that are impossible, and a component
+membership test does not read velocity. They are unaffected by
+construction, not by measurement, and re-running them would confirm an
+arithmetic identity rather than test a conclusion. Day 26/27's open
+question (the cap's cost on a genuinely well-matched component) is
+untouched: it still needs real coupled multi-entity data, which neither
+v5 nor v6 contains.
