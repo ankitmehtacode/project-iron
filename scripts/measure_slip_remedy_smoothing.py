@@ -76,6 +76,10 @@ import measure_acceleration_noise_floor as noise_floor  # noqa: E402
 
 from src.config import IronConfig  # noqa: E402
 from src.data import validity  # noqa: E402
+from src.contracts.ground_truth import (  # noqa: E402
+    GENERATOR_AXES,
+    gt_position_track,
+)
 from src.data.golden import GoldenSetError, load_golden_set  # noqa: E402
 from src.estimator.motion_model import PERSON_SIGMA_A_MPS2, motion_model_for  # noqa: E402
 from src.estimator.motion_model import PEDESTRIAN_STOP_DURATION_S  # noqa: E402
@@ -170,7 +174,16 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
         n_agents = agent_xyz.shape[1]
 
         for agent_index in range(n_agents):
-            track = agent_xyz[:, agent_index, :]
+            # Day 30, Objective 4: the slice goes through the GT
+            # contract so the axis convention is DECLARED at the boundary
+            # rather than assumed by every consumer downstream. This
+            # script only takes magnitudes, which are permutation
+            # invariant, so no number here changes -- the point is that a
+            # future edit that reaches for a component cannot pick the
+            # wrong index silently.
+            track = gt_position_track(
+                agent_xyz[:, agent_index, :], GENERATOR_AXES
+            ).values
             if track.shape[0] <= noise_floor.FIRST_ACCEL_INDEX:
                 continue
             regimes = classify_track(track, dt_s)

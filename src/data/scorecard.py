@@ -638,17 +638,24 @@ def observability_partition(
     if envelope is None:
         envelope = MeasuredEnvelope.load(DEFAULT_ENVELOPE_PATH)
 
-    from src.model.world import UNREGISTERED, WorldPositionArray
+    from src.contracts.ground_truth import GENERATOR_AXES, GtPositionClip
+    from src.model.world import UNREGISTERED
 
     with np.load(clip_path) as data:
         instances = np.asarray(data["instances"])
-        # The .npz clip records no twin_rev at all -- Day-15 migration:
-        # constructing WorldPositionArray makes that absence an explicit,
-        # typed UNREGISTERED rather than a bare ndarray silently readable
-        # as belonging to whatever revision a future caller assumes.
-        agent_xyz = WorldPositionArray(
-            xyz_m=np.asarray(data["agent_xyz"]), twin_rev=UNREGISTERED
-        ).xyz_m
+        # The .npz clip records neither a twin_rev nor an axis
+        # convention. GtPositionClip makes both explicit: UNREGISTERED
+        # for the revision (Day-15 migration -- an absence typed rather
+        # than a bare ndarray silently readable as belonging to whatever
+        # revision a future caller assumes), and GENERATOR_AXES for the
+        # frame (Day 30 -- this was previously wrapped in
+        # WorldPositionArray, whose module documents +z-up, which
+        # agent_xyz is NOT in; see GtPositionClip's docstring).
+        agent_xyz = GtPositionClip(
+            values=np.asarray(data["agent_xyz"]),
+            axes=GENERATOR_AXES,
+            twin_rev=UNREGISTERED,
+        ).values
         track_uv = np.asarray(data["track_uv"])
         intrinsics = np.asarray(data["intrinsics"], dtype=np.float64)
         extrinsics = np.asarray(data["extrinsics"], dtype=np.float64)

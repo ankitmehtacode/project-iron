@@ -185,6 +185,68 @@ def test_sigma_v_distribution_empty_is_nan_not_a_crash() -> None:
     assert np.isnan(dist["min_mps"])
     assert np.isnan(dist["p50_mps"])
     assert np.isnan(dist["max_mps"])
+    assert dist["frames_at_floor"] == 0
+
+
+def _record_with_sigma_v(sigma_v_mps: float) -> "ee.FrameRecord":
+    variance = sigma_v_mps**2
+    return ee.FrameRecord(
+        regime="static",
+        distance_m=1.0,
+        position_sq_error=0.0,
+        axis_sq_error=np.zeros(3),
+        velocity_sq_error=0.0,
+        nees=ee.compute_nees(np.zeros(6), np.eye(6)),
+        standardized_innovation_x=None,
+        copy_previous_sq_error=0.0,
+        cv_no_update_sq_error=0.0,
+        cv_no_update_velocity_sq_error=0.0,
+        velocity_variance_diag_mps2=(variance, variance, variance),
+    )
+
+
+def test_sigma_v_distribution_counts_frames_pinned_at_the_floor() -> None:
+    """Day 30, Objective 3. Day 25 read `min == p50 == max == 1.5000` as
+    confirmation that the clamp fires — which it is, and which is also the
+    signature of a filter whose velocity uncertainty has stopped varying
+    at all. The fraction pinned is what distinguishes the two, and it was
+    one line away the whole time."""
+    floor = ee._floor_sigma_v_mps()
+    records = [
+        _record_with_sigma_v(floor),
+        _record_with_sigma_v(floor),
+        _record_with_sigma_v(floor * 1.2),
+    ]
+    dist = ee._sigma_v_distribution(records)
+    assert dist["floor_mps"] == pytest.approx(floor)
+    assert dist["frames_at_floor"] == 2
+    assert dist["fraction_at_floor"] == pytest.approx(2 / 3)
+
+
+def test_sigma_v_distribution_reports_nothing_pinned_when_nothing_is() -> None:
+    """The falsifiability half: a filter converging well below the floor
+    (config A's actual behaviour, p50 0.25-0.60 m/s) must report ZERO
+    frames at the floor, or the statistic would be counting something
+    other than what it claims."""
+    floor = ee._floor_sigma_v_mps()
+    dist = ee._sigma_v_distribution(
+        [_record_with_sigma_v(floor * 0.2), _record_with_sigma_v(floor * 0.4)]
+    )
+    assert dist["frames_at_floor"] == 0
+    assert dist["fraction_at_floor"] == pytest.approx(0.0)
+
+
+def test_velocity_floor_is_absolute_so_the_probe_timestep_cannot_matter() -> None:
+    """`_floor_sigma_v_mps` calls the floor function with a fixed probe
+    dt. Since Day 24's correction the floor ignores dt entirely; this
+    pins that, so a future re-introduction of dt-scaling breaks here
+    rather than silently changing every pinned-fraction number."""
+    from src.estimator.motion_model import pedestrian_velocity_covariance_floor_mps2
+
+    values = {
+        pedestrian_velocity_covariance_floor_mps2(dt) for dt in (1 / 120, 1 / 12, 1.0)
+    }
+    assert len(values) == 1
 
 
 def test_evaluate_track_too_short_returns_none() -> None:

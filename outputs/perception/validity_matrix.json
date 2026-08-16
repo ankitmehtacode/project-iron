@@ -12,7 +12,8 @@
     "v3-indoor",
     "v4-gate",
     "v4.1-gate",
-    "v5-cessation"
+    "v5-cessation",
+    "v6-motion"
   ],
   "results": [
     {
@@ -337,6 +338,65 @@
     {
       "capability": "point_tracking",
       "dataset": "v5-cessation",
+      "passed": true,
+      "reason": "the frames carry enough local structure for a corner-based tracker to have something to lock onto",
+      "evidence": {
+        "corner_density_per_pixel": 0.001111,
+        "corner_density_floor": 0.001,
+        "frames_sampled": 4
+      }
+    },
+    {
+      "capability": "motion_geometry",
+      "dataset": "v6-motion",
+      "passed": true,
+      "reason": "motion is derived from scene geometry, which an analytic renderer knows exactly; no appearance cue is required",
+      "evidence": {
+        "frames": 4
+      }
+    },
+    {
+      "capability": "state_estimation",
+      "dataset": "v6-motion",
+      "passed": true,
+      "reason": "motion is derived from scene geometry, which an analytic renderer knows exactly; no appearance cue is required",
+      "evidence": {
+        "frames": 4
+      }
+    },
+    {
+      "capability": "depth",
+      "dataset": "v6-motion",
+      "passed": false,
+      "reason": "rank correlation -0.7785 is below +0.30 \u2014 the model does not order these pixels by depth, so any aligned metric describes the fit; predicted spread 2.64 is below 3.0 \u2014 the prediction is near-constant and will fit whatever depth dominates the frame; 99% of pixels sit in one distance band, so a pooled score reports that band and hides the others",
+      "evidence": {
+        "rank_correlation": -0.7785,
+        "rank_correlation_floor": 0.3,
+        "dynamic_range": 2.6388,
+        "dynamic_range_floor": 3.0,
+        "band_populations": {
+          "0-3m": 0.0,
+          "3-8m": 0.0097,
+          "8m+": 0.9903
+        },
+        "max_band_concentration": 0.9903
+      }
+    },
+    {
+      "capability": "appearance_semantics",
+      "dataset": "v6-motion",
+      "passed": false,
+      "reason": "texture energy 3.26 is below 12.0 \u2014 there is almost no local gradient for an appearance model to key on; material diversity 14.09 is below 24.0 \u2014 too few distinguishable surfaces to exercise identity or retrieval",
+      "evidence": {
+        "texture_energy": 3.259,
+        "texture_energy_floor": 12.0,
+        "material_diversity": 14.094,
+        "material_diversity_floor": 24.0
+      }
+    },
+    {
+      "capability": "point_tracking",
+      "dataset": "v6-motion",
       "passed": true,
       "reason": "the frames carry enough local structure for a corner-based tracker to have something to lock onto",
       "evidence": {

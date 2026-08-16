@@ -22,6 +22,7 @@ from src.contracts import (
     AxisConventionMismatch,
     GroundTruthAxes,
     GtAccelerationTrack,
+    GtPositionClip,
     GtPositionTrack,
     GtVelocityTrack,
     gt_position_track,
@@ -250,3 +251,48 @@ def test_convenience_constructor_casts_float32_clips_to_float64() -> None:
     track = _straight_line().astype(np.float32)
     positions = gt_position_track(track, GENERATOR_AXES)
     assert positions.values.dtype == np.float64
+
+
+# --------------------------------------------------------------------------
+# GtPositionClip — the [T, A, 3] shape, and the false declaration it replaced
+# --------------------------------------------------------------------------
+
+
+def _clip(frames: int = 6, agents: int = 2) -> np.ndarray:
+    rng = np.random.default_rng(4)
+    clip = rng.normal(size=(frames, agents, 3))
+    clip[:, :, 1] = 0.86
+    return clip
+
+
+def test_clip_requires_both_an_axis_convention_and_a_twin_rev() -> None:
+    """Both facts, or no object. The scorecard and Inspector previously
+    got twin_rev from WorldPositionArray and the axis convention from
+    nowhere — while that type's own module documents a +z-up frame that
+    `agent_xyz` is not in."""
+    with pytest.raises(TypeError):
+        GtPositionClip(_clip(), GENERATOR_AXES)  # type: ignore[call-arg]
+    with pytest.raises(TypeError):
+        GtPositionClip(_clip(), twin_rev=UNREGISTERED)  # type: ignore[call-arg]
+
+
+def test_clip_rejects_a_track_shaped_array() -> None:
+    with pytest.raises(ValueError, match=r"\[T, A, 3\]"):
+        GtPositionClip(_straight_line(), GENERATOR_AXES, UNREGISTERED)
+
+
+def test_clip_track_carries_the_clips_convention_forward() -> None:
+    clip = GtPositionClip(_clip(), GENERATOR_AXES, UNREGISTERED)
+    assert clip.frames == 6 and clip.agents == 2
+    track = clip.track(1)
+    assert isinstance(track, GtPositionTrack)
+    assert track.axes is GENERATOR_AXES
+    assert np.allclose(track.vertical_component(), 0.86)
+
+
+def test_clip_values_are_unchanged_by_the_wrapper() -> None:
+    """The wrapper declares; it must not transform. Both consumers pass
+    `.values` straight to code that applies the generator-frame
+    extrinsics, so a silent permutation here would break them."""
+    raw = _clip()
+    assert np.allclose(GtPositionClip(raw, GENERATOR_AXES, UNREGISTERED).values, raw)

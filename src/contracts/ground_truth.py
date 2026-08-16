@@ -364,6 +364,59 @@ class GtAccelerationTrack(_GtTrack):
         )
 
 
+@dataclass(frozen=True, eq=False)
+class GtPositionClip:
+    """A whole clip's ``[T, A, 3]`` GT positions: axis convention AND
+    twin revision, together.
+
+    The shape a ``.npz`` clip actually stores, for the vectorized
+    consumers (:func:`src.data.scorecard.world_motion` and the Inspector)
+    that operate over every agent at once and cannot afford a per-track
+    object.
+
+    Replaces a genuinely wrong declaration. Both consumers previously
+    wrapped ``agent_xyz`` in
+    :class:`~src.model.world.WorldPositionArray`, which records
+    ``twin_rev`` (the Day-15 property they wanted) but whose own module
+    documents its coordinates as the site world frame's ``+z``-up
+    convention — and ``agent_xyz`` is not in that frame. Nothing broke,
+    because neither consumer reads a vertical component; both take norms
+    and apply the camera extrinsics, which expect the generator frame and
+    were therefore correct. But a type asserting the wrong convention is
+    worse than a bare array: an array makes no claim, while a mislabelled
+    envelope makes a claim a future reader is entitled to trust. This
+    carries both facts and neither is a guess.
+    """
+
+    values: FloatArray
+    axes: GroundTruthAxes
+    twin_rev: int
+
+    def __post_init__(self) -> None:
+        array = np.asarray(self.values, dtype=np.float64)
+        if array.ndim != 3 or array.shape[2] != 3:
+            raise ValueError(
+                f"GtPositionClip.values must be [T, A, 3], got {array.shape}"
+            )
+        if not isinstance(self.axes, GroundTruthAxes):
+            raise AxisConventionMismatch(
+                f"GtPositionClip.axes must be a GroundTruthAxes, got {self.axes!r}"
+            )
+        object.__setattr__(self, "values", array)
+
+    @property
+    def frames(self) -> int:
+        return int(self.values.shape[0])
+
+    @property
+    def agents(self) -> int:
+        return int(self.values.shape[1])
+
+    def track(self, agent_index: int) -> GtPositionTrack:
+        """One agent's ``[T, 3]`` track, carrying this clip's convention."""
+        return GtPositionTrack(self.values[:, agent_index, :], self.axes)
+
+
 def gt_position_track(values: FloatArray, axes: GroundTruthAxes) -> GtPositionTrack:
     """Convenience constructor, for symmetry with the read path.
 

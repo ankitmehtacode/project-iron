@@ -69,6 +69,7 @@ import numpy.typing as npt
 
 from src.config import IronConfig
 from src.contracts.frames import AffineTransform, FrameGeometry
+from src.contracts.ground_truth import GENERATOR_AXES, gt_position_track
 from src.data import validity
 from src.data.depth_eval import DISTANCE_BUCKETS
 from src.data.golden import GoldenSetError, available_versions, load_golden_set
@@ -84,7 +85,11 @@ from src.estimator.diagnostics import is_white
 from src.estimator.filter import run_single_entity_filter
 from src.estimator.imm import ImmConfig, default_imm_config, run_imm_filter
 from src.estimator.measurement_model import MeasurementModel, measurement_model_for
-from src.estimator.motion_model import MotionModel, motion_model_for
+from src.estimator.motion_model import (
+    MotionModel,
+    motion_model_for,
+    pedestrian_velocity_covariance_floor_mps2,
+)
 from src.estimator.regime import MOTION_REGIMES, MotionRegime, classify_track
 from src.estimator.state import ConsistencyResidual
 from src.model.episode import StateGraph, StateQuery, solve_state
@@ -533,6 +538,21 @@ def _mixture_coverage_stats(records: list[FrameRecord]) -> dict[str, Any]:
     }
 
 
+_FLOOR_PROBE_DT_S = 1.0 / 12.0
+"""Any positive timestep. Since Day 24's correction the velocity floor is
+ABSOLUTE — ``pedestrian_velocity_covariance_floor_mps2`` ignores its
+``dt_s`` argument entirely — so the value probed here does not affect the
+result. This project's own 12fps is used so the call reads as the real
+configuration rather than as an arbitrary number, and the function is
+called rather than its formula re-typed, so there is no second copy of
+the derivation to drift from the first."""
+
+
+def _floor_sigma_v_mps() -> float:
+    """The velocity floor as a sigma (m/s), not a variance."""
+    return float(np.sqrt(pedestrian_velocity_covariance_floor_mps2(_FLOOR_PROBE_DT_S)))
+
+
 def _sigma_v_distribution(records: list[FrameRecord]) -> dict[str, Any]:
     """Day 25, Objective 1: the filter's own converged sigma_v (m/s) over
     ``records``, as a distribution -- a single mean hides exactly the
@@ -540,22 +560,40 @@ def _sigma_v_distribution(records: list[FrameRecord]) -> dict[str, Any]:
     regime, or none). Per frame, sigma_v is sqrt of the mean of the 3
     velocity-diagonal variance entries (isotropic collapse -- the floor
     itself is applied identically to all three axes, see
-    ``apply_velocity_covariance_floor``)."""
+    ``apply_velocity_covariance_floor``).
+
+    Day 30, Objective 3 adds ``frames_at_floor``/``fraction_at_floor``.
+    Day 25 reported min/p50/max and read "min == p50 == max == 1.5000" as
+    confirmation that the clamp fires — which it is, but it is also the
+    signature of something else the same numbers cannot distinguish: a
+    filter whose velocity uncertainty is CONSTANT. Three order statistics
+    coinciding is suggestive; the fraction of frames actually pinned is
+    the number that settles it, and it was one line away the whole time.
+    """
     if not records:
         return {
             "n": 0,
             "min_mps": float("nan"),
             "p50_mps": float("nan"),
             "max_mps": float("nan"),
+            "frames_at_floor": 0,
+            "fraction_at_floor": float("nan"),
         }
     sigma_v = np.sqrt(
         np.array([np.mean(r.velocity_variance_diag_mps2) for r in records])
     )
+    floor_mps = _floor_sigma_v_mps()
+    # The clamp is a max(), so a floored frame sits at the floor exactly.
+    # rtol rather than == because sigma_v goes through a mean-then-sqrt.
+    at_floor = int(np.sum(np.isclose(sigma_v, floor_mps, rtol=1e-9, atol=0.0)))
     return {
         "n": len(records),
         "min_mps": float(np.min(sigma_v)),
         "p50_mps": float(np.median(sigma_v)),
         "max_mps": float(np.max(sigma_v)),
+        "floor_mps": floor_mps,
+        "frames_at_floor": at_floor,
+        "fraction_at_floor": at_floor / len(records),
     }
 
 
@@ -678,7 +716,13 @@ def _score_golden_set(
             continue
 
         for agent_index in range(n_agents):
-            track = agent_xyz[:, agent_index, :]
+            # Day 30, Objective 4: declared at the boundary. This
+            # script's own numbers are magnitudes and per-axis RMSE; the
+            # per-axis report names its convention explicitly below
+            # (`axis_convention`), which it did not before.
+            track = gt_position_track(
+                agent_xyz[:, agent_index, :], GENERATOR_AXES
+            ).values
             if filter_kind == "imm":
                 assert imm_config is not None
                 result = _evaluate_track_imm(
@@ -800,6 +844,13 @@ def _score_golden_set(
         "position": {
             "rmse_m": position_rmse,
             "axis_rmse_m_xyz": axis_rmse,
+            # Which axis is which. Named because "xyz" alone does
+            # not say WHOSE xyz: `agent_xyz` is [x, y_up, z_depth]
+            # while src/model/world.py's frame is [x, y, z_up], and
+            # a reader taking index 2 for height would be reading
+            # depth error as vertical error -- the Day-29 bug,
+            # reachable through a report key instead of an array.
+            "axis_convention": GENERATOR_AXES.value,
             "baselines": [b.as_dict() for b in position_baselines],
             "margin_m": position_margin,
         },
@@ -838,7 +889,8 @@ def _print_report(report: dict[str, Any]) -> None:
     pos = report["position"]
     print(
         f"position RMSE     : {pos['rmse_m']:.4f} m  (x/y/z: "
-        f"{pos['axis_rmse_m_xyz'][0]:.4f}/{pos['axis_rmse_m_xyz'][1]:.4f}/"
+        f"x {pos['axis_rmse_m_xyz'][0]:.4f} / y_up "
+        f"{pos['axis_rmse_m_xyz'][1]:.4f} / z_depth "
         f"{pos['axis_rmse_m_xyz'][2]:.4f} m)"
     )
     for b in pos["baselines"]:
