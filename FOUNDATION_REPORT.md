@@ -8709,6 +8709,19 @@ including the new `src/contracts/ground_truth.py`. `black --check` and
 and two in `scorecard.py` are unchanged from before today (verified
 against a stash) and left alone rather than mixed into this diff.
 
+Repo-wide `-m "not requires_weights and not slow"`: **1216 passed, 1
+skipped, 21 deselected, 0 failures** — up from Day 29's 1119 (+97: 25
+GT-contract tests, 21 v6-generator/mint-gate tests, 8 acceleration-bound
+constraint tests, 4 floor-pinning tests, plus the golden-set retention
+and registry-drift assertions). Also ran with no marker exclusions at
+all: **1231 passed, 7 skipped, 0 failures**, 1:26:09 wall against 20:12
+of CPU — i.e. mostly blocked, not computing, because several other
+commands (mypy, targeted pytest runs, the v6 measurements) were
+contending for the same machine throughout. Day 29 recorded the same
+effect in the opposite direction, and this is a statement about the
+machine, not a product number: the hard scope rule above is unaffected,
+since no timing claim about the pipeline is made anywhere.
+
 ## Still blocked on a human
 
 Per [[iron-blocked-on-humans]]. Unchanged from Day 29 — today's work was
