@@ -196,8 +196,16 @@ class Intrinsics:
     cy: float
     distortion: tuple[float, ...]
     valid_for: FrameGeometry
-    calibrated: bool = True
+    calibrated: bool
     """Whether these numbers came from a calibration, or were invented.
+
+    REQUIRED, with no default (Day 31, Objective 4). It used to default to
+    ``True``, which meant a caller who said nothing asserted a calibration
+    it had not been shown to have — the default itself was the unverified
+    claim. That is the cheapest possible instance of the pattern Day 30
+    found in ``WorldPositionArray``: a contract manufacturing assurance.
+    The conservative default would have been ``False``, but there is no
+    correct default for a fact about provenance, so there is none.
 
     ``False`` marks a placeholder — see :func:`placeholder_intrinsics`.
     Placeholder intrinsics are legitimate for experiments and visualisation,

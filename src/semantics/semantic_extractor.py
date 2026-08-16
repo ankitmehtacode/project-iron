@@ -251,14 +251,11 @@ class SemanticExtractor:
         )
         geometry = FrameGeometry(width=spec.resolution[1], height=spec.resolution[0])
 
-        # Nanosecond span synthesized from the frame count. The encoder carries
-        # no wall-clock time; the span exists here to carry the tubelet into
-        # the contract check.
-        span = TemporalSpan(
-            start_ts_ns=0,
-            end_ts_ns=max(1, frames),
-            frames_covered=frames,
-            tubelet=spec.tubelet,
+        # The encoder carries no wall-clock time, so this span says so
+        # rather than synthesizing nanoseconds from a frame count (Day 31,
+        # Objective 4 -- see TemporalSpan.without_wall_clock).
+        span = TemporalSpan.without_wall_clock(
+            frames_covered=frames, tubelet=spec.tubelet
         )
 
         outputs = []

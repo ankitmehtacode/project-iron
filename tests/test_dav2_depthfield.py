@@ -89,6 +89,7 @@ def test_unproject_refuses_the_wrapper_output() -> None:
         cy=16.0,
         distortion=(),
         valid_for=field.geometry,
+        calibrated=True,
     )
     with pytest.raises(UnitsError, match="disparity_rel"):
         unproject(field, np.array([[16.0, 16.0]]), K)
@@ -108,7 +109,13 @@ def test_metric_depth_still_possible_when_actually_anchored() -> None:
         valid_mask=np.ones(geometry.shape, dtype=np.bool_),
     )
     K = Intrinsics(
-        fx=32.0, fy=32.0, cx=16.0, cy=16.0, distortion=(), valid_for=geometry
+        fx=32.0,
+        fy=32.0,
+        cx=16.0,
+        cy=16.0,
+        distortion=(),
+        valid_for=geometry,
+        calibrated=True,
     )
     result = unproject(anchored, np.array([[16.0, 16.0]]), K)
     assert np.all(np.isfinite(result))

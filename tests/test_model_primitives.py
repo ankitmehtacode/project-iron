@@ -329,12 +329,47 @@ def test_envelope_rejects_low_sample_count() -> None:
 
 
 def test_frame_of_reference_rejects_negative_twin_rev() -> None:
-    with pytest.raises(ValueError):
+    """-1 is UNREGISTERED and is now legal (Day 31); every OTHER negative
+    value is still a defect. Widened rather than deleted: the check that
+    a nonsense revision cannot be constructed is the point, and only the
+    one sentinel Day 15 already defined is carved out."""
+    from src.model.world import UNREGISTERED
+
+    with pytest.raises(ValueError, match="UNREGISTERED"):
         FrameOfReference(
             geometry=FrameGeometry(10, 10),
             to_canonical=AffineTransform.identity(),
-            twin_rev=-1,
+            twin_rev=-2,
         )
+    unregistered = FrameOfReference(
+        geometry=FrameGeometry(10, 10),
+        to_canonical=AffineTransform.identity(),
+        twin_rev=UNREGISTERED,
+    )
+    assert not unregistered.is_registered
+
+
+def test_an_unregistered_frame_is_never_current_not_even_against_itself() -> None:
+    """Unknown provenance is not assumed to match anything -- the same
+    asymmetry WorldPosition.distance_to enforces. "We do not know" must
+    not read as "yes"."""
+    from src.model.world import UNREGISTERED
+
+    unregistered = FrameOfReference(
+        geometry=FrameGeometry(10, 10),
+        to_canonical=AffineTransform.identity(),
+        twin_rev=UNREGISTERED,
+    )
+    assert not unregistered.is_current_for(1)
+    assert not unregistered.is_current_for(UNREGISTERED)
+
+    registered = FrameOfReference(
+        geometry=FrameGeometry(10, 10),
+        to_canonical=AffineTransform.identity(),
+        twin_rev=3,
+    )
+    assert registered.is_current_for(3)
+    assert not registered.is_current_for(UNREGISTERED)
 
 
 def test_frame_of_reference_is_current_for() -> None:

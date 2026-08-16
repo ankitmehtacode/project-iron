@@ -46,15 +46,68 @@ class TemporalSpan:
     indices are presentation-only: they are not comparable across cameras, they
     reset on reconnect, and they do not survive a dropped frame. The timeline
     key for anything that must be joined is ``(site_id, ts_ns)``.
+
+    Day 31, Objective 4 — spans that have no wall clock say so
+    -----------------------------------------------------------
+    Two call sites (``src/semantics/semantic_extractor.py``,
+    ``scripts/eval_semantics.py``) had been passing ``start_ts_ns=0,
+    end_ts_ns=frames`` — a FRAME COUNT, in the field this docstring
+    explicitly says is not a frame index. Both had an honest comment
+    saying so ("the encoder carries no wall-clock time; the span exists
+    here to carry the tubelet into the contract check"), and the comment
+    is not the contract. A consumer joining on ``(site_id, ts_ns)`` would
+    have placed those token blocks at the epoch with a duration of a few
+    nanoseconds, and nothing would have raised.
+
+    ``start_ts_ns``/``end_ts_ns`` are now ``int | None``, both-or-neither,
+    and :meth:`without_wall_clock` is the named way to build a span that
+    genuinely has none — the same explicit-absence pattern
+    :data:`src.model.world.UNREGISTERED` and
+    :class:`src.model.constraint.Unevaluable` already use twice in this
+    codebase. Arithmetic on ``None`` raises at once instead of producing a
+    plausible wrong duration, which is the whole point: the failure moves
+    from silent to immediate.
     """
 
-    start_ts_ns: int
-    end_ts_ns: int
+    start_ts_ns: int | None
+    end_ts_ns: int | None
     frames_covered: int
     tubelet: int
 
+    @classmethod
+    def without_wall_clock(cls, frames_covered: int, tubelet: int) -> "TemporalSpan":
+        """A span over ``frames_covered`` frames that carries NO wall clock.
+
+        For encoder output, which has a frame count and a tubelet and no
+        timestamps at all. Everything the contract check needs is present;
+        the two fields that would have to be invented are absent rather
+        than faked.
+        """
+        return cls(
+            start_ts_ns=None,
+            end_ts_ns=None,
+            frames_covered=frames_covered,
+            tubelet=tubelet,
+        )
+
+    @property
+    def has_wall_clock(self) -> bool:
+        """Whether this span can be placed on a timeline at all."""
+        return self.start_ts_ns is not None and self.end_ts_ns is not None
+
     def __post_init__(self) -> None:
-        if self.end_ts_ns <= self.start_ts_ns:
+        stamps = (self.start_ts_ns, self.end_ts_ns)
+        if (stamps[0] is None) != (stamps[1] is None):
+            raise ValueError(
+                "TemporalSpan needs both timestamps or neither, got "
+                f"start_ts_ns={self.start_ts_ns} end_ts_ns={self.end_ts_ns}. "
+                "A half-specified span would be readable as a real one."
+            )
+        if (
+            self.start_ts_ns is not None
+            and self.end_ts_ns is not None
+            and self.end_ts_ns <= self.start_ts_ns
+        ):
             raise ValueError(
                 f"TemporalSpan must advance in time: start_ts_ns="
                 f"{self.start_ts_ns} end_ts_ns={self.end_ts_ns}"
@@ -97,6 +150,24 @@ class TemporalSpan:
 
     @property
     def duration_ns(self) -> int:
+        """Wall-clock extent, nanoseconds.
+
+        Raises:
+            ValueError: if this span has no wall clock. Deliberately not
+                0, and deliberately not the frame count: a caller asking
+                for a duration wants a real one, and the honest answer for
+                encoder output is that it does not have one. Before Day 31
+                this returned ``frames`` for such a span, because the frame
+                count had been written into the nanosecond fields.
+        """
+        if self.start_ts_ns is None or self.end_ts_ns is None:
+            raise ValueError(
+                "this TemporalSpan carries no wall clock (see "
+                "TemporalSpan.without_wall_clock), so it has no duration. "
+                "Encoder output has a frame count and a tubelet; it does "
+                "not have timestamps, and substituting one for the other "
+                "is the defect this API exists to prevent."
+            )
         return self.end_ts_ns - self.start_ts_ns
 
 

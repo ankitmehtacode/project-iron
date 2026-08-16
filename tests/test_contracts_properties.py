@@ -179,6 +179,7 @@ def intrinsics(draw: st.DrawFn) -> Intrinsics:
         cy=draw(st.floats(min_value=-1e3, max_value=1e4, allow_nan=False)),
         distortion=(0.0, 0.0, 0.0, 0.0, 0.0),
         valid_for=geometry,
+        calibrated=True,
     )
 
 
@@ -244,6 +245,7 @@ def _intrinsics_for(geometry: FrameGeometry) -> Intrinsics:
         cy=geometry.height / 2.0,
         distortion=(0.0, 0.0, 0.0, 0.0, 0.0),
         valid_for=geometry,
+        calibrated=True,
     )
 
 
@@ -290,7 +292,13 @@ def test_unproject_is_correct_for_a_hand_checked_point() -> None:
         valid_mask=np.ones(geometry.shape, dtype=np.bool_),
     )
     K = Intrinsics(
-        fx=50.0, fy=50.0, cx=50.0, cy=50.0, distortion=(0.0,), valid_for=geometry
+        fx=50.0,
+        fy=50.0,
+        cx=50.0,
+        cy=50.0,
+        distortion=(0.0,),
+        valid_for=geometry,
+        calibrated=True,
     )
     # 10 px right and 20 px below the principal point, 2 m away.
     result = unproject(depth, np.array([[60.0, 70.0]]), K)
@@ -545,6 +553,23 @@ def test_temporal_span_reports_unrepresented_tail() -> None:
     assert span.frames_unrepresented == 1
 
 
+def test_intrinsics_requires_an_explicit_calibration_claim() -> None:
+    """Day 31, Objective 4: `calibrated` has no default. It used to
+    default to True, so a caller who said nothing asserted a calibration
+    it had not been shown to have -- the default itself was the
+    unverified claim. There is no correct default for a fact about
+    provenance, so there is none."""
+    with pytest.raises(TypeError):
+        Intrinsics(  # type: ignore[call-arg]
+            fx=1.0,
+            fy=1.0,
+            cx=0.0,
+            cy=0.0,
+            distortion=(),
+            valid_for=FrameGeometry(4, 4),
+        )
+
+
 def test_intrinsics_rejects_nonpositive_focal_length() -> None:
     with pytest.raises(ValueError, match="Focal lengths"):
         Intrinsics(
@@ -554,4 +579,5 @@ def test_intrinsics_rejects_nonpositive_focal_length() -> None:
             cy=0.0,
             distortion=(),
             valid_for=FrameGeometry(4, 4),
+            calibrated=True,
         )

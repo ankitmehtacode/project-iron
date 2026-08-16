@@ -109,6 +109,7 @@ from src.model.measurement import WorldPositionMeasurement
 from src.model.observation import Observation
 from src.model.uncertainty import Uncertainty
 from src.model.ulid import generate_ulid
+from src.model.world import UNREGISTERED
 
 FilterKind = Literal["single_model", "imm"]
 
@@ -154,7 +155,16 @@ hidden) but flagged as too thin to support a conclusion -- matches
 src.estimator.diagnostics.is_white's own floor for the same reason."""
 
 
-def _frame_of_reference(twin_rev: int = 1) -> FrameOfReference:
+def _frame_of_reference(twin_rev: int = UNREGISTERED) -> FrameOfReference:
+    """Day 31, Objective 4: UNREGISTERED, not 1.
+
+    These are synthetic clips that record no twin revision at all, and
+    `src/data/scorecard.py` and `src/inspector/artifacts.py` already wrap
+    the very same clips as UNREGISTERED. Defaulting to 1 here asserted a
+    revision that does not exist, and asserted it more confidently than
+    the two consumers that had it right -- the same false-declaration
+    pattern Day 30 found in WorldPositionArray, in a different type.
+    """
     return FrameOfReference(
         geometry=FrameGeometry(1, 1),
         to_canonical=AffineTransform.identity(),

@@ -221,7 +221,13 @@ def test_calibrated_intrinsics_still_work(monkeypatch: pytest.MonkeyPatch) -> No
         valid_mask=np.ones(geometry.shape, dtype=np.bool_),
     )
     K = Intrinsics(
-        fx=50.0, fy=50.0, cx=50.0, cy=50.0, distortion=(0.0,), valid_for=geometry
+        fx=50.0,
+        fy=50.0,
+        cx=50.0,
+        cy=50.0,
+        distortion=(0.0,),
+        valid_for=geometry,
+        calibrated=True,
     )
     assert K.calibrated is True
     np.testing.assert_allclose(

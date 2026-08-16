@@ -105,20 +105,27 @@ def resize_and_scale_clip(rgb_uint8: np.ndarray, spec: PreprocessSpec) -> np.nda
 
     height, width = spec.resolution
     resized = np.stack(
-        [cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA) for frame in rgb_uint8]
+        [
+            cv2.resize(frame, (width, height), interpolation=cv2.INTER_AREA)
+            for frame in rgb_uint8
+        ]
     )
     scaled = resized.astype(np.float32) / 255.0
     return scaled.transpose(0, 3, 1, 2)[None]
 
 
-def encode(infer: Any, clip_bt_chw: np.ndarray, spec: PreprocessSpec, standardise: bool) -> np.ndarray:
+def encode(
+    infer: Any, clip_bt_chw: np.ndarray, spec: PreprocessSpec, standardise: bool
+) -> np.ndarray:
     """Run V-JEPA2 IR on one window, honouring or bypassing the standardiser."""
     prepped = spec.apply(clip_bt_chw) if standardise else clip_bt_chw.astype(np.float32)
     infer.infer({"video": prepped})
     return infer.get_output_tensor(0).data.copy()
 
 
-def patch_index(uv: np.ndarray, spec: PreprocessSpec, orig_h: int, orig_w: int) -> np.ndarray:
+def patch_index(
+    uv: np.ndarray, spec: PreprocessSpec, orig_h: int, orig_w: int
+) -> np.ndarray:
     """``(row, col)`` on the encoder's patch grid for pixel coordinates ``uv``.
 
     ``uv`` is ``[..., 2]`` in the ORIGINAL raster; scaled to the encoder's
@@ -136,7 +143,13 @@ def patch_index(uv: np.ndarray, spec: PreprocessSpec, orig_h: int, orig_w: int) 
     return np.stack([row, col], axis=-1)
 
 
-def observable_at(gt_uv_track: np.ndarray, gt_occ_track: np.ndarray, frame: int, orig_h: int, orig_w: int) -> bool:
+def observable_at(
+    gt_uv_track: np.ndarray,
+    gt_occ_track: np.ndarray,
+    frame: int,
+    orig_h: int,
+    orig_w: int,
+) -> bool:
     """Is this ONE track in-frame and unoccluded at ``frame``?
 
     ``gt_uv_track`` is ``[T, 2]`` and ``gt_occ_track`` is ``[T]`` — already
@@ -148,7 +161,12 @@ def observable_at(gt_uv_track: np.ndarray, gt_occ_track: np.ndarray, frame: int,
 
 
 def crossed_boundary(
-    gt_uv_track: np.ndarray, spec: PreprocessSpec, orig_h: int, orig_w: int, frame0: int, framek: int
+    gt_uv_track: np.ndarray,
+    spec: PreprocessSpec,
+    orig_h: int,
+    orig_w: int,
+    frame0: int,
+    framek: int,
 ) -> bool:
     """Did this track's patch index change at least once in ``[frame0, framek]``?
 
@@ -189,11 +207,9 @@ def embed_tracks_at_offset(
     features = encode(infer, window, spec, standardise=standardise)
 
     grid = (encoder_h // spec.patch_size, encoder_w // spec.patch_size)
-    span = TemporalSpan(
-        start_ts_ns=0,
-        end_ts_ns=max(1, spec.frames),
-        frames_covered=spec.frames,
-        tubelet=spec.tubelet,
+    # No wall clock: this is encoder output, not a captured interval.
+    span = TemporalSpan.without_wall_clock(
+        frames_covered=spec.frames, tubelet=spec.tubelet
     )
     tokens = tokens_from_encoder_output(
         features,
@@ -210,7 +226,9 @@ def embed_tracks_at_offset(
     return embeddings[0]  # frame `offset` == window frame 0 == slot 0
 
 
-def average_precision(query_idx: int, sim: np.ndarray, labels: np.ndarray, query_label: int) -> float | None:
+def average_precision(
+    query_idx: int, sim: np.ndarray, labels: np.ndarray, query_label: int
+) -> float | None:
     """AP for one query against a ranked candidate pool.
 
     ``sim`` is the query's similarity to every pool member (higher = closer
@@ -228,7 +246,9 @@ def average_precision(query_idx: int, sim: np.ndarray, labels: np.ndarray, query
     return float((precisions * hits).sum() / n_pos)
 
 
-def patch_visit_stats(clips_data: list[dict[str, Any]], spec: PreprocessSpec) -> dict[str, Any]:
+def patch_visit_stats(
+    clips_data: list[dict[str, Any]], spec: PreprocessSpec
+) -> dict[str, Any]:
     """Day-11 diagnostic, kept: how many patches a track visits in ONE window.
 
     Retained for continuity with the Day-11 finding this script repairs —
@@ -255,7 +275,9 @@ def patch_visit_stats(clips_data: list[dict[str, Any]], spec: PreprocessSpec) ->
         "unique_patches_mean": float(arr.mean()) if arr.size else float("nan"),
         "unique_patches_max": int(arr.max()) if arr.size else 0,
         "fraction_in_one_patch": float((arr == 1).mean()) if arr.size else float("nan"),
-        "fraction_in_at_most_two_patches": float((arr <= 2).mean()) if arr.size else float("nan"),
+        "fraction_in_at_most_two_patches": float((arr <= 2).mean())
+        if arr.size
+        else float("nan"),
     }
 
 
@@ -279,7 +301,9 @@ def run_gap_sweep(
 
     # embeddings[offset] -> list of (global_id, embedding) for every track
     # observable and encodable at that offset.
-    embeddings_by_offset: dict[int, list[tuple[int, np.ndarray]]] = {o: [] for o in offsets}
+    embeddings_by_offset: dict[int, list[tuple[int, np.ndarray]]] = {
+        o: [] for o in offsets
+    }
     # positions[(clip_id, track)] -> gt_uv, gt_occ arrays, kept for the
     # boundary-crossing and position-only-baseline computations.
     track_meta: dict[tuple[str, int], dict[str, Any]] = {}
@@ -411,7 +435,9 @@ def main(argv: list[str] | None = None) -> int:
         help="V-JEPA clip length T. Must match the loaded IR's export; "
         "sweeping T itself needs a new export (see ADR 0002).",
     )
-    parser.add_argument("--out", type=Path, default=Path("outputs/day12/semantics.json"))
+    parser.add_argument(
+        "--out", type=Path, default=Path("outputs/day12/semantics.json")
+    )
     args = parser.parse_args(argv)
 
     if not args.ir.exists():
@@ -493,17 +519,23 @@ def main(argv: list[str] | None = None) -> int:
 
     per_gap_report = {}
     print("\n---- per-gap results ----")
-    print(f"{'gap':>5} {'pairs':>6} {'pool':>6} {'mAP':>8} {'baseline':<24} {'margin':>9}  {'delta(fix-prefix)':>18}")
+    print(
+        f"{'gap':>5} {'pairs':>6} {'pool':>6} {'mAP':>8} {'baseline':<24} {'margin':>9}  {'delta(fix-prefix)':>18}"
+    )
     for k in gaps:
         f = fixed.get(k, {})
         p = prefix.get(k, {})
         n_pairs = f.get("n_pairs", 0)
         if n_pairs == 0:
-            print(f"{k:>5} {0:>6}   -- no surviving cross-boundary pairs --  ({f.get('note', '')})")
+            print(
+                f"{k:>5} {0:>6}   -- no surviving cross-boundary pairs --  ({f.get('note', '')})"
+            )
             per_gap_report[k] = {"standardised": f, "prefix": p}
             continue
 
-        chance_b = Baseline("chance", f["chance_mAP"], "1 / pool size", flag_worthy=True)
+        chance_b = Baseline(
+            "chance", f["chance_mAP"], "1 / pool size", flag_worthy=True
+        )
         pos_b = Baseline(
             "position_only",
             f["position_only_mAP"],
