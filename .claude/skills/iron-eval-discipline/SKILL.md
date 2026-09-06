@@ -432,3 +432,54 @@ compete.
   disabled by policy, not shipped with hope.
 - If you cannot measure a claim yet, say so in the PR and file the eval task — do not soften
   the claim's wording as a substitute for measuring it.
+
+## A Caveat That Depends On Being Read Has A Half-Life
+
+**A caveat enforced by a mechanism does not decay. A caveat enforced by someone remembering to
+reread the paragraph it sits in does — and the decay is silent, because the caveat's own prose
+never changes; only the number of people still carrying it in their head does.**
+
+Worked example (Day 32's standing-caveat audit, `docs/dismissal_audit.md` and
+`FOUNDATION_REPORT.md`'s Day-32 section). Six caveats load-bearing at the time were checked
+against this question directly, not assumed:
+
+- **`C_pending_consent`'s no-read-without-consent rule** and the **wake-fraction
+  `DO_NOT_QUOTE` stamp** (`src/data/scorecard.py`) are both enforced by a mechanism — a typed
+  gate that raises before the read, and a stamp attached to the computed object itself,
+  respectively — and neither has decayed regardless of who remembers why.
+- **ADR-0009's `main`/`origin/main` divergence** is enforced by nothing and cannot cheaply be:
+  it is blocked on a human decision about repository history, not a code invariant a lint can
+  check.
+- **The background-notification caveat that produced Day 31's defect** — "completed, exit code
+  0" is not the same claim as "the output says it passed" — was, until Day 32, enforced by
+  nothing but a note someone had to remember to reread. `scripts/suite_report.py` and
+  `tests/test_report_suite_provenance.py` convert the specific, recurring instance of it (suite
+  counts in this report) into a mechanism: a claimed count with no artifact citation that exists
+  on disk fails a test. The general caveat — do not trust a completion notification for *any*
+  background process — is not fully convertible the same way, because it is a claim about
+  external tooling this repository does not control; it remains a remembered caveat, named here
+  so that gap is stated rather than left implicit.
+- A **coarse lint over ADR-status citations was considered and rejected** for provisional/
+  superseded ADR findings (e.g. ADR-0010's Day-25 "adopt config B" decision, since reverted):
+  code cites *specific claims* within an ADR, and a superseded ADR can still contain claims that
+  were never part of what got superseded (`tests/test_eval_estimator.py`'s citation of ADR-0010's
+  directional-criterion rationale is one — the criterion survived the revert; the config choice
+  under it did not). A lint that flags every citation of a superseded ADR number would be wrong
+  more often than the defect it is meant to catch, which is worse than no lint: it trains
+  whoever reads it to ignore lint failures. Not converting a caveat is sometimes the correct
+  call — but it must be a stated call, not a default.
+
+**In practice:**
+
+- When a caveat is written — in a docstring, an ADR, a report paragraph, a code comment — ask
+  what would enforce it before trusting the prose alone: a type that makes the wrong state
+  unconstructable, a gate that raises before the read, a stamp attached to the value itself, or
+  a lint that fails a claim lacking a citation to something real. Prefer the mechanism even when
+  the prose is correct today, because "correct today" is exactly what a half-life means.
+- If no mechanism is cheap or precise enough — a human decision pending, or a check that would
+  false-positive on legitimate cases — say so explicitly, next to the caveat, rather than
+  leaving its enforcement status unstated. "Remembered, and here is why it isn't mechanized yet"
+  is a defensible position. Silence on the question is not.
+- A caveat's prose does not need to be wrong for its enforcement to have decayed. It decays when
+  the number of people who would reread it before relying on the thing it warns about drops
+  below one — which happens quietly, with no corresponding edit to the caveat itself.
