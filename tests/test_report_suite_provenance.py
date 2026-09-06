@@ -126,6 +126,9 @@ def test_the_lint_accepts_a_claim_backed_by_a_real_artifact() -> None:
         f"{real_artifact} must exist for this test to mean anything -- "
         "run scripts/suite_report.py --label-prefix day32"
     )
-    fake_body = f"\n\nRan the gated suite: 1259 passed, 7 skipped, 0 failures ({real_artifact}).\n\n"
+    fake_body = (
+        f"\n\nRan the gated suite: 1259 passed, 7 skipped, 0 failures "
+        f"({real_artifact}).\n\n"
+    )
     uncited = _uncited_suite_claims(fake_body)
     assert not uncited, f"a claim citing a real artifact was still flagged: {uncited}"

@@ -126,10 +126,11 @@ def reconcile(gated: SuiteRun, full: SuiteRun) -> tuple[bool, str]:
             f"deselected={gated.deselected} = {accounted} == "
             f"{full.label} executed={full.executed}"
         )
+    direction = "missing" if accounted < full.executed else "extra"
     return False, (
         f"DISCREPANCY: {gated.label} executed={gated.executed} + "
         f"deselected={gated.deselected} = {accounted}, but {full.label} "
-        f"executed={full.executed} ({'missing' if accounted < full.executed else 'extra'} "
+        f"executed={full.executed} ({direction} "
         f"{abs(full.executed - accounted)} test(s) unaccounted for)"
     )
 
