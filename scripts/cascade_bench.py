@@ -334,7 +334,7 @@ def main(argv: list[str] | None = None) -> int:
     large_px = max(small_px * 3, args.height // 4)
 
     scenarios: list[Scenario] = [
-        static_scenario(args.seconds // 3, args.fps, args.width, args.height),
+        static_scenario(max(1, args.seconds // 3), args.fps, args.width, args.height),
         moving_blob_scenario(
             "near_target",
             args.seconds,

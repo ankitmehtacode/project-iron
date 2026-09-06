@@ -10,10 +10,13 @@ gate and go back to printing an unguarded number.
 
 Scenarios are kept small (`--seconds 9 --static-seconds 3`, low-res frames)
 since only the gate wiring is under test, not cascade correctness -- that is
-`tests/test_*` elsewhere and the script's own regression checks. `--seconds`
-below 3 divides to zero static-scenario frames (a pre-existing edge case in
-`static_scenario`, unrelated to today's scope) and is avoided rather than
-fixed here.
+`tests/test_*` elsewhere and the script's own regression checks.
+
+`--seconds` below 3 used to floor-divide to zero static-scenario frames,
+which `run_gate` then fed to `np.percentile` on an empty array --
+`IndexError`, not the `ZeroDivisionError` a first guess would suggest
+(Day-23/32 dismissal audit, entry #6). Guarded with `max(1, ...)` in
+`main()`; `test_seconds_below_three_does_not_crash` below pins it.
 """
 
 from __future__ import annotations
@@ -130,5 +133,16 @@ def test_unguarded_run_is_unaffected_by_the_gate() -> None:
     start refusing runs just because a CI runner has no battery."""
     exit_code = cascade_bench.main(
         ["--seconds", "9", "--static-seconds", "3", "--width", "320", "--height", "240", "--budget-scale", "3.0"]
+    )
+    assert exit_code in (0, 1)
+
+
+def test_seconds_below_three_does_not_crash() -> None:
+    """`--seconds 1` used to floor-divide to zero static-scenario frames and
+    crash inside run_gate's np.percentile call on an empty array (dismissal
+    audit entry #6). max(1, ...) at the call site keeps at least one static
+    frame regardless of --seconds."""
+    exit_code = cascade_bench.main(
+        ["--seconds", "1", "--static-seconds", "1", "--width", "320", "--height", "240"]
     )
     assert exit_code in (0, 1)
