@@ -74,15 +74,41 @@ STRUCTURAL, re-tested against the single-entity precedent
   ``graph.factors_as_of(query.graph_rev)`` exactly like
   :func:`~src.estimator.filter.resolve_state` — re-solving a component at
   an earlier revision after more factors have been appended returns a
-  bit-identical result, tested directly.
+  bit-identical result, tested directly. Unaffected by today's
+  :func:`resolve_data_association`, which does not touch
+  :class:`~src.model.episode.StateGraph` at all (see below) -- the
+  claim is that this still holds, re-verified, not that it now covers a
+  new case.
+
+Implemented today (Day 32, Objective 4) -- hypothesis management, started
+---------------------------------------------------------------------------
+:func:`resolve_data_association` proposes one :class:`~src.model.
+hypothesis.Hypothesis` per :class:`AssociationCandidate` in the shared
+:class:`~src.model.hypothesis.HypothesisStore`, then prunes in two
+passes, in this fixed order: hard-constraint violations first (via
+:func:`~src.estimator.constraints.prune_for_hard_violation`, the same
+function :func:`check_hard_constraints` uses), THEN a per-component
+:class:`AssociationBudgetConfig` cut by ``log_likelihood`` over whatever
+survives the first pass. Hard-before-budget is not incidental ordering:
+a hard-impossible hypothesis must never occupy a budget slot a
+physically-possible competitor could have used. Budget cuts are recorded
+as :class:`~src.model.hypothesis.PrunedByBudget` -- "lost a resource
+competition," never "was evaluated and found worse" -- so
+``store.considered_alternatives()`` keeps the two answers to "was this
+considered?" distinguishable, per that store's own reason for existing.
+
+**Scope, stated tightly, because this is a start:** ``log_likelihood``
+is caller-supplied, not computed here -- no re-estimation, no motion or
+measurement model touches this function. Nothing here feeds back into
+:func:`run_joint_filter`'s ``Component`` composition, which stays
+caller-declared exactly as before; a resolved association does not yet
+grow, shrink, or merge a running component. ``MergedInto`` and
+``ExpiredHorizon`` (:mod:`src.model.hypothesis`'s other two death
+causes) have no caller in this module -- there is no merge or
+horizon-expiry logic yet, only propose / hard-prune / budget-prune.
 
 Not implemented today (skeletons, not silent gaps)
 --------------------------------------------------------
-- **Hypothesis management** (discrete data-association uncertainty) --
-  :func:`resolve_data_association` raises ``NotImplementedError`` naming
-  what it would resolve: which carrier a carried entity belongs to, or
-  whether an ambiguous nearby entity is the same tracked identity. A
-  :class:`Component` here is declared by the caller, never inferred.
 - **Smoothing across the joint graph** -- :func:`resolve_joint_state`
   raises ``NotImplementedError`` for ``horizon_kind="smoothed"``, same
   convention as :data:`~src.model.episode.StateQuery.horizon_kind`.
@@ -100,12 +126,13 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass
-from typing import Literal, Sequence
+from typing import Callable, Literal, Sequence
 
 import numpy as np
 import numpy.typing as npt
 
 from src.estimator import consistency
+from src.estimator.constraints import prune_for_hard_violation
 from src.estimator.filter import LARGE_VELOCITY_VARIANCE_MPS2, run_single_entity_filter
 from src.estimator.filter import FilterError
 from src.estimator.filter import resolve_state as _resolve_single_entity_state
@@ -118,7 +145,15 @@ from src.estimator.motion_model import (
     motion_model_for,
 )
 from src.estimator.state import ConsistencyResidual, StateEstimate
+from src.model.constraint import HardConstraintViolation
 from src.model.episode import Factor, StateGraph, StateQuery, solve_state
+from src.model.hypothesis import (
+    DeathCause,
+    Hypothesis,
+    HypothesisStore,
+    PrunedByBudget,
+    RefutedByHardConstraint,
+)
 from src.model.measurement import WorldPositionMeasurement
 from src.model.observation import Observation
 from src.model.ulid import generate_ulid
@@ -1197,18 +1232,199 @@ def resolve_joint_state(
     )
 
 
-def resolve_data_association(*args: object, **kwargs: object) -> None:
+@dataclass(frozen=True)
+class AssociationCandidate:
+    """One proposed answer to a data-association question for a component
+    -- e.g. "carried entity 7 belongs to carrier A" versus "...to carrier
+    B". ``hypothesis_id`` need only be unique within the component;
+    :func:`resolve_data_association` namespaces it under the component id
+    before it ever reaches the shared :class:`~src.model.hypothesis.
+    HypothesisStore`. ``log_likelihood`` is whatever scoring the caller's
+    evaluation logic assigns -- this module does not compute one itself,
+    the same "store, does not interpret" boundary
+    :class:`~src.model.hypothesis.Hypothesis` already draws for
+    ``support``."""
+
+    hypothesis_id: str
+    proposition: str
+    log_likelihood: float
+
+
+@dataclass(frozen=True)
+class AssociationBudgetConfig:
+    """Config-driven, versioned per-component cap on live association
+    hypotheses -- same convention as :class:`ComponentCapConfig`
+    (explicit, never a module-global mutated in place; a ``sha`` so a
+    change to the bound is a recorded config change, not a silent
+    behavior shift)."""
+
+    per_component_budget: int
+
+    def __post_init__(self) -> None:
+        if self.per_component_budget < 1:
+            raise JointFilterError(
+                "AssociationBudgetConfig.per_component_budget must be >= 1, "
+                f"got {self.per_component_budget}"
+            )
+
+    @property
+    def sha(self) -> str:
+        payload = {"per_component_budget": self.per_component_budget}
+        canonical = json.dumps(payload, sort_keys=True)
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+DEFAULT_ASSOCIATION_BUDGET_CONFIG = AssociationBudgetConfig(per_component_budget=3)
+"""3, UNLIKE :data:`DEFAULT_COMPONENT_CAP_CONFIG`'s 6, is NOT measured --
+no equivalent of Day 26's coupling-density study exists yet for how many
+genuinely competing association hypotheses this project's data produces
+per component. This is a placeholder pending exactly that measurement,
+named as one rather than presented as a derived bound. Do not cite this
+number as evidence of anything; it exists so the budget is a config
+value from day one, not a hypothesis management is not implemented today
+away from being one later."""
+
+
+@dataclass(frozen=True)
+class PruneDecision:
+    """One line of the pruning log :func:`resolve_data_association`
+    returns for every candidate it was given -- kept or not, and why.
+    Logged for kept candidates too (``cause=None``), so a decision record
+    is complete rather than only naming what died."""
+
+    component_id: str
+    hypothesis_id: str
+    kept: bool
+    cause: DeathCause | None
+    log_likelihood: float
+
+
+@dataclass(frozen=True)
+class AssociationResolution:
+    """The result of :func:`resolve_data_association`: which hypotheses
+    survived, and the full decision log for every candidate considered
+    (survivors included, ``cause=None``) -- not just the ones that died."""
+
+    component_id: str
+    surviving: tuple[Hypothesis, ...]
+    decisions: tuple[PruneDecision, ...]
+
+
+def _namespaced_id(component_id: str, hypothesis_id: str) -> str:
+    return f"{component_id}::{hypothesis_id}"
+
+
+def resolve_data_association(
+    store: HypothesisStore,
+    component_id: str,
+    candidates: Sequence[AssociationCandidate],
+    hard_violation_check: Callable[
+        [AssociationCandidate], HardConstraintViolation | None
+    ],
+    budget_config: AssociationBudgetConfig = DEFAULT_ASSOCIATION_BUDGET_CONFIG,
+) -> AssociationResolution:
     """Hypothesis management: discrete uncertainty over WHICH carrier a
-    carried entity belongs to, or whether an ambiguous nearby entity is the
-    same tracked identity already in a component. NOT implemented today --
-    :class:`Component` membership is declared by the caller, never
-    inferred or resolved from competing hypotheses. See
-    ``FOUNDATION_REPORT.md``'s long-carried "hypothesis management"
-    punch-list item, unchanged in scope by today's work.
+    carried entity belongs to, or whether an ambiguous nearby entity is
+    the same tracked identity already in a component -- started today,
+    scoped tightly (see the module docstring's "Implemented today"
+    section for exactly what this does and does not do).
+
+    Two pruning passes, in this order, because the order is the point:
+
+    1. **Hard constraints, first.** Every candidate is proposed in
+       ``store``, then checked via ``hard_violation_check`` (the
+       caller's own physical-consistency evaluation -- this function
+       does not invent one). A violation is pruned immediately through
+       :func:`~src.estimator.constraints.prune_for_hard_violation`, the
+       one function in this codebase permitted to record a
+       ``RefutedByHardConstraint`` death. This happens BEFORE any
+       likelihood ranking, per Day 29's own reason for building
+       constraint typing first: a hard-impossible hypothesis must never
+       occupy a budget slot a physically-possible competitor could have
+       used, and it must never be carried into whatever continuous
+       update would follow (out of scope here, but the ordering this
+       function establishes is what makes that safe later).
+    2. **Budget, over hard-constraint survivors only.** The survivors are
+       ranked by ``log_likelihood`` descending; every rank at or beyond
+       ``budget_config.per_component_budget`` is killed with
+       :class:`~src.model.hypothesis.PrunedByBudget` -- NOT a rejection
+       (see ``src/model/hypothesis.py``'s module docstring), and
+       retained in ``store`` at exactly the proposition and support it
+       had at death, exactly as budget-pruned records already are for
+       any other caller of :meth:`~src.model.hypothesis.HypothesisStore.
+       kill`.
+
+    Every candidate gets a :class:`PruneDecision` in the returned log,
+    survivors included -- "what happened to every candidate considered"
+    is answerable from this one return value without re-querying the
+    store.
     """
-    raise NotImplementedError(
-        "hypothesis management (discrete data-association uncertainty) is "
-        "not implemented -- Component membership is declared, not inferred"
+    if not candidates:
+        raise JointFilterError(
+            f"resolve_data_association({component_id!r}): candidates must not "
+            "be empty -- there is no association question to resolve"
+        )
+
+    decisions: list[PruneDecision] = []
+    survivors: list[tuple[AssociationCandidate, str]] = []
+
+    for candidate in candidates:
+        full_id = _namespaced_id(component_id, candidate.hypothesis_id)
+        store.propose(full_id, candidate.proposition, candidate.log_likelihood)
+        violation = hard_violation_check(candidate)
+        if violation is not None:
+            prune_for_hard_violation(store, full_id, violation)
+            decisions.append(
+                PruneDecision(
+                    component_id=component_id,
+                    hypothesis_id=candidate.hypothesis_id,
+                    kept=False,
+                    cause=RefutedByHardConstraint(
+                        constraint_name=violation.constraint_name
+                    ),
+                    log_likelihood=candidate.log_likelihood,
+                )
+            )
+            continue
+        survivors.append((candidate, full_id))
+
+    ranked = sorted(survivors, key=lambda pair: pair[0].log_likelihood, reverse=True)
+    kept_ids = {full_id for _, full_id in ranked[: budget_config.per_component_budget]}
+
+    for candidate, full_id in ranked:
+        if full_id in kept_ids:
+            decisions.append(
+                PruneDecision(
+                    component_id=component_id,
+                    hypothesis_id=candidate.hypothesis_id,
+                    kept=True,
+                    cause=None,
+                    log_likelihood=candidate.log_likelihood,
+                )
+            )
+        else:
+            dead = store.kill(
+                full_id, PrunedByBudget(budget=budget_config.per_component_budget)
+            )
+            decisions.append(
+                PruneDecision(
+                    component_id=component_id,
+                    hypothesis_id=candidate.hypothesis_id,
+                    kept=False,
+                    cause=dead.cause,
+                    log_likelihood=candidate.log_likelihood,
+                )
+            )
+
+    surviving = tuple(hyp for hyp in store.alive() if hyp.id in kept_ids)
+    # Preserve the input candidates' relative order in the decision log,
+    # not the rank order used for pruning -- a caller reading the log
+    # against its own candidate list should not have to re-sort it.
+    order = {c.hypothesis_id: i for i, c in enumerate(candidates)}
+    decisions.sort(key=lambda d: order[d.hypothesis_id])
+
+    return AssociationResolution(
+        component_id=component_id, surviving=surviving, decisions=tuple(decisions)
     )
 
 

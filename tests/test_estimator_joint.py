@@ -19,6 +19,7 @@ own organization for the single-entity precedent this extends):
 from __future__ import annotations
 
 import inspect
+from typing import Callable
 
 import numpy as np
 import pytest
@@ -26,6 +27,8 @@ import pytest
 from src.contracts.frames import AffineTransform, FrameGeometry
 from src.estimator import consistency
 from src.estimator.joint import (
+    AssociationBudgetConfig,
+    AssociationCandidate,
     Component,
     ComponentCapConfig,
     DEFAULT_COMPONENT_CAP_CONFIG,
@@ -40,8 +43,14 @@ from src.estimator.joint import (
 )
 from src.estimator.measurement_model import measurement_model_for
 from src.estimator.motion_model import motion_model_for
+from src.model.constraint import HardConstraintViolation
 from src.model.episode import StateGraph, StateQuery
 from src.model.frame_of_reference import FrameOfReference
+from src.model.hypothesis import (
+    HypothesisStore,
+    PrunedByBudget,
+    RefutedByHardConstraint,
+)
 from src.model.measurement import WorldPositionMeasurement
 from src.model.observation import Observation
 from src.model.uncertainty import Uncertainty
@@ -458,11 +467,6 @@ def test_resolving_a_joint_component_at_an_earlier_rev_is_bit_identical() -> Non
 # ---------------------------------------------------------------------------
 # Skeletons: NotImplementedError, not a silent gap
 # ---------------------------------------------------------------------------
-
-
-def test_resolve_data_association_is_not_implemented() -> None:
-    with pytest.raises(NotImplementedError):
-        resolve_data_association()
 
 
 def test_hybrid_discrete_continuous_state_is_not_implemented() -> None:
@@ -977,3 +981,145 @@ def test_two_term_model_actually_differs_from_constant_during_real_deceleration(
         f"({constant_variance}) after a real stop -- the acceleration "
         "term is not being fed"
     )
+
+
+# ---------------------------------------------------------------------------
+# Day 32, Objective 4 -- hypothesis management, started
+# ---------------------------------------------------------------------------
+
+
+def _never_violates(candidate: AssociationCandidate) -> HardConstraintViolation | None:
+    return None
+
+
+def _violate_named(
+    name: str,
+) -> "Callable[[AssociationCandidate], HardConstraintViolation | None]":
+    def check(candidate: AssociationCandidate) -> HardConstraintViolation | None:
+        if candidate.hypothesis_id == name:
+            return HardConstraintViolation(
+                constraint_name="test_constraint", description="fixture violation"
+            )
+        return None
+
+    return check
+
+
+def test_resolve_data_association_rejects_empty_candidates() -> None:
+    store = HypothesisStore()
+    with pytest.raises(JointFilterError):
+        resolve_data_association(store, "comp-1", [], _never_violates)
+
+
+def test_resolve_data_association_keeps_the_best_within_budget() -> None:
+    store = HypothesisStore()
+    candidates = [
+        AssociationCandidate("a", "carried-7 -> carrier A", log_likelihood=-1.0),
+        AssociationCandidate("b", "carried-7 -> carrier B", log_likelihood=-5.0),
+        AssociationCandidate("c", "carried-7 -> carrier C", log_likelihood=-0.5),
+    ]
+    resolution = resolve_data_association(
+        store,
+        "comp-1",
+        candidates,
+        _never_violates,
+        AssociationBudgetConfig(per_component_budget=2),
+    )
+    surviving_ids = {h.id for h in resolution.surviving}
+    assert surviving_ids == {"comp-1::a", "comp-1::c"}, (
+        "the two highest log_likelihood candidates (a, c) should survive a "
+        "budget of 2; b (the worst) should not"
+    )
+    decision_by_id = {d.hypothesis_id: d for d in resolution.decisions}
+    assert decision_by_id["b"].kept is False
+    assert decision_by_id["b"].cause == PrunedByBudget(budget=2)
+    assert decision_by_id["a"].kept and decision_by_id["a"].cause is None
+    assert decision_by_id["c"].kept and decision_by_id["c"].cause is None
+
+
+def test_resolve_data_association_decision_log_covers_every_candidate_in_order() -> (
+    None
+):
+    store = HypothesisStore()
+    candidates = [
+        AssociationCandidate("x", "p1", log_likelihood=-2.0),
+        AssociationCandidate("y", "p2", log_likelihood=-1.0),
+    ]
+    resolution = resolve_data_association(
+        store, "comp-2", candidates, _never_violates, AssociationBudgetConfig(1)
+    )
+    assert [d.hypothesis_id for d in resolution.decisions] == [
+        "x",
+        "y",
+    ], "the decision log must be in the CANDIDATES' order, not rank order"
+
+
+def test_hard_constraint_violation_prunes_before_budget_ranking() -> None:
+    """The load-bearing ordering claim: a candidate that would have WON
+    the budget ranking on log_likelihood alone must still die with
+    RefutedByHardConstraint, not survive, if it violates a hard
+    constraint -- hard constraints are checked first and unconditionally,
+    regardless of how good the candidate looks on likelihood."""
+    store = HypothesisStore()
+    candidates = [
+        AssociationCandidate("best-but-impossible", "p", log_likelihood=100.0),
+        AssociationCandidate("worst-but-possible", "p", log_likelihood=-100.0),
+    ]
+    resolution = resolve_data_association(
+        store,
+        "comp-3",
+        candidates,
+        _violate_named("best-but-impossible"),
+        AssociationBudgetConfig(per_component_budget=2),
+    )
+    surviving_ids = {h.id for h in resolution.surviving}
+    assert surviving_ids == {"comp-3::worst-but-possible"}
+    decision_by_id = {d.hypothesis_id: d for d in resolution.decisions}
+    assert decision_by_id["best-but-impossible"].cause == RefutedByHardConstraint(
+        constraint_name="test_constraint"
+    )
+
+
+def test_budget_pruned_hypotheses_are_forensically_distinguishable_from_refuted() -> (
+    None
+):
+    """PRUNED_BY_BUDGET is the load-bearing case (Day 28's module
+    docstring, re-tested here against a real caller): a forensic query
+    over what was considered must be able to tell "ruled out" apart from
+    "never evaluated," for both a hard-refuted and a budget-pruned
+    candidate produced by the SAME resolve_data_association call."""
+    store = HypothesisStore()
+    candidates = [
+        AssociationCandidate("refuted", "p", log_likelihood=50.0),
+        AssociationCandidate("budget-cut", "p", log_likelihood=-1.0),
+        AssociationCandidate("kept", "p", log_likelihood=10.0),
+    ]
+    resolve_data_association(
+        store,
+        "comp-4",
+        candidates,
+        _violate_named("refuted"),
+        AssociationBudgetConfig(per_component_budget=1),
+    )
+    alternatives = {d.id: d for d in store.considered_alternatives()}
+    assert isinstance(alternatives["comp-4::refuted"].cause, RefutedByHardConstraint)
+    assert isinstance(alternatives["comp-4::budget-cut"].cause, PrunedByBudget)
+    assert alternatives["comp-4::refuted"].proposition == "p"
+    assert alternatives["comp-4::budget-cut"].support_at_death == -1.0
+    assert "comp-4::kept" not in alternatives, "the survivor must not appear as dead"
+
+
+def test_resolve_data_association_has_no_prior_parameter() -> None:
+    sig = inspect.signature(resolve_data_association)
+    for name in sig.parameters:
+        assert "prior" not in name.lower(), f"found a prior-shaped parameter: {name!r}"
+
+
+def test_association_budget_config_rejects_a_non_positive_budget() -> None:
+    with pytest.raises(JointFilterError):
+        AssociationBudgetConfig(per_component_budget=0)
+
+
+def test_association_budget_config_sha_changes_with_the_budget() -> None:
+    assert AssociationBudgetConfig(2).sha != AssociationBudgetConfig(3).sha
+    assert AssociationBudgetConfig(2).sha == AssociationBudgetConfig(2).sha
