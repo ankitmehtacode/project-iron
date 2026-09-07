@@ -18,6 +18,7 @@ import yaml
 from src.data import (
     LANE_DESCRIPTIONS,
     BlockedDataset,
+    ConsentPosture,
     ConsentRecord,
     DatasetEntry,
     DatasetRegistry,
@@ -356,3 +357,80 @@ def test_named_lane_r_shortlist_has_lane_r_and_a_validity_matrix_cell(
     assert dataset.license_snapshot is None
     assert dataset.hypothesis_class
     assert dataset.validity_matrix_cell, f"{name} has no validity_matrix_cell note"
+
+
+# ---------------------------------------------------------------------------
+# Day 35 -- consent_posture: staged performer vs. real, unconsenting subject
+# ---------------------------------------------------------------------------
+
+
+def test_dataset_entry_accepts_every_consent_posture_literal() -> None:
+    for posture in get_args(ConsentPosture):
+        entry = DatasetEntry(name="x", lane="R", consent_posture=posture)
+        assert entry.consent_posture == posture
+
+
+def test_dataset_entry_consent_posture_defaults_to_none() -> None:
+    assert DatasetEntry(name="x", lane="R").consent_posture is None
+
+
+def test_every_lane_r_seed_entry_has_a_consent_posture_backfilled() -> None:
+    """The Day 35 rule made structural: this distinction has been implicit
+    for thirty days and every pre-existing lane-R entry gets it, not only
+    entries added today."""
+    registry = DatasetRegistry.load(SEED_PATH)
+    missing = [
+        e.name for e in registry.entries() if e.lane == "R" and e.consent_posture is None
+    ]
+    assert not missing, f"lane-R entries with no consent_posture: {missing}"
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["i-LIDS", "PETS2009", "MEVA", "CAVIAR"],
+)
+def test_staged_actor_cctv_datasets_are_recorded_as_such(name: str) -> None:
+    registry = DatasetRegistry.load(SEED_PATH)
+    assert registry.get(name).consent_posture == "staged_actors"
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["ChokePoint", "PRW", "CUHK-SYSU"],
+)
+def test_real_surveillance_cctv_datasets_are_recorded_as_such(name: str) -> None:
+    registry = DatasetRegistry.load(SEED_PATH)
+    assert registry.get(name).consent_posture == "public_cctv_no_consent"
+
+
+@pytest.mark.parametrize(
+    "name",
+    ["i-LIDS", "PETS2009", "ChokePoint", "PRW", "CUHK-SYSU", "CAVIAR", "UCSD-Anomaly-Detection"],
+)
+def test_day_35_cctv_datasets_are_registered_lane_r_with_a_validity_cell(
+    name: str,
+) -> None:
+    registry = DatasetRegistry.load(SEED_PATH)
+    dataset = registry.get(name)
+    assert dataset.lane == "R"
+    assert dataset.license_snapshot is None
+    assert dataset.hypothesis_class
+    assert dataset.validity_matrix_cell, f"{name} has no validity_matrix_cell note"
+
+
+def test_meva_verification_priority_is_not_buried_by_todays_additions() -> None:
+    """Objective 4's explicit instruction: today's registrations must not
+    bury MEVA's standing first-in-queue position."""
+    registry = DatasetRegistry.load(SEED_PATH)
+    meva = registry.get("MEVA")
+    assert "verify first" in meva.notes.lower()
+
+
+def test_pets2009_and_chokepoint_name_the_identity_ambiguity_eval_target() -> None:
+    """Recorded as a forward-looking eval target only, per Objective 4 —
+    not implemented today, just not lost either."""
+    registry = DatasetRegistry.load(SEED_PATH)
+    for name in ("PETS2009", "ChokePoint"):
+        notes = registry.get(name).notes.lower()
+        assert "forward-looking eval target" in notes
+        assert "associationverdict" in notes

@@ -20,6 +20,7 @@ datasets:
   - name: OA18
     lane: R
     subsystem: activity
+    consent_posture: staged_actors
     hypothesis_class: >-
       Believed research-only (office-actions benchmark; ~18-class office
       activity taxonomy). UNVERIFIED — recorded as a hypothesis only, the
@@ -38,6 +39,7 @@ datasets:
   - name: MEVA
     lane: R
     subsystem: activity
+    consent_posture: staged_actors
     hypothesis_class: >-
       Historically released under unusually permissive terms for this
       category (hired, consented actors). If verification confirms
@@ -50,11 +52,17 @@ datasets:
     notes: >-
       Best public match to the product: multi-camera facility footage,
       surveillance-style activity annotations, overlapping cameras.
-      Verify FIRST — highest product impact.
+      Verify FIRST — highest product impact. STILL FIRST as of Day 35:
+      today's CCTV-dataset additions (i-LIDS, PETS2009, ChokePoint, PRW,
+      CUHK-SYSU, CAVIAR, UCSD Anomaly Detection) do not change this
+      ordering — MEVA licence verification remains the single highest-
+      product-impact pending data item (see FOUNDATION_REPORT.md, tracked
+      continuously since Day 23).
 
   - name: NTU-RGBD-120
     lane: R
     subsystem: activity
+    consent_posture: staged_actors
     hypothesis_class: research-only
     validity_matrix_cell: >-
       appearance_semantics — skeleton-annotated lab actions; POSE-verb
@@ -65,6 +73,7 @@ datasets:
   - name: Toyota-Smarthome
     lane: R
     subsystem: activity
+    consent_posture: staged_actors
     hypothesis_class: research-only
     validity_matrix_cell: >-
       appearance_semantics — untrimmed daily-living activity; the hardest
@@ -74,6 +83,7 @@ datasets:
   - name: InHARD
     lane: R
     subsystem: activity
+    consent_posture: staged_actors
     hypothesis_class: research-only
     validity_matrix_cell: >-
       appearance_semantics — industrial hand/assembly actions; Tier-2
@@ -83,6 +93,7 @@ datasets:
   - name: MECCANO
     lane: R
     subsystem: activity
+    consent_posture: staged_actors
     hypothesis_class: research-only
     validity_matrix_cell: >-
       appearance_semantics — egocentric industrial assembly actions;
@@ -92,6 +103,7 @@ datasets:
   - name: Charades
     lane: R
     subsystem: activity
+    consent_posture: staged_actors
     hypothesis_class: research-ish — verify carefully
     validity_matrix_cell: >-
       appearance_semantics — crowdsourced indoor daily activity; breadth
@@ -101,6 +113,7 @@ datasets:
   - name: VIRAT
     lane: R
     subsystem: activity
+    consent_posture: staged_actors
     hypothesis_class: research-only
     validity_matrix_cell: >-
       appearance_semantics — older surveillance-activity benchmark;
@@ -111,6 +124,7 @@ datasets:
   - name: MMPTRACK
     lane: R
     subsystem: tracking
+    consent_posture: staged_actors
     hypothesis_class: research-only
     validity_matrix_cell: >-
       No registered validity-matrix capability covers cross-camera
@@ -125,18 +139,27 @@ datasets:
   - name: WILDTRACK
     lane: R
     subsystem: tracking
+    consent_posture: public_cctv_no_consent
     hypothesis_class: research non-commercial
-    notes: 7-camera overlapping plaza; global association eval.
+    notes: >-
+      7-camera overlapping plaza; global association eval. Real,
+      uncontrolled pedestrian traffic on a university square, not staged
+      performers (Day 35 consent_posture backfill).
 
   - name: MEVID
     lane: R
     subsystem: reid
+    consent_posture: staged_actors
     hypothesis_class: verify with MEVA (built on it)
-    notes: Multi-view extended re-ID; clothing-change eval.
+    notes: >-
+      Multi-view extended re-ID; clothing-change eval. consent_posture
+      inherited from MEVA (built on it) — re-verify together, not
+      independently.
 
   - name: Market-1501
     lane: R
     subsystem: reid
+    consent_posture: public_cctv_no_consent
     hypothesis_class: research-only, consent debt
     notes: >-
       Model SELECTION only, reported internally. Never in demos: scraped
@@ -145,6 +168,7 @@ datasets:
   - name: MSMT17
     lane: R
     subsystem: reid
+    consent_posture: public_cctv_no_consent
     hypothesis_class: research-only, consent debt
     notes: Model selection only; never in demos.
 
@@ -182,19 +206,32 @@ datasets:
   - name: CASIA-B
     lane: R
     subsystem: gait
+    consent_posture: staged_actors
     hypothesis_class: research-only
   - name: OU-MVLP
     lane: R
     subsystem: gait
+    consent_posture: staged_actors
     hypothesis_class: research-only, application-gated
   - name: GREW
     lane: R
     subsystem: gait
+    consent_posture: unknown
     hypothesis_class: research-only, application-gated
+    notes: >-
+      Unlike CASIA-B/OU-MVLP's lab-recruited walkers, GREW is built from
+      real outdoor surveillance video — closer to public_cctv_no_consent
+      in spirit, but not confidently verified either way from memory
+      alone; recorded unknown rather than guessed (Day 35).
   - name: Gait3D
     lane: R
     subsystem: gait
+    consent_posture: unknown
     hypothesis_class: research-only
+    notes: >-
+      Built from real in-the-wild supermarket surveillance cameras, same
+      caveat as GREW — likely public_cctv_no_consent in fact, recorded
+      unknown pending actual verification (Day 35).
 
   # -- depth / geometry / twin -------------------------------------------
   - name: Infinigen-Indoors
@@ -215,36 +252,60 @@ datasets:
   - name: NYUv2
     lane: R
     subsystem: depth
+    consent_posture: unknown
     hypothesis_class: research-only
-    notes: Classic real indoor depth; sanity eval.
+    notes: >-
+      Classic real indoor depth; sanity eval. Scene-geometry dataset, not
+      a people dataset — incidental bystanders possible, consent posture
+      not confidently characterizable either way; recorded unknown rather
+      than assumed benign (Day 35).
 
   - name: SUN-RGBD
     lane: R
     subsystem: depth
+    consent_posture: unknown
     hypothesis_class: research-only
-    notes: Classic real indoor depth; sanity eval.
+    notes: >-
+      Classic real indoor depth; sanity eval. Same scene-geometry caveat
+      as NYUv2 (Day 35).
 
   - name: Hypersim
     lane: R
     subsystem: depth
+    consent_posture: unknown
     hypothesis_class: verify — likely non-commercial
     notes: >-
       Photoreal synthetic indoor. CAUTION for eval use: DA-V2's indoor
       metric checkpoint was trained on it, so evaluating DA-V2 against it
       double-counts. Prefer Infinigen-Indoors for depth eval.
+      consent_posture: unknown, not null, despite being synthetic (Day
+      35) — this entry is registered lane R rather than S, and whether
+      "synthetic" here means procedurally generated (no consent question
+      at all) or photogrammetry/scan-derived from real scenes (which can
+      carry real incidental people) is not confidently known from memory;
+      recorded unknown rather than assumed clean.
 
   - name: ScanNet
     lane: R
     subsystem: twin
+    consent_posture: unknown
     hypothesis_class: research-only, application-gated
+    notes: >-
+      Real RGB-D building scans, not synthetic — incidental real people
+      possible in some scans; consent posture not confidently
+      characterizable from memory, recorded unknown (Day 35).
   - name: Matterport3D
     lane: R
     subsystem: twin
+    consent_posture: unknown
     hypothesis_class: research-only, application-gated
+    notes: Same real-scan caveat as ScanNet (Day 35).
   - name: HM3D
     lane: R
     subsystem: twin
+    consent_posture: unknown
     hypothesis_class: research-only, application-gated
+    notes: Same real-scan caveat as ScanNet (Day 35).
 
   # -- detection / anomaly / HOI -----------------------------------------
   - name: PeopleSansPeople
@@ -256,45 +317,230 @@ datasets:
   - name: COCO
     lane: R
     subsystem: detection
+    consent_posture: unknown
     hypothesis_class: annotations CC-BY-4.0; images individually licensed
-    notes: Eval-only posture because of the per-image license patchwork.
+    notes: >-
+      Eval-only posture because of the per-image license patchwork.
+      Scraped Flickr photos of real people under heterogeneous individual
+      circumstances — neither a staged research programme nor CCTV;
+      recorded unknown rather than forced into either bucket (Day 35).
 
   - name: CrowdHuman
     lane: R
     subsystem: detection
+    consent_posture: unknown
     hypothesis_class: research-only
-    notes: Eval only.
+    notes: >-
+      Eval only. Internet-scraped crowd photos of real, unconsenting
+      people, same heterogeneous-provenance caveat as COCO — not literal
+      CCTV, recorded unknown rather than mislabeled public_cctv_no_consent
+      (Day 35).
 
   - name: UBnormal
     lane: R
     subsystem: anomaly
+    consent_posture: unknown
     hypothesis_class: synthetic, open-set — verify, possibly usable more broadly
-    notes: Lane R until verification says otherwise, synthetic or not.
+    notes: >-
+      Lane R until verification says otherwise, synthetic or not.
+      consent_posture recorded unknown rather than "not applicable" (Day
+      35): hypothesis_class already states synthetic/no real subjects,
+      but this registry reserves a bare absent consent_posture for lane
+      S/C/C_pending_consent entries where the field structurally does not
+      apply — a lane-R entry gets one of the three named values for
+      backfill-completeness consistency, even when, as here, the honest
+      answer is close to "not applicable".
 
   - name: ShanghaiTech-Campus
     lane: R
     subsystem: anomaly
+    consent_posture: public_cctv_no_consent
     hypothesis_class: research-only
+    notes: Real campus surveillance camera footage of real, uncontrolled pedestrians (Day 35).
   - name: CUHK-Avenue
     lane: R
     subsystem: anomaly
+    consent_posture: public_cctv_no_consent
     hypothesis_class: research-only
+    notes: Real fixed-camera footage of a real campus avenue (Day 35).
   - name: UCF-Crime
     lane: R
     subsystem: anomaly
+    consent_posture: public_cctv_no_consent
     hypothesis_class: research-only
-    notes: Mostly outdoor/street; off-domain for this product anyway.
+    notes: >-
+      Mostly outdoor/street; off-domain for this product anyway. Real
+      compiled CCTV/security-camera and user-submitted footage of real,
+      uncontrolled, unconsenting subjects (Day 35).
+
+  - name: UCSD-Anomaly-Detection
+    lane: R
+    subsystem: anomaly
+    consent_posture: public_cctv_no_consent
+    hypothesis_class: research-only — verify
+    validity_matrix_cell: >-
+      appearance_semantics — pedestrian-walkway anomaly detection
+      (bikers, skaters, carts, vehicles among pedestrians), alongside the
+      already-registered ShanghaiTech-Campus/CUHK-Avenue/UCF-Crime
+      anomaly benchmarks.
+    notes: >-
+      Day 35. Additional anomaly benchmark: fixed real camera over a UCSD
+      campus pedestrian walkway. Anomalies are naturally-occurring atypical
+      objects/behaviour on a real walkway, not staged incidents — real,
+      uncontrolled, unconsenting foot traffic, same posture as its
+      anomaly-dataset siblings above.
+
+  # -- CCTV-specific (Day 35) ---------------------------------------------
+  # Each cross-referenced to the validity-matrix cell(s) it would fill.
+  # consent_posture is the load-bearing new field here: this lane has had
+  # an implicit, unrecorded staged-vs-real-surveillance split for thirty
+  # days (see the backfill above) and it becomes structural starting now.
+  - name: i-LIDS
+    lane: R
+    subsystem: activity
+    consent_posture: staged_actors
+    hypothesis_class: >-
+      UK Home Office AVSS benchmark, historically distributed by the
+      i-LIDS community for research/challenge use. UNVERIFIED — recorded
+      as a hypothesis only; no snapshot exists and nothing may be fetched
+      on the strength of this line.
+    validity_matrix_cell: >-
+      appearance_semantics — directly relevant to asset-left-behind
+      (abandoned bag: a put_down + no-carrier-return interaction chain)
+      and restricted-zone (sterile zone / doorway: a zone entered/dwelled
+      pair) scenarios. The closest public match this registry has for
+      those two specific verb/zone combinations.
+    notes: >-
+      Day 35. AVSS 2007 challenge scenarios: abandoned bag, parked
+      vehicle, doorway, sterile zone. Staged reenactments performed by
+      recruited participants for the benchmark, not real incidents caught
+      on live CCTV — hence staged_actors, not public_cctv_no_consent,
+      despite the CCTV-realistic camera placement.
+
+  - name: PETS2009
+    lane: R
+    subsystem: tracking
+    consent_posture: staged_actors
+    hypothesis_class: >-
+      Classic PETS-workshop multi-camera benchmark, historically freely
+      distributed for research. UNVERIFIED — recorded as a hypothesis
+      only, same discipline as every other entry here.
+    validity_matrix_cell: >-
+      No registered validity-matrix capability covers cross-camera
+      multi-person tracking directly (same gap MMPTRACK's entry above
+      already names) — closest is motion_geometry, same caveat: a genuine
+      gap, not a clean fit.
+    notes: >-
+      Day 35. 7/8-camera overlapping-view crowd dataset (counting, flow
+      analysis, tracking); choreographed scenarios performed by recruited
+      participants at the University of Reading, not candid footage.
+      FORWARD-LOOKING EVAL TARGET, NOT TODAY'S WORK: alongside ChokePoint
+      below, a candidate for supplying real, human-annotated identity-
+      ambiguity cases — genuine confusable pairs in a real overlapping-
+      camera crowd — that could validate AssociationVerdict's
+      Decisive/Ambiguous split against human-perceived ambiguity, once
+      licence status permits any use at all.
+
+  - name: ChokePoint
+    lane: R
+    subsystem: reid
+    consent_posture: public_cctv_no_consent
+    hypothesis_class: >-
+      Historically distributed for research re-identification benchmarking.
+      UNVERIFIED — recorded as a hypothesis only. consent_posture itself is
+      also a hypothesis, not an independently re-verified fact (see
+      ConsentPosture's docstring) — re-verify alongside the licence.
+    validity_matrix_cell: >-
+      appearance_semantics / reid — portal/gate re-identification under
+      natural pose variation as people walk through a real entry point;
+      fills the re-id cell alongside MEVID/Market-1501/MSMT17 with a
+      distinctly different capture geometry (a single chokepoint, not
+      open-area cameras).
+    notes: >-
+      Day 35. Real uncontrolled foot traffic through a portal at a real
+      point of entry — not a staged research programme. FORWARD-LOOKING
+      EVAL TARGET, NOT TODAY'S WORK: alongside PETS2009 above, a candidate
+      for supplying real, human-annotated identity-ambiguity cases to
+      validate AssociationVerdict's Decisive/Ambiguous split against
+      human-perceived ambiguity, once licence status permits any use at
+      all.
+
+  - name: PRW
+    lane: R
+    subsystem: reid
+    consent_posture: public_cctv_no_consent
+    hypothesis_class: >-
+      Historically distributed for research person-search benchmarking.
+      UNVERIFIED — recorded as a hypothesis only, same discipline as
+      every other entry here.
+    validity_matrix_cell: >-
+      appearance_semantics / reid — person search (joint detection +
+      re-id) from a real campus surveillance camera network, same lineage
+      and campus as Market-1501.
+    notes: >-
+      Day 35. Real, uncontrolled campus surveillance footage of real
+      students and staff — same posture as Market-1501/MSMT17, its close
+      relatives.
+
+  - name: CUHK-SYSU
+    lane: R
+    subsystem: reid
+    consent_posture: public_cctv_no_consent
+    hypothesis_class: >-
+      Historically distributed for research person-search benchmarking.
+      UNVERIFIED — recorded as a hypothesis only, same discipline as
+      every other entry here.
+    validity_matrix_cell: >-
+      appearance_semantics / reid — person search from real street-camera
+      snapshots (plus movie/TV frames in the same release), complementing
+      PRW's single-campus-network capture with a more heterogeneous real-
+      world camera mix.
+    notes: >-
+      Day 35. Street-camera component is real, uncontrolled, unconsenting
+      surveillance; the movie/TV-frame component is a different (posed,
+      performed) provenance the registry does not currently split out —
+      recorded public_cctv_no_consent for the dataset as a whole per this
+      task's classification, flagged for finer-grained re-verification
+      before any actual use.
+
+  - name: CAVIAR
+    lane: R
+    subsystem: activity
+    consent_posture: staged_actors
+    hypothesis_class: >-
+      EU CAVIAR project dataset, historically freely distributed for
+      research. UNVERIFIED — recorded as a hypothesis only, same
+      discipline as every other entry here.
+    validity_matrix_cell: >-
+      appearance_semantics — indoor corridor/shop scenarios with labeled
+      interactions (browsing, meeting, fighting, leaving an object/
+      abandoned bag). FLAGGED EXPLICITLY: an unusually close match to
+      this project's own verb vocabulary (INTERACTION verbs picked_up/
+      put_down/carried, GEOMETRIC dwelled/approached) — closer than MEVA's
+      surveillance-generic activities or Charades' home-activity breadth.
+    notes: >-
+      Day 35. Recorded scenarios performed by actors at a shopping-centre
+      corridor and an INRIA lab entrance for the EU CAVIAR project —
+      staged by construction, not candid surveillance.
 
   - name: Something-Something-v2
     lane: R
     subsystem: hoi
+    consent_posture: staged_actors
     hypothesis_class: research/NC
-    notes: Hand-object interaction benchmarking only.
+    notes: >-
+      Hand-object interaction benchmarking only. Crowdworker-submitted
+      self-recordings under a task agreement, not candid surveillance
+      (Day 35).
   - name: EPIC-KITCHENS
     lane: R
     subsystem: hoi
+    consent_posture: staged_actors
     hypothesis_class: non-commercial
-    notes: Hand-object interaction benchmarking only.
+    notes: >-
+      Hand-object interaction benchmarking only. Recruited participants
+      wearing cameras in their own kitchens under informed research
+      consent (Day 35).
 
 
   - name: synthetic-indoor-v1
@@ -650,6 +896,7 @@ datasets:
   - name: DA-2K
     lane: R
     subsystem: depth
+    consent_posture: unknown
     hypothesis_class: >-
       Depth-Anything's own relative-depth benchmark. Believed research-only.
       VERIFY before any use beyond local eval.
@@ -665,10 +912,13 @@ datasets:
       makes it the single best first real depth eval for this project. Adapter
       implemented and tested against a synthesized 5-pair fixture; ready the
       moment the licence clears. HUMAN ACTION: read the DA-2K terms and record
-      a licence snapshot.
+      a licence snapshot. consent_posture unknown (Day 35): curated scene
+      photos, may include real incidental people, not characterized either
+      way.
   - name: ETH3D
     lane: R
     subsystem: depth
+    consent_posture: unknown
     hypothesis_class: research/non-commercial — verify
     validity_matrix_cell: >-
       depth — high-accuracy laser-scanned metric GT, real materials and
@@ -682,6 +932,7 @@ datasets:
   - name: iBims-1
     lane: R
     subsystem: depth
+    consent_posture: unknown
     hypothesis_class: research-only — verify
     validity_matrix_cell: >-
       depth — planarity / depth-boundary / directed-error metrics, not a
@@ -694,6 +945,7 @@ datasets:
   - name: DIODE-indoor
     lane: R
     subsystem: depth
+    consent_posture: unknown
     hypothesis_class: research-only — verify
     validity_matrix_cell: >-
       depth — dense indoor GT at long range, where this project's own
@@ -838,15 +1090,26 @@ datasets:
   - name: DukeMTMC
     lane: R
     subsystem: reid
+    consent_posture: public_cctv_no_consent
     blocked: true
     blocked_reason: RETRACTED 2019 — ethics investigation; see registry.py.
   - name: DukeMTMC-reID
     lane: R
     subsystem: reid
+    consent_posture: public_cctv_no_consent
     blocked: true
     blocked_reason: Derivative of DukeMTMC; inherits the retraction.
   - name: MS-Celeb
     lane: R
     subsystem: reid
+    consent_posture: unknown
     blocked: true
     blocked_reason: Withdrawn by Microsoft 2019; scraped without consent.
+    notes: >-
+      consent_posture recorded unknown, not public_cctv_no_consent (Day
+      35): this is scraped web photography, not video surveillance — a
+      different modality from the CCTV-shaped datasets this distinction
+      was introduced for, even though the underlying ethics problem
+      (real, non-consenting subjects) is the same. blocked_reason already
+      states the actual violation; this field is not doing double duty as
+      a euphemism for it.
