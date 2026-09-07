@@ -224,6 +224,38 @@ def test_promotion_result_carries_value_baseline_and_margin() -> None:
     assert "margin" in result.render()
 
 
+def test_promotion_result_self_labels_when_asked_and_stays_silent_otherwise() -> None:
+    """Day 36's own audit: PromotionResult originally carried no
+    self_test_label field at all, unlike BakeoffProbeResult — a result
+    that only read as SELF_TEST because a CLI script's print statement
+    happened to prefix it. Closed by making the label part of the result
+    itself, so .render()/.as_evidence() are self-labelling wherever they
+    end up, not just at that one call site."""
+    backbone = SyntheticStandInBackbone(input_dim=16, feature_dim=32, seed=5)
+    adapter = Adapter(AdapterConfig(input_dim=32, output_dim=16))
+    clips, labels = make_synthetic_identity_gallery(
+        n_identities=4, samples_per_identity=6, input_dim=16, seed=5
+    )
+
+    real_shaped = evaluate_promotion(
+        backbone=backbone, adapter=adapter, clips=clips, identity_labels=labels
+    )
+    assert real_shaped.self_test_label is None
+    assert real_shaped.as_evidence()["self_test_label"] is None
+    assert "SELF_TEST" not in real_shaped.render()
+
+    labelled = evaluate_promotion(
+        backbone=backbone,
+        adapter=adapter,
+        clips=clips,
+        identity_labels=labels,
+        self_test=True,
+    )
+    assert labelled.self_test_label == SELF_TEST_LABEL
+    assert labelled.as_evidence()["self_test_label"] == SELF_TEST_LABEL
+    assert SELF_TEST_LABEL in labelled.render()
+
+
 def test_promotion_refused_when_adapter_does_not_beat_raw_backbone() -> None:
     """An adapter that has learned nothing (random init, zero training)
     must not clear the gate just by existing."""

@@ -80,9 +80,13 @@ def run(args: argparse.Namespace) -> dict:
     print(f"triplet loss: {losses[0]:.4f} -> {losses[-1]:.4f} over {len(losses)} steps")
 
     result = evaluate_promotion(
-        backbone=backbone, adapter=adapter, clips=clips, identity_labels=labels
+        backbone=backbone,
+        adapter=adapter,
+        clips=clips,
+        identity_labels=labels,
+        self_test=True,
     )
-    print(f"[{SELF_TEST_LABEL}] {result.render()}")
+    print(result.render())
 
     manifest = write_selftest_checkpoint_manifest(
         Path(args.output),

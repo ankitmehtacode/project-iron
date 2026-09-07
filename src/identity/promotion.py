@@ -26,6 +26,7 @@ from src.eval.baselines import margin as _margin
 from src.eval.retrieval import average_precision
 from src.identity.adapter import Adapter
 from src.identity.backbone import FrozenBackbone, extract_features_no_grad
+from src.identity.selftest import SELF_TEST_LABEL
 
 # A checkpoint is promoted only on a STRICT positive margin over the
 # strongest flag-worthy baseline (raw_backbone_cosine, or chance if that is
@@ -41,6 +42,15 @@ class PromotionResult:
     baselines: tuple[Baseline, ...]
     margin: float
     promoted: bool
+    self_test_label: str | None = None
+    """None for a real evaluate_promotion() call. Equal to SELF_TEST_LABEL,
+    verbatim, when self_test=True was passed. Carried on the result itself
+    — not only added by a caller's print statement — so that .render() and
+    .as_evidence() are self-labelling wherever they end up (a log line, a
+    notebook cell, a different script) rather than depending on every call
+    site remembering to prefix it. Day 36's own audit found this field
+    missing (see FOUNDATION_REPORT.md's Day-36 section) while
+    BakeoffProbeResult already had it; this closes that gap."""
 
     def as_evidence(self) -> dict[str, Any]:
         return {
@@ -49,6 +59,7 @@ class PromotionResult:
             "baselines": [b.as_dict() for b in self.baselines],
             "margin": round(self.margin, 6) if np.isfinite(self.margin) else None,
             "promoted": self.promoted,
+            "self_test_label": self.self_test_label,
         }
 
     def render(self) -> str:
@@ -58,8 +69,9 @@ class PromotionResult:
             (b.name for b in flag_worthy if b.value == strongest), "n/a"
         )
         verdict = "PROMOTED" if self.promoted else "NOT PROMOTED"
+        prefix = f"[{self.self_test_label}] " if self.self_test_label else ""
         return (
-            f"{self.metric_name} = {self.value:.4f} "
+            f"{prefix}{self.metric_name} = {self.value:.4f} "
             f"(baseline {strongest_name}: {strongest:.4f}, margin: "
             f"{self.margin:+.4f}) -> {verdict}"
         )
@@ -94,6 +106,7 @@ def evaluate_promotion(
     adapter: Adapter,
     clips: torch.Tensor,
     identity_labels: "list[int]",
+    self_test: bool = False,
 ) -> PromotionResult:
     """Score both the adapter and the raw-backbone baseline on the same
     gallery, and decide promotion.
@@ -101,6 +114,11 @@ def evaluate_promotion(
     Args:
         clips: Raw backbone input for every gallery member, batched.
         identity_labels: Ground-truth identity per row of ``clips``.
+        self_test: Pass True for any call whose ``clips``/``identity_labels``
+            are synthetic — stamps :data:`SELF_TEST_LABEL` onto the returned
+            result so ``.render()``/``.as_evidence()`` cannot be read as a
+            real result out of context, regardless of what the caller does
+            with them afterward.
     """
     features = extract_features_no_grad(backbone, clips)
 
@@ -137,4 +155,5 @@ def evaluate_promotion(
         baselines=baselines,
         margin=computed_margin,
         promoted=promoted,
+        self_test_label=SELF_TEST_LABEL if self_test else None,
     )
