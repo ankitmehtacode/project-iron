@@ -19,6 +19,7 @@ own organization for the single-entity precedent this extends):
 from __future__ import annotations
 
 import inspect
+import math
 from typing import Callable
 
 import numpy as np
@@ -27,17 +28,22 @@ import pytest
 from src.contracts.frames import AffineTransform, FrameGeometry
 from src.estimator import consistency
 from src.estimator.joint import (
+    Ambiguous,
     AssociationBudgetConfig,
     AssociationCandidate,
     Component,
     ComponentCapConfig,
     ComponentCapRefusal,
+    DECISIVE_LOG_BAYES_FACTOR,
     DEFAULT_COMPONENT_CAP_CONFIG,
+    Decisive,
     DegradedComponentEstimate,
     HybridDiscreteContinuousState,
     JointFilterError,
     JointObservation,
     JointStateEstimate,
+    compute_association_verdict,
+    dominate_by_likelihood,
     resolve_component_membership,
     resolve_data_association,
     resolve_joint_state,
@@ -49,6 +55,8 @@ from src.model.constraint import HardConstraintViolation
 from src.model.episode import StateGraph, StateQuery
 from src.model.frame_of_reference import FrameOfReference
 from src.model.hypothesis import (
+    DominatedByLikelihood,
+    Hypothesis,
     HypothesisStore,
     PrunedByBudget,
     RefutedByHardConstraint,
@@ -1034,7 +1042,13 @@ def test_resolve_data_association_keeps_the_best_within_budget() -> None:
     )
     decision_by_id = {d.hypothesis_id: d for d in resolution.decisions}
     assert decision_by_id["b"].kept is False
-    assert decision_by_id["b"].cause == PrunedByBudget(budget=2)
+    # b's margin from the weakest survivor (a, -1.0) is -1.0 - (-5.0) = 4.0
+    # nats, well above DECISIVE_LOG_BAYES_FACTOR (~1.0986) -- Day 34,
+    # Objective 3: a margin this large means the evidence itself excludes
+    # b, so the cause is DominatedByLikelihood, not PrunedByBudget.
+    assert decision_by_id["b"].cause == DominatedByLikelihood(
+        dominant_hypothesis_id="comp-1::a"
+    )
     assert decision_by_id["a"].kept and decision_by_id["a"].cause is None
     assert decision_by_id["c"].kept and decision_by_id["c"].cause is None
 
@@ -1089,11 +1103,15 @@ def test_budget_pruned_hypotheses_are_forensically_distinguishable_from_refuted(
     docstring, re-tested here against a real caller): a forensic query
     over what was considered must be able to tell "ruled out" apart from
     "never evaluated," for both a hard-refuted and a budget-pruned
-    candidate produced by the SAME resolve_data_association call."""
+    candidate produced by the SAME resolve_data_association call.
+    "budget-cut" is a genuine near-tie with "kept" (margin 0.5 nats,
+    below DECISIVE_LOG_BAYES_FACTOR ~1.0986) so it is excluded by the
+    budget rather than by decisive evidence -- Day 34, Objective 3's
+    PRUNED_BY_BUDGET-vs-DOMINATED_BY_LIKELIHOOD split."""
     store = HypothesisStore()
     candidates = [
         AssociationCandidate("refuted", "p", log_likelihood=50.0),
-        AssociationCandidate("budget-cut", "p", log_likelihood=-1.0),
+        AssociationCandidate("budget-cut", "p", log_likelihood=9.5),
         AssociationCandidate("kept", "p", log_likelihood=10.0),
     ]
     resolve_data_association(
@@ -1107,7 +1125,7 @@ def test_budget_pruned_hypotheses_are_forensically_distinguishable_from_refuted(
     assert isinstance(alternatives["comp-4::refuted"].cause, RefutedByHardConstraint)
     assert isinstance(alternatives["comp-4::budget-cut"].cause, PrunedByBudget)
     assert alternatives["comp-4::refuted"].proposition == "p"
-    assert alternatives["comp-4::budget-cut"].support_at_death == -1.0
+    assert alternatives["comp-4::budget-cut"].support_at_death == 9.5
     assert "comp-4::kept" not in alternatives, "the survivor must not appear as dead"
 
 
@@ -1162,32 +1180,25 @@ def test_resolve_data_association_is_deterministic_given_identical_inputs() -> N
     assert {h.id for h in resolution_1.surviving} == {
         h.id for h in resolution_2.surviving
     }
+    assert type(resolution_1.verdict) is type(resolution_2.verdict)
+    assert resolution_1.verdict.margin == resolution_2.verdict.margin
+    assert [h.id for h in resolution_1.verdict.competitors] == [
+        h.id for h in resolution_2.verdict.competitors
+    ], "verdict variant, margin, and competitor ranking (Day 34) must match"
     assert resolution_1.decisions == resolution_2.decisions, (
         "identical inputs against independent stores must produce "
         "bit-identical decision logs"
     )
 
 
-@pytest.mark.known_bug
-@pytest.mark.xfail(
-    strict=False,
-    reason="DAY 33 FINDING: resolve_data_association exposes no ambiguity/"
-    "margin signal on its primary surface (AssociationResolution.surviving) "
-    "-- a near-tie and a landslide look structurally identical there. The "
-    "raw log_likelihood IS present per-candidate in .decisions, so a caller "
-    "COULD compute a margin themselves, but nothing computes or flags one. "
-    "Not fixed today -- a design decision (add a margin/ambiguity field, or "
-    "declare 'the caller computes it' the intended contract) rather than a "
-    "bug to patch around; see Day-33's FOUNDATION_REPORT.md Objective 2.",
-)
-def test_near_tie_hypotheses_are_flagged_as_ambiguous_not_silently_resolved() -> None:
-    """The discrete-state analogue of Day 31's continuous-state
-    informativeness question: does a confident-looking output (one
-    surviving hypothesis, kept=True) correctly distinguish a decisive win
-    from a near-tie the budget cutoff happened to break? Two candidates
-    within 0.001 nats of each other, budget=1 -- a caller reading only
-    `resolution.surviving` sees exactly the same shape a 50-nat landslide
-    would produce."""
+def test_near_tie_hypotheses_produce_an_ambiguous_verdict_not_a_silent_winner() -> None:
+    """FIXED Day 34, Objective 2 (was a known_bug/xfail Day-33 finding --
+    marker and xfail removed in this same change, per this project's own
+    known_bug convention). Two candidates within 0.001 nats of each other
+    -- the resolution still designates a `surviving` hypothesis (budget=1
+    forces a pick for pruning purposes), but `resolution.verdict` now
+    reports Ambiguous, not Decisive: a caller checking the verdict, not
+    just `.surviving`, cannot mistake this near-tie for a landslide."""
     store = HypothesisStore()
     candidates = [
         AssociationCandidate("near-tie-winner", "p", log_likelihood=-1.000),
@@ -1196,12 +1207,12 @@ def test_near_tie_hypotheses_are_flagged_as_ambiguous_not_silently_resolved() ->
     resolution = resolve_data_association(
         store, "comp-tie", candidates, _never_violates, AssociationBudgetConfig(1)
     )
-    assert hasattr(resolution, "ambiguous"), (
-        "AssociationResolution has no field expressing that the winning "
-        "margin (0.001 nats here) was within any notion of 'too close to "
-        "call' -- this is the gap this test documents"
-    )
-    assert resolution.ambiguous is True  # type: ignore[attr-defined]
+    assert isinstance(resolution.verdict, Ambiguous)
+    assert resolution.verdict.margin == pytest.approx(0.001)
+    assert {h.id for h in resolution.verdict.competitors} == {
+        "comp-tie::near-tie-winner",
+        "comp-tie::near-tie-loser",
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1278,3 +1289,205 @@ def test_resolve_component_membership_return_type_is_exhaustive() -> None:
         f"resolve_component_membership's return type is {ret!r}, expected "
         "Component | ComponentCapRefusal exactly"
     )
+
+
+# ---------------------------------------------------------------------------
+# Day 34, Objective 2 -- Decisive vs Ambiguous, and its derived threshold
+# ---------------------------------------------------------------------------
+
+
+def _ranked(*supports: float) -> list[Hypothesis]:
+    return [
+        Hypothesis(id=f"h{i}", proposition="p", support=s)
+        for i, s in enumerate(supports)
+    ]
+
+
+def test_compute_association_verdict_exact_tie_is_ambiguous() -> None:
+    verdict = compute_association_verdict(_ranked(1.0, 1.0))
+    assert isinstance(verdict, Ambiguous)
+    assert verdict.margin == 0.0
+
+
+def test_compute_association_verdict_near_tie_is_ambiguous() -> None:
+    just_under = DECISIVE_LOG_BAYES_FACTOR - 0.001
+    verdict = compute_association_verdict(_ranked(just_under, 0.0))
+    assert isinstance(verdict, Ambiguous)
+    assert verdict.margin == pytest.approx(just_under)
+
+
+def test_compute_association_verdict_landslide_is_decisive() -> None:
+    verdict = compute_association_verdict(_ranked(50.0, 0.0, -10.0))
+    assert isinstance(verdict, Decisive)
+    assert verdict.winner.id == "h0"
+    assert verdict.margin == 50.0
+    assert {c.id for c in verdict.competitors} == {"h1", "h2"}
+
+
+def test_compute_association_verdict_exactly_at_threshold_is_decisive() -> None:
+    """The threshold is a lower bound, not a strict one: margin ==
+    threshold is decisive, matching the >= in the implementation and in
+    Kass & Raftery's own band boundaries (each band is closed on its
+    lower edge)."""
+    verdict = compute_association_verdict(_ranked(DECISIVE_LOG_BAYES_FACTOR, 0.0))
+    assert isinstance(verdict, Decisive)
+
+
+def test_compute_association_verdict_single_candidate_is_infinitely_decisive() -> None:
+    verdict = compute_association_verdict(_ranked(3.0))
+    assert isinstance(verdict, Decisive)
+    assert verdict.margin == math.inf
+    assert verdict.competitors == ()
+
+
+def test_compute_association_verdict_rejects_empty_input() -> None:
+    with pytest.raises(JointFilterError):
+        compute_association_verdict([])
+
+
+def test_compute_association_verdict_has_no_prior_parameter() -> None:
+    sig = inspect.signature(compute_association_verdict)
+    for name in sig.parameters:
+        assert "prior" not in name.lower(), f"found a prior-shaped parameter: {name!r}"
+
+
+def test_ambiguous_has_no_winner_attribute() -> None:
+    """STRUCTURAL: `if verdict.winner is not None` is unwritable as a way
+    to skip handling Ambiguous -- there is no `winner` attribute on it at
+    all, an AttributeError, not a None to silently pass through."""
+    verdict = compute_association_verdict(_ranked(1.0, 1.0))
+    assert isinstance(verdict, Ambiguous)
+    assert not hasattr(verdict, "winner")
+
+
+def test_association_verdict_match_is_exhaustive_over_both_variants() -> None:
+    """A caller MUST handle both variants -- exercised directly via
+    `match`, the same closed-world-dispatch discipline used elsewhere in
+    this codebase (assert_outcome_never, _admit_as_evidence)."""
+    from src.estimator.joint import assert_verdict_never
+
+    for verdict in (
+        compute_association_verdict(_ranked(50.0, 0.0)),
+        compute_association_verdict(_ranked(1.0, 1.0)),
+    ):
+        match verdict:
+            case Decisive():
+                handled = "decisive"
+            case Ambiguous():
+                handled = "ambiguous"
+            case _:
+                assert_verdict_never(verdict)
+        assert handled in ("decisive", "ambiguous")
+
+
+# ---------------------------------------------------------------------------
+# Day 34, Objective 3 -- dominate_by_likelihood, and the death-cause fix
+# ---------------------------------------------------------------------------
+
+
+def test_dominate_by_likelihood_refuses_a_sub_threshold_margin() -> None:
+    store = HypothesisStore()
+    store.propose("winner", "p", 1.0)
+    store.propose("loser", "p", 0.9)
+    with pytest.raises(JointFilterError):
+        dominate_by_likelihood(store, "winner", "loser", margin=0.1)
+    # Refused, not silently downgraded -- the hypothesis is still alive.
+    assert {h.id for h in store.alive()} == {"winner", "loser"}
+
+
+def test_dominate_by_likelihood_accepts_a_supra_threshold_margin() -> None:
+    store = HypothesisStore()
+    store.propose("winner", "p", 10.0)
+    store.propose("loser", "p", 0.0)
+    dead = dominate_by_likelihood(store, "winner", "loser", margin=10.0)
+    assert isinstance(dead.cause, DominatedByLikelihood)
+    assert dead.cause.dominant_hypothesis_id == "winner"
+
+
+def test_forced_prune_below_threshold_is_pruned_by_budget() -> None:
+    store = HypothesisStore()
+    candidates = [
+        AssociationCandidate("kept", "p", log_likelihood=1.0),
+        AssociationCandidate(
+            "cut", "p", log_likelihood=0.9
+        ),  # margin 0.1, sub-threshold
+    ]
+    resolution = resolve_data_association(
+        store, "comp-margin", candidates, _never_violates, AssociationBudgetConfig(1)
+    )
+    decision = {d.hypothesis_id: d for d in resolution.decisions}["cut"]
+    assert decision.cause == PrunedByBudget(budget=1)
+
+
+def test_forced_prune_above_threshold_is_dominated_by_likelihood() -> None:
+    store = HypothesisStore()
+    candidates = [
+        AssociationCandidate("kept", "p", log_likelihood=10.0),
+        AssociationCandidate(
+            "cut", "p", log_likelihood=0.0
+        ),  # margin 10.0, supra-threshold
+    ]
+    resolution = resolve_data_association(
+        store, "comp-margin2", candidates, _never_violates, AssociationBudgetConfig(1)
+    )
+    decision = {d.hypothesis_id: d for d in resolution.decisions}["cut"]
+    assert decision.cause == DominatedByLikelihood(
+        dominant_hypothesis_id="comp-margin2::kept"
+    )
+
+
+def test_three_way_forensic_distinction_refuted_dominated_budget_pruned() -> None:
+    """A forensic query distinguishes all three outcomes without
+    collapsing any pair -- refuted (hard constraint), dominated (decisive
+    margin), and budget-pruned-while-ambiguous (sub-threshold margin),
+    all from one resolve_data_association call with budget=1 among three
+    hard-constraint survivors."""
+    store = HypothesisStore()
+    candidates = [
+        AssociationCandidate("refuted", "p", log_likelihood=999.0),
+        AssociationCandidate("winner", "p", log_likelihood=10.0),
+        AssociationCandidate(
+            "near-tie", "p", log_likelihood=9.9
+        ),  # margin 0.1 from winner
+        AssociationCandidate(
+            "far-behind", "p", log_likelihood=-50.0
+        ),  # margin 60 from winner
+    ]
+    resolve_data_association(
+        store,
+        "comp-three",
+        candidates,
+        _violate_named("refuted"),
+        AssociationBudgetConfig(per_component_budget=1),
+    )
+    alternatives = {d.id: d for d in store.considered_alternatives()}
+    assert isinstance(
+        alternatives["comp-three::refuted"].cause, RefutedByHardConstraint
+    )
+    assert isinstance(
+        alternatives["comp-three::near-tie"].cause, PrunedByBudget
+    ), "near-tie's margin from the winner (0.1) is sub-threshold"
+    assert isinstance(
+        alternatives["comp-three::far-behind"].cause, DominatedByLikelihood
+    ), "far-behind's margin from the winner (60) is decisively supra-threshold"
+    causes = {type(a.cause) for a in alternatives.values()}
+    assert len(causes) == 3, "all three cause types must be distinct, none collapsed"
+
+
+def test_component_cap_and_death_cause_do_not_yet_interact() -> None:
+    """Day 34, Objective 3 asked to verify the death-cause fix interacts
+    correctly with the Day-26 component cap. Verified: it does not
+    interact AT ALL yet, and that is the correct, honest answer, not a
+    gap silently left unchecked. resolve_component_membership takes an
+    already-decided carried_entity_id (a plain string) and never touches
+    a HypothesisStore, AssociationCandidate, or death cause of any kind
+    -- confirmed by inspecting its signature directly. The two mechanisms
+    cannot tell two different stories about the same decision because
+    they do not share any state or decision point today; that changes
+    only once Day-33's punch-list item (structured carrier identity
+    wiring resolve_data_association's output into component membership)
+    lands, at which point this test's assumption should be revisited."""
+    sig = inspect.signature(resolve_component_membership)
+    param_types = {name: p.annotation for name, p in sig.parameters.items()}
+    assert "HypothesisStore" not in str(param_types.values())
+    assert "AssociationCandidate" not in str(param_types.values())

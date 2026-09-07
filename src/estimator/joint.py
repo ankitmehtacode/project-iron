@@ -113,16 +113,13 @@ happens before any likelihood ranking; the prior firewall holds; a
 determinism test replaces the graph_rev-reproducibility test that does
 not yet apply, since this function still does not touch
 :class:`~src.model.episode.StateGraph`). It also found a real, named
-gap: :class:`AssociationResolution` exposes no ambiguity/margin signal
+gap: :class:`AssociationResolution` exposed no ambiguity/margin signal
 on its primary surface (``.surviving``) -- a near-tie and a landslide
-look identical there, even though the raw ``log_likelihood`` per
-candidate IS present in ``.decisions`` for a caller willing to compute
-the margin itself. Encoded as
-``tests/test_estimator_joint.py::test_near_tie_hypotheses_are_flagged_
-as_ambiguous_not_silently_resolved`` (``@pytest.mark.known_bug``,
-``xfail(strict=False)``) rather than fixed -- it is a design decision
-(add a margin field, or declare "the caller computes it" the intended
-contract), not a patch. Objective 3 connects the Day-26 component-size
+looked identical there. **Fixed Day 34, Objective 2 (see below) -- the
+gap did not survive a second day**, unlike this project's usual pattern
+of a `known_bug`/`xfail` living on as a regression guard until a design
+decision lands; here the design decision (:class:`AssociationVerdict`)
+landed the next session. Objective 3 connects the Day-26 component-size
 cap to a membership CHANGE, which construction-time enforcement alone
 cannot see: :func:`resolve_component_membership` applies one accepted
 carrier assignment to an existing :class:`Component` and returns either
@@ -136,6 +133,25 @@ require :class:`AssociationCandidate` to carry structured carrier
 identity rather than an opaque ``proposition`` string, which is a real
 design change or scope creep on the store's own "does not interpret"
 boundary and is not decided here.
+
+**Day 34 additions.** Objective 2: :func:`resolve_data_association` now
+returns an :data:`AssociationVerdict` (:class:`Decisive` or
+:class:`Ambiguous`) alongside the survivor set -- see
+:data:`DECISIVE_LOG_BAYES_FACTOR` for the cited threshold and
+:func:`compute_association_verdict` for the margin computation, which
+runs on hard-constraint survivors BEFORE the budget touches the
+ranking (whether the evidence itself is decisive is not a function of
+how many hypotheses a budget can afford to carry). Objective 3: budget
+cuts are no longer unconditionally :class:`~src.model.hypothesis.
+PrunedByBudget` -- :func:`dominate_by_likelihood` is now the second
+(and only other) function permitted to assign a death cause based on
+likelihood, structurally requiring a supra-threshold margin to
+construct a :class:`~src.model.hypothesis.DominatedByLikelihood`, so a
+resource decision can no longer be relabeled as an evidentiary one, nor
+the reverse. Objective 3 also checked the interaction with
+:func:`resolve_component_membership` directly (not assumed): there is
+none yet, because that function never touches a hypothesis, a
+candidate, or a death cause -- confirmed by inspecting its signature.
 
 Not implemented today (skeletons, not silent gaps)
 --------------------------------------------------------
@@ -155,8 +171,9 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import dataclass
-from typing import Callable, Literal, Sequence
+import math
+from dataclasses import dataclass, field
+from typing import Callable, Literal, NoReturn, Sequence
 
 import numpy as np
 import numpy.typing as npt
@@ -178,7 +195,9 @@ from src.estimator.state import ConsistencyResidual, StateEstimate
 from src.model.constraint import HardConstraintViolation
 from src.model.episode import Factor, StateGraph, StateQuery, solve_state
 from src.model.hypothesis import (
+    DeadHypothesis,
     DeathCause,
+    DominatedByLikelihood,
     Hypothesis,
     HypothesisStore,
     PrunedByBudget,
@@ -1329,15 +1348,151 @@ class PruneDecision:
     log_likelihood: float
 
 
+DECISIVE_LOG_BAYES_FACTOR = math.log(3)
+"""~1.0986 nats. Kass & Raftery (1995, "Bayes Factors", JASA 90(430),
+p.777, Table 4) and the Jeffreys (1961) scale it formalizes: a Bayes
+factor (here, a log-likelihood ratio between two hypotheses under equal
+priors -- the two coincide exactly in that case) below 3 (log 3 ~=
+1.0986) is "not worth more than a bare mention" -- the weakest, most
+permissive band on the standard scale, chosen deliberately as the FLOOR
+for calling a result decisive rather than a stricter band (Kass &
+Raftery's next band starts at a Bayes factor of 20, "positive"
+evidence): calling something decisive at the loosest defensible boundary
+is the conservative direction for a `PRUNED_BY_BUDGET`-vs-
+`dominated_by_likelihood` decision (Objective 3) -- a HIGHER threshold
+would only relabel MORE budget cuts as ambiguous, never fewer, so
+starting at the loosest cited band and not tightening it is itself the
+cautious choice. This is a cited constant, not a value fitted against
+this project's own test data -- see the module docstring's warning about
+exactly that failure mode (Day 22, Day 24)."""
+
+
+@dataclass(frozen=True)
+class Decisive:
+    """The top-ranked hypothesis's log-likelihood margin over the runner-
+    up meets or exceeds :data:`DECISIVE_LOG_BAYES_FACTOR` -- there IS a
+    designated winner, evidenced, not just ranked highest by default."""
+
+    winner: Hypothesis
+    margin: float
+    competitors: tuple[Hypothesis, ...]
+    kind: Literal["decisive"] = field(default="decisive", init=False)
+
+
+@dataclass(frozen=True)
+class Ambiguous:
+    """The margin between the top two is below
+    :data:`DECISIVE_LOG_BAYES_FACTOR` -- there is NO designated winner.
+    ``competitors`` holds every candidate under consideration, including
+    whichever ranked first; nothing here is named ``winner``, so a caller
+    cannot access one by mistake the way an ``Optional`` field invites
+    (Day 34, Objective 2's own structural requirement)."""
+
+    competitors: tuple[Hypothesis, ...]
+    margin: float
+    kind: Literal["ambiguous"] = field(default="ambiguous", init=False)
+
+
+AssociationVerdict = Decisive | Ambiguous
+"""No shared ``winner: Hypothesis | None`` field exists anywhere on
+either variant -- ``if verdict.winner is not None`` is not writable
+because ``Ambiguous`` has no ``winner`` attribute at all (an
+``AttributeError``/``mypy`` error, not a runtime maybe). A caller MUST
+``match``/``isinstance``-narrow both variants, the same closed-world-
+dispatch discipline :class:`~src.model.events.PredictedEvent`'s alert-
+ineligibility and :func:`~src.model.events._admit_as_evidence` already
+use elsewhere in this codebase."""
+
+
+def assert_verdict_never(verdict: NoReturn) -> NoReturn:
+    """Exhaustiveness marker for a ``match`` over :data:`AssociationVerdict`
+    -- same idiom as :func:`~src.model.constraint.assert_outcome_never`
+    (Python 3.10 target predates ``typing.assert_never``). ``mypy``
+    accepts the call only where ``verdict`` has narrowed to ``Never``, so
+    a third verdict variant added later is a type error here, not a
+    silently-unhandled branch."""
+    raise AssertionError(f"unreachable: unhandled AssociationVerdict {verdict!r}")
+
+
+def compute_association_verdict(
+    ranked: Sequence[Hypothesis], threshold: float = DECISIVE_LOG_BAYES_FACTOR
+) -> AssociationVerdict:
+    """The margin is ALWAYS computed and ALWAYS reported -- there is no
+    return path that omits it, mirroring the co-emission discipline
+    :mod:`src.estimator.informativeness` established for calibration
+    (Day 31): a verdict without its margin cannot be constructed, because
+    neither :class:`Decisive` nor :class:`Ambiguous` has a default for
+    ``margin``.
+
+    ``ranked`` must already be sorted by ``support`` descending -- this
+    function does not re-sort, so callers that already have a ranked
+    list (:func:`resolve_data_association` does) do not pay for a second
+    sort. A single candidate (no competitor to compare against at all)
+    is treated as infinitely decisive (``margin = math.inf``) -- the
+    strongest, not the weakest, case: nothing competes with it.
+    """
+    if not ranked:
+        raise JointFilterError(
+            "compute_association_verdict: ranked must not be empty -- "
+            "there is no association question to resolve"
+        )
+    if len(ranked) == 1:
+        return Decisive(winner=ranked[0], margin=math.inf, competitors=())
+
+    top, runner_up = ranked[0], ranked[1]
+    margin = top.support - runner_up.support
+    if margin >= threshold:
+        return Decisive(winner=top, margin=margin, competitors=tuple(ranked[1:]))
+    return Ambiguous(competitors=tuple(ranked), margin=margin)
+
+
+def dominate_by_likelihood(
+    store: HypothesisStore,
+    dominant_hypothesis_id: str,
+    dominated_hypothesis_id: str,
+    margin: float,
+    threshold: float = DECISIVE_LOG_BAYES_FACTOR,
+) -> DeadHypothesis:
+    """The only function in this codebase permitted to record
+    :class:`~src.model.hypothesis.DominatedByLikelihood` -- mirrors
+    :func:`~src.estimator.constraints.prune_for_hard_violation`'s role
+    for hard-constraint refutation. Requires ``margin`` as the evidence
+    for the claim it is about to make: below ``threshold``, this raises
+    rather than constructing the death record, because a margin that
+    thin does not support "evaluated and found decisively worse" (Day
+    34, Objective 3) -- a resource decision (:class:`~src.model.
+    hypothesis.PrunedByBudget`) must never be relabeled as an
+    evidentiary one by a caller reaching for the more confident-sounding
+    cause. There is no way to construct a ``DominatedByLikelihood`` with
+    an insufficient margin anywhere in this codebase; this function is it.
+    """
+    if margin < threshold:
+        raise JointFilterError(
+            f"dominate_by_likelihood({dominated_hypothesis_id!r}): margin "
+            f"{margin} is below the decisiveness threshold {threshold} -- "
+            "this is PRUNED_BY_BUDGET territory, not DOMINATED_BY_LIKELIHOOD; "
+            "a resource decision must not be relabeled as an evidentiary one"
+        )
+    return store.kill(
+        dominated_hypothesis_id,
+        DominatedByLikelihood(dominant_hypothesis_id=dominant_hypothesis_id),
+    )
+
+
 @dataclass(frozen=True)
 class AssociationResolution:
     """The result of :func:`resolve_data_association`: which hypotheses
-    survived, and the full decision log for every candidate considered
-    (survivors included, ``cause=None``) -- not just the ones that died."""
+    survived, the full decision log for every candidate considered
+    (survivors included, ``cause=None``) -- not just the ones that died
+    -- and the :class:`AssociationVerdict` over the hard-constraint
+    survivors (computed independently of the budget, before it: whether
+    there is a decisive winner is a property of the EVIDENCE, not of how
+    many hypotheses a budget can afford to carry)."""
 
     component_id: str
     surviving: tuple[Hypothesis, ...]
     decisions: tuple[PruneDecision, ...]
+    verdict: AssociationVerdict
 
 
 def _namespaced_id(component_id: str, hypothesis_id: str) -> str:
@@ -1374,15 +1529,28 @@ def resolve_data_association(
        used, and it must never be carried into whatever continuous
        update would follow (out of scope here, but the ordering this
        function establishes is what makes that safe later).
-    2. **Budget, over hard-constraint survivors only.** The survivors are
-       ranked by ``log_likelihood`` descending; every rank at or beyond
-       ``budget_config.per_component_budget`` is killed with
-       :class:`~src.model.hypothesis.PrunedByBudget` -- NOT a rejection
-       (see ``src/model/hypothesis.py``'s module docstring), and
-       retained in ``store`` at exactly the proposition and support it
-       had at death, exactly as budget-pruned records already are for
-       any other caller of :meth:`~src.model.hypothesis.HypothesisStore.
-       kill`.
+    2. **The verdict, over hard-constraint survivors, before budget.**
+       :func:`compute_association_verdict` runs on the ranked survivors
+       -- :class:`Decisive` or :class:`Ambiguous` is a property of the
+       EVIDENCE, computed before the budget ever touches the ranking
+       (Day 34, Objective 2).
+    3. **Budget, over hard-constraint survivors only.** Ranked by
+       ``log_likelihood`` descending; every rank at or beyond
+       ``budget_config.per_component_budget`` is killed. The death cause
+       is NOT always :class:`~src.model.hypothesis.PrunedByBudget`: a cut
+       candidate's margin from the weakest SURVIVING hypothesis is
+       checked against :data:`DECISIVE_LOG_BAYES_FACTOR` via
+       :func:`dominate_by_likelihood`. Below threshold (a near-tie the
+       budget happened to break) it is ``PrunedByBudget`` -- a resource
+       decision, not a rejection (see ``src/model/hypothesis.py``'s
+       module docstring). At or above threshold (the weakest survivor
+       decisively outranks it -- the evidence itself already excluded
+       this candidate, the budget just didn't have to arbitrate) it is
+       :class:`~src.model.hypothesis.DominatedByLikelihood` (Day 34,
+       Objective 3: a resource decision must never be relabeled as an
+       evidentiary one, and the converse -- an evidentiary exclusion
+       hiding behind the more modest-sounding budget label -- is
+       avoided too).
 
     Every candidate gets a :class:`PruneDecision` in the returned log,
     survivors included -- "what happened to every candidate considered"
@@ -1396,11 +1564,13 @@ def resolve_data_association(
         )
 
     decisions: list[PruneDecision] = []
-    survivors: list[tuple[AssociationCandidate, str]] = []
+    survivors: list[tuple[AssociationCandidate, str, Hypothesis]] = []
 
     for candidate in candidates:
         full_id = _namespaced_id(component_id, candidate.hypothesis_id)
-        store.propose(full_id, candidate.proposition, candidate.log_likelihood)
+        hypothesis = store.propose(
+            full_id, candidate.proposition, candidate.log_likelihood
+        )
         violation = hard_violation_check(candidate)
         if violation is not None:
             prune_for_hard_violation(store, full_id, violation)
@@ -1416,35 +1586,49 @@ def resolve_data_association(
                 )
             )
             continue
-        survivors.append((candidate, full_id))
+        survivors.append((candidate, full_id, hypothesis))
 
-    ranked = sorted(survivors, key=lambda pair: pair[0].log_likelihood, reverse=True)
-    kept_ids = {full_id for _, full_id in ranked[: budget_config.per_component_budget]}
+    ranked = sorted(
+        survivors, key=lambda triple: triple[0].log_likelihood, reverse=True
+    )
+    verdict = compute_association_verdict([hyp for _, _, hyp in ranked])
 
-    for candidate, full_id in ranked:
-        if full_id in kept_ids:
-            decisions.append(
-                PruneDecision(
-                    component_id=component_id,
-                    hypothesis_id=candidate.hypothesis_id,
-                    kept=True,
-                    cause=None,
-                    log_likelihood=candidate.log_likelihood,
-                )
+    budget = budget_config.per_component_budget
+    kept = ranked[:budget]
+    cut = ranked[budget:]
+    kept_ids = {full_id for _, full_id, _ in kept}
+    weakest_survivor = kept[-1] if kept else None
+
+    for candidate, full_id, _hypothesis in kept:
+        decisions.append(
+            PruneDecision(
+                component_id=component_id,
+                hypothesis_id=candidate.hypothesis_id,
+                kept=True,
+                cause=None,
+                log_likelihood=candidate.log_likelihood,
             )
+        )
+
+    for candidate, full_id, hypothesis in cut:
+        assert (
+            weakest_survivor is not None
+        )  # budget >= 1 (enforced by AssociationBudgetConfig)
+        _, weakest_id, weakest_hypothesis = weakest_survivor
+        boundary_margin = weakest_hypothesis.support - hypothesis.support
+        if boundary_margin >= DECISIVE_LOG_BAYES_FACTOR:
+            dead = dominate_by_likelihood(store, weakest_id, full_id, boundary_margin)
         else:
-            dead = store.kill(
-                full_id, PrunedByBudget(budget=budget_config.per_component_budget)
+            dead = store.kill(full_id, PrunedByBudget(budget=budget))
+        decisions.append(
+            PruneDecision(
+                component_id=component_id,
+                hypothesis_id=candidate.hypothesis_id,
+                kept=False,
+                cause=dead.cause,
+                log_likelihood=candidate.log_likelihood,
             )
-            decisions.append(
-                PruneDecision(
-                    component_id=component_id,
-                    hypothesis_id=candidate.hypothesis_id,
-                    kept=False,
-                    cause=dead.cause,
-                    log_likelihood=candidate.log_likelihood,
-                )
-            )
+        )
 
     surviving = tuple(hyp for hyp in store.alive() if hyp.id in kept_ids)
     # Preserve the input candidates' relative order in the decision log,
@@ -1454,7 +1638,10 @@ def resolve_data_association(
     decisions.sort(key=lambda d: order[d.hypothesis_id])
 
     return AssociationResolution(
-        component_id=component_id, surviving=surviving, decisions=tuple(decisions)
+        component_id=component_id,
+        surviving=surviving,
+        decisions=tuple(decisions),
+        verdict=verdict,
     )
 
 
