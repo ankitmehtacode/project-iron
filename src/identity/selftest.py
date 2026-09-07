@@ -162,9 +162,7 @@ def make_triplet_sampler(
         for _ in range(batch_size):
             pos_id, neg_id = rng.sample(identities, 2)
             pool = by_identity[pos_id]
-            a_idx, p_idx = (
-                rng.sample(pool, 2) if len(pool) >= 2 else (pool[0], pool[0])
-            )
+            a_idx, p_idx = rng.sample(pool, 2) if len(pool) >= 2 else (pool[0], pool[0])
             n_idx = rng.choice(by_identity[neg_id])
             anchors.append(clips[a_idx])
             positives.append(clips[p_idx])
@@ -212,5 +210,7 @@ def apply_synthetic_clothing_change(
     """
     generator = torch.Generator().manual_seed(seed)
     n_identities = len(set(labels))
-    shifts = torch.randn(n_identities, clips.shape[-1], generator=generator) * shift_scale
+    shifts = (
+        torch.randn(n_identities, clips.shape[-1], generator=generator) * shift_scale
+    )
     return torch.stack([clips[i] + shifts[labels[i]] for i in range(clips.shape[0])])

@@ -3,7 +3,8 @@ identities. Day 36, Objective 5: the first real verification of this
 project's central erasure claim.
 
     python scripts/run_erasure_drill_selftest.py
-    python scripts/run_erasure_drill_selftest.py --json outputs/identity/erasure_drill_day36.json
+    python scripts/run_erasure_drill_selftest.py \
+        --json outputs/identity/erasure_drill_day36.json
 """
 
 from __future__ import annotations
@@ -64,7 +65,9 @@ def main(argv: list[str] | None = None) -> int:
         "backbone_untouched": result.backbone_untouched,
         "adapter_shas_distinct": result.adapter_shas_distinct,
         "backbone_file_hash_before": result.backbone_file_hash_before,
-        "backbone_file_hash_after_first_train": result.backbone_file_hash_after_first_train,
+        "backbone_file_hash_after_first_train": (
+            result.backbone_file_hash_after_first_train
+        ),
         "backbone_file_hash_after_retrain": result.backbone_file_hash_after_retrain,
         "first_checkpoint_adapter_sha": result.first_manifest.adapter_sha,
         "retrained_checkpoint_adapter_sha": result.retrained_manifest.adapter_sha,

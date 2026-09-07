@@ -11,7 +11,8 @@ semantics encoder: open" line is unchanged by anything printed below.
 ============================================================================
 
     python scripts/run_backbone_bakeoff_selftest.py
-    python scripts/run_backbone_bakeoff_selftest.py --json outputs/identity/bakeoff_selftest_day36.json
+    python scripts/run_backbone_bakeoff_selftest.py \
+        --json outputs/identity/bakeoff_selftest_day36.json
 """
 
 from __future__ import annotations

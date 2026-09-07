@@ -74,7 +74,9 @@ def _require_lane_c(dataset_entries: dict[str, DatasetEntry]) -> dict[str, str]:
     Raises:
         ManifestError: naming every non-lane-C dataset, if any.
     """
-    non_c = {name: entry.lane for name, entry in dataset_entries.items() if entry.lane != "C"}
+    non_c = {
+        name: entry.lane for name, entry in dataset_entries.items() if entry.lane != "C"
+    }
     if non_c:
         raise ManifestError(
             "checkpoint manifest refuses to record training data outside "

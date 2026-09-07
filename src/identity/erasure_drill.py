@@ -32,7 +32,10 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.identity.adapter import Adapter, AdapterConfig
-from src.identity.checkpoint import CheckpointManifest, write_selftest_checkpoint_manifest
+from src.identity.checkpoint import (
+    CheckpointManifest,
+    write_selftest_checkpoint_manifest,
+)
 from src.identity.selftest import (
     SyntheticStandInBackbone,
     make_synthetic_identity_gallery,
@@ -56,15 +59,23 @@ class ErasureDrillResult:
     withdrawn_identity: int
 
     def render(self) -> str:
-        verdict = "PASS" if self.backbone_untouched and self.adapter_shas_distinct else "FAIL"
+        verdict = (
+            "PASS" if self.backbone_untouched and self.adapter_shas_distinct else "FAIL"
+        )
+        before = self.backbone_file_hash_before[:16]
+        after_first = self.backbone_file_hash_after_first_train[:16]
+        after_retrain = self.backbone_file_hash_after_retrain[:16]
+        first_sha = self.first_manifest.adapter_sha[:16]
+        retrained_sha = self.retrained_manifest.adapter_sha[:16]
         return (
             f"erasure drill: {verdict}\n"
-            f"  backbone file hash   before={self.backbone_file_hash_before[:16]}...\n"
-            f"                       after 1st train={self.backbone_file_hash_after_first_train[:16]}...\n"
-            f"                       after retrain={self.backbone_file_hash_after_retrain[:16]}...\n"
-            f"  backbone untouched (file AND live weights, both runs): {self.backbone_untouched}\n"
-            f"  adapter_sha before withdrawal : {self.first_manifest.adapter_sha[:16]}...\n"
-            f"  adapter_sha after withdrawal  : {self.retrained_manifest.adapter_sha[:16]}...\n"
+            f"  backbone file hash   before={before}...\n"
+            f"                       after 1st train={after_first}...\n"
+            f"                       after retrain={after_retrain}...\n"
+            f"  backbone untouched (file AND live weights, both runs): "
+            f"{self.backbone_untouched}\n"
+            f"  adapter_sha before withdrawal : {first_sha}...\n"
+            f"  adapter_sha after withdrawal  : {retrained_sha}...\n"
             f"  adapter checkpoints distinct  : {self.adapter_shas_distinct}\n"
             f"  withdrawn synthetic identity  : {self.withdrawn_identity}"
         )

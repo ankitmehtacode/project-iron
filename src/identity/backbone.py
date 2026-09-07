@@ -83,7 +83,9 @@ class FrozenBackbone(Protocol):
         ...
 
 
-def extract_features_no_grad(backbone: FrozenBackbone, clip: torch.Tensor) -> FeatureTensor:
+def extract_features_no_grad(
+    backbone: FrozenBackbone, clip: torch.Tensor
+) -> FeatureTensor:
     """The single enforcement point for ADR 0001's frozen-backbone
     constraint on the training path.
 

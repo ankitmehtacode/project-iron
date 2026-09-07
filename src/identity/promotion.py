@@ -63,7 +63,9 @@ class PromotionResult:
         }
 
     def render(self) -> str:
-        flag_worthy = [b for b in self.baselines if b.flag_worthy and np.isfinite(b.value)]
+        flag_worthy = [
+            b for b in self.baselines if b.flag_worthy and np.isfinite(b.value)
+        ]
         strongest = max((b.value for b in flag_worthy), default=float("nan"))
         strongest_name = next(
             (b.name for b in flag_worthy if b.value == strongest), "n/a"
@@ -136,9 +138,7 @@ def evaluate_promotion(
     chance_map = 1.0 / n_identities if n_identities > 0 else float("nan")
 
     baselines = (
-        Baseline(
-            "chance", chance_map, "1 / n_identities — uniform-random ranker"
-        ),
+        Baseline("chance", chance_map, "1 / n_identities — uniform-random ranker"),
         Baseline(
             "raw_backbone_cosine",
             raw_map,
@@ -147,7 +147,9 @@ def evaluate_promotion(
         ),
     )
     computed_margin = _margin(adapter_map, list(baselines), higher_is_better=True)
-    promoted = bool(np.isfinite(computed_margin) and computed_margin > PROMOTION_MARGIN_THRESHOLD)
+    promoted = bool(
+        np.isfinite(computed_margin) and computed_margin > PROMOTION_MARGIN_THRESHOLD
+    )
 
     return PromotionResult(
         metric_name="identity.retrieval_map",

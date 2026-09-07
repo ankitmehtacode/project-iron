@@ -28,7 +28,9 @@ from src.identity.contracts import ContractError, FeatureTensor, IdentityEmbeddi
 from src.identity.lane_gate import require_training_dataset
 from src.identity.selftest import SyntheticStandInBackbone
 
-EXAMPLES = settings(max_examples=50, deadline=None, suppress_health_check=[HealthCheck.too_slow])
+EXAMPLES = settings(
+    max_examples=50, deadline=None, suppress_health_check=[HealthCheck.too_slow]
+)
 
 
 # -- FeatureTensor / IdentityEmbedding contracts -----------------------------
@@ -115,9 +117,7 @@ def test_adapter_is_parameter_bounded() -> None:
     style guideline."""
     import pytest
 
-    huge = AdapterConfig(
-        input_dim=4096, hidden_dim=4096, output_dim=4096, num_layers=4
-    )
+    huge = AdapterConfig(input_dim=4096, hidden_dim=4096, output_dim=4096, num_layers=4)
     with pytest.raises(AdapterConfigError, match="exceeding the"):
         Adapter(huge)
 

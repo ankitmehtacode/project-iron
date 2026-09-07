@@ -11,7 +11,7 @@ from __future__ import annotations
 import pytest
 import torch
 
-from src.data.registry import DatasetEntry, DatasetRegistry, LaneViolation, normalise
+from src.data.registry import DatasetEntry, DatasetRegistry, normalise
 from src.identity.bakeoff import (
     clothing_change_robustness,
     open_bakeoff_eval_set,
@@ -111,9 +111,7 @@ def test_clothing_change_robustness_beats_chance_when_shift_is_moderate() -> Non
     clips, labels = make_synthetic_identity_gallery(
         n_identities=6, samples_per_identity=8, input_dim=16, seed=42
     )
-    perturbed = apply_synthetic_clothing_change(
-        clips, labels, seed=42, shift_scale=0.5
-    )
+    perturbed = apply_synthetic_clothing_change(clips, labels, seed=42, shift_scale=0.5)
     result = clothing_change_robustness(
         backbone=backbone,
         clean_clips=clips,

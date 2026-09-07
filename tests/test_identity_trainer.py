@@ -73,9 +73,7 @@ def test_train_adapter_reduces_triplet_loss() -> None:
         noise_scale=1.0,
     )
     sampler = make_triplet_sampler(clips, labels, batch_size=16, seed=7)
-    config = TrainingConfig(
-        epochs=60, learning_rate=1e-2, triplet_margin=0.3, seed=7
-    )
+    config = TrainingConfig(epochs=60, learning_rate=1e-2, triplet_margin=0.3, seed=7)
 
     losses = train_adapter(
         backbone=backbone, adapter=adapter, triplets=sampler, config=config
@@ -299,7 +297,9 @@ def test_promotion_granted_when_training_genuinely_helps() -> None:
         backbone=backbone,
         adapter=adapter,
         triplets=sampler,
-        config=TrainingConfig(epochs=60, learning_rate=1e-2, triplet_margin=0.3, seed=11),
+        config=TrainingConfig(
+            epochs=60, learning_rate=1e-2, triplet_margin=0.3, seed=11
+        ),
     )
     result = evaluate_promotion(
         backbone=backbone, adapter=adapter, clips=clips, identity_labels=labels

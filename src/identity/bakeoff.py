@@ -165,7 +165,9 @@ def same_object_retrieval_map(
         )
 
     retrieval_map = float(np.mean(aps))
-    position_only_map = float(np.mean(position_only_aps)) if position_only_aps else float("nan")
+    position_only_map = (
+        float(np.mean(position_only_aps)) if position_only_aps else float("nan")
+    )
 
     return _probe_result(
         "identity.bakeoff.retrieval_map",
@@ -247,7 +249,9 @@ def clothing_change_robustness(
     (Objective 1) and is not fetchable.
     """
     clean = torch.nn.functional.normalize(_pooled(backbone, clean_clips), dim=-1)
-    perturbed = torch.nn.functional.normalize(_pooled(backbone, perturbed_clips), dim=-1)
+    perturbed = torch.nn.functional.normalize(
+        _pooled(backbone, perturbed_clips), dim=-1
+    )
     labels = np.asarray(identity_labels)
 
     cross_sim = (perturbed @ clean.T).detach().cpu().numpy()

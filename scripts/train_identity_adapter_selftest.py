@@ -16,7 +16,8 @@ can be trained on real data today (lane C has zero clips; lane S fails the
 appearance-learned validity gate).
 
     python scripts/train_identity_adapter_selftest.py
-    python scripts/train_identity_adapter_selftest.py --json outputs/identity/selftest_day36.json
+    python scripts/train_identity_adapter_selftest.py \
+        --json outputs/identity/selftest_day36.json
 """
 
 from __future__ import annotations
