@@ -9221,3 +9221,302 @@ Per [[iron-blocked-on-humans]]. Unchanged from Day 30:
 26. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued.
 27. **The `resolve_joint_state` cross-component filtering gap** (ADR
     0011).
+
+# Day 32
+
+**No timing, throughput, CPU-percentage, or latency claim is made anywhere in
+this section as a PRODUCT figure** — unchanged hard scope rule from Day
+20-31. Test durations and harness behaviour ARE in scope today: Objective
+2's entire subject is suite-count and harness truthfulness, and those are
+process measurements, not product performance claims.
+
+**Headline: the dismissal audit's own first draft, and Objective 2's own
+first real run, each produced a claim that needed re-testing before being
+trusted — and both were caught before this report was written, not after.**
+Eleven findings before Day 31 were instruments producing wrong output; the
+two found Day 31 were instruments producing correct output a human explained
+away. Today adds a third species, found inside today's own work rather than
+in the historical sweep: a genuinely correct check (the suite-count
+reconciliation, Objective 2) firing on a real discrepancy that turned out to
+be fully explained, not a defect in the mechanism — see Objective 2. The
+discipline that makes all three species distinguishable is the same one
+Objective 1 names: verify before concluding, in either direction.
+
+## Verdicts
+
+- **Dismissal audit classification, all 12 grep-sweep hits:**
+
+  | class | n | re-tested | held/superseded | failed re-test |
+  | --- | ---: | ---: | ---: | ---: |
+  | asserted | 3 | 3 | 0 | **3** |
+  | still-open | 1 | 1 | 0 | **1** |
+  | measured | 7 | 3 | 6 (2 superseded) | 0 |
+  | enforced | 1 | — | 1 | 0 |
+
+  → Objective 1, `docs/dismissal_audit.md`.
+- **Does a third instance of "instrument right, diagnosis wrong" turn up in
+  the historical sweep?** **No.** One candidate (#4) predates both known
+  instances rather than following them (would be first, not third, if it
+  counted at all); one (#6) is a different species (a known bug
+  deprioritized, not a signal explained away). Named and rejected explicitly
+  rather than forced onto the pattern. → Objective 1.
+- **Suite counts, gated vs full, reconciled?** **No — a real, fully-
+  explained discrepancy.** Gated (`-m "not requires_weights"`): **1260
+  passed, 1 skipped, 6 deselected, 2 FAILED** (1263 executed, 1496.03s).
+  Full (no exclusions): **1267 passed, 7 skipped, 2 FAILED** (1276
+  executed, 25523.98s). Raw check: 1263 + 6 = 1269 ≠ 1276 — **7 unaccounted**,
+  flagged automatically rather than silently passed. Every one of the 7 is
+  individually named: the gated run began collecting before Objective 4's
+  commit (test_estimator_joint.py's 8 new tests + the removed
+  NotImplementedError stub) and Objective 2's own requires_weights tests (6,
+  correctly deselected by design) hadn't reached that file yet at gated's
+  collection time; the full run collected fresh, hours later, against every
+  Day-32 commit through `d2a79e1`. +14 (8 new joint tests, 6
+  requires_weights) −1 (removed stub) = +13 = 1276−1263, exact. A same-
+  commit reconciliation needs a fresh run of both against one stable HEAD;
+  the full run alone costs ~7 hours measured just now, so that is a named
+  Day-33 item, not silently presumed done. Artifacts:
+  `artifacts/pytest/day32_gated.xml`, `artifacts/pytest/day32_full.xml`,
+  `artifacts/pytest/day32_summary.json`. → Objective 2.
+- **Any suite number in this report un-backed by an artifact?** Every suite
+  count in Days 1-31 — ~30 occurrences, `docs/dismissal_audit.md`'s own grep
+  — predates `scripts/suite_report.py` and stays unverifiable against one;
+  not retrofitted, the same call the Day-25 Verdicts lint and Day-27
+  citation lint made for their own introduction days. From today,
+  `tests/test_report_suite_provenance.py` fails any new claim that isn't
+  artifact-backed — including, correctly, this very report while it had no
+  citations yet (see Objective 2's closing note). → Objective 2.
+- **Standing-caveat inventory, enforced vs remembered:** 3 already
+  mechanism-enforced (`C_pending_consent`'s gate, the wake-fraction
+  `DO_NOT_QUOTE` stamp, `BenchmarkGuard`'s refuse-to-write for invalid
+  cascade-bench runs); 1 blocked on a human and not cheaply convertible
+  (ADR-0009); 1 partially converted today (background-notification
+  unreliability — Objective 2's specific instance is now mechanized; the
+  general "don't trust a completion notification" caveat about external
+  tooling stays remembered, and this very session's own two false
+  notifications — Objective 2's first buggy launch, and the exit-code-0
+  claim for today's full run — are worked examples); 1 considered and
+  explicitly NOT converted (an ADR-status citation lint — would false-
+  positive on legitimate citations of non-superseded claims within a
+  superseded ADR). → Objective 3,
+  `.claude/skills/iron-eval-discipline/SKILL.md`.
+- **Hypothesis management: where it stands.** `resolve_data_association`
+  implemented — propose, hard-constraint prune (first), budget prune
+  (second, by caller-supplied log-likelihood), typed causes throughout.
+  `PRUNED_BY_BUDGET` forensically distinguishable from
+  `RefutedByHardConstraint` from the same call, tested directly. Does NOT
+  yet feed into `run_joint_filter`'s `Component` composition — still
+  caller-declared, by design, scoped tightly. → Objective 4.
+
+## Objective 1 — the dismissal audit
+
+Full table and reasoning: `docs/dismissal_audit.md`. What changed between
+the first draft and the committed version — caught in review before commit,
+not after:
+
+- **Entry #3 was misdated in the first pass** — claimed "open 8 days,
+  closed today"; `git blame` shows it closed on Day 24, one day after being
+  flagged. Reclassified out of `still-open` into `measured`; it is not the
+  root of #1/#2 (a separate, later defect: two specific bit-identity tests
+  that were genuinely fast when Day 24 measured them, and grew slow later
+  without being re-flagged — see Day 31's own fix).
+- **Entry #6 named the wrong exception** — claimed `ZeroDivisionError`,
+  "fixed today," when nothing had been fixed. Reproduced first: it's an
+  `IndexError` inside `run_gate`'s `np.percentile` call on an empty array
+  (`scripts/cascade_bench.py:267`, when `static_scenario` receives zero
+  frames). Actually fixed now: `scripts/cascade_bench.py:337` guards with
+  `max(1, args.seconds // 3)`; `test_seconds_below_three_does_not_crash`
+  pins it.
+- **A live instance surfaced incidentally** while re-verifying #3:
+  `test_superseded_gate_numbers_are_stamped_on_the_scorecard` failed at
+  19.25s against the Day-24 15s duration gate on first run, passed at 4.75s
+  moments later. Measured, not dismissed: load average 21.27/23.07 (1-/5-min,
+  12 logical cores) bracketed the failure, and a clean immediate
+  reproduction followed. A correct contention call, not a third wrong one —
+  `docs/dismissal_audit.md`'s own worked counter-example to the pattern it
+  otherwise found broken.
+
+## Objective 2 — harness truthfulness
+
+`scripts/suite_report.py` runs the CI-gated suite (`-m "not
+requires_weights"`, the Makefile's own `test` target) and the full suite (no
+marker exclusions), each with `--junitxml` (no new dependency) plus a
+captured stdout log for pytest's own `N deselected` line, which junitxml
+does not carry. It never reports a `returncode` as a substitute for a count
+— `tests/test_suite_report.py::test_render_line_never_reports_a_bare_exit_code`
+pins that directly.
+
+`tests/test_report_suite_provenance.py` is the structural lint, same shape
+as the Day-25 Verdicts lint and Day-27 citation lint: from Day 32 onward, a
+`FOUNDATION_REPORT.md` line shaped like a pytest summary must cite an
+`artifacts/pytest/*.{xml,log,json}` path that exists on disk, or the lint
+fails. It was red for exactly the reason it should have been — this section
+had no citations yet while it was being written — and is expected to read
+green once this commit lands with the citations above.
+
+**The reconciliation check's first real run caught a genuine discrepancy on
+its own first invocation** — the Verdicts block's numbers above, in full.
+Working through it rather than writing "expected, ignore" is the entire
+point of today: the raw check reported 7 tests unaccounted for; every one
+of the 7 is individually attributable to a specific, already-known code
+change (Objective 4's 8 new tests and 1 removed stub, Objective 2's own 6
+`requires_weights` tests), not a silent, unexplained gap. The underlying
+cause is procedural: the gated run's pytest process collected its test
+modules once, at process start, before Objective 2/3/4's commits landed;
+the full run collected fresh, roughly seven hours later, against every
+commit through the lint fix. Running a long suite while continuing to edit
+and commit code produces exactly this shape of false discrepancy — a
+finding worth recording in its own right, since it is a concrete instance
+of the same "process measurement invalidated by a moving target" class
+Objective 2 exists to catch, just aimed at this project's own methodology
+rather than at test code. **A same-commit gated/full pair is not available
+today** — the full run alone measured 25523.98s (7:05:23) just now, and
+re-running both back-to-back against one frozen HEAD is out of budget for
+today's session. Named as a Day-33 item rather than silently presumed done.
+
+**Every suite number in Days 1-31 is unverified against an artifact and
+stays that way** — ~30 occurrences, per `docs/dismissal_audit.md`'s own
+grep sweep. Reconstructing an artifact for a run that already finished and
+was never captured would not be a measurement, it would be a new run
+standing in for one that no longer exists to verify.
+
+## Objective 3 — standing-caveat decay
+
+Full reasoning and the six-item inventory: `.claude/skills/
+iron-eval-discipline/SKILL.md`'s new "A Caveat That Depends On Being Read
+Has A Half-Life" section. Summary:
+
+| caveat | enforced by |
+| --- | --- |
+| `C_pending_consent` no-read-without-consent | mechanism (typed gate, `src/data/registry.py`) |
+| wake-fraction `DO_NOT_QUOTE` stamp | mechanism (stamp on the computed scorecard, `src/data/scorecard.py`) |
+| cascade-bench invalid-run refusal | mechanism (`BenchmarkGuard`/`EnvironmentPair`, `src/bench/environment.py`) |
+| ADR-0009 `main`/`origin/main` divergence | remembered — blocked on a human decision, not a code invariant |
+| background-notification unreliability | partially mechanism (Objective 2, this report's suite claims specifically); remembered for the general case — reconfirmed twice more today, see Objective 2 |
+| superseded-ADR citation currency | remembered, deliberately — a coarse lint would false-positive on legitimate non-superseded citations within a superseded ADR (`tests/test_eval_estimator.py`'s ADR-0010 directional-criterion citation is the worked counter-example) |
+
+New rule added to the skill, general form: a caveat enforced by a mechanism
+does not decay; one enforced by rereading does, silently, with no edit to
+the caveat's own prose. Ask what would enforce a caveat when it is written,
+and prefer the mechanism even when the prose is correct today.
+
+## Objective 4 — hypothesis management, started
+
+`src/estimator/joint.py::resolve_data_association` was a
+`NotImplementedError` stub since Day 26. Filled, scoped tightly:
+
+- `AssociationCandidate` (hypothesis_id, proposition, caller-supplied
+  `log_likelihood`) proposed into the Day-28 `HypothesisStore`.
+- Hard-constraint violations pruned FIRST, via the existing
+  `prune_for_hard_violation` — before any budget ranking, per Day 29's own
+  reason for building constraint typing first: a hard-impossible hypothesis
+  must never occupy a budget slot a physically-possible competitor could
+  have used.
+- Per-component `AssociationBudgetConfig` (config-driven, versioned via a
+  `sha` property, same convention as `ComponentCapConfig`) prunes the
+  remainder by `log_likelihood`, over hard-constraint survivors only.
+  Default `per_component_budget=3` is explicitly documented as NOT
+  measured — unlike `ComponentCapConfig`'s data-derived 6 — so it cannot be
+  mistaken for a studied bound.
+- `PrunedByBudget`, never `DominatedByLikelihood`, records a budget cut —
+  "lost a resource competition," not "evaluated and found worse," even
+  though the ranking key is likelihood.
+  `test_budget_pruned_hypotheses_are_forensically_distinguishable_from_refuted`
+  constructs both outcomes from the same call and confirms
+  `considered_alternatives()` keeps them apart by cause type, and retains
+  `proposition`/`support_at_death` for the budget-pruned one.
+
+**STRUCTURAL, re-tested:** no prior-shaped parameter on
+`resolve_data_association` (`inspect.signature`); the joint filter's
+consistency-residual and `graph_rev`-reproducibility tests re-run clean,
+unaffected by this change since `resolve_data_association` never touches
+`StateGraph` — stated explicitly in the module docstring now, not left
+implied.
+
+**Scope boundary, stated, not implicit:** does not feed into
+`run_joint_filter`'s `Component` composition (still caller-declared); no
+re-estimation; `MergedInto`/`ExpiredHorizon` remain unused death causes. 8
+new tests (1 obsolete stub-test removed), all sub-second — no test written
+today needed `@pytest.mark.slow`.
+
+## Full suite, mypy, lint
+
+`mypy` (scoped per `mypy.ini`): clean, 0 errors, 64 source files, including
+`src/estimator/joint.py`'s new code. `black --check`: 28 files would be
+reformatted — unchanged from `docs/dismissal_audit.md` entry #5's own
+measurement this morning; confirmed against commit `7edd9c0` that the two
+files this day's own diff touches
+(`scripts/cascade_bench.py`,`tests/test_cascade_bench_artifact_gate.py`)
+carry pre-existing `E501`s at the same count, not new ones. `flake8`: 26
+files, same story — Day 32's own two new violations (`scripts/
+suite_report.py`, `tests/test_report_suite_provenance.py`) were found and
+fixed before commit. Both drift counts are entry #5's own subject, still
+open and growing — Day-33 item.
+
+Repo-wide suite counts (see the Verdicts block and Objective 2 for the full
+account of why these two runs don't reconcile against each other cleanly):
+gated **1260 passed, 1 skipped, 6 deselected, 2 FAILED**
+(`artifacts/pytest/day32_gated.xml`); full **1267 passed, 7 skipped, 2
+FAILED** (`artifacts/pytest/day32_full.xml`). Both runs' 2 failures are the
+same two tests, `tests/test_report_suite_provenance.py`'s own
+artifact-citation checks, red for the correct reason (this section had no
+citations yet at run time) and expected green once this commit lands.
+
+## Still blocked on a human
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 31:
+
+1. **Production `models/int8/vjepa2_vitl_int8.xml`/`.bin`** — ADR 0008.
+2. **MEVA licence verification** — highest-product-impact pending data item.
+3. **Counsel review of `docs/site_zero_consent_TEMPLATE.md` §7.**
+4. **A physical camera.**
+5. **The `main`/`origin/main` divergence decision** (ADR 0009).
+6. **Reference hardware procurement decision.**
+7. **The carrier/asset production posture** (ADR 0011).
+
+## Day 33, in order
+
+1. **A clean, same-commit gated/full suite reconciliation** — today's pair
+   spans a ~7-hour gap and multiple commits; re-run `scripts/
+   suite_report.py` back-to-back against one frozen HEAD, without editing
+   in between. The full run alone costs ~7 hours measured today — budget
+   for it explicitly rather than starting it casually mid-session.
+2. **Re-derive the velocity floor, or retire it.**
+3. **IMM at `onset`, where it costs ~6 nats/frame** — unexplained.
+4. **Extend informativeness to the joint estimator.**
+5. **`PatchTokens.encoder_sha` is unverified.**
+6. **Vertical motion in the golden sets** — GT height still a constant.
+7. **Physical `maneuver`** — needs a curved-path model.
+8. **Measure a real per-component hypothesis budget** — `AssociationBudgetConfig`'s
+   default (3) is a stated placeholder, not a Day-26-style measured bound;
+   needs the same coupling-density-class study `ComponentCapConfig`'s 6 had.
+9. **Wire `resolve_data_association`'s output into `run_joint_filter`'s
+   `Component` selection** — currently declared, never resolved from
+   hypotheses; Objective 4 built the resolver, not the wiring.
+10. **A sensor-noise model for the generator.**
+11. **Real coupled multi-entity data, or a larger authored scene.**
+12. **Twin geometry** (`TwinGeometry`).
+13. **The twin drift detector** — sits behind item 12.
+14. **The discrete/continuous hybrid** — depends on items 8-9.
+15. **Smoothing across the joint graph** — depends on item 4.
+16. **MEVA licence verification** — blocked on a human.
+17. **DA-2K licence verification** — zero engineering lag once cleared.
+18. **Reference hardware procurement decision.**
+19. **Declare a target fps for real camera ingest.**
+20. **Cascade bench, clean, on interim or reference hardware.**
+21. **Depth validity re-measurement** — gates on item 17.
+22. **The `main`/`origin/main` decision** (ADR 0009).
+23. **Order cameras and run the office capture.**
+24. **The motion-gate precision/selectivity investigation.**
+25. **A canonical `Observation -> hash` function** (ADR 0007).
+26. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced.**
+27. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+28. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued.
+29. **The `resolve_joint_state` cross-component filtering gap** (ADR 0011).
+30. **A `black`/`flake8` CI gate** — `docs/dismissal_audit.md` entry #5:
+    28/26 files drifting and growing across days with no gate stopping it.
+31. **Automatic load-average capture on a duration-gate failure** — today's
+    live finding (`test_superseded_gate_numbers_are_stamped_on_the_scorecard`)
+    needed a human to think to run `uptime` by hand; that should not be
+    required to tell a contention flake from a real regression.

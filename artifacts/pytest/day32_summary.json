@@ -1,0 +1,28 @@
+{
+  "full": {
+    "deselected": 0,
+    "errors": 0,
+    "failures": 2,
+    "junit_path": "artifacts/pytest/day32_full.xml",
+    "label": "day32_full",
+    "log_path": "artifacts/pytest/day32_full.log",
+    "marker_expr": null,
+    "returncode": 1,
+    "skipped": 7,
+    "tests": 1276
+  },
+  "gated": {
+    "deselected": 6,
+    "errors": 0,
+    "failures": 2,
+    "junit_path": "artifacts/pytest/day32_gated.xml",
+    "label": "day32_gated",
+    "log_path": "artifacts/pytest/day32_gated.log",
+    "marker_expr": "not requires_weights",
+    "returncode": 1,
+    "skipped": 1,
+    "tests": 1263
+  },
+  "reconciled": false,
+  "reconciliation_message": "DISCREPANCY: day32_gated executed=1263 + deselected=6 = 1269, but day32_full executed=1276 (missing 7 test(s) unaccounted for)"
+}

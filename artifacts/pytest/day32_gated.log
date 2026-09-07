@@ -1,0 +1,63 @@
+........................................................................ [  5%]
+........................................................................ [ 11%]
+........................................................................ [ 17%]
+........................................................................ [ 22%]
+.........................................s.............................. [ 28%]
+........................................................................ [ 34%]
+........................................................................ [ 39%]
+........................................................................ [ 45%]
+........................................................................ [ 51%]
+........................................................................ [ 57%]
+........................................................................ [ 62%]
+........................................................................ [ 68%]
+........................................................................ [ 74%]
+........................................................................ [ 79%]
+........................................................................ [ 85%]
+........................................................................ [ 91%]
+.............F.F........................................................ [ 96%]
+.......................................                                  [100%]
+=================================== FAILURES ===================================
+_____ test_every_suite_claim_from_day_32_onward_cites_an_existing_artifact _____
+
+    def test_every_suite_claim_from_day_32_onward_cites_an_existing_artifact() -> None:
+        sections = _day_sections()
+        enforced = [s for s in sections if s[0] >= MINIMUM_ENFORCED_DAY]
+>       assert enforced, (
+            f"no day sections with day number >= {MINIMUM_ENFORCED_DAY} were "
+            "found -- the day-heading regex or numbering may have changed; this "
+            "test cannot verify anything until that is fixed"
+        )
+E       AssertionError: no day sections with day number >= 32 were found -- the day-heading regex or numbering may have changed; this test cannot verify anything until that is fixed
+E       assert []
+
+tests/test_report_suite_provenance.py:88: AssertionError
+___________ test_the_lint_accepts_a_claim_backed_by_a_real_artifact ____________
+
+    def test_the_lint_accepts_a_claim_backed_by_a_real_artifact() -> None:
+        """The complementary check: a claim citing a file that genuinely
+        exists must NOT be flagged, or every real Day-32+ entry would fail
+        alongside the ones this lint exists to catch."""
+        real_artifact = "artifacts/pytest/day32_gated_summary.json"
+>       assert (REPO_ROOT / real_artifact).exists(), (
+            f"{real_artifact} must exist for this test to mean anything -- "
+            "run scripts/suite_report.py --label-prefix day32"
+        )
+E       AssertionError: artifacts/pytest/day32_gated_summary.json must exist for this test to mean anything -- run scripts/suite_report.py --label-prefix day32
+E       assert False
+E        +  where False = <bound method Path.exists of PosixPath('/Users/manishmehta/Desktop/project-iron-main/artifacts/pytest/day32_gated_summary.json')>()
+E        +    where <bound method Path.exists of PosixPath('/Users/manishmehta/Desktop/project-iron-main/artifacts/pytest/day32_gated_summary.json')> = (PosixPath('/Users/manishmehta/Desktop/project-iron-main') / 'artifacts/pytest/day32_gated_summary.json').exists
+
+tests/test_report_suite_provenance.py:125: AssertionError
+=============================== warnings summary ===============================
+.venv-pinned/lib/python3.10/site-packages/pydantic/_internal/_fields.py:149
+  /Users/manishmehta/Desktop/project-iron-main/.venv-pinned/lib/python3.10/site-packages/pydantic/_internal/_fields.py:149: UserWarning: Field "model_hashes" has conflict with protected namespace "model_".
+  
+  You may be able to resolve this warning by setting `model_config['protected_namespaces'] = ()`.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /Users/manishmehta/Desktop/project-iron-main/artifacts/pytest/day32_gated.xml -
+=========================== short test summary info ============================
+FAILED tests/test_report_suite_provenance.py::test_every_suite_claim_from_day_32_onward_cites_an_existing_artifact
+FAILED tests/test_report_suite_provenance.py::test_the_lint_accepts_a_claim_backed_by_a_real_artifact
+2 failed, 1260 passed, 1 skipped, 6 deselected, 1 warning in 1496.03s (0:24:56)

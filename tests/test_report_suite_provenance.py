@@ -121,7 +121,7 @@ def test_the_lint_accepts_a_claim_backed_by_a_real_artifact() -> None:
     """The complementary check: a claim citing a file that genuinely
     exists must NOT be flagged, or every real Day-32+ entry would fail
     alongside the ones this lint exists to catch."""
-    real_artifact = "artifacts/pytest/day32_gated_summary.json"
+    real_artifact = "artifacts/pytest/day32_summary.json"
     assert (REPO_ROOT / real_artifact).exists(), (
         f"{real_artifact} must exist for this test to mean anything -- "
         "run scripts/suite_report.py --label-prefix day32"
