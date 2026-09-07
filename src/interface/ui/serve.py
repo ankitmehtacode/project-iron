@@ -1,4 +1,6 @@
+import functools
 from http.server import HTTPServer, SimpleHTTPRequestHandler
+from pathlib import Path
 
 
 class SecurityHeadersHandler(SimpleHTTPRequestHandler):
@@ -8,5 +10,9 @@ class SecurityHeadersHandler(SimpleHTTPRequestHandler):
         super().end_headers()
 
 
-print("Server running at http://localhost:8000")
-HTTPServer(("localhost", 8000), SecurityHeadersHandler).serve_forever()
+if __name__ == "__main__":
+    ui_dir = Path(__file__).resolve().parent
+    handler = functools.partial(SecurityHeadersHandler, directory=str(ui_dir))
+    print("Server running at http://localhost:8000")
+    HTTPServer(("localhost", 8000), handler).serve_forever()
+
