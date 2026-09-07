@@ -26,6 +26,8 @@ from src.model.events import (
     confirm_prediction,
     event_v2_from_dict,
     event_v2_to_dict,
+    read_events_v2_parquet,
+    write_events_v2_parquet,
 )
 
 SUBJECT = EntityRef("session", "sess-1")
@@ -265,3 +267,54 @@ def test_event_v2_from_dict_rejects_unknown_event_class() -> None:
     payload["event_class"] = "speculated"
     with pytest.raises(EventError):
         event_v2_from_dict(payload)
+
+
+# ---------------------------------------------------------------------------
+# Parquet round-trip — the v2 four-class table, distinct from schema v1's
+# ``observed: bool`` one (src.events.schema.events_arrow_schema).
+# ---------------------------------------------------------------------------
+
+
+def test_write_and_read_events_v2_parquet_round_trips_all_four_classes(
+    tmp_path,
+) -> None:
+    events = [_observed(), _inferred(), _predicted(), _hypothesis()]
+    path = tmp_path / "events.parquet"
+    write_events_v2_parquet(events, path)
+    restored = read_events_v2_parquet(path)
+    assert restored == events
+
+
+def test_events_v2_parquet_table_carries_event_class_per_row(tmp_path) -> None:
+    events = [_observed(), _inferred(), _predicted(), _hypothesis()]
+    path = tmp_path / "events.parquet"
+    write_events_v2_parquet(events, path)
+
+    import pyarrow.parquet as pq
+
+    table = pq.read_table(path)
+    assert table.column("event_class").to_pylist() == [
+        "observed",
+        "inferred",
+        "predicted",
+        "hypothesis",
+    ]
+
+
+def test_empty_events_v2_parquet_still_produces_a_readable_file(tmp_path) -> None:
+    path = tmp_path / "empty.parquet"
+    write_events_v2_parquet([], path)
+    assert read_events_v2_parquet(path) == []
+
+
+def test_read_events_v2_parquet_refuses_a_table_written_against_another_schema(
+    tmp_path,
+) -> None:
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    path = tmp_path / "foreign.parquet"
+    table = pa.table({"event_id": ["x"]})
+    pq.write_table(table, path)
+    with pytest.raises(EventError):
+        read_events_v2_parquet(path)

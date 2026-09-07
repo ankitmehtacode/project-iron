@@ -50,7 +50,11 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 from functools import singledispatch
-from typing import Any, Literal, Sequence
+from pathlib import Path
+from typing import Any, Iterable, Literal, Sequence
+
+import pyarrow as pa
+import pyarrow.parquet as pq
 
 from src.events.schema import (
     INTERACTION_VERBS,
@@ -432,6 +436,105 @@ def event_v2_from_dict(payload: dict[str, Any]) -> EventV2:
     return HypothesisEvent(**common, rationale=payload["rationale"])
 
 
+# ---------------------------------------------------------------------------
+# Parquet — the four-class table, distinct from schema v1's boolean-flag one.
+# ---------------------------------------------------------------------------
+#
+# src.events.schema.events_arrow_schema() writes the OLD ``observed: bool``
+# shape and is unchanged (existing v1 callers keep working). This is the
+# writer the v2 hierarchy has never had: Day 13 introduced the four classes
+# in-memory only, and the sole existing v1->v2 bridge
+# (scripts/migrate_events_v1_v2.py) emits JSON, not Parquet. The Inspector's
+# Events view reads a Parquet file (src.inspector.artifacts.read_events), so
+# without this writer no v2 event could ever reach it — a gap Day 35
+# Objective 3 closes because rendering the real four-class hierarchy is
+# meaningless if nothing can ever put a four-class row on disk.
+
+_ENTITY_STRUCT_V2 = pa.struct([("kind", pa.string()), ("id", pa.string())])
+_CLIP_STRUCT_V2 = pa.struct(
+    [
+        ("video_id", pa.string()),
+        ("start_ts_ns", pa.int64()),
+        ("end_ts_ns", pa.int64()),
+        ("content_sha", pa.string()),
+    ]
+)
+
+
+def events_v2_arrow_schema() -> pa.Schema:
+    """Arrow schema for a v2 (four-class) event table.
+
+    ``basis``/``predicted_by``/``rationale`` are nullable: exactly one is
+    populated depending on ``event_class`` (inferred/predicted/hypothesis
+    respectively); ``ObservedEvent`` rows carry none of them. Tagged with
+    ``iron_schema_version`` the same way schema v1's Arrow schema is, so a
+    reader can refuse a table written against a version it does not
+    understand instead of reinterpreting foreign columns under v2 names.
+    """
+    return pa.schema(
+        [
+            pa.field("event_class", pa.string(), nullable=False),
+            pa.field("event_id", pa.string(), nullable=False),
+            pa.field("site_id", pa.string(), nullable=False),
+            pa.field("ts_ns", pa.int64(), nullable=False),
+            pa.field("subject", _ENTITY_STRUCT_V2, nullable=False),
+            pa.field("verb", pa.string(), nullable=False),
+            pa.field("object", _ENTITY_STRUCT_V2, nullable=True),
+            pa.field("zone", _ENTITY_STRUCT_V2, nullable=True),
+            pa.field("confidence", pa.float64(), nullable=False),
+            pa.field("importance", pa.float64(), nullable=False),
+            pa.field("clip", _CLIP_STRUCT_V2, nullable=True),
+            pa.field("manifest_sha", pa.string(), nullable=False),
+            pa.field("evidence_refs", pa.list_(pa.string()), nullable=False),
+            pa.field("state_refs", pa.list_(pa.string()), nullable=False),
+            pa.field("supersedes", pa.string(), nullable=True),
+            pa.field("schema_version", pa.string(), nullable=False),
+            pa.field("basis", pa.string(), nullable=True),
+            pa.field("predicted_by", pa.string(), nullable=True),
+            pa.field("rationale", pa.string(), nullable=True),
+        ],
+        metadata={b"iron_schema_version": EVENT_SCHEMA_VERSION.encode()},
+    )
+
+
+def events_v2_to_table(events: Sequence[EventV2]) -> pa.Table:
+    """Build an Arrow table from v2 events, in the canonical schema."""
+    rows = []
+    for event in events:
+        row = event_v2_to_dict(event)
+        row.setdefault("basis", None)
+        row.setdefault("predicted_by", None)
+        row.setdefault("rationale", None)
+        rows.append(row)
+    return pa.Table.from_pylist(rows, schema=events_v2_arrow_schema())
+
+
+def write_events_v2_parquet(events: Iterable[EventV2], path: Path | str) -> Path:
+    """Write v2 events to a Parquet file, creating parent directories.
+
+    An empty sequence still produces a valid file with the schema attached,
+    matching schema v1's ``write_events_parquet`` so "no events" and "no
+    file" stay distinguishable to a reader.
+    """
+    destination = Path(path)
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(events_v2_to_table(list(events)), destination, compression="snappy")
+    return destination
+
+
+def read_events_v2_parquet(path: Path | str) -> list[EventV2]:
+    """Read v2 events back, refusing a table written against another schema."""
+    table = pq.read_table(path)
+    tagged = table.schema.metadata.get(b"iron_schema_version") if table.schema.metadata else None
+    version = tagged.decode() if tagged is not None else None
+    if version != EVENT_SCHEMA_VERSION:
+        raise EventError(
+            f"cannot read a v2 event table written against schema_version "
+            f"{version!r}; this build supports {EVENT_SCHEMA_VERSION!r}"
+        )
+    return [event_v2_from_dict(row) for row in table.to_pylist()]
+
+
 __all__ = [
     "EVENT_SCHEMA_VERSION",
     "EventClassName",
@@ -446,4 +549,8 @@ __all__ = [
     "confirm_prediction",
     "event_v2_to_dict",
     "event_v2_from_dict",
+    "events_v2_arrow_schema",
+    "events_v2_to_table",
+    "write_events_v2_parquet",
+    "read_events_v2_parquet",
 ]
