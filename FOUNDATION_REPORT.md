@@ -10454,3 +10454,326 @@ undifferentiated commit.
    session attention, not just tracked debt.
 10. Every unresolved item on Day 34's own Day-35 list not touched today
     (items 1-18, 20-32, 34 above) carries forward unchanged.
+
+# Day 36
+
+**No timing, throughput, CPU-percentage, or latency claim is made anywhere
+in this section as a PRODUCT figure** — unchanged hard scope rule. Test
+durations and suite counts remain in scope, as process measurements. Day
+36's own objectives diverged from Day 35's own "Day 36, in order" list
+above (which was UI/Scorecard-focused) — a new prompt redirected today's
+work to the identity-adapter architecture instead. Nothing on that list was
+touched today; it carries forward to Day 37's list below, unchanged.
+
+**Headline, found during Objective 3 and fixed before Objective 6 was
+written, per this project's own rule that a labeling gap found late is
+still reported as the finding, not folded quietly into "and also":**
+auditing every Objective-3/4 output for exactly the failure Objectives 3
+and 4 both warn about ("if any output could be mistaken for a real result
+by someone reading it out of context, the labeling has failed") found one.
+`BakeoffProbeResult` (Objective 4) carries its own `self_test_label` field
+and self-labels `.render()`/`.as_evidence()` wherever they end up.
+`PromotionResult` (Objective 3) did not — it read as `SELF_TEST` only
+because `scripts/train_identity_adapter_selftest.py`'s `print` statement
+happened to wrap it in a manual prefix. Calling `evaluate_promotion(...)
+.render()` or `.as_evidence()` from anywhere else — a notebook, a future
+script, a log line — would have produced an unlabelled
+`identity.retrieval_map = 0.9262 ... -> PROMOTED`, indistinguishable from a
+real promotion decision. Fixed: `PromotionResult` now carries the same
+`self_test_label` field `BakeoffProbeResult` has, threaded through a new
+`evaluate_promotion(..., self_test: bool)` parameter; the CLI script now
+passes `self_test=True` instead of wrapping the print manually. Confirmed
+by a new test (`test_promotion_result_self_labels_when_asked_and_stays_
+silent_otherwise`) that a non-self-test call produces `self_test_label is
+None` and no `"SELF_TEST"` substring in either output, while a self-test
+call produces both.
+
+## Verdicts
+
+- **Objective 1.** The "verification queue" is not a queue — it is a
+  single restated intent. `MEVA` is mentioned 65 times across
+  `FOUNDATION_REPORT.md`'s 34 day-sections; "MEVA licen[sc]e verification"
+  or "MEVA re-verified" is restated as still-pending **52** separate times
+  (`grep -cE "MEVA licen[sc]e verification|MEVA re-verified"
+  FOUNDATION_REPORT.md`), 25 of those explicitly paired with "blocked on a
+  human." Datasets actually fetched with a real (non-null)
+  `license_snapshot`, checked directly against the registry rather than
+  recalled: **0 of 63** (`grep -c "license_snapshot:" configs/datasets.yaml`
+  returns 0 — the key never appears with a value anywhere in the file, only
+  ever as the pydantic field's implicit `null` default). Zero of the
+  project's own ADRs (`docs/adr/*.md`) mention MEVA or a verification queue
+  at all — the restatement lives entirely in the day-report narrative, not
+  in any decision record. This is Day 32's dismissal-audit shape applied to
+  a queue position instead of a label: an assertion of intent, repeated
+  without action, is functionally a dismissal.
+
+  **CHIRLA** (`bdager/CHIRLA`) registered lane R, `license_snapshot: null`,
+  `consent_posture: unknown`, sourced from `README.md` at commit
+  `fcb6f53359d5888b6e8fb745b65a411697dcc22c` (the only source this
+  environment's network access can reach — `huggingface.co`,
+  `sciencedb.cn`, and `arxiv.org` are not reachable, confirmed by attempt,
+  not assumed). Confirmed from that commit: 22 individuals, 7 cameras, 70
+  video sequences, 596,345 frames, 963,554 bounding-box annotations,
+  1080x720@30fps, 7 months, YOLOv8x+DeepSORT with manual cross-camera
+  verification. **One correction to the day's own framing prompt:** it
+  described "four connected indoor environments" as a fact to record: the
+  README at the commit actually read states no environment count at all
+  (only "laboratories, hallways, and shared workspaces") — that clause is
+  NOT repeated as fact in the registry entry, on the same principle that
+  keeps `hypothesis_class` fields honest about what was actually verified.
+  `docs/chirla_verification_checklist.md` hands the human four pages (not
+  three — the objective named three URLs but its own required ethics/
+  consent check lives only in the arXiv paper body, which is none of the
+  three; flagged explicitly in the checklist rather than silently dropping
+  the check to make the count match) and the exact one or two things to
+  find on each. No self-certification: `--verify-license --i-have-read-it`
+  was not invoked, and could not have been — the pages it would certify
+  were never fetched by anything in this repository. Structural tests
+  (`test_chirla_is_exactly_as_inert_as_every_other_lane_r_entry`,
+  `test_chirla_consent_posture_unknown_cannot_satisfy_a_lane_c_only_
+  loader`) confirm CHIRLA is exactly as inert to training/calibration as
+  every other unverified lane-R entry, isolating the lane-R refusal from
+  the license-snapshot refusal so registering a richer entry did not
+  accidentally loosen either gate. → Objective 1.
+- **Objective 2.** `src/identity/`: `FrozenBackbone` (a typed `Protocol`,
+  no concrete implementation bound — the bake-off that would choose one is
+  Objective 4, itself blocked on data that does not exist) and `Adapter` (a
+  small MLP head, hard-capped at 2,000,000 parameters — three orders of
+  magnitude below a V-JEPA2-ViT-L backbone — enforced as a constructor-time
+  `AdapterConfigError`, not a review norm). Every adapter output is an
+  `IdentityEmbedding` carrying both `backbone_sha` and `adapter_sha`.
+  Lane enforcement reuses `DatasetRegistry.open_for_training` directly
+  (`src/identity/lane_gate.py`, `IRON_TRAINING_PATH = True`) — no second
+  lane check; `test_require_training_dataset_does_not_duplicate_registry_
+  messages` asserts the `LaneViolation` raised through the wrapper is
+  BYTE-IDENTICAL to the one `open_for_training` raises directly, which is
+  the actual proof of pass-through rather than a parallel reimplementation
+  that happens to agree today. `test_frozen_backbone_has_no_gradient_path`
+  is the objective's central claim, made adversarial on purpose: the
+  stand-in backbone deliberately does NOT set `requires_grad=False` on its
+  own weights, so the test proves `extract_features_no_grad`'s
+  `torch.no_grad()` + `.detach()` isolation holds on its own merits, not
+  because the fixture happened to be safe already. → Objective 2.
+- **Objective 3.** Triplet-margin loss on cosine distance
+  (`torch.nn.TripletMarginWithDistanceLoss`) — chosen because it optimizes
+  the same relative-ranking quantity the promotion gate measures, swappable
+  via `train_adapter`'s loss construction without a loop rewrite. Every
+  step reaches the backbone only through `extract_features_no_grad`.
+  `write_checkpoint_manifest` refuses at write time if any contributing
+  dataset is not lane C (`test_write_checkpoint_manifest_refuses_non_lane_
+  c`, and separately `..._refuses_c_pending_consent_too` — pinning that
+  `C_pending_consent` is not treated as equivalent to `C` just because both
+  start with the letter). `write_selftest_checkpoint_manifest` is a
+  SEPARATE function, not a boolean flag on the first, with no parameter
+  that could mark a self-test checkpoint `promoted` — two names cannot be
+  typo'd into each other the way a flag can. The promotion gate reuses
+  `src.eval.baselines`' `Baseline`/`margin` directly (Day 12's rule): a
+  checkpoint promotes only on a strict positive margin over the frozen
+  backbone's raw cosine similarity with NO adapter applied.
+  `average_precision` was extracted from `scripts/eval_semantics.py` into
+  `src/eval/retrieval.py` so the gate could import it as library code
+  instead of reaching into a `scripts/` entrypoint — 36 pre-existing
+  baseline/semantics/scorecard tests re-run unchanged afterward, confirming
+  no behaviour moved. `scripts/train_identity_adapter_selftest.py` runs the
+  full pipeline end to end ONLY against a synthetic gaussian-cluster
+  gallery, deliberately tuned (`cluster_scale=1.2`, close to
+  `noise_scale=1.0`) so the initial adapter starts with real triplet
+  violations — an earlier, more separable tuning produced loss `0.0000`
+  from the first step, which would have "passed" without ever
+  demonstrating a gradient actually moved; caught and re-tuned before this
+  was reported as a passing self-test, not after. Every output carries
+  `SELF_TEST_LABEL`; the written manifest's `promoted` field is always
+  `False` regardless of what the promotion-gate arithmetic says (today's
+  self-test runs while writing this report: `identity.retrieval_map`
+  ranged 0.9215-0.9266 against a stable `raw_backbone_cosine` baseline of
+  0.8135 (backbone and gallery are seeded; adapter init is not, by design
+  — only PROMOTED/margin-positive is the claim, not a specific value) —
+  the arithmetic says PROMOTED every run, the manifest says
+  `promoted: false` every run regardless, on purpose). See this section's
+  headline for the `PromotionResult` labeling gap this same
+  objective's own output surfaced and had fixed before Objective 6. →
+  Objective 3.
+- **Objective 4.** `src/identity/bakeoff.py`: four probes — same-object
+  retrieval mAP (cross-boundary queries only, `position_only` baseline;
+  Day 12's rule and the Day-11 repair, generalized from
+  `scripts/eval_semantics.py`'s `crossed_boundary`/position-only-baseline
+  logic to a synthetic `pos0`/`posk` stand-in for any backbone), temporal
+  embedding stability, patch-boundary discontinuity (no trivial ceiling —
+  reported as a descriptor, not a gate, same as `semantics.patch_
+  boundary_l2`), and clothing-change robustness (CHIRLA's specific
+  contribution, once fetchable — not run against CHIRLA today, since
+  CHIRLA is not fetchable today). All four route through
+  `src.eval.baselines`' shared registry via four new `identity.bakeoff.*`
+  registrations that reuse the EXISTING `semantics.mAP`/`temporal_cosine`/
+  `patch_boundary_l2` baseline computer functions directly — not copies.
+  `open_bakeoff_eval_set` wires the harness to `open_for_eval` (never
+  `open_for_training`); a test pins that this module carries no
+  `IRON_TRAINING_PATH` marker, so a future accidental copy-paste from
+  `lane_gate.py` would be caught immediately. **No backbone was selected.**
+  The decision ledger's "Dense-semantics encoder: open" line is unchanged
+  by anything this objective produced. → Objective 4.
+- **Objective 5.** The first real verification of ADR 0001's central
+  promise, exercised for the first time since the ADR was accepted:
+  `src/identity/erasure_drill.py` trains an adapter on a full 8-identity
+  synthetic gallery, evicts one identity, retrains from scratch, and
+  checks TWO things structurally (explicitly not a timing claim). (1) The
+  frozen backbone artifact's file hash is byte-identical before either
+  run, after the first, and after the retrain — checked two ways: the
+  on-disk file's own hash (nothing ever rewrites it) AND a live re-hash of
+  the backbone's in-memory weights against that same file hash, so an
+  in-place mutation bug would be caught even if the file itself were never
+  touched. (2) The two resulting checkpoints have distinct `adapter_sha`
+  and distinct manifests. **Result: PASS.** Backbone hash identical across
+  all three checkpoints (`4b5221a5486599f1...` — deterministic, seeded, and
+  reproduced identically on re-run while writing this report); `adapter_sha`
+  distinct before and after withdrawal on every run (adapter init is NOT
+  seeded, so the specific hex values differ run to run by design — only
+  their distinctness is the claim, and `test_two_checkpoints_have_distinct_
+  adapter_sha_and_manifests` pins that structurally rather than by literal
+  value); both checkpoints correctly labelled `SELF_TEST` and never
+  `promoted`. If
+  this had failed, ADR 0001's erasure architecture would be invalidated —
+  reported here plainly because it did not, not because a failure would
+  have been hidden. → Objective 5.
+
+## Can anything be trained today?
+
+**No.** Lane C (the only lane eligible to train or calibrate anything) has
+zero clips; lane S fails the appearance-learned validity gate on every
+synthetic set this project owns (Days 9-11); lane R is eval-only by
+construction and CHIRLA — the one addition today — is unverified and
+therefore exactly as untouchable as every other lane-R entry. This was true
+before today's six objectives and remains true after them; nothing built
+today changes it, and nothing built today was designed to pretend
+otherwise. **No timing, throughput, or latency claim is made anywhere in
+this report.**
+
+## Objective 1 — the inert verification queue, and CHIRLA
+
+See Verdicts above for the full numbers. One methodological note: the
+day's framing prompt asked for "the exact count of days/instances this has
+been restated" — measured as instances (52), not days, because several
+days restate MEVA's pending status twice (once in a `## Verdicts`-style
+entry, once in the recurring "still blocked on a human" list) and counting
+by day would understate the actual restatement volume the grep is meant to
+surface. `docs/chirla_verification_checklist.md` is written to be a
+five-minute task per its own stated goal — four checkboxes-worth of
+"open this URL, look for this exact thing," not a research assignment —
+and explicitly instructs against self-certification a second time, in case
+the checklist itself is ever read out of context from this report.
+
+## Objective 2 — the adapter architecture
+
+`FrozenBackbone`/`extract_features_no_grad`/`Adapter`/`FeatureTensor`/
+`IdentityEmbedding` are the whole surface (see Verdicts). One design note
+not in the code comments: `FeatureTensor`/`IdentityEmbedding` are
+deliberately NOT `src.contracts.tokens.PatchTokens` reused — `PatchTokens`
+is `numpy`-based (the production, post-export boundary), and a training
+loop needs a gradient-carrying `torch.Tensor`, which cannot live in a
+field typed `npt.NDArray` without either lying to mypy or detaching the
+graph a training loop needs. `src/identity/contracts.py` is a sibling
+following the exact same rule (labelled envelope, `__post_init__`
+validation, raise never coerce), not a fork of the rule.
+
+## Objective 3 — trainer, checkpoint provenance, promotion gate
+
+See Verdicts above for the full account, including the labeling-gap
+finding and fix this objective's own self-test run surfaced.
+
+## Objective 4 — backbone bake-off harness
+
+See Verdicts above. Built and self-tested; not run against real data;
+selects no backbone.
+
+## Objective 5 — the erasure drill
+
+See Verdicts above. PASS, reported plainly per the objective's own
+instruction that a failure here would be the day's finding, not a
+footnote — it did not fail, and that fact is reported with the same
+weight it would have gotten if it had.
+
+## Housekeeping noticed, not touched
+
+`src/interface/ui/serve.py` still carries the same uncommitted diff Day 35
+already reviewed and confirmed is a real, unrelated bugfix (the
+`if __name__ == "__main__":` guard and `directory=`-scoped static serving
+for the legacy Three.js visualizer, zero shared code path with
+`src/inspector/`) — apparently never actually committed at the end of Day
+35 despite being verified that day. Left untouched again today: outside
+Day 36's declared scope, and staging someone else's in-progress diff under
+today's objectives would misattribute it. Flagged here so it does not go
+another day unmentioned; committing it is a one-line human decision, not
+an engineering one.
+
+## Full suite, mypy, lint
+
+`mypy` (scoped per `mypy.ini`, `src/identity` and `src/eval` added to the
+strict set today): clean, 0 errors, 78 source files — up from Day 35's 64
+(the 14 new `src/identity`/`src/eval` files brought under `--strict` in
+the same change that added their annotations, per this project's own
+"legacy strictness lands module-by-module" rule). `black --check .`: 28
+files would be reformatted — same count as Day 35 (today's ~700 new lines
+across 16 new/touched files were formatted and re-verified before
+committing, adding zero net new drift). `flake8`: 26 files — same count as
+Day 35, same reasoning; every file touched today is flake8-clean (checked
+directly, including confirming the three pre-existing `eval_semantics.py`
+E501s are unchanged from the Day-35 commit, not new drift from today's
+`average_precision` extraction).
+
+Quick-loop suite (`-m "not slow and not requires_weights"`, this session):
+**1364 passed, 1 skipped, 21 deselected, 0 failures**
+(`artifacts/pytest/day36_quick.xml`, 98.84s) — up from Day 35's 1315 by
+**49**: exactly the 45 new identity-adapter tests
+(`tests/test_identity_adapter.py`, `tests/test_identity_trainer.py`,
+`tests/test_identity_bakeoff.py`, `tests/test_identity_erasure_drill.py`)
+plus 4 new CHIRLA-specific tests in `tests/test_data_registry.py`.
+
+## Still blocked on a human
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 35, PLUS: CHIRLA's
+four-item verification checklist (`docs/chirla_verification_checklist.md`)
+is new today and genuinely five minutes of human time — the newest, and by
+far the cheapest, item on this list.
+
+## Process change, Day 36
+
+None beyond what Day 34/35 already added (commit after every objective;
+stop and report if scope proves larger than stated). Today's one process
+observation: auditing a day's own output for its own stated failure mode
+(Objectives 3/4's "if it could be mistaken for real, fix the labeling")
+BEFORE writing the day's report, rather than only at objective-authoring
+time, is what caught the `PromotionResult` gap — worth doing as a explicit
+last step on any future day that produces SELF_TEST-labelled artifacts.
+
+## Day 37, in order
+
+1. **Everything on Day 35's own "Day 36, in order" list, untouched today**
+   (items 1-9 above, restated in full there) — Scorecard
+   `per_condition`/`capability_gates`/`caveats` surfacing, Coverage/
+   Absence view, state-estimator NIS/NEES view, four-golden-set scorecard
+   view, wiring `resolve_data_association` into a real pipeline,
+   ChokePoint/PETS2009 identity-ambiguity validation, re-verifying
+   `consent_posture: unknown` entries, MEVA licence verification, and the
+   `black`/`flake8` CI gate — none superseded by today's identity-adapter
+   work, all still real gaps.
+2. **CHIRLA's four-item human checklist** — `docs/chirla_verification_
+   checklist.md`. Five minutes. The newest, cheapest blocked-on-human item
+   this project has ever recorded; doing it does not itself unblock
+   training (CHIRLA is lane R, eval-only, forever), but it does let the
+   bake-off harness (Objective 4) run against real data for the first
+   time — clothing-change robustness specifically has no other candidate
+   dataset in this registry.
+3. **`src/interface/ui/serve.py`'s stray uncommitted diff** — reviewed and
+   confirmed correct twice now (Day 35, and again today), never
+   committed. A one-line human call: commit it, or say why not.
+4. **A real `FrozenBackbone` implementation** — Objective 2 deliberately
+   bound to none. The bake-off harness (Objective 4) and the trainer
+   (Objective 3) are both built to accept one; nothing currently does.
+   Blocked on the same thing everything else in Phase 3 is blocked on:
+   lane-C data, which does not exist, OR a verified lane-R set (CHIRLA)
+   for the bake-off's eval-only side specifically.
+5. **Re-run the promotion-gate and bake-off self-tests once `src/identity`
+   sees any further change**, since neither is wired into CI today — a
+   regression in `extract_features_no_grad`'s isolation or the lane-gate
+   pass-through would currently only be caught by someone remembering to
+   run `pytest tests/test_identity_*.py` by hand.
