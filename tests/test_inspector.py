@@ -244,15 +244,45 @@ def _four_class_event_fixture():
     import uuid
 
     from src.events.schema import EntityRef, Verb
-    from src.model.events import HypothesisEvent, InferredEvent, ObservedEvent, PredictedEvent
+    from src.model.events import (
+        HypothesisEvent,
+        InferredEvent,
+        ObservedEvent,
+        PredictedEvent,
+    )
 
     subject = EntityRef("session", "sess-day35")
-    common = dict(site_id="site-0", confidence=0.8, importance=0.5, manifest_sha="sha-day35")
+    common = dict(
+        site_id="site-0", confidence=0.8, importance=0.5, manifest_sha="sha-day35"
+    )
     return [
-        ObservedEvent(event_id=uuid.uuid4(), ts_ns=1, subject=subject, verb=Verb.ENTERED, **common),
-        InferredEvent(event_id=uuid.uuid4(), ts_ns=2, subject=subject, verb=Verb.EXITED, basis="retroactive resolution", **common),
-        PredictedEvent(event_id=uuid.uuid4(), ts_ns=3, subject=subject, verb=Verb.APPROACHED, predicted_by="velocity extrapolation", **common),
-        HypothesisEvent(event_id=uuid.uuid4(), ts_ns=4, subject=subject, verb=Verb.LOITERED, rationale="unconfirmed", **common),
+        ObservedEvent(
+            event_id=uuid.uuid4(), ts_ns=1, subject=subject, verb=Verb.ENTERED, **common
+        ),
+        InferredEvent(
+            event_id=uuid.uuid4(),
+            ts_ns=2,
+            subject=subject,
+            verb=Verb.EXITED,
+            basis="retroactive resolution",
+            **common,
+        ),
+        PredictedEvent(
+            event_id=uuid.uuid4(),
+            ts_ns=3,
+            subject=subject,
+            verb=Verb.APPROACHED,
+            predicted_by="velocity extrapolation",
+            **common,
+        ),
+        HypothesisEvent(
+            event_id=uuid.uuid4(),
+            ts_ns=4,
+            subject=subject,
+            verb=Verb.LOITERED,
+            rationale="unconfirmed",
+            **common,
+        ),
     ]
 
 
@@ -289,7 +319,9 @@ def test_app_js_maps_all_four_event_classes_to_distinct_rendering() -> None:
     wording, so a screenshot could not confuse one for another even before
     considering colour."""
     text = (REPO_ROOT / "src" / "inspector" / "static" / "app.js").read_text()
-    section = text[text.index("EVENT_CLASS_ROW"):text.index("async function viewEvents")]
+    section = text[
+        text.index("EVENT_CLASS_ROW") : text.index("async function viewEvents")
+    ]
     for name in ("observed", "inferred", "predicted", "hypothesis"):
         assert f"{name}:" in section, f"EVENT_CLASS_ROW is missing {name!r}"
     # Distinct CSS classes (None counts as its own distinct, unstyled state
@@ -300,8 +332,8 @@ def test_app_js_maps_all_four_event_classes_to_distinct_rendering() -> None:
     # PredictedEvent's own verb-cell wording must differ from a bare pass-
     # through — Day 13's "never interchangeable with ObservedEvent" rule
     # applied to the text itself, not just to styling.
-    assert '`will ${v}`' in section
-    assert '`possibly ${v}`' in section
+    assert "`will ${v}`" in section
+    assert "`possibly ${v}`" in section
 
 
 def test_style_css_gives_each_event_class_a_distinct_non_color_border() -> None:
@@ -455,12 +487,16 @@ def test_association_endpoints_serve_real_verdicts(store: art.Artifacts) -> None
 
     for row in rows:
         _, full = call(store, f"/api/association/{row['component_id']}")
-        assert full["candidates"], "a verdict without its competitor set is not evidence"
+        assert full[
+            "candidates"
+        ], "a verdict without its competitor set is not evidence"
         assert full["verdict"]["kind"] in ("decisive", "ambiguous")
         assert (REPO_ROOT / full["_source"]).exists()
 
 
-def test_ambiguous_verdict_has_no_winner_field_on_the_wire(store: art.Artifacts) -> None:
+def test_ambiguous_verdict_has_no_winner_field_on_the_wire(
+    store: art.Artifacts,
+) -> None:
     """Structural, at the API boundary: an Ambiguous verdict payload must
     not carry a ``winner`` key at all — the same discipline
     src.estimator.joint.Ambiguous enforces in Python (no ``winner``
@@ -474,7 +510,9 @@ def test_ambiguous_verdict_has_no_winner_field_on_the_wire(store: art.Artifacts)
     assert "winner" not in full["verdict"]
 
 
-def test_ambiguous_verdict_never_produces_an_observed_event(store: art.Artifacts) -> None:
+def test_ambiguous_verdict_never_produces_an_observed_event(
+    store: art.Artifacts,
+) -> None:
     """Closes the loop to Day 34 Objective 4 at the API boundary: an
     Ambiguous verdict's event must be InferredEvent, never ObservedEvent."""
     _build_association_demo_if_absent(store)
@@ -518,7 +556,9 @@ def test_ambiguous_rendering_has_no_rank_based_winner_styling() -> None:
     # check isDecisive — approximated here by requiring every occurrence of
     # the winner markers to be textually preceded, within the same
     # function, by an isDecisive guard rather than appearing bare.
-    assoc_section = text[text.index("/* --- view: association"):text.index("/* --- view: provenance")]
+    assoc_section = text[
+        text.index("/* --- view: association") : text.index("/* --- view: provenance")
+    ]
     assert "assoc-winner" in assoc_section
     assert "winner-badge" in assoc_section
     for marker in ("assoc-winner", "winner-badge"):
@@ -527,9 +567,9 @@ def test_ambiguous_rendering_has_no_rank_based_winner_styling() -> None:
         # The nearest preceding conditional must be an isDecisive check —
         # i.e. isDecisive appears more recently before this marker than
         # any bare score/rank comparison would need to for it to fire.
-        assert "isDecisive" in preceding, (
-            f"{marker!r} must be reachable only through an isDecisive check"
-        )
+        assert (
+            "isDecisive" in preceding
+        ), f"{marker!r} must be reachable only through an isDecisive check"
 
 
 def test_ambiguous_verdict_tag_uses_a_non_color_signal() -> None:
@@ -537,13 +577,15 @@ def test_ambiguous_verdict_tag_uses_a_non_color_signal() -> None:
     Decisive/Ambiguous distinction must not rest on colour alone."""
     css = (REPO_ROOT / "src" / "inspector" / "static" / "style.css").read_text()
     assert "ambiguous-tag" in css
-    ambiguous_rule = css[css.index(".ambiguous-tag"):css.index(".ambiguous-tag") + 200]
+    ambiguous_rule = css[
+        css.index(".ambiguous-tag") : css.index(".ambiguous-tag") + 200
+    ]
     assert "dashed" in ambiguous_rule, (
         "the ambiguous tag must carry a non-colour signal (a dashed "
         "border, matching the observed/inferred convention), not colour alone"
     )
     js = (REPO_ROOT / "src" / "inspector" / "static" / "app.js").read_text()
-    assert '"AMBIGUOUS' in js or "'AMBIGUOUS" in js, (
-        "the Ambiguous state must carry a literal text label, not only a class name"
-    )
+    assert (
+        '"AMBIGUOUS' in js or "'AMBIGUOUS" in js
+    ), "the Ambiguous state must carry a literal text label, not only a class name"
     assert '"DECISIVE"' in js, "the Decisive state must carry a literal text label too"

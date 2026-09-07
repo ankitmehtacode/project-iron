@@ -483,3 +483,10 @@ against this question directly, not assumed:
 - A caveat's prose does not need to be wrong for its enforcement to have decayed. It decays when
   the number of people who would reread it before relying on the thing it warns about drops
   below one — which happens quietly, with no corresponding edit to the caveat itself.
+
+## Session Discipline (Day 34/35)
+
+Commit after every objective, not at the end of the day. If an objective's real scope turns out
+to be larger than stated, STOP and report the gap rather than expand to close it in one session
+— a session that tries to finish everything in one undifferentiated commit is exactly where a
+scope-driven shortcut gets buried instead of stated.

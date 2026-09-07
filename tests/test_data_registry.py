@@ -380,7 +380,9 @@ def test_every_lane_r_seed_entry_has_a_consent_posture_backfilled() -> None:
     entries added today."""
     registry = DatasetRegistry.load(SEED_PATH)
     missing = [
-        e.name for e in registry.entries() if e.lane == "R" and e.consent_posture is None
+        e.name
+        for e in registry.entries()
+        if e.lane == "R" and e.consent_posture is None
     ]
     assert not missing, f"lane-R entries with no consent_posture: {missing}"
 
@@ -405,7 +407,15 @@ def test_real_surveillance_cctv_datasets_are_recorded_as_such(name: str) -> None
 
 @pytest.mark.parametrize(
     "name",
-    ["i-LIDS", "PETS2009", "ChokePoint", "PRW", "CUHK-SYSU", "CAVIAR", "UCSD-Anomaly-Detection"],
+    [
+        "i-LIDS",
+        "PETS2009",
+        "ChokePoint",
+        "PRW",
+        "CUHK-SYSU",
+        "CAVIAR",
+        "UCSD-Anomaly-Detection",
+    ],
 )
 def test_day_35_cctv_datasets_are_registered_lane_r_with_a_validity_cell(
     name: str,

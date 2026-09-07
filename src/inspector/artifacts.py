@@ -257,7 +257,9 @@ def list_associations(artifacts: Artifacts) -> list[dict[str, Any]]:
     return rows
 
 
-def read_association(artifacts: Artifacts, component_id: str) -> dict[str, Any] | Absent:
+def read_association(
+    artifacts: Artifacts, component_id: str
+) -> dict[str, Any] | Absent:
     path = artifacts.associations_dir / f"{component_id}.json"
     if not path.exists():
         return Absent(

@@ -525,7 +525,11 @@ def write_events_v2_parquet(events: Iterable[EventV2], path: Path | str) -> Path
 def read_events_v2_parquet(path: Path | str) -> list[EventV2]:
     """Read v2 events back, refusing a table written against another schema."""
     table = pq.read_table(path)
-    tagged = table.schema.metadata.get(b"iron_schema_version") if table.schema.metadata else None
+    tagged = (
+        table.schema.metadata.get(b"iron_schema_version")
+        if table.schema.metadata
+        else None
+    )
     version = tagged.decode() if tagged is not None else None
     if version != EVENT_SCHEMA_VERSION:
         raise EventError(

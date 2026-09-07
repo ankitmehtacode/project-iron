@@ -10086,3 +10086,371 @@ Per [[iron-blocked-on-humans]]. Unchanged from Day 33.
 33. **A `black`/`flake8` CI gate** — 28/26 files drifting, unchanged
     three days running, no gate stopping it.
 34. **Automatic load-average capture on a duration-gate failure.**
+
+# Day 35
+
+**No timing, throughput, CPU-percentage, or latency claim is made anywhere
+in this section as a PRODUCT figure** — unchanged hard scope rule. Test
+durations and suite counts remain in scope, as process measurements.
+
+**Headline, leading with it per this project's own rule (a collapsed
+distribution is worth more than the number it hides): Objective 1's audit
+found the Inspector had been rendering an APPARENTLY-CONFIDENT "unmeasured"
+for every real scorecard, and it was lying.** Not stale, not merely
+incomplete — every field on the Scorecard view read "unmeasured" for every
+real scorecard in an actual browser, because `json.dumps`'s default
+`allow_nan=True` emits the literal token `NaN` for values every real
+scorecard genuinely carries (an unpopulated `per_condition` bucket like
+"night", a zero-denominator `precision`), `NaN` is not valid JSON per the
+spec browsers implement, `response.json()` threw, the ENTIRE payload was
+lost — not just the offending field — and app.js's own error handling
+rendered that as if every field had simply never been measured. The
+distinction this project's own Inspector exists to preserve (`Absence and
+refusal are rendered, never elided`) had silently collapsed into itself:
+a transport-layer crash and a genuinely absent measurement rendered
+IDENTICALLY. This was never caught because the existing test suite only
+ever drove the Inspector through Python's own `json.loads`, which is too
+lenient to see it (`NaN` is a non-standard extension it accepts). Found by
+actually loading every view in a real browser and reading the console —
+the audit Objective 1 asked for, done literally rather than by re-reading
+the code. A second, independent, equally invisible bug rode alongside it:
+`table.append(el("thead")).firstChild.append(head)` — `Element.append()`
+returns `undefined`, not the appended node — so every table anywhere in
+the Inspector (Scorecard's per-clip and comparison tables, the Envelope
+table, the original Events table) also threw on render, before today's
+Objective-3 rewrite even touched that code. Both are fixed; every view was
+reloaded in an actual browser afterward with zero console errors before
+being called done.
+
+## Verdicts
+
+- **Objective 0.** The human's uncommitted `src/interface/ui/serve.py`
+  edit is a real bugfix (adds `if __name__ == "__main__":` and serves
+  from `Path(__file__).resolve().parent` via `functools.partial(...,
+  directory=...)` instead of relying on CWD) to a standalone static file
+  server for a legacy Three.js Gaussian-splat trajectory visualizer under
+  `src/interface/ui/` — confirmed, by grepping for cross-references, to
+  share ZERO code paths with `src/inspector/` (the real Iron Inspector
+  this day's objectives target). Left completely untouched; nothing
+  today's work needed from that file. → Objective 0.
+- **Objective 1, headline finding above.** Beyond the two showstopper
+  bugs: the Scorecard payload already carries `per_condition` (a
+  night/occupied/empty/degenerate breakdown), `capability_gates`, and
+  `caveats` (including an explicit "SYNTHETIC-ONLY... must not be quoted
+  externally" warning) — NONE of which the Scorecard view has ever
+  rendered. Today's real scorecard happens to have only one populated
+  condition, so the headline number is not currently misleading in fact —
+  but the mechanism that would silently blend two genuinely different
+  regimes (e.g. day vs. night) into one headline number, with zero UI
+  visibility into the split, has been sitting there unrendered and
+  unaudited the whole time. Named, not fixed today (scope discipline) —
+  first item on the Day 36 list. The Events view's binary
+  `observed`/`inferred` rendering IS confirmed `actively false` (asserts
+  a two-state system over data that has been four-state since Day 13) and
+  IS fixed today, in Objective 3. Full classification table below. →
+  Objective 1.
+- **Objective 2.** A real Association/Identity view, backed by a real,
+  on-disk `AssociationVerdict` artifact this repository had no way to
+  produce before today (`resolve_data_association` was exercised only by
+  unit tests) — `scripts/build_association_demo.py` computes genuine 3-D
+  Gaussian log-likelihoods from real golden-clip geometry, not literal
+  fixture numbers, deriving its measurement sigma from this project's own
+  cited `PERSON_SIGMA_A_MPS2`/`PEDESTRIAN_STOP_DURATION_S` velocity floor
+  rather than inventing one. **Self-audit test result: PASS, no
+  anti-pattern found** — `test_ambiguous_rendering_has_no_rank_based_
+  winner_styling` confirms the winner CSS class/badge is reachable ONLY
+  through an `isDecisive` branch, never through rank or array position
+  alone, and `test_ambiguous_verdict_tag_uses_a_non_color_signal`
+  confirms the Ambiguous tag carries a dashed border (not colour alone),
+  matching the observed/inferred convention. Visually verified in a real
+  browser: the Ambiguous view shows all six competitors at equal visual
+  weight, sorted alphabetically (not by score, specifically to defeat
+  "top of list reads as the winner"), with `PRUNED_BY_BUDGET` rendered as
+  a literal "NOT RULED OUT — resource-limited (budget 1)" on the exact
+  near-tied competitor the budget — not the evidence — excluded. → 
+  Objective 2.
+- **Objective 3.** The Events view now renders all four schema-v2 classes
+  distinctly (CSS border pattern, glyph, AND verb-cell wording — never
+  colour alone), extending rather than replacing the existing dashed
+  "inferred" convention; `PredictedEvent` reads "will `<verb>`" and
+  `HypothesisEvent` reads "possibly `<verb>`" in the verb cell itself, so
+  the distinction survives even with every style stripped. A row with no
+  recognisable `event_class` gets its own explicit "unclassified" state,
+  never silently defaulted to "observed". Closing a real gap found while
+  building this: **there was no Parquet writer for the v2 four-class
+  schema at all** — only schema v1's `observed: bool` writer existed, and
+  the only v1→v2 bridge (`scripts/migrate_events_v1_v2.py`) emits JSON,
+  not Parquet — so no v2 event could ever have reached this view before
+  today regardless of the rendering fix. `write_events_v2_parquet`/
+  `read_events_v2_parquet` (`src/model/events.py`) close that. Also fixed,
+  same live-browser pass: `subject`/`object`/`zone` cells rendered the
+  literal string `"[object Object]"` for any populated `EntityRef` — a
+  second pre-existing bug, now rendered as `"kind:id"`. → Objective 3.
+- **Objective 4.** Seven CCTV-specific datasets registered (i-LIDS,
+  PETS2009, ChokePoint, PRW, CUHK-SYSU, CAVIAR,
+  UCSD-Anomaly-Detection), each cross-referenced to the validity-matrix
+  cell(s) it would fill; CAVIAR flagged explicitly as an unusually close
+  match to this project's own verb vocabulary. New `consent_posture`
+  field (`staged_actors` / `public_cctv_no_consent` / `unknown`)
+  backfilled on every PRE-EXISTING lane-R entry (~37 entries), not only
+  today's seven — a distinction (performer-under-a-research-programme vs.
+  real-unconsenting-surveillance-subject) this registry had left implicit
+  for thirty days despite `hypothesis_class`/`LicenseSnapshot` proving
+  the exact same "don't trust memory, structure it" discipline matters
+  just as much here. PETS2009 and ChokePoint additionally name a
+  forward-looking (explicitly NOT today's work) use as a source of real,
+  human-annotated identity-ambiguity cases to validate
+  `AssociationVerdict`'s Decisive/Ambiguous split against human
+  judgment. MEVA's licence verification remains explicitly first in the
+  queue — restated in its own entry so today's additions cannot bury it
+  by omission. → Objective 4.
+
+## Objective 0 — the human's `serve.py` edit
+
+`git diff src/interface/ui/serve.py`: adds an `if __name__ == "__main__":`
+guard and fixes the handler to serve from its own directory
+(`functools.partial(SecurityHeadersHandler, directory=str(ui_dir))`)
+instead of implicitly serving from whatever the current working directory
+happens to be. This is `src/interface/ui/`'s static server for a legacy
+Three.js Gaussian-splat trajectory visualizer (fed by
+`src/interface/data_converter.py` from `outputs/point_cloud_tracks.csv`) —
+grepped for any reference to or from `src/inspector/` (the real Iron
+Inspector this day's five views live in) and found none in either
+direction. Zero line overlap, zero shared code path with anything today's
+objectives touch. Left untouched, uncommitted, exactly as found.
+
+## Objective 1 — Inspector surface classification
+
+| View | Before today | After today | Notes |
+|---|---|---|---|
+| Scorecard | **Broken** (NaN → invalid JSON → every field renders "unmeasured", indistinguishable from genuine absence) + broken table render (`thead` bug) | accurate | `per_condition`/`capability_gates`/`caveats` present in the artifact, never rendered — named `stale`, Day 36 item 1 |
+| Clip inspector | accurate | accurate | verified rendering a real frame image and real per-agent silhouette/speed/wake-threshold readouts against `crowded_6agents__cam_a` |
+| Envelope | **Broken** (`thead` bug) | accurate | already the model example of NOT collapsing a distribution to one number — the "derived single threshold... refuted" argument plus every measured point, verified rendering correctly post-fix |
+| Events | **actively false** (binary `observed`/`inferred` over real four-class data) + **broken** (`thead` bug) + subject/object/zone rendered `"[object Object]"` | accurate | all three fixed; verified in a real browser |
+| Provenance | accurate | accurate | no changes; verified rendering correctly |
+| Association / Identity | did not exist | accurate (new) | Objective 2 |
+
+Stale items enumerated and explicitly deferred (Day 36 material, named so
+it is not lost):
+
+1. `per_condition`/`capability_gates`/`caveats` have no view (found this
+   session, above).
+2. Coverage/Absence has no view at all — the "was anyone in the vault"
+   proof-of-absence falsification test has never been visually
+   inspectable; only two scalar metrics (`coverage.frames_scored`,
+   `coverage.observable_fraction`) surface in the generic metrics grid.
+3. The state estimator's NIS/NEES consistency and informativeness margin
+   (`src/estimator/informativeness.py`, the Day-31 co-emission
+   discipline) have no view.
+4. The four golden sets (v3/v4.1/v5/v6) have no side-by-side scorecard
+   comparison in the UI — the existing `/api/compare` only ever compares
+   two named scorecards a viewer picks, not a standing 4-way view.
+
+Aggregate-hides-degenerate-case audit (the explicit ask): Envelope's chart
+does NOT collapse its distribution — checked and confirmed, see above.
+Scorecard's headline numbers do not currently collapse a real bimodal
+split into a false-confident average, but ONLY because the real data
+today happens to have one populated `per_condition` bucket; the mechanism
+to prevent that the day a second bucket populates does not exist in the
+UI. Reported per the "checked, none found" standard where genuinely none
+was found (Envelope), and reported as a found latent risk where one was
+(Scorecard's unrendered `per_condition`).
+
+## Objective 2 — Association / Identity view
+
+`src/inspector/artifacts.py`: `list_associations`/`read_association`
+read `outputs/associations/*.json`. `src/inspector/server.py`:
+`/api/associations`, `/api/association/<component>`. `src/inspector/
+static/app.js`: `viewAssociation` and its panels (`decisiveBlock`,
+`ambiguousBlock`, `candidatesTable`, `provenancePanel`, `eventLoopPanel`).
+
+Required content, verified present: full competitor set with real
+log-likelihoods; computed margin (always shown); typed verdict.
+**Decisive**: winner named, margin, Kass & Raftery/Jeffreys band computed
+from the SAME cited constant (`DECISIVE_LOG_BAYES_FACTOR = ln(3)`,
+Kass & Raftery 1995 JASA 90(430) p.777 Table 4; Jeffreys 1961) the backend
+cites — verified in the browser rendering "very strong (Kass & Raftery
+1995...)" for a real 48.59-nat margin. **Ambiguous**: no winner rendered
+anywhere — verified in the browser showing all six real competitors at
+identical visual weight, alphabetically ordered. Death causes rendered
+distinctly with `PRUNED_BY_BUDGET` given its literal "not ruled out"
+label. Provenance (`config_sha`, `graph_rev` or its stated absence,
+`model_shas` or its stated absence, the measurement-sigma derivation) is
+first-class panel content, not a tooltip. Clicking through shows the
+resulting event and its class — verified the Ambiguous demo component's
+event is `event_class: "inferred"`, confidence capped at
+`sigmoid(margin)` = 0.6281 for margin 0.5243, matching
+`event_confidence_for_verdict`'s formula exactly.
+
+**No production pipeline persists `AssociationVerdict` data yet** —
+`scripts/build_association_demo.py` was written to close exactly that
+gap, using real geometry from `crowded_6agents__cam_a` (v3-indoor): agents
+0 and 3 are 1.8 cm apart at closest approach, giving a genuinely Ambiguous
+verdict (margin 0.5243 nats); agent 1's own continuation dominates every
+competitor by tens of nats at frame 39, giving a genuinely Decisive one.
+Choosing `per_component_budget=1` for the Ambiguous component additionally
+produces a real `PRUNED_BY_BUDGET` death on the exact near-tied competitor
+the verdict itself could not decisively rule out — the Day-28 rule, made
+visible, from real data, not a constructed fixture.
+
+STRUCTURAL self-audit, run and passing: `test_ambiguous_rendering_has_no_
+rank_based_winner_styling` (the winner CSS class/badge is reachable only
+through an `isDecisive` branch — checked by requiring `isDecisive` to
+textually precede every occurrence of the winner markers within the
+association view's own source section) and
+`test_ambiguous_verdict_tag_uses_a_non_color_signal` (the Ambiguous tag
+carries a dashed border, and both states carry a literal text label).
+Extended the no-mock-data grep test's `SERVING_CODE` discipline
+implicitly — no new files needed adding to that list since the new
+serving code lives in the same three already-covered files.
+
+## Objective 3 — Events view, four classes
+
+`EVENT_CLASS_ROW` in `app.js` maps `observed`/`inferred`/`predicted`/
+`hypothesis` to a distinct CSS row class, glyph, and verb-cell rewrite
+(`will <verb>` for predicted, `possibly <verb>` for hypothesis) — three
+independent, non-colour channels per class, same discipline the original
+observed/inferred distinction used. A row with no recognisable
+`event_class` renders as its own `unclassified` state (a warn-coloured
+row, explicit tooltip) rather than silently defaulting to "observed" —
+the exact false-confidence failure this fix exists to remove, checked
+against itself.
+
+Closing a gap found while building this: **no Parquet writer for the v2
+four-class schema existed at all.** `src/events/schema.py`'s writer is
+schema v1's `observed: bool` shape; the only v1→v2 bridge
+(`scripts/migrate_events_v1_v2.py`) emits JSON, not Parquet. Since
+`src.inspector.artifacts.read_events` reads Parquet, no v2 event could
+ever have reached this view, regardless of how correct the rendering fix
+was. `events_v2_arrow_schema`/`events_v2_to_table`/
+`write_events_v2_parquet`/`read_events_v2_parquet` (`src/model/events.py`)
+close it, tagged with `iron_schema_version` the same way schema v1's
+table is tagged, so a reader refuses a foreign-version file rather than
+reinterpreting its columns. Round-trip tests for all four classes, an
+empty-table case, and a wrong-schema-version refusal, all passing.
+
+Test required by the objective, done programmatically not by eyeballing:
+`test_mixed_four_class_event_list_serves_a_distinct_event_class_per_row`
+(real `EventV2` instances, built through the actual dataclasses so
+`__post_init__` validation runs, written via `write_events_v2_parquet` to
+a tmp path, served through the real route) plus
+`test_app_js_maps_all_four_event_classes_to_distinct_rendering` and
+`test_style_css_gives_each_event_class_a_distinct_non_color_border`
+(structural checks on the served markup itself).
+
+Also fixed, same live-browser pass: `subject`/`object`/`zone` cells
+rendered the literal string `"[object Object]"` for any populated
+`EntityRef` (`String()` on a JS object) — a second pre-existing bug,
+invisible to every prior Python-only test, now rendered as `"kind:id"`.
+
+## Objective 4 — CCTV dataset registrations + `consent_posture`
+
+Seven new lane-R entries: i-LIDS (staged AVSS abandoned-bag/parked-
+vehicle/doorway/sterile-zone scenarios — `staged_actors`), PETS2009
+(choreographed multi-camera crowd scenarios — `staged_actors`), ChokePoint
+(`public_cctv_no_consent`, per this task's classification), PRW
+(`public_cctv_no_consent`, same campus-surveillance lineage as
+Market-1501), CUHK-SYSU (`public_cctv_no_consent`), CAVIAR (`staged_
+actors`, and flagged explicitly as an unusually close match to this
+project's own verb vocabulary — browsing/meeting/leaving-an-object map
+almost directly onto the existing INTERACTION/GEOMETRIC verb groups), and
+UCSD-Anomaly-Detection (`public_cctv_no_consent`, alongside the
+already-registered ShanghaiTech-Campus/CUHK-Avenue/UCF-Crime). Checked the
+registry first per the objective's own instruction — MEVA, MMPTRACK,
+WILDTRACK, VIRAT, and the anomaly sets were already there from Day 5 and
+are referenced, not duplicated.
+
+New `ConsentPosture = Literal["staged_actors", "public_cctv_no_consent",
+"unknown"]` field on `DatasetEntry`, documented as deliberately distinct
+from `hypothesis_class`/`LicenseSnapshot` (governs the LICENSE, not the
+subjects) and from `ConsentRecord` (this project's OWN consent basis for
+lane C, not a third party's). Backfilled on every pre-existing lane-R
+entry — `test_every_lane_r_seed_entry_has_a_consent_posture_backfilled`
+enforces this structurally, the same shape as `test_lane_descriptions_
+covers_every_lane`'s existing Day-24 coverage guard. `unknown` recorded
+wherever the hypothesis was not solid rather than guessed, INCLUDING for
+two lane-R-but-synthetic entries (Hypersim, UBnormal) where a bare `None`
+would have been structurally indistinguishable from "never considered" —
+`None` itself is reserved for lanes where the field does not apply at
+all (S, C, C_pending_consent).
+
+PETS2009 and ChokePoint's entries additionally name — as a forward-
+looking eval target, explicitly NOT today's work —  a candidate use as a
+source of real, human-annotated identity-ambiguity cases to validate
+`AssociationVerdict`'s Decisive/Ambiguous split against human-perceived
+ambiguity, once licence status permits any use at all.
+
+MEVA re-verified still first in the verification queue
+(`test_meva_verification_priority_is_not_buried_by_todays_additions`);
+its entry's `notes` now says so explicitly rather than relying on nobody
+reordering the file.
+
+## Full suite, mypy, lint
+
+`mypy` (scoped per `mypy.ini`): clean, 0 errors, 64 source files —
+unchanged count from Day 34. `black --check`: 28 files would be
+reformatted — same count as Day 33/34 (five files touched today were
+reformatted as part of this session's own commits, so today's work adds
+zero net new drift to the carried Day-33 punch-list item). `flake8`: 26
+files — same count as Day 34, same reasoning; every file touched today is
+flake8-clean.
+
+Quick-loop suite (`-m "not slow and not requires_weights"`, this session):
+**1315 passed, 1 skipped, 21 deselected, 0 failures**
+(`artifacts/pytest/day35_quick.xml`, 123.44s) — up from Day 34's 1282 by
+33: today's new tests across Objectives 1-4 (the NaN/thead/[object
+Object] regression guards, the association-view tests, the four-class
+Events tests, the registry consent_posture tests).
+
+## Still blocked on a human
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 34.
+
+## Process change, Day 35
+
+Added to `.claude/skills/iron-eval-discipline/SKILL.md`: commit after
+every objective, not at the end of the day; if an objective's scope
+proves larger than stated, stop and report rather than expand to close it
+in one session. Carried from Day 34 because it worked there — today it
+additionally kept the two showstopper Inspector bugs from getting
+entangled with the Association/Identity feature work in a single
+undifferentiated commit.
+
+## Day 36, in order
+
+1. **Surface `per_condition`/`capability_gates`/`caveats` in the
+   Scorecard view** — found today (Objective 1), not fixed today: the
+   mechanism to silently blend two genuinely different regimes into one
+   headline number exists in the UI right now, unaudited, waiting for a
+   scorecard with more than one populated condition.
+2. **Coverage/Absence has no view** — named stale, Day 35 Objective 1.
+3. **State estimator NIS/NEES/informativeness-margin view** — named
+   stale, Day 35 Objective 1; the Day-31 co-emission discipline
+   (`CalibrationAndInformativeness`) has no visual home.
+4. **A four-golden-set (v3/v4.1/v5/v6) side-by-side scorecard view** —
+   named stale, Day 35 Objective 1; today's `/api/compare` only compares
+   two viewer-picked scorecards, not a standing 4-way view.
+5. **Wire `resolve_data_association`'s output into a real production
+   pipeline** — `scripts/build_association_demo.py` is deliberately a
+   demo/measurement script, not a pipeline stage (Day 35 Objective 2);
+   this is also Day 34's own carried item 3, now additionally motivated
+   by the Inspector needing more than one hand-run demo's worth of real
+   data.
+6. **ChokePoint/PETS2009 human-annotated identity-ambiguity validation
+   of `AssociationVerdict`** — named forward-looking, Day 35 Objective 4;
+   not started, blocked on licence verification for either dataset.
+7. **Re-verify the `consent_posture: unknown` entries** where feasible —
+   GREW, Gait3D, NYUv2, SUN-RGBD, ScanNet, Matterport3D, HM3D, COCO,
+   CrowdHuman, DA-2K, ETH3D, iBims-1, DIODE-indoor, Hypersim, UBnormal,
+   MS-Celeb — recorded `unknown` today rather than guessed; still
+   genuinely unknown tomorrow unless someone reads the actual
+   documentation.
+8. **MEVA licence verification** — still blocked on a human, restated
+   Day 35 so today's additions could not bury it.
+9. **A `black`/`flake8` CI gate** — 28/26 files drifting, unchanged four
+   days running now, no gate stopping it. Today required manually
+   re-running `black` on exactly the five touched files to avoid adding
+   to this count by hand — the absence of a gate is now costing per-
+   session attention, not just tracked debt.
+10. Every unresolved item on Day 34's own Day-35 list not touched today
+    (items 1-18, 20-32, 34 above) carries forward unchanged.

@@ -199,9 +199,7 @@ def _resolve_component(
     event = build_identity_event(
         resolution.verdict,
         subject_for,
-        event_id=uuid.uuid5(
-            uuid.NAMESPACE_URL, f"iron://day35-demo/{component_id}"
-        ),
+        event_id=uuid.uuid5(uuid.NAMESPACE_URL, f"iron://day35-demo/{component_id}"),
         site_id=SITE_ID,
         ts_ns=int(frame * DT_S * 1e9),
         verb=Verb.APPROACHED,
@@ -314,7 +312,9 @@ def _resolve_component(
     }
 
 
-def _predicted_event(xyz: np.ndarray, *, agent_a: int, agent_b: int, frame: int) -> PredictedEvent:
+def _predicted_event(
+    xyz: np.ndarray, *, agent_a: int, agent_b: int, frame: int
+) -> PredictedEvent:
     """A real forward-looking claim: will agent_a's and agent_b's tracks be
     closer K frames from now than they are at ``frame``? Genuinely computed
     by linear extrapolation of each agent's OWN measured velocity -- not a
