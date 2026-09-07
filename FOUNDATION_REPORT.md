@@ -9520,3 +9520,298 @@ Per [[iron-blocked-on-humans]]. Unchanged from Day 31:
     live finding (`test_superseded_gate_numbers_are_stamped_on_the_scorecard`)
     needed a human to think to run `uptime` by hand; that should not be
     required to tell a contention flake from a real regression.
+
+# Day 33
+
+**No timing, throughput, CPU-percentage, or latency claim is made anywhere
+in this section as a PRODUCT figure** — unchanged hard scope rule. Test
+durations, suite counts, and harness behaviour remain in scope: process
+measurements, not product performance claims.
+
+**Headline: Day 32's closing report checks out against its own cited
+artifacts, but two of today's prompt's own premises did not — checked by
+direct citation, not accepted on restatement.** The prompt's Objective 1
+assumed the two Day-32 gated failures were an export-manifest-refusal
+identity (Day 3/8's design); the committed `day32_gated.xml` shows both are
+`tests/test_report_suite_provenance.py`'s own self-tests, unrelated to
+`src/provenance.py` entirely. It also assumed CoTracker3 weights being
+present meant some `requires_weights` test executed a real model for the
+first time; the committed `day32_full.xml` shows all six newly-included
+`requires_weights` tests skipped, correctly, on the missing VJEPA IR, and
+none of them touch CoTracker3 at all — no test in this codebase currently
+loads it for real inference. Both are named plainly below, per the
+objective's own instruction that a mismatched premise is a finding, not a
+formality.
+
+## Verdicts
+
+- **Was Day 32's report backed by real artifacts, or drafted before they
+  existed?** **Backed.** `artifacts/pytest/day32_{gated,full}.xml` (sha256
+  `8948d1ce…`, `999dc1d9…`) were generated at 03:57:54 and 04:22:52 on
+  2026-09-07 respectively, committed in `7f05bb8`. Every number the Day-32
+  report cites (1260/1/6/2, 1267/7/2, 1496.03s, 25523.98s) matches the
+  artifacts field-for-field, down to a ~0.05s gap between junit's internal
+  `time` sum and pytest's own console wall-clock — two different timers
+  inside the same run, not an error. → Objective 1.
+- **Do the two Day-32 gated failures match the prompt's assumed identity
+  (Day 3/8 export-manifest-refusal)?** **No — the prompt's premise was
+  wrong.** Both are `tests/test_report_suite_provenance.py::
+  test_every_suite_claim_from_day_32_onward_cites_an_existing_artifact` and
+  `::test_the_lint_accepts_a_claim_backed_by_a_real_artifact`, quoted
+  directly from the committed XML. Both are Objective 2's own structural
+  lint, red because the report had no citations yet at run time — now
+  re-run at current HEAD: **4/4 passed** (part of the 1260 in
+  `artifacts/pytest/day33_quick.xml`, see "Full suite, mypy, lint" below),
+  confirming the fix landed and held. Not a "still-open" dismissal: fixed
+  and verified within the same day, with only one prior run to check (this
+  convention started yesterday). → Objective 1.
+- **Did CoTracker3 run for real for the first time on record?** **No.**
+  All six `requires_weights` tests newly included in the full run skipped
+  in 0.01–0.03s each with the identical reason, "V-JEPA2 OpenVINO IR not
+  found" — none reference CoTracker3, and a repo-wide grep found no test
+  that loads the CoTracker3 checkpoint for inference at all (only
+  path/config-existence checks). The prompt's premise does not hold; no
+  "first real-model execution" claim is made because none occurred. →
+  Objective 1.
+- **Does `resolve_data_association` apply hard constraints before or after
+  scoring?** **Before — confirmed by re-reading the source fresh, not by
+  re-citing the existing test.** No architectural violation. →
+  Objective 2.
+- **Does the near-tie adversarial test reveal an overconfidence gap, the
+  discrete analogue of Day 31's continuous-state finding?** **Yes — a real,
+  named gap, encoded as a permanent `known_bug`/`xfail` regression guard,
+  not fixed today.** `AssociationResolution.surviving` cannot distinguish a
+  0.001-nat near-tie from a 50-nat landslide; the raw numbers to compute
+  the margin exist in `.decisions` but nothing computes or flags it. →
+  Objective 2.
+- **Component-cap integration: built, and its one open question.**
+  `resolve_component_membership` wires the Day-26 cap into a membership
+  CHANGE (construction-time enforcement alone cannot see a component pushed
+  over cap later); boundary-tested both directions, return type verified
+  exhaustive by inspection. **Not wired to `resolve_data_association`'s
+  output automatically** (a real type change, not decided today), and the
+  "measured frequency" question is **unanswered — no pipeline runs
+  association against real v6-motion data yet**, stated rather than
+  fabricated. → Objective 3.
+
+## Objective 1 — Day 32 verified against its own artifacts
+
+**Artifact identity.** `artifacts/pytest/day32_gated.xml`: `tests=1263,
+skipped=1, failures=2, timestamp=2026-09-07T03:57:54`. `artifacts/pytest/
+day32_full.xml`: `tests=1276, skipped=7, failures=2,
+timestamp=2026-09-07T04:22:52`. Both committed in `7f05bb8367f9d4499938`;
+sha256 `8948d1ce8851c922b725f2916440cb8ed4548f976d56324a74a2910c6cc6b414`
+(gated) and `999dc1d9eb2564484cff265d9b9f642dcbd9b4c626968d0557c6863e8588c353`
+(full) — quoted directly, not restated from memory.
+
+**The two gated failures, by citation.** Parsed straight from the XML:
+
+```
+tests.test_report_suite_provenance::test_every_suite_claim_from_day_32_onward_cites_an_existing_artifact
+AssertionError: no day sections with day number >= 32 were found -- the
+day-heading regex or numbering may have changed; this test cannot verify
+anything until that is fixed
+
+tests.test_report_suite_provenance::test_the_lint_accepts_a_claim_backed_by_a_real_artifact
+AssertionError: artifacts/pytest/day32_gated_summary.json must exist for
+this test to mean anything -- run scripts/suite_report.py --label-prefix day32
+```
+
+Grepped `src/provenance.py` and `docs/adr/0008-production-provenance-lost.md`
+for any string matching either message: no match. The "export-manifest-
+refusal" concept is real in this project (Day 3/8, `src/provenance.py`) but
+is not what either failing test exercises — **the prompt's assumed
+identity does not match reality**, confirmed by direct grep rather than
+inferred. Both tests fail for the reason their own name says: the report
+had no artifact citations yet when the gated run collected it (true — the
+report section did not exist until the same-day follow-up commit), and my
+own test's fixture named the wrong filename (`day32_gated_summary.json`
+instead of the real `day32_summary.json` — a typo caught and fixed same
+day, `7f05bb8`). Re-run now, at current HEAD:
+`tests/test_report_suite_provenance.py`: **4 passed**
+(`artifacts/pytest/day33_quick.xml`, part of its 1260 — verified this
+session, not carried over from memory).
+
+**CoTracker3, digested from the full run.** The six tests present in
+`day32_full.xml` but absent from `day32_gated.xml` (i.e. the
+`requires_weights` set, deselected from gated by design):
+`test_golden_vectors::test_openvino_matches_pytorch_reference` (four
+parametrizations) and `test_known_bugs::test_vjepa_token_count_matches_
+tubelet` / `::test_patch_mapper_temporal_alignment`. Every one of the six
+**skipped**, 0.011–0.026s each, message `"1 unmet prerequisite(s): V-JEPA2
+OpenVINO IR not found at .../models/int8/vjepa2_vitl_int8.xml"`. None name
+CoTracker3. A repo-wide grep for `cotracker`/`CoTracker` in `tests/` finds
+only path-existence and skip-wiring checks (`tests/test_config.py`,
+`tests/test_env_gate.py`, `tests/test_known_bugs.py`) and one file that
+states explicitly it needs no CoTracker at all
+(`tests/test_patch_mapping.py`). **No test in this codebase today loads
+CoTracker3 for real inference.** The prompt's premise — that CoTracker3
+weights being present meant a `requires_weights` test ran for real for the
+first time — does not hold; stated plainly rather than left to stand.
+
+**`scripts/cascade_bench.py:337`'s guard, quoted directly:**
+```python
+static_scenario(max(1, args.seconds // 3), args.fps, args.width, args.height),
+```
+Present, current tree, `scripts/cascade_bench.py:337`, exactly as
+claimed.
+
+## Objective 2 — stress-testing `resolve_data_association`, fresh
+
+Reviewed as if a PR from someone else, per the objective's own framing.
+
+**Hard-before-scoring: confirmed, no violation.** The source has two
+sequential loops: the first proposes and hard-checks every candidate
+unconditionally, pruning on violation immediately; the second — `ranked =
+sorted(survivors, ...)` — operates ONLY on `survivors`, the list populated
+exclusively by candidates that passed the first loop. There is no code
+path where a likelihood comparison runs before a hard-constraint check.
+`test_hard_constraint_violation_prunes_before_budget_ranking` (Day 32)
+already proved this behaviorally; today's read confirms it structurally,
+from the source, not by re-trusting the prior test's existence.
+
+**`graph_rev` reproducibility: does not apply yet, correctly reported
+rather than skipped silently.** `resolve_data_association` takes no
+`StateGraph`/`graph_rev` parameter — association decisions are not part of
+the graph. "Re-solve at revision N" is not a well-formed test until
+`run_joint_filter`'s `Component` selection actually consumes this
+function's output (still Day-33's own punch-list item, see below). What
+DOES apply, and is now tested:
+`test_resolve_data_association_is_deterministic_given_identical_inputs` —
+two independent `HypothesisStore`s, identical candidates/budget/checker,
+bit-identical `AssociationResolution`, including the full decision log.
+
+**Prior firewall: re-tested explicitly, not assumed inherited.**
+`test_resolve_data_association_has_no_prior_parameter` (existed since Day
+32; re-run this session, passes).
+
+**`PRUNED_BY_BUDGET` distinguishability: confirmed already tested exactly
+as specified.** Day 32's `test_budget_pruned_hypotheses_are_forensically_
+distinguishable_from_refuted` constructs a hard-refuted AND a budget-cut
+candidate from the same call, confirms `considered_alternatives()` keeps
+them apart by type, and confirms `proposition`/`support_at_death` survive
+for the budget-pruned one. `DominatedByLikelihood` is out of this
+function's scope entirely — it is never produced here (only
+`RefutedByHardConstraint` and `PrunedByBudget` are); generic
+distinguishability against it is already covered at the store level
+(`tests/test_model_hypothesis.py:69`), not duplicated here.
+
+**Near-tie adversarial test: a real gap, found and NOT patched around.**
+Two candidates 0.001 nats apart, budget=1:
+`AssociationResolution.surviving` reports exactly one `Hypothesis`,
+`kept=True` — structurally identical to what a 50-nat landslide would
+produce. The raw `log_likelihood` per candidate IS present in
+`.decisions` (a caller could diff them), but nothing computes or flags a
+margin. This is the discrete-state analogue of Day 31's continuous-state
+informativeness finding, and being solved there does not mean it is
+solved here. Encoded as `test_near_tie_hypotheses_are_flagged_as_
+ambiguous_not_silently_resolved` (`@pytest.mark.known_bug`,
+`xfail(strict=False)`, same convention as `tests/test_known_bugs.py`) —
+**not fixed today**, because the fix is a design decision (add a margin
+field on `AssociationResolution`/`PruneDecision`, or explicitly declare
+"the caller computes it" as the intended contract) and the objective's own
+instruction is to stop and report a design-level finding rather than patch
+around it.
+
+## Objective 3 — component cap meets membership change
+
+`resolve_component_membership(existing, carried_entity_id, cap_config)`
+applies one accepted carrier assignment to a `Component`. Returns the
+grown `Component` when at or under `cap_config.max_component_size`, or
+`ComponentCapRefusal` (required `degradation_action`, `cap_config_sha`;
+`existing_component` returned UNCHANGED — refused, not silently
+truncated) when it would exceed it. Same structural-impossibility pattern
+Day 26 established for `DegradedComponentEstimate`, re-verified here by
+inspecting the function's own return-type annotation directly
+(`typing.get_type_hints`), not trusted from reading the source. Boundary
+tested in both directions: exactly at cap accepted, one entity past it
+refused.
+
+**Deliberately not auto-wired to `resolve_data_association`'s output.**
+`AssociationCandidate.proposition` is an opaque string by design (the
+store's own "does not interpret" boundary — `src/model/hypothesis.py`'s
+module docstring). Making a winning hypothesis automatically resolve to a
+structured carrier id needs `AssociationCandidate` to carry one, which is
+a real type change affecting the identity-resolution use case too (no
+carrier concept there) — not decided unilaterally today.
+
+**"Measured frequency" — unanswered, stated as such.** No pipeline in this
+project runs `resolve_data_association` against real v6-motion
+observations; hypothesis management has never been connected to a
+dataset. There is no event stream to measure a frequency from without
+first building that connection, which is substantially more than "wire
+the cap in." Reported as an open question, not answered with a fabricated
+or extrapolated number.
+
+## Full suite, mypy, lint
+
+`mypy` (scoped per `mypy.ini`): clean, 0 errors, 64 source files. `black
+--check`: 28 files would be reformatted — unchanged from Day 32's count,
+still `docs/dismissal_audit.md` entry #5's subject, still nobody's job
+(Day-33 punch-list item 30 carries forward). `flake8`: 26 files, same
+story.
+
+Quick-loop suite (`-m "not slow and not requires_weights"`, this session):
+**1260 passed, 1 skipped, 21 deselected, 1 xfailed**
+(`artifacts/pytest/day33_quick.xml`, 83.44s). The 1 xfailed is today's own near-tie finding,
+expected. Not a gated/full reconciliation pair — that remains Day 32's own
+named Day-33 item, still not attempted this session (the full run alone
+cost 25523.98s measured Tuesday; budgeting for it explicitly rather than
+starting it casually remains the right call given today's own scope).
+
+## Still blocked on a human
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 32.
+
+## Day 34, in order
+
+1. **A clean, same-commit gated/full suite reconciliation** — carried from
+   Day 33; still not attempted (full run costs ~7 hours measured).
+2. **Decide the near-tie ambiguity contract** — add a margin/ambiguity
+   field to `AssociationResolution`, or explicitly declare the caller
+   computes it from `.decisions`. Whichever is chosen, remove the
+   `known_bug`/`xfail` marker in the same change per this project's own
+   convention.
+3. **Extend `AssociationCandidate` with structured carrier identity** (or
+   a separate carrier-assignment candidate type) so
+   `resolve_data_association`'s output can drive
+   `resolve_component_membership` automatically, and re-measure the
+   "does association push a component over the cap" frequency once real
+   data flows through it.
+4. **Wire `resolve_data_association`'s output into `run_joint_filter`'s
+   `Component` selection** — still declared, never resolved from
+   hypotheses; also what would make a real `graph_rev` reproducibility
+   test for association possible.
+5. **Re-derive the velocity floor, or retire it.**
+6. **IMM at `onset`, ~6 nats/frame cost, unexplained.**
+7. **Extend informativeness to the joint estimator.**
+8. **`PatchTokens.encoder_sha` is unverified.**
+9. **Vertical motion in the golden sets** — GT height still a constant.
+10. **Physical `maneuver`** — needs a curved-path model.
+11. **Measure a real per-component hypothesis budget** —
+    `AssociationBudgetConfig`'s default (3) is a stated placeholder.
+12. **A sensor-noise model for the generator.**
+13. **Real coupled multi-entity data, or a larger authored scene** — also
+    what item 3 needs to be more than synthetic.
+14. **Twin geometry** (`TwinGeometry`).
+15. **The twin drift detector** — sits behind item 14.
+16. **The discrete/continuous hybrid** — depends on items 4, 11, 13.
+17. **Smoothing across the joint graph** — depends on item 7.
+18. **MEVA licence verification** — blocked on a human.
+19. **DA-2K licence verification** — zero engineering lag once cleared.
+20. **Reference hardware procurement decision.**
+21. **Declare a target fps for real camera ingest.**
+22. **Cascade bench, clean, on interim or reference hardware.**
+23. **Depth validity re-measurement** — gates on item 19.
+24. **The `main`/`origin/main` decision** (ADR 0009).
+25. **Order cameras and run the office capture.**
+26. **The motion-gate precision/selectivity investigation.**
+27. **A canonical `Observation -> hash` function** (ADR 0007).
+28. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced.**
+29. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+30. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued.
+31. **The `resolve_joint_state` cross-component filtering gap** (ADR 0011).
+32. **A `black`/`flake8` CI gate** — 28/26 files drifting, unchanged two
+    days running, no gate stopping it.
+33. **Automatic load-average capture on a duration-gate failure.**
