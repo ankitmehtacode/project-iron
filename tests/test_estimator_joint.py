@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import inspect
 import math
+import uuid
 from typing import Callable
 
 import numpy as np
@@ -42,6 +43,8 @@ from src.estimator.joint import (
     JointFilterError,
     JointObservation,
     JointStateEstimate,
+    _decisive_confidence_ceiling,
+    build_identity_event,
     compute_association_verdict,
     dominate_by_likelihood,
     resolve_component_membership,
@@ -51,8 +54,10 @@ from src.estimator.joint import (
 )
 from src.estimator.measurement_model import measurement_model_for
 from src.estimator.motion_model import motion_model_for
+from src.events.schema import EntityRef, Verb
 from src.model.constraint import HardConstraintViolation
 from src.model.episode import StateGraph, StateQuery
+from src.model.events import InferredEvent, ObservedEvent
 from src.model.frame_of_reference import FrameOfReference
 from src.model.hypothesis import (
     DominatedByLikelihood,
@@ -1491,3 +1496,121 @@ def test_component_cap_and_death_cause_do_not_yet_interact() -> None:
     param_types = {name: p.annotation for name, p in sig.parameters.items()}
     assert "HypothesisStore" not in str(param_types.values())
     assert "AssociationCandidate" not in str(param_types.values())
+
+
+# ---------------------------------------------------------------------------
+# Day 34, Objective 4 -- ambiguity reaching confidence and evidence honestly
+# ---------------------------------------------------------------------------
+
+_EVENT_SUBJECT = EntityRef("enrolled", "person-42")
+
+
+def _subject_for(hypothesis: Hypothesis) -> EntityRef:
+    return EntityRef("enrolled", hypothesis.id)
+
+
+def test_decisive_verdict_produces_an_observed_event_confidence_unchanged() -> None:
+    verdict = compute_association_verdict(_ranked(50.0, 0.0))
+    event = build_identity_event(
+        verdict,
+        _subject_for,
+        event_id=uuid.uuid4(),
+        site_id="site-0",
+        ts_ns=1,
+        verb=Verb.ENTERED,
+        manifest_sha="sha-1",
+        importance=0.5,
+        caller_confidence=0.9,
+    )
+    assert isinstance(event, ObservedEvent)
+    assert event.confidence == 0.9
+    assert event.subject == EntityRef("enrolled", "h0")
+
+
+def test_ambiguous_verdict_never_produces_an_observed_event() -> None:
+    """The event-compiler-facing structural guarantee the objective asks
+    for directly: an Ambiguous verdict does not silently produce a
+    confident, fully-attributed ObservedEvent."""
+    verdict = compute_association_verdict(_ranked(1.0, 1.0))
+    event = build_identity_event(
+        verdict,
+        _subject_for,
+        event_id=uuid.uuid4(),
+        site_id="site-0",
+        ts_ns=1,
+        verb=Verb.ENTERED,
+        manifest_sha="sha-1",
+        importance=0.5,
+        caller_confidence=0.99,
+    )
+    assert not isinstance(event, ObservedEvent)
+    assert isinstance(event, InferredEvent)
+    assert event.basis, "InferredEvent.basis must name the ambiguity, not be empty"
+    assert "h0" in event.basis and "h1" in event.basis
+
+
+def test_ambiguous_verdict_confidence_is_capped_not_raised() -> None:
+    """Exact tie: sigmoid(0) = 0.5. A caller supplying 0.99 must be
+    capped down to 0.5, never left at 0.99 and never pushed higher than
+    what it supplied."""
+    verdict = compute_association_verdict(_ranked(1.0, 1.0))
+    event = build_identity_event(
+        verdict,
+        _subject_for,
+        event_id=uuid.uuid4(),
+        site_id="site-0",
+        ts_ns=1,
+        verb=Verb.ENTERED,
+        manifest_sha="sha-1",
+        importance=0.5,
+        caller_confidence=0.99,
+    )
+    assert event.confidence == pytest.approx(0.5)
+
+    low_caller_confidence_event = build_identity_event(
+        verdict,
+        _subject_for,
+        event_id=uuid.uuid4(),
+        site_id="site-0",
+        ts_ns=1,
+        verb=Verb.ENTERED,
+        manifest_sha="sha-1",
+        importance=0.5,
+        caller_confidence=0.2,
+    )
+    assert low_caller_confidence_event.confidence == pytest.approx(
+        0.2
+    ), "the cap must never RAISE a caller's own lower confidence estimate"
+
+
+def test_ambiguous_verdict_picks_the_strongest_competitor_as_provisional_subject() -> (
+    None
+):
+    verdict = compute_association_verdict(_ranked(1.0, 0.999, 0.5))
+    assert isinstance(verdict, Ambiguous)
+    event = build_identity_event(
+        verdict,
+        _subject_for,
+        event_id=uuid.uuid4(),
+        site_id="site-0",
+        ts_ns=1,
+        verb=Verb.ENTERED,
+        manifest_sha="sha-1",
+        importance=0.5,
+        caller_confidence=0.99,
+    )
+    assert event.subject == EntityRef("enrolled", "h0")
+
+
+def test_decisive_confidence_ceiling_is_a_real_sigmoid() -> None:
+    """Not an arbitrary curve -- exactly the logistic function of the
+    log-odds, per the docstring's Bayes'-theorem derivation."""
+    assert _decisive_confidence_ceiling(0.0) == pytest.approx(0.5)
+    assert _decisive_confidence_ceiling(100.0) == pytest.approx(1.0)
+    assert _decisive_confidence_ceiling(-100.0) == pytest.approx(0.0)
+
+
+def test_build_identity_event_has_no_prior_parameter() -> None:
+    sig = inspect.signature(build_identity_event)
+    for name in sig.parameters:
+        assert "prior" not in name.lower(), f"found a prior-shaped parameter: {name!r}"

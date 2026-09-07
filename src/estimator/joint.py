@@ -172,6 +172,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import uuid
 from dataclasses import dataclass, field
 from typing import Callable, Literal, NoReturn, Sequence
 
@@ -192,8 +193,10 @@ from src.estimator.motion_model import (
     motion_model_for,
 )
 from src.estimator.state import ConsistencyResidual, StateEstimate
+from src.events.schema import EntityRef, Verb
 from src.model.constraint import HardConstraintViolation
 from src.model.episode import Factor, StateGraph, StateQuery, solve_state
+from src.model.events import InferredEvent, ObservedEvent
 from src.model.hypothesis import (
     DeadHypothesis,
     DeathCause,
@@ -1643,6 +1646,131 @@ def resolve_data_association(
         decisions=tuple(decisions),
         verdict=verdict,
     )
+
+
+def _decisive_confidence_ceiling(margin: float) -> float:
+    """Posterior probability of the top hypothesis, given exactly TWO
+    competing hypotheses with equal priors: a direct consequence of
+    Bayes' theorem, not a fitted constant. Under equal priors, posterior
+    odds equal the likelihood ratio, so posterior probability = odds /
+    (1 + odds) = sigmoid(log-odds) = sigmoid(margin), since ``margin`` IS
+    the log-likelihood ratio (:func:`compute_association_verdict`).
+
+    With more than two competitors this OVER-states the true posterior
+    (a third candidate takes probability mass neither of the top two
+    formulas accounts for) -- an upper bound, not the exact multi-way
+    posterior, stated as an approximation rather than presented as exact.
+    Still strictly useful as a CEILING: capping a caller's own confidence
+    estimate at this value can only ever reduce it, never inflate it.
+    """
+    return 1.0 / (1.0 + math.exp(-margin))
+
+
+def event_confidence_for_verdict(
+    verdict: AssociationVerdict, caller_confidence: float
+) -> tuple[float, Hypothesis]:
+    """The subject hypothesis and the confidence an event about it may
+    carry, given the verdict that resolved it.
+
+    ``Decisive``: the caller's own confidence passes through unchanged --
+    the association layer found a clear winner; it does not know enough
+    about the caller's own detector/model posterior to second-guess it.
+
+    ``Ambiguous``: a provisional pick (Day 34, Objective 4's chosen
+    branch -- see :func:`build_identity_event`'s docstring for why the
+    alternative, withholding identity assignment entirely, is deferred)
+    is the strongest-supported competitor, and the caller's confidence is
+    CAPPED at :func:`_decisive_confidence_ceiling` of the margin -- never
+    raised, only ever reduced relative to what the caller supplied.
+    """
+    match verdict:
+        case Decisive():
+            return caller_confidence, verdict.winner
+        case Ambiguous():
+            provisional = max(verdict.competitors, key=lambda h: h.support)
+            ceiling = _decisive_confidence_ceiling(verdict.margin)
+            return min(caller_confidence, ceiling), provisional
+        case _:
+            assert_verdict_never(verdict)
+
+
+def build_identity_event(
+    verdict: AssociationVerdict,
+    subject_for: Callable[[Hypothesis], EntityRef],
+    *,
+    event_id: uuid.UUID,
+    site_id: str,
+    ts_ns: int,
+    verb: Verb,
+    manifest_sha: str,
+    importance: float,
+    caller_confidence: float,
+) -> ObservedEvent | InferredEvent:
+    """Wires :data:`AssociationVerdict` into event emission (Day 34,
+    Objective 4), bounded scope: full multi-modal state propagation --
+    both competing hypotheses coexisting as a genuine mixture in the
+    joint state until later evidence resolves them -- is explicitly
+    DEFERRED to its own day. Today's scope is narrower: an event whose
+    identity resolution came from an ``Ambiguous`` verdict must not carry
+    confidence indistinguishable from one that came from a ``Decisive``
+    verdict.
+
+    **Chosen branch: (b), a provisional pick with reduced confidence and
+    a recorded competitor reference -- not (a), withholding identity
+    assignment entirely.** Stated why, not left implicit: ``subject`` is
+    a REQUIRED, non-optional field on every :mod:`~src.model.events`
+    class (``_EventCommon.subject: EntityRef``) -- there is no "unknown
+    subject" representation in the current event schema at all. Building
+    one would mean making ``subject`` optional across every event class
+    and consumer, a schema change of the same flavor and scope as the
+    deferred mixture-state question, not a small addition -- so (b) is
+    chosen because it is what today's schema can actually represent, and
+    the schema-change question for (a) is named here as deferred rather
+    than silently avoided.
+
+    STRUCTURAL: there is no branch of the ``match`` below that reaches
+    ``ObservedEvent`` from an ``Ambiguous`` verdict -- the two verdict
+    variants map to exactly the two return-type union members, checked
+    exhaustively via :func:`assert_verdict_never`, not by a conditional a
+    future edit could invert.
+    """
+    confidence, subject_hypothesis = event_confidence_for_verdict(
+        verdict, caller_confidence
+    )
+    subject = subject_for(subject_hypothesis)
+
+    match verdict:
+        case Decisive():
+            return ObservedEvent(
+                event_id=event_id,
+                site_id=site_id,
+                ts_ns=ts_ns,
+                subject=subject,
+                verb=verb,
+                confidence=confidence,
+                importance=importance,
+                manifest_sha=manifest_sha,
+            )
+        case Ambiguous(competitors=competitors, margin=margin):
+            basis = (
+                f"provisional identity pick among {len(competitors)} competing "
+                f"association hypotheses, margin {margin:.4f} nats below the "
+                f"{DECISIVE_LOG_BAYES_FACTOR:.4f}-nat decisiveness threshold; "
+                f"competitor ids: {[c.id for c in competitors]}"
+            )
+            return InferredEvent(
+                event_id=event_id,
+                site_id=site_id,
+                ts_ns=ts_ns,
+                subject=subject,
+                verb=verb,
+                confidence=confidence,
+                importance=importance,
+                manifest_sha=manifest_sha,
+                basis=basis,
+            )
+        case _:
+            assert_verdict_never(verdict)
 
 
 @dataclass(frozen=True)
