@@ -1,0 +1,202 @@
+# Blocker Ledger — Day 37, Objective 1.
+#
+# Every entry here is a HUMAN-GATED blocker: something no amount of further
+# engineering in this repository resolves, because the next step is a person
+# reading a license, pointing a camera, buying hardware, or making a decision
+# this codebase cannot make for itself. See FOUNDATION_REPORT.md's Day-36
+# Verdicts for the finding that motivated this file: MEVA's own verification
+# was restated as "still pending" 52 separate times across 34 day-sections
+# without ever being acted on. That is not a MEVA-specific problem — it is
+# what happens to any blocker whose only record is a sentence in a narrative
+# report that nobody is structurally required to re-check. This file, plus
+# scripts/blocker_report.py and tests/test_blocker_ledger.py, make that
+# failure mode impossible to repeat silently: every entry's age is computed
+# fresh from git, not carried forward from memory, and Day 37 onward no
+# FOUNDATION_REPORT.md section is valid without restating it.
+#
+# Fields, per entry:
+#   id                     — short, stable, kebab-case; referenced by the
+#                            report's ## Blockers block and by this ledger's
+#                            own structural test.
+#   description            — what the blocker actually is, in plain terms.
+#   category               — human_verification | human_capture |
+#                            human_procurement | human_decision
+#   first_recorded         — {sha, date}. COMPUTED via `git log` on the
+#                            file/line that first mentions the blocker, e.g.
+#                            `git log --follow --diff-filter=A --oneline --
+#                            <path>` or `git log -S"<phrase>" --oneline --
+#                            <path>`, then `git show -s --format='%H|%ad'
+#                            --date=short <sha>`. Never estimated from
+#                            memory or from a day number — day numbers in
+#                            this project's narrative do not correspond to
+#                            calendar days (see FOUNDATION_REPORT.md's own
+#                            git-log timestamps: Days 20-36 were all
+#                            committed on 2026-09-07). tests/
+#                            test_blocker_ledger.py verifies every sha here
+#                            actually exists in this repository's history
+#                            and that its committed date matches the value
+#                            recorded below — an entry that drifts from git
+#                            truth fails the suite, it does not sit quietly
+#                            wrong.
+#   unblocks               — the specific capabilities/objectives gated on
+#                            this blocker being resolved by a human.
+#   estimated_human_effort — honest, stated, not false-precision.
+
+- id: dataset-license-and-consent-verification
+  description: >-
+    All 63 datasets registered in configs/datasets.yaml have
+    license_snapshot: null (verified directly today: `grep -c
+    "license_snapshot:" configs/datasets.yaml` returns 0 — the key never
+    appears with a value, only ever as the pydantic field's implicit null
+    default) — zero have ever had a human read, hash, and record the
+    license text that would let the registry admit them past lane R
+    (eval/model-selection only). MEVA specifically has had this restated
+    as "still pending" 52 times across 34 FOUNDATION_REPORT.md
+    day-sections (Day 36, Objective 1) without a human ever opening the
+    license page it names. CHIRLA (Day 36) is the one entry with a
+    genuinely fast path: docs/chirla_verification_checklist.md is a
+    stated five-minute, four-item checklist, not a research assignment.
+  category: human_verification
+  first_recorded:
+    sha: bf85e758686d6a73add76ef558702bd96417da31
+    date: 2026-07-31
+  unblocks:
+    - "A real FrozenBackbone implementation (src/identity/) — currently a
+       Protocol with no concrete binding; the bake-off that would choose
+       one needs at least one verified lane-R or lane-C dataset to run
+       against."
+    - "The backbone bake-off harness (src/identity/bakeoff.py, Day 36
+       Objective 4) — built, self-tested, never run against real data."
+    - "The identity adapter trainer's promotion gate — self-tested only
+       against a synthetic Gaussian-cluster gallery; never exercised on a
+       real distribution of embeddings."
+    - "Clothing-change robustness specifically has no candidate dataset in
+       this registry besides CHIRLA (lane R, eval-only)."
+  estimated_human_effort: >-
+    CHIRLA: five minutes (docs/chirla_verification_checklist.md, four
+    checkboxes). MEVA and the remaining ~61 entries: unknown per-entry,
+    plausibly minutes-to-hours each depending on how each license is
+    published; nobody has attempted even one, so no real estimate exists
+    yet — reported as unknown rather than guessed.
+
+- id: consent-template-counsel-review
+  description: >-
+    docs/site_zero_consent_TEMPLATE.md is marked "DRAFT — NOT LEGALLY
+    REVIEWED. DO NOT USE FOR ACTUAL CAPTURE." since the day it was
+    written. It explicitly names four open legal questions under India's
+    DPDP Act, 2023 (employer-to-employee consent validity, retention
+    periods, the withdrawal mechanism's practical limits once data is in
+    a trained model, whether a Data Protection Officer must be named) that
+    only qualified counsel can close. docs/capture_runbook.md step 0.1
+    hard-gates on this: "Do not record anyone without a signed record;
+    scripts/ingest_capture.py refuses ingestion without one."
+  category: human_verification
+  first_recorded:
+    sha: 3eed2eb162f9c1834cf81a10e41bf3d91155349d
+    date: 2026-07-31
+  unblocks:
+    - "Site Zero capture (see site-zero-capture below) — capture_runbook.md
+       makes this a hard precondition, not a parallel task."
+    - "Lane C (consented, self-collected) data existing at all — currently
+       zero lane-C footage exists anywhere in this project."
+  estimated_human_effort: "A yes/no plus redlines from counsel — realistically an afternoon of legal review, not an engineering estimate."
+
+- id: reference-hardware-procurement
+  description: >-
+    docs/reference_hardware.md specifies the Tier-1 reference hardware and
+    a procurement memo, restated as an open item in every day's report
+    from the day it was written through at least Day 33 ("Reference
+    hardware procurement decision" recurring, "now N days old" self-aging
+    text that itself stopped being trustworthy once it was copy-pasted
+    without re-deriving N — the exact failure this ledger exists to fix).
+    Without the reference hardware, cascade-bench numbers can only ever be
+    measured on interim/dev hardware, which this project's own hard scope
+    rule already refuses to report as a product figure.
+  category: human_procurement
+  first_recorded:
+    sha: 72db50880026634177959471921ac871cda9e7d9
+    date: 2026-08-10
+  unblocks:
+    - "A cascade bench run whose CPU/latency numbers could ever be quoted
+       as a Tier-1 product figure (still explicitly out of scope on every
+       day including this one, per this prompt's own hard scope rule —
+       this blocker is why that rule is still necessary, not incidental
+       caution)."
+  estimated_human_effort: "A purchase decision — reference_hardware.md names the SKUs; someone has to approve the spend."
+
+- id: site-zero-capture
+  description: >-
+    docs/capture_runbook.md is a fully dry-run-validated, six-stage
+    checklist (RTSP connect → decode → content-addressed store → registry
+    entry, lane C → Gap records on a dropped frame → condition tagging →
+    consent refusal), exercised end-to-end against a local fixture RTSP
+    server with zero real camera involved. `scripts/discover_cameras.py`
+    was run against the real local subnet and honestly reported 0 devices.
+    Zero minutes of real Site Zero footage exist anywhere in this
+    project as of today. What remains is exactly what code cannot do:
+    placement, a real walkthrough, and an overnight capture window in a
+    real corridor.
+  category: human_capture
+  first_recorded:
+    sha: e8162cd0028184782e684e745e51b8259d7ea1ab
+    date: 2026-08-08
+  unblocks:
+    - "The single remaining obstacle (per capture_runbook.md's own opening
+       line) to a real Tier-1 economic claim — v3-indoor and v4-gate are
+       both synthetic and say so on every scorecard they produce."
+    - "Any end-to-end validation of the identity/coverage/absence stack
+       against real, non-synthetic conditions."
+  estimated_human_effort: "Hardware on hand (see reference-hardware-procurement) plus one overnight capture window, per capture_runbook.md's own sequencing — realistically a day, once consent-template-counsel-review and reference-hardware-procurement both clear."
+
+- id: git-history-divergence
+  description: >-
+    ADR 0009 (Proposed, unchanged since it was written): local `main` (a
+    single baseline-import commit) and `origin/main` (34 real commits from
+    five other identities, 2026-02-17 through 2026-07-13) are unrelated
+    histories sharing one remote URL. `git push --all origin` has failed
+    non-fast-forward on `main` specifically since Day 16. ADR 0009
+    recommends Option B (rename local `main` to `foundation-baseline`,
+    leave `origin/main` untouched) but explicitly takes no action pending
+    a human answering what `ankitmehtacode/project-iron` and
+    `Dalbirsm03/project-iron` are to each other.
+  category: human_decision
+  first_recorded:
+    sha: d36a83596a33507be4aad7b6caff5f5da9fd3c41
+    date: 2026-08-10
+  unblocks:
+    - "A `git push --all origin` that succeeds unconditionally instead of
+       failing on `main` every day (cosmetic/hygiene — no engineering
+       capability sits behind this one, which is exactly why it is the
+       lowest-leverage item on this ledger despite being old)."
+  estimated_human_effort: "A yes/no on the relationship between the two repositories, then ~5 minutes to execute ADR 0009's Option B once answered."
+
+- id: component-cap-carrier-identity-type-change
+  description: >-
+    resolve_component_membership takes (existing: Component,
+    carried_entity_id: str, cap_config: ComponentCapConfig) — nothing
+    hypothesis-shaped. resolve_data_association's output
+    (AssociationCandidate) cannot drive it automatically because
+    AssociationCandidate.proposition is a deliberately opaque string (the
+    hypothesis store's own "does not interpret" boundary,
+    src/model/hypothesis.py). Wiring the two together needs
+    AssociationCandidate extended with a structured carrier concept, which
+    also affects the identity-resolution use case (no carrier concept
+    there today). Day 33, Objective 3 named this explicitly and declined
+    to pick unilaterally: "a real type change affecting the
+    identity-resolution use case too ... not decided unilaterally today."
+    Day 34's punch list restated it as item 3 and it has not moved since.
+  category: human_decision
+  first_recorded:
+    sha: 4b1c557038b51ac8fcb7c16c78cec4c5e23c4494
+    date: 2026-09-07
+  unblocks:
+    - "resolve_data_association's output automatically driving component
+       membership, instead of the two mechanisms sharing no state today."
+    - "A real graph_rev reproducibility test for association (named
+       explicitly in Day 33's own Day-34 punch list, item 4, as depending
+       on this)."
+    - "Measuring the actual frequency with which association pushes a
+       component over the cap — currently unanswerable because no
+       pipeline runs resolve_data_association against real observations
+       at all (see Objective 3 of this same day)."
+  estimated_human_effort: "A design decision, not a coding task — small in code-change size once decided, but it is a schema call this repository has twice declined to make for itself."
