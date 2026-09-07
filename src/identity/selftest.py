@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import hashlib
 import random
+from pathlib import Path
 from typing import Callable
 
 import torch
@@ -75,6 +76,37 @@ class SyntheticStandInBackbone:
         """Exposed for the frozen-gradient test only — not part of
         :class:`~src.identity.backbone.FrozenBackbone`'s protocol."""
         return list(self._projection.parameters())
+
+    def save_weights(self, path: Path) -> Path:
+        """Write this backbone's weights as raw bytes to ``path`` — a
+        stand-in "backbone artifact" file for
+        :mod:`src.identity.erasure_drill` to hash with
+        :func:`src.provenance.sha256_file`, exactly mirroring how a real
+        exported backbone (``.xml``/``.bin``) would be checked. Same byte
+        serialization as :meth:`current_weights_sha`, so the file's hash
+        and a live re-hash of the tensor are directly comparable.
+        """
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(
+            self._projection.weight.detach().cpu().contiguous().numpy().tobytes()
+        )
+        return path
+
+    def current_weights_sha(self) -> str:
+        """Hash of this backbone's CURRENT in-memory weights, recomputed
+        live from the tensor every call.
+
+        Unlike :attr:`backbone_sha` (fixed once at construction, the same
+        role a real backbone's content hash plays), this catches an
+        in-place mutation even if nothing ever refreshed ``backbone_sha``
+        to reflect it — the property the erasure drill actually needs to
+        verify.
+        """
+        digest = hashlib.sha256()
+        digest.update(
+            self._projection.weight.detach().cpu().contiguous().numpy().tobytes()
+        )
+        return digest.hexdigest()
 
 
 def make_synthetic_identity_gallery(

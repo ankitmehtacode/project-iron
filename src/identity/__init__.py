@@ -29,6 +29,7 @@ from src.identity.checkpoint import (
     write_selftest_checkpoint_manifest,
 )
 from src.identity.contracts import ContractError, FeatureTensor, IdentityEmbedding
+from src.identity.erasure_drill import ErasureDrillResult, run_erasure_drill
 from src.identity.lane_gate import require_training_dataset
 from src.identity.promotion import PromotionResult, evaluate_promotion
 from src.identity.trainer import TrainingConfig, train_adapter
@@ -40,6 +41,7 @@ __all__ = [
     "BakeoffProbeResult",
     "CheckpointManifest",
     "ContractError",
+    "ErasureDrillResult",
     "FeatureTensor",
     "FrozenBackbone",
     "IdentityEmbedding",
@@ -51,6 +53,7 @@ __all__ = [
     "open_bakeoff_eval_set",
     "patch_boundary_discontinuity",
     "require_training_dataset",
+    "run_erasure_drill",
     "same_object_retrieval_map",
     "temporal_embedding_stability",
     "train_adapter",
