@@ -140,3 +140,45 @@ def make_triplet_sampler(
         return torch.stack(anchors), torch.stack(positives), torch.stack(negatives)
 
     return sample
+
+
+def make_synthetic_patch_positions(
+    n_samples: int, grid_size: int = 4, seed: int = 0
+) -> "tuple[list[tuple[int, int]], list[tuple[int, int]]]":
+    """A synthetic ``(pos0, posk)`` patch-grid coordinate pair per sample,
+    with ``posk`` always different from ``pos0`` — every sample "crosses a
+    boundary" by construction, standing in for
+    ``scripts/eval_semantics.py``'s ``crossed_boundary`` GT-position filter
+    without needing real GT tracks. See
+    :func:`src.identity.bakeoff.same_object_retrieval_map`.
+    """
+    rng = random.Random(seed)
+    cells = [(r, c) for r in range(grid_size) for c in range(grid_size)]
+    pos0: list[tuple[int, int]] = []
+    posk: list[tuple[int, int]] = []
+    for _ in range(n_samples):
+        start = rng.choice(cells)
+        remaining = [cell for cell in cells if cell != start]
+        end = rng.choice(remaining)
+        pos0.append(start)
+        posk.append(end)
+    return pos0, posk
+
+
+def apply_synthetic_clothing_change(
+    clips: torch.Tensor, labels: "list[int]", seed: int = 0, shift_scale: float = 1.5
+) -> torch.Tensor:
+    """Add a fixed per-identity "clothing" shift vector to every sample of
+    that identity — a synthetic stand-in for CHIRLA's real clothing-change
+    scenario (Objective 1; CHIRLA has no license_snapshot and is not
+    fetchable today). An identity-preserving, appearance-perturbing
+    transform: same shift for every sample of one identity, different
+    identities get different (and therefore separable) shifts, exactly the
+    property a real clothing change has (same person, different visual
+    appearance) that a naive appearance-only encoder would confuse for a
+    different identity.
+    """
+    generator = torch.Generator().manual_seed(seed)
+    n_identities = len(set(labels))
+    shifts = torch.randn(n_identities, clips.shape[-1], generator=generator) * shift_scale
+    return torch.stack([clips[i] + shifts[labels[i]] for i in range(clips.shape[0])])

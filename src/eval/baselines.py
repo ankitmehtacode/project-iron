@@ -728,6 +728,39 @@ def _identity_retrieval_map_baselines(
     return b
 
 
+def _identity_clothing_change_map_baselines(
+    *, chance_map: float, clean_map: float | None = None, **_: Any
+) -> list[Baseline]:
+    """Chance baseline for clothing-change retrieval mAP (Day 36,
+    Objective 4 — CHIRLA's specific contribution, once fetchable).
+
+    ``clean_map`` (retrieval mAP on the SAME gallery with no appearance
+    perturbation applied) is reported as informational context — the
+    ceiling a robust encoder degrades from — but is not flag-worthy: a
+    perturbed metric beating its own unperturbed ceiling is not an
+    achievable target, it is a measurement artefact.
+    """
+    b = [
+        Baseline(
+            "chance",
+            chance_map,
+            "1 / n_identities — the retrieval mAP a uniform-random ranker gets",
+        )
+    ]
+    if clean_map is not None:
+        b.append(
+            Baseline(
+                "clean_embedding",
+                float(clean_map),
+                "same gallery's retrieval mAP with NO clothing-change "
+                "perturbation applied — the ceiling a robust encoder "
+                "degrades from, not an achievable adversary",
+                flag_worthy=False,
+            )
+        )
+    return b
+
+
 def _register_defaults() -> None:
     """Register every metric name the project currently emits.
 
@@ -781,6 +814,24 @@ def _register_defaults() -> None:
     register_baseline("estimator.velocity_rmse_mps", _estimator_velocity_rmse_baselines)
     # -- identity adapter (Day 36) -----------------------------------------
     register_baseline("identity.retrieval_map", _identity_retrieval_map_baselines)
+    # -- backbone bake-off harness (Day 36, Objective 4) --------------------
+    # Same-object retrieval mAP with a position-only baseline is the same
+    # shape as semantics.mAP (Day 11's repair, generalized to any
+    # FrozenBackbone) — reuses the identical baseline computer rather than
+    # a copy. Temporal stability and patch-boundary discontinuity reuse
+    # their semantics.* computers the same way: these are not new
+    # strategies, they are the SAME trivial adversaries applied to a
+    # different (backbone-agnostic) encoder boundary.
+    register_baseline("identity.bakeoff.retrieval_map", _semantics_map_baselines)
+    register_baseline(
+        "identity.bakeoff.temporal_stability", _semantics_temporal_cosine_baselines
+    )
+    register_baseline(
+        "identity.bakeoff.patch_boundary_l2", _semantics_patch_boundary_baselines
+    )
+    register_baseline(
+        "identity.bakeoff.clothing_change_map", _identity_clothing_change_map_baselines
+    )
 
 
 _register_defaults()

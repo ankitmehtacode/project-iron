@@ -15,6 +15,14 @@ instead, and its ``SELF_TEST_LABEL``.
 
 from src.identity.adapter import Adapter, AdapterConfig, AdapterConfigError
 from src.identity.backbone import FrozenBackbone, extract_features_no_grad
+from src.identity.bakeoff import (
+    BakeoffProbeResult,
+    clothing_change_robustness,
+    open_bakeoff_eval_set,
+    patch_boundary_discontinuity,
+    same_object_retrieval_map,
+    temporal_embedding_stability,
+)
 from src.identity.checkpoint import (
     CheckpointManifest,
     write_checkpoint_manifest,
@@ -29,6 +37,7 @@ __all__ = [
     "Adapter",
     "AdapterConfig",
     "AdapterConfigError",
+    "BakeoffProbeResult",
     "CheckpointManifest",
     "ContractError",
     "FeatureTensor",
@@ -36,9 +45,14 @@ __all__ = [
     "IdentityEmbedding",
     "PromotionResult",
     "TrainingConfig",
+    "clothing_change_robustness",
     "evaluate_promotion",
     "extract_features_no_grad",
+    "open_bakeoff_eval_set",
+    "patch_boundary_discontinuity",
     "require_training_dataset",
+    "same_object_retrieval_map",
+    "temporal_embedding_stability",
     "train_adapter",
     "write_checkpoint_manifest",
     "write_selftest_checkpoint_manifest",
