@@ -9815,3 +9815,274 @@ Per [[iron-blocked-on-humans]]. Unchanged from Day 32.
 32. **A `black`/`flake8` CI gate** — 28/26 files drifting, unchanged two
     days running, no gate stopping it.
 33. **Automatic load-average capture on a duration-gate failure.**
+
+# Day 34
+
+**No timing, throughput, CPU-percentage, or latency claim is made anywhere
+in this section as a PRODUCT figure** — unchanged hard scope rule. Test
+durations and suite counts remain in scope, as process measurements.
+
+**Headline: the near-tie gap did not survive a second day.** Day 33 found
+that `resolve_data_association` could not distinguish a 0.001-nat near-tie
+from a 50-nat landslide on its primary output surface, and encoded that as
+a `known_bug`/`xfail` regression guard pending a design decision. Today's
+Objective 2 IS that design decision: `AssociationVerdict` (`Decisive` /
+`Ambiguous`), a derived (not fitted) decisiveness threshold, and a fix to
+the one death-cause conflation the gap made visible
+(`dominated_by_likelihood` could have silently relabeled a resource
+decision as an evidentiary one). The `xfail` and its marker are removed in
+this session's own commit, per this project's own convention — the test is
+now a real, passing regression guard.
+
+## Verdicts
+
+- **Canonical weight status.** `docs/weight_status.md`, with an embedded,
+  re-runnable check. Three separate VJEPA-related facts, not one: raw
+  weights exist, an FP32 export exists and is PyTorch-verified, the
+  PRODUCTION INT8 artifact does not (ADR 0008, permanently
+  unattributable). CoTracker3's checkpoint exists and loads (188-key
+  state dict, confirmed via `torch.load`). `scripts/env_gate.py`'s Row 2
+  was already reporting all three gate-relevant facts before today — no
+  gate code needed changing, only the canonical doc. → Objective 1.
+- **`AssociationVerdict` design, threshold derivation.**
+  `DECISIVE_LOG_BAYES_FACTOR = ln(3) ≈ 1.0986` nats, cited to Kass &
+  Raftery (1995, JASA 90(430), Table 4) and the Jeffreys (1961) scale —
+  the loosest defensible band on that scale ("not worth more than a bare
+  mention"), chosen as the floor rather than a stricter band because a
+  higher threshold only relabels MORE budget cuts as ambiguous, never
+  fewer — the conservative direction for Objective 3's fix. **Not fitted
+  against this project's own test data** — the threshold was fixed before
+  any test asserting a specific verdict was written, and the tests instead
+  construct margins relative to the cited constant (`DECISIVE_LOG_BAYES_
+  FACTOR - 0.001`, `DECISIVE_LOG_BAYES_FACTOR` exactly), never the
+  reverse. → Objective 2.
+- **Death-cause fix, and its interaction with the Day-26 component cap.**
+  `dominate_by_likelihood` is now the only function besides
+  `prune_for_hard_violation` permitted to assign a likelihood-based death
+  cause, and it structurally refuses to construct
+  `DominatedByLikelihood` below the threshold. Budget cuts in
+  `resolve_data_association` now split: sub-threshold margin from the
+  weakest survivor → `PrunedByBudget`; supra-threshold →
+  `DominatedByLikelihood`. **Interaction with the component cap: verified
+  directly, and there is none yet** — `resolve_component_membership`'s
+  signature touches no `HypothesisStore`, `AssociationCandidate`, or death
+  cause at all, confirmed by inspection, not assumed from the existing
+  scope note. → Objective 3.
+- **How ambiguity now reaches events, and what was deferred.**
+  `build_identity_event` wires `AssociationVerdict` into event emission:
+  `Decisive` → `ObservedEvent`, confidence unchanged; `Ambiguous` →
+  `InferredEvent` (never `ObservedEvent` — structurally exhaustive,
+  `assert_verdict_never`-checked), a provisional pick (strongest
+  competitor), confidence capped (never raised) at `sigmoid(margin)` — the
+  exact two-hypothesis-equal-priors Bayesian posterior, an honest upper
+  bound with more than two competitors, stated as such. **Deferred,
+  explicitly:** full mixture-state propagation (both hypotheses coexisting
+  in the joint state until later evidence resolves them) — chose the
+  provisional-pick branch specifically because the alternative (withhold
+  identity entirely) needs `subject: EntityRef` to become optional across
+  every event class, a schema change of the same scope as the deferred
+  mixture question, not a small addition. → Objective 4.
+
+## Objective 1 — canonical weight status
+
+`docs/weight_status.md` created, with the exact check commands embedded
+(`scripts/env_gate.py --json`, direct file-existence checks, a
+`torch.load` liveness check for CoTracker3) so the record is re-verifiable
+by running it, not by reading prose. Three questions, not one: raw VJEPA2
+weights (`models/weights/vjepa2_vitl/model.safetensors`, 1.3 GB, EXISTS);
+FP32 OpenVINO export (`models/export/2026-07-31/`, EXISTS, PyTorch-
+verified per its own `export_manifest.json`: max abs deviation 2.99e-4,
+cosine p1 0.99999999907); PRODUCTION INT8 artifact
+(`models/int8/vjepa2_vitl_int8.{xml,bin}`, ABSENT, ADR 0008). CoTracker3
+checkpoint present, loads (`torch.load` succeeds, 188-key `OrderedDict`),
+hashed fresh this session (`models/weights/hashes.txt` is empty, not a
+citable source for it).
+
+STRUCTURAL check requested: already satisfied before today.
+`scripts/env_gate.py`'s Row 2 (`check_models`) reports all three
+gate-relevant facts (`PRODUCTION vjepa_xml`, `PRODUCTION vjepa_bin`,
+`cotracker_checkpoint`) with size and sha256 on every invocation —
+verified by running it, not assumed. No gate code changed.
+
+## Objective 2 — `AssociationVerdict`: `Decisive` vs `Ambiguous`
+
+`resolve_data_association` now returns `AssociationResolution.verdict:
+AssociationVerdict`, computed on hard-constraint survivors BEFORE the
+budget touches the ranking (decisiveness is a property of the evidence,
+not of how many hypotheses a budget can afford). Two variants, no shared
+`winner` field — `Ambiguous` has no `winner` attribute at all, so
+`if verdict.winner is not None` is unwritable (an `AttributeError`, not a
+`None` to silently pass through); `assert_verdict_never` enforces
+exhaustive `match` handling, same idiom as `assert_outcome_never`.
+
+Margin — always computed, always reported, no default on either variant —
+is the log-likelihood ratio between the top two ranked hypotheses.
+`DECISIVE_LOG_BAYES_FACTOR = ln(3)`, cited to Kass & Raftery (1995) /
+Jeffreys (1961): the weakest ("bare mention") band on the standard
+Bayes-factor scale, deliberately the loosest defensible choice rather than
+a stricter one, for the reason given in the Verdicts block.
+
+Tests: exact tie (margin 0) → `Ambiguous`; near-tie (threshold − 0.001) →
+`Ambiguous`; exactly at threshold → `Decisive` (closed lower bound,
+matching Kass & Raftery's own band boundaries); landslide → `Decisive`;
+single candidate → `Decisive` with `margin = inf` (nothing competes with
+it); empty input → rejected. Determinism (not `graph_rev` reproducibility
+— stated again, not silently implied fixed, that this function still
+touches no `StateGraph`) extended to cover verdict variant, margin, and
+competitor ranking, not just the decision log. Prior firewall re-tested
+explicitly on `compute_association_verdict` and `build_identity_event`
+(Objective 4) specifically — a new code path is a new opportunity, not
+inherited by assumption.
+
+**The Day-33 gap is fixed, not just re-documented.** The `known_bug`/
+`xfail` test and its marker are removed in this session's commit; the test
+is now `test_near_tie_hypotheses_produce_an_ambiguous_verdict_not_a_
+silent_winner`, passing, asserting `resolution.verdict` is `Ambiguous`
+with the correct margin and competitor set.
+
+## Objective 3 — the death-cause conflation, fixed
+
+`dominate_by_likelihood(store, dominant_id, dominated_id, margin,
+threshold=DECISIVE_LOG_BAYES_FACTOR)` is now the only function besides
+`prune_for_hard_violation` permitted to assign a likelihood-based death
+cause. It takes `margin` as a required argument and RAISES rather than
+constructing `DominatedByLikelihood` below threshold — there is no code
+path in this repository that can construct one with an insufficient
+margin.
+
+Wired into `resolve_data_association`'s budget-pruning pass: for each cut
+candidate, the margin from the WEAKEST surviving hypothesis decides the
+cause. Sub-threshold (a near-tie the budget happened to break) →
+`PrunedByBudget` — a resource decision, not a rejection. Supra-threshold
+(the evidence itself already excluded this candidate; the budget did not
+have to arbitrate) → `DominatedByLikelihood`. A resource decision can no
+longer be relabeled as an evidentiary one, and — the converse the
+objective did not name explicitly but which the same mechanism prevents —
+a decisive evidentiary exclusion cannot hide behind the more modest-
+sounding budget label either.
+
+Two pre-existing tests' fixture data produced large margins under the new
+logic and were updated (not deleted) to assert the new, correct cause;
+one was adjusted to a genuine near-tie to keep testing what it originally
+intended (budget-vs-refuted distinguishability, not
+dominated-vs-refuted). New tests: sub-threshold forced prune →
+`PrunedByBudget`; supra-threshold → `DominatedByLikelihood`; a three-way
+forensic distinction (refuted / dominated / budget-pruned) from one call,
+no pair collapsed.
+
+**Component-cap interaction: checked directly, confirmed absent.**
+`resolve_component_membership`'s full signature was inspected — it takes
+`existing: Component`, `carried_entity_id: str`, `cap_config:
+ComponentCapConfig`, nothing hypothesis-shaped at all. The two mechanisms
+cannot tell two different stories about the same decision today because
+they share no state or decision point; this remains true until structured
+carrier identity (Day-33's own punch-list item) wires
+`resolve_data_association`'s output into component membership.
+
+## Objective 4 — ambiguity reaching confidence and evidence, bounded
+
+**Explicitly deferred, stated up front:** full multi-modal state
+propagation (both competing hypotheses coexisting as a genuine mixture in
+the joint state until later evidence resolves them) is a larger
+architectural question for its own day, not attempted here.
+
+`build_identity_event(verdict, subject_for, *, event_id, site_id, ts_ns,
+verb, manifest_sha, importance, caller_confidence) -> ObservedEvent |
+InferredEvent`. Chosen branch: (b), a provisional pick with reduced
+confidence and a recorded competitor reference — not (a), withholding
+identity assignment entirely. Reasoned, not arbitrary: `subject:
+EntityRef` is a REQUIRED field on every `src.model.events` class; there is
+no "unknown subject" representation in the schema today. Making one would
+be a schema change of the same scope as the deferred mixture-state
+question, named here as a real, deferred question rather than silently
+avoided by picking (b) without saying why.
+
+STRUCTURAL: `Decisive` → `ObservedEvent`, `Ambiguous` → `InferredEvent`,
+exhaustively (`assert_verdict_never`) — no `match` arm reaches
+`ObservedEvent` from `Ambiguous`.
+`test_ambiguous_verdict_never_produces_an_observed_event` asserts this
+directly, the exact test the objective asked for.
+
+Confidence for the `Ambiguous` branch is capped — never raised — at
+`sigmoid(margin)`: the exact posterior probability of the top hypothesis
+under Bayes' theorem for two competing hypotheses with equal priors
+(posterior odds equal the likelihood ratio under equal priors; posterior
+probability is the logistic function of the log-odds, and margin IS that
+log-odds). With more than two competitors this is an honest upper bound,
+not the exact multi-way posterior — stated as an approximation, not
+presented as exact. `InferredEvent.basis` names every competitor id and
+the margin, satisfying that field's own non-empty requirement with real
+content.
+
+## Full suite, mypy, lint
+
+`mypy` (scoped per `mypy.ini`): clean, 0 errors, 64 source files. `black
+--check`: 28 files would be reformatted — unchanged from Day 32/33's own
+count, still nobody's job (Day-33 punch-list item, carried again).
+`flake8`: 26 files, same story.
+
+Quick-loop suite (`-m "not slow and not requires_weights"`, this session):
+**1282 passed, 1 skipped, 21 deselected, 0 failures**
+(`artifacts/pytest/day34_quick.xml`, 70.63s) — up from Day 33's 1260 by
+22: today's new tests (Objectives 2-4) plus the Day-33 near-tie test
+converting from `xfail` to a real pass.
+
+## Still blocked on a human
+
+Per [[iron-blocked-on-humans]]. Unchanged from Day 33.
+
+## Day 35, in order
+
+1. **A clean, same-commit gated/full suite reconciliation** — carried
+   from Day 32/33; the full run alone measured 25523.98s (7:05:23) on
+   Day 32, still not re-attempted.
+2. **Structured carrier identity on `AssociationCandidate`** (or a
+   separate carrier-assignment candidate type), so
+   `resolve_data_association`'s output can drive
+   `resolve_component_membership` automatically, and the component-cap
+   death-cause interaction (Objective 3, verified absent today) becomes
+   a real question to re-check.
+3. **Wire `resolve_data_association`'s output into `run_joint_filter`'s
+   `Component` selection** — still declared, never resolved from
+   hypotheses; also what would make a real `graph_rev` reproducibility
+   test for association possible.
+4. **Full mixture-state propagation** — Day 34, Objective 4's explicitly
+   deferred question: both competing hypotheses coexisting in the joint
+   state as a genuine mixture until later evidence resolves them. Its own
+   day, not a follow-on to today's bounded fix.
+5. **The optional-`subject` event-schema question** — named, not decided,
+   today: whether `EntityRef` should ever become optional to represent
+   "identity withheld," the alternative branch (a) Objective 4 did not
+   take.
+6. **Measure a real per-component hypothesis budget** —
+   `AssociationBudgetConfig`'s default (3) is a stated placeholder.
+7. **Re-derive the velocity floor, or retire it.**
+8. **IMM at `onset`, ~6 nats/frame cost, unexplained.**
+9. **Extend informativeness to the joint estimator.**
+10. **`PatchTokens.encoder_sha` is unverified.**
+11. **Vertical motion in the golden sets** — GT height still a constant.
+12. **Physical `maneuver`** — needs a curved-path model.
+13. **A sensor-noise model for the generator.**
+14. **Real coupled multi-entity data, or a larger authored scene.**
+15. **Twin geometry** (`TwinGeometry`).
+16. **The twin drift detector** — sits behind item 15.
+17. **The discrete/continuous hybrid** — depends on items 2, 3, 4.
+18. **Smoothing across the joint graph** — depends on item 9.
+19. **MEVA licence verification** — blocked on a human.
+20. **DA-2K licence verification** — zero engineering lag once cleared.
+21. **Reference hardware procurement decision.**
+22. **Declare a target fps for real camera ingest.**
+23. **Cascade bench, clean, on interim or reference hardware.**
+24. **Depth validity re-measurement** — gates on item 20.
+25. **The `main`/`origin/main` decision** (ADR 0009).
+26. **Order cameras and run the office capture.**
+27. **The motion-gate precision/selectivity investigation.**
+28. **A canonical `Observation -> hash` function** (ADR 0007).
+29. **Decide whether `PLACEHOLDER_DOWNSTREAM_COST_MS_PER_FRAME` should be
+    replaced.**
+30. **Bridge the live-RTSP path and `scripts/ingest_capture.py`.**
+31. **`ConsentRecord` for `thinkwill-cctv-archive`**, if pursued.
+32. **The `resolve_joint_state` cross-component filtering gap** (ADR 0011).
+33. **A `black`/`flake8` CI gate** — 28/26 files drifting, unchanged
+    three days running, no gate stopping it.
+34. **Automatic load-average capture on a duration-gate failure.**
