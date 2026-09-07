@@ -20,6 +20,8 @@ work, not a backbone that is safe by accident.
 from __future__ import annotations
 
 import hashlib
+import random
+from typing import Callable
 
 import torch
 from torch import nn
@@ -29,6 +31,8 @@ from src.identity.contracts import FeatureTensor
 SELF_TEST_LABEL = (
     "SELF_TEST — not a trained model, not to be quoted as re-ID performance"
 )
+
+TripletSampler = Callable[[], "tuple[torch.Tensor, torch.Tensor, torch.Tensor]"]
 
 
 class SyntheticStandInBackbone:
@@ -71,3 +75,68 @@ class SyntheticStandInBackbone:
         """Exposed for the frozen-gradient test only — not part of
         :class:`~src.identity.backbone.FrozenBackbone`'s protocol."""
         return list(self._projection.parameters())
+
+
+def make_synthetic_identity_gallery(
+    n_identities: int = 8,
+    samples_per_identity: int = 12,
+    input_dim: int = 32,
+    seed: int = 20260907,
+    cluster_scale: float = 3.0,
+    noise_scale: float = 1.0,
+) -> "tuple[torch.Tensor, list[int]]":
+    """Synthetic stand-in "clips": one gaussian cluster per identity in
+    backbone-input space, spaced ``cluster_scale`` apart with
+    ``noise_scale`` intra-identity spread — a problem that is genuinely
+    learnable by a real metric-learning loss, not pure noise, so a passing
+    self-test demonstrates the plumbing actually moves gradients rather
+    than merely running without crashing.
+
+    NOT real identities, NOT real appearance, NOT lane C, NOT lane S
+    (does not touch the dataset registry at all — there is nothing here
+    for it to check). See module docstring: every result derived from this
+    must carry :data:`SELF_TEST_LABEL`.
+    """
+    generator = torch.Generator().manual_seed(seed)
+    centers = torch.randn(n_identities, input_dim, generator=generator) * cluster_scale
+    clips = []
+    labels: list[int] = []
+    for identity in range(n_identities):
+        noise = (
+            torch.randn(samples_per_identity, input_dim, generator=generator)
+            * noise_scale
+        )
+        clips.append(centers[identity] + noise)
+        labels.extend([identity] * samples_per_identity)
+    return torch.cat(clips, dim=0), labels
+
+
+def make_triplet_sampler(
+    clips: torch.Tensor, labels: "list[int]", batch_size: int, seed: int = 0
+) -> TripletSampler:
+    """A callable that draws a fresh (anchor, positive, negative) batch of
+    RAW CLIPS each call — same-identity anchor/positive, different-identity
+    negative — for :func:`src.identity.trainer.train_adapter`."""
+    rng = random.Random(seed)
+    by_identity: dict[int, list[int]] = {}
+    for i, identity in enumerate(labels):
+        by_identity.setdefault(identity, []).append(i)
+    identities = list(by_identity)
+    if len(identities) < 2:
+        raise ValueError("need at least 2 identities to sample a negative")
+
+    def sample() -> "tuple[torch.Tensor, torch.Tensor, torch.Tensor]":
+        anchors, positives, negatives = [], [], []
+        for _ in range(batch_size):
+            pos_id, neg_id = rng.sample(identities, 2)
+            pool = by_identity[pos_id]
+            a_idx, p_idx = (
+                rng.sample(pool, 2) if len(pool) >= 2 else (pool[0], pool[0])
+            )
+            n_idx = rng.choice(by_identity[neg_id])
+            anchors.append(clips[a_idx])
+            positives.append(clips[p_idx])
+            negatives.append(clips[n_idx])
+        return torch.stack(anchors), torch.stack(positives), torch.stack(negatives)
+
+    return sample

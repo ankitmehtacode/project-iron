@@ -84,6 +84,7 @@ from src.contracts.tokens import TemporalSpan  # noqa: E402
 from src.data import validity  # noqa: E402
 from src.data.golden import load_golden_set  # noqa: E402
 from src.eval.baselines import Baseline, margin as compute_margin  # noqa: E402
+from src.eval.retrieval import average_precision  # noqa: E402
 from src.models.preprocess import PreprocessSpec  # noqa: E402
 from src.semantics.patch_mapping import (  # noqa: E402
     map_tracks_to_embeddings,
@@ -224,26 +225,6 @@ def embed_tracks_at_offset(
     tracks_window[..., 1] *= sy
     embeddings = map_tracks_to_embeddings(tokens, tracks_window)  # [T, N, dim]
     return embeddings[0]  # frame `offset` == window frame 0 == slot 0
-
-
-def average_precision(
-    query_idx: int, sim: np.ndarray, labels: np.ndarray, query_label: int
-) -> float | None:
-    """AP for one query against a ranked candidate pool.
-
-    ``sim`` is the query's similarity to every pool member (higher = closer
-    rank). Returns ``None`` when the query has no true positive in the pool
-    — should not happen by construction (the query's own track always has
-    an embedding in the same-gap pool) but guarded rather than assumed.
-    """
-    order = np.argsort(-sim)
-    ranked_labels = labels[order]
-    hits = ranked_labels == query_label
-    n_pos = int(hits.sum())
-    if n_pos == 0:
-        return None
-    precisions = np.cumsum(hits, dtype=np.float64) / (np.arange(len(hits)) + 1)
-    return float((precisions * hits).sum() / n_pos)
 
 
 def patch_visit_stats(

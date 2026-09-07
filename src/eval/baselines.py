@@ -692,6 +692,42 @@ def _estimator_velocity_rmse_baselines(
     ]
 
 
+def _identity_retrieval_map_baselines(
+    *, chance_map: float, raw_backbone_map: float | None = None, **_: Any
+) -> list[Baseline]:
+    """Chance and raw-frozen-backbone-cosine baselines for identity-adapter
+    retrieval mAP (Day 36, Objective 3's promotion gate).
+
+    ``raw_backbone_map`` is the trivial adversary the objective names
+    explicitly: cosine-similarity ranking computed directly on frozen
+    backbone features, with NO adapter applied — same shape as
+    ``_semantics_map_baselines``'s ``position_only_map`` (a strategy that
+    ignores the component actually under test), applied to identity
+    embeddings instead of same-object retrieval. An adapter that cannot
+    beat its own backbone's raw cosine similarity has learned nothing the
+    backbone did not already provide, and Day 12's rule says that gets
+    reported as a failed promotion gate, not shipped.
+    """
+    b = [
+        Baseline(
+            "chance",
+            chance_map,
+            "1 / n_identities — the retrieval mAP a uniform-random ranker gets",
+        )
+    ]
+    if raw_backbone_map is not None:
+        b.append(
+            Baseline(
+                "raw_backbone_cosine",
+                float(raw_backbone_map),
+                "cosine similarity ranking directly on frozen backbone "
+                "features, no adapter applied — the adapter must beat its "
+                "own backbone, not just chance",
+            )
+        )
+    return b
+
+
 def _register_defaults() -> None:
     """Register every metric name the project currently emits.
 
@@ -743,6 +779,8 @@ def _register_defaults() -> None:
     # -- estimator (Day 20) ------------------------------------------------
     register_baseline("estimator.position_rmse_m", _estimator_position_rmse_baselines)
     register_baseline("estimator.velocity_rmse_mps", _estimator_velocity_rmse_baselines)
+    # -- identity adapter (Day 36) -----------------------------------------
+    register_baseline("identity.retrieval_map", _identity_retrieval_map_baselines)
 
 
 _register_defaults()

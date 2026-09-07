@@ -15,17 +15,31 @@ instead, and its ``SELF_TEST_LABEL``.
 
 from src.identity.adapter import Adapter, AdapterConfig, AdapterConfigError
 from src.identity.backbone import FrozenBackbone, extract_features_no_grad
+from src.identity.checkpoint import (
+    CheckpointManifest,
+    write_checkpoint_manifest,
+    write_selftest_checkpoint_manifest,
+)
 from src.identity.contracts import ContractError, FeatureTensor, IdentityEmbedding
 from src.identity.lane_gate import require_training_dataset
+from src.identity.promotion import PromotionResult, evaluate_promotion
+from src.identity.trainer import TrainingConfig, train_adapter
 
 __all__ = [
     "Adapter",
     "AdapterConfig",
     "AdapterConfigError",
+    "CheckpointManifest",
     "ContractError",
     "FeatureTensor",
     "FrozenBackbone",
     "IdentityEmbedding",
+    "PromotionResult",
+    "TrainingConfig",
+    "evaluate_promotion",
     "extract_features_no_grad",
     "require_training_dataset",
+    "train_adapter",
+    "write_checkpoint_manifest",
+    "write_selftest_checkpoint_manifest",
 ]
