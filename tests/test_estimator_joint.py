@@ -31,12 +31,14 @@ from src.estimator.joint import (
     AssociationCandidate,
     Component,
     ComponentCapConfig,
+    ComponentCapRefusal,
     DEFAULT_COMPONENT_CAP_CONFIG,
     DegradedComponentEstimate,
     HybridDiscreteContinuousState,
     JointFilterError,
     JointObservation,
     JointStateEstimate,
+    resolve_component_membership,
     resolve_data_association,
     resolve_joint_state,
     run_joint_filter,
@@ -1123,3 +1125,156 @@ def test_association_budget_config_rejects_a_non_positive_budget() -> None:
 def test_association_budget_config_sha_changes_with_the_budget() -> None:
     assert AssociationBudgetConfig(2).sha != AssociationBudgetConfig(3).sha
     assert AssociationBudgetConfig(2).sha == AssociationBudgetConfig(2).sha
+
+
+# ---------------------------------------------------------------------------
+# Day 33, Objective 2 -- stress-testing Day 32's late-session code, fresh
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_data_association_is_deterministic_given_identical_inputs() -> None:
+    """The reproducibility property actually available today: this
+    function takes no StateGraph/graph_rev at all (see the module
+    docstring's "Implemented today" section) -- association decisions are
+    not yet part of the graph, so a graph_rev replay test does not apply
+    until Objective 4's punch-list item ("wire resolve_data_association's
+    output into run_joint_filter's Component selection") lands. What DOES
+    apply today: this function must be a pure function of its arguments,
+    with no hidden state that could make two calls with identical inputs
+    diverge. Two independent HypothesisStore instances, same candidates,
+    same budget, same hard_violation_check -> bit-identical resolutions."""
+    candidates = [
+        AssociationCandidate("a", "carried-7 -> carrier A", log_likelihood=-1.0),
+        AssociationCandidate("b", "carried-7 -> carrier B", log_likelihood=-5.0),
+        AssociationCandidate("c", "carried-7 -> carrier C", log_likelihood=-0.5),
+    ]
+    budget = AssociationBudgetConfig(per_component_budget=2)
+
+    store_1 = HypothesisStore()
+    resolution_1 = resolve_data_association(
+        store_1, "comp-x", candidates, _never_violates, budget
+    )
+    store_2 = HypothesisStore()
+    resolution_2 = resolve_data_association(
+        store_2, "comp-x", candidates, _never_violates, budget
+    )
+
+    assert {h.id for h in resolution_1.surviving} == {
+        h.id for h in resolution_2.surviving
+    }
+    assert resolution_1.decisions == resolution_2.decisions, (
+        "identical inputs against independent stores must produce "
+        "bit-identical decision logs"
+    )
+
+
+@pytest.mark.known_bug
+@pytest.mark.xfail(
+    strict=False,
+    reason="DAY 33 FINDING: resolve_data_association exposes no ambiguity/"
+    "margin signal on its primary surface (AssociationResolution.surviving) "
+    "-- a near-tie and a landslide look structurally identical there. The "
+    "raw log_likelihood IS present per-candidate in .decisions, so a caller "
+    "COULD compute a margin themselves, but nothing computes or flags one. "
+    "Not fixed today -- a design decision (add a margin/ambiguity field, or "
+    "declare 'the caller computes it' the intended contract) rather than a "
+    "bug to patch around; see Day-33's FOUNDATION_REPORT.md Objective 2.",
+)
+def test_near_tie_hypotheses_are_flagged_as_ambiguous_not_silently_resolved() -> None:
+    """The discrete-state analogue of Day 31's continuous-state
+    informativeness question: does a confident-looking output (one
+    surviving hypothesis, kept=True) correctly distinguish a decisive win
+    from a near-tie the budget cutoff happened to break? Two candidates
+    within 0.001 nats of each other, budget=1 -- a caller reading only
+    `resolution.surviving` sees exactly the same shape a 50-nat landslide
+    would produce."""
+    store = HypothesisStore()
+    candidates = [
+        AssociationCandidate("near-tie-winner", "p", log_likelihood=-1.000),
+        AssociationCandidate("near-tie-loser", "p", log_likelihood=-1.001),
+    ]
+    resolution = resolve_data_association(
+        store, "comp-tie", candidates, _never_violates, AssociationBudgetConfig(1)
+    )
+    assert hasattr(resolution, "ambiguous"), (
+        "AssociationResolution has no field expressing that the winning "
+        "margin (0.001 nats here) was within any notion of 'too close to "
+        "call' -- this is the gap this test documents"
+    )
+    assert resolution.ambiguous is True  # type: ignore[attr-defined]
+
+
+# ---------------------------------------------------------------------------
+# Day 33, Objective 3 -- component partitioning meets hypothesis management
+# ---------------------------------------------------------------------------
+
+
+def test_resolve_component_membership_accepts_within_cap() -> None:
+    existing = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    result = resolve_component_membership(
+        existing,
+        "bag-3",
+        ComponentCapConfig(
+            max_component_size=6, degradation_action="independent_fallback"
+        ),
+    )
+    assert isinstance(result, Component)
+    assert result.carried_entity_ids == ("laptop-7", "bag-3")
+
+
+def test_resolve_component_membership_is_a_noop_for_an_existing_member() -> None:
+    existing = Component(carrier_entity_id="A", carried_entity_ids=("laptop-7",))
+    result = resolve_component_membership(
+        existing, "laptop-7", DEFAULT_COMPONENT_CAP_CONFIG
+    )
+    assert result is existing
+
+
+def test_resolve_component_membership_refuses_past_the_cap() -> None:
+    tight_cap = ComponentCapConfig(
+        max_component_size=2, degradation_action="independent_fallback"
+    )
+    existing = Component(carrier_entity_id="A", carried_entity_ids=("item-1", "item-2"))
+    result = resolve_component_membership(existing, "item-3", tight_cap)
+    assert isinstance(result, ComponentCapRefusal)
+    assert (
+        result.existing_component == existing
+    ), "refused growth must not mutate the existing component"
+    assert result.refused_carried_entity_id == "item-3"
+    assert result.degradation_action == "independent_fallback"
+    assert result.cap_config_sha == tight_cap.sha
+
+
+def test_resolve_component_membership_at_exactly_the_cap_is_accepted() -> None:
+    """Off-by-one boundary: a component landing EXACTLY at
+    max_component_size (which counts the carrier itself: 1 + len(carried))
+    is accepted, not refused -- the cap is <=, not <."""
+    at_cap = ComponentCapConfig(
+        max_component_size=3, degradation_action="independent_fallback"
+    )
+    existing = Component(carrier_entity_id="A", carried_entity_ids=("item-1",))
+    result = resolve_component_membership(existing, "item-2", at_cap)
+    assert isinstance(result, Component)
+    assert result.size == 3
+
+    one_over = resolve_component_membership(result, "item-3", at_cap)
+    assert isinstance(one_over, ComponentCapRefusal), (
+        "the very next entity, pushing size to 4 against a cap of 3, must "
+        "be refused -- confirms the boundary is tight in both directions"
+    )
+
+
+def test_resolve_component_membership_return_type_is_exhaustive() -> None:
+    """STRUCTURAL: every path through resolve_component_membership returns
+    either Component or ComponentCapRefusal -- inspected directly on the
+    return annotation rather than trusted from reading the source, same
+    discipline as the prior-firewall signature checks."""
+    import typing
+
+    hints = typing.get_type_hints(resolve_component_membership)
+    ret = hints["return"]
+    args = typing.get_args(ret)
+    assert set(args) == {Component, ComponentCapRefusal}, (
+        f"resolve_component_membership's return type is {ret!r}, expected "
+        "Component | ComponentCapRefusal exactly"
+    )

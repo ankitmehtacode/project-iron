@@ -107,6 +107,36 @@ grow, shrink, or merge a running component. ``MergedInto`` and
 causes) have no caller in this module -- there is no merge or
 horizon-expiry logic yet, only propose / hard-prune / budget-prune.
 
+**Day 33 additions.** Objective 2 stress-tested the above fresh and
+found no architectural violation (hard-constraint pruning genuinely
+happens before any likelihood ranking; the prior firewall holds; a
+determinism test replaces the graph_rev-reproducibility test that does
+not yet apply, since this function still does not touch
+:class:`~src.model.episode.StateGraph`). It also found a real, named
+gap: :class:`AssociationResolution` exposes no ambiguity/margin signal
+on its primary surface (``.surviving``) -- a near-tie and a landslide
+look identical there, even though the raw ``log_likelihood`` per
+candidate IS present in ``.decisions`` for a caller willing to compute
+the margin itself. Encoded as
+``tests/test_estimator_joint.py::test_near_tie_hypotheses_are_flagged_
+as_ambiguous_not_silently_resolved`` (``@pytest.mark.known_bug``,
+``xfail(strict=False)``) rather than fixed -- it is a design decision
+(add a margin field, or declare "the caller computes it" the intended
+contract), not a patch. Objective 3 connects the Day-26 component-size
+cap to a membership CHANGE, which construction-time enforcement alone
+cannot see: :func:`resolve_component_membership` applies one accepted
+carrier assignment to an existing :class:`Component` and returns either
+the grown ``Component`` (at or under
+:data:`DEFAULT_COMPONENT_CAP_CONFIG`) or a :class:`ComponentCapRefusal`
+(over cap, ``degradation_action`` required, existing membership
+unchanged) -- same structural-impossibility pattern as
+:class:`DegradedComponentEstimate`. It is deliberately NOT wired to
+:func:`resolve_data_association`'s output automatically: that would
+require :class:`AssociationCandidate` to carry structured carrier
+identity rather than an opaque ``proposition`` string, which is a real
+design change or scope creep on the store's own "does not interpret"
+boundary and is not decided here.
+
 Not implemented today (skeletons, not silent gaps)
 --------------------------------------------------------
 - **Smoothing across the joint graph** -- :func:`resolve_joint_state`
@@ -1425,6 +1455,74 @@ def resolve_data_association(
 
     return AssociationResolution(
         component_id=component_id, surviving=surviving, decisions=tuple(decisions)
+    )
+
+
+@dataclass(frozen=True)
+class ComponentCapRefusal:
+    """What :func:`resolve_component_membership` returns INSTEAD of a
+    grown :class:`Component` when accepting an association's winning
+    hypothesis would push component size past
+    ``cap_config.max_component_size`` -- the same cap
+    :data:`DEFAULT_COMPONENT_CAP_CONFIG` enforces at
+    :func:`run_joint_filter` construction (Day 26), re-enforced here on
+    the membership-CHANGE path (Day 33, Objective 3), which construction-
+    time enforcement alone cannot see: a component can start within cap
+    and still be pushed over it by a later association decision.
+
+    STRUCTURAL, same pattern as :class:`DegradedComponentEstimate`:
+    ``degradation_action`` and ``cap_config_sha`` are required fields,
+    no default -- there is no way to represent "the cap was exceeded"
+    without naming what was done about it.
+    ``existing_component`` is what the caller already had, UNCHANGED:
+    growth is refused, not silently truncated some other way (e.g.
+    dropping an arbitrary existing member to make room)."""
+
+    existing_component: Component
+    refused_carried_entity_id: str
+    degradation_action: DegradationAction
+    cap_config_sha: str
+
+
+def resolve_component_membership(
+    existing: Component,
+    carried_entity_id: str,
+    cap_config: ComponentCapConfig = DEFAULT_COMPONENT_CAP_CONFIG,
+) -> Component | ComponentCapRefusal:
+    """Apply one association decision -- "``carried_entity_id`` belongs to
+    ``existing.carrier_entity_id``" -- to a component's membership,
+    subject to the cap. Not a replacement for
+    :func:`resolve_data_association`: this function does not decide WHICH
+    carrier wins (that is what produced ``carried_entity_id`` as an
+    input, e.g. the ``hypothesis_id`` of an
+    :class:`AssociationResolution`'s single surviving carrier-assignment
+    hypothesis) -- it only decides whether accepting that win is safe to
+    apply to ``existing``'s membership.
+
+    A no-op (returns ``existing`` unchanged) when ``carried_entity_id``
+    is already a member -- re-applying an already-accepted association
+    must not be distinguishable from applying it the first time.
+
+    STRUCTURAL: there is no return path that both exceeds the cap and
+    lacks a recorded ``degradation_action`` -- the return type is
+    ``Component`` (accepted, at or under cap) or
+    :class:`ComponentCapRefusal` (refused, degradation_action required),
+    exhaustively, never a silently-truncated ``Component`` or a bare
+    exception with no typed trace of what happened.
+    """
+    if carried_entity_id in existing.carried_entity_ids:
+        return existing
+    candidate = Component(
+        carrier_entity_id=existing.carrier_entity_id,
+        carried_entity_ids=existing.carried_entity_ids + (carried_entity_id,),
+    )
+    if candidate.size <= cap_config.max_component_size:
+        return candidate
+    return ComponentCapRefusal(
+        existing_component=existing,
+        refused_carried_entity_id=carried_entity_id,
+        degradation_action=cap_config.degradation_action,
+        cap_config_sha=cap_config.sha,
     )
 
 
