@@ -227,11 +227,29 @@ tr.hard td { background: repeating-linear-gradient(
   135deg, transparent, transparent 5px, var(--rule) 5px, var(--rule) 6px); }
 tr.hard td:first-child::before { content: "◐ "; }
 
-/* observed=false — the plan's non-negotiable rule, in pixels.
- * Dashed rule + italic + a glyph. All three survive greyscale. */
+/* The four-class event hierarchy (src.model.events, schema v2) — each
+ * state gets its own border pattern, glyph, and text wording (see
+ * EVENT_CLASS_ROW in app.js), so all four survive greyscale distinctly and
+ * none of the extra three collide with "inferred"'s existing convention. */
 tr.inferred td { font-style: italic; color: var(--ink-dim); }
 tr.inferred { border-bottom: 1px dashed var(--rule-strong); }
-tr.inferred td:first-child::before { content: "⌁ "; font-style: normal; }
+
+/* PredictedEvent: dotted (not dashed) rule, so it is never confusable with
+ * "inferred" at a glance -- and its own verb cell already says "will X"
+ * before any styling is even considered (Day 13's never-interchangeable-
+ * with-observed rule). */
+tr.predicted td { font-style: italic; color: var(--ink-faint); }
+tr.predicted { border-bottom: 1px dotted var(--rule-strong); }
+
+/* HypothesisEvent: an open question, not a fact under review -- a double
+ * rule distinguishes it from both the single-dashed inferred row and the
+ * single-dotted predicted row. */
+tr.hypothesis td { font-style: italic; color: var(--ink-faint); }
+tr.hypothesis { border-bottom: 3px double var(--rule-strong); }
+
+/* A row with no recognisable event_class at all (e.g. a legacy file):
+ * flagged, never silently folded into "observed". */
+tr.unclassified td { background: var(--warn-bg); color: var(--warn-ink); }
 
 /* --- states ------------------------------------------------------------ */
 
@@ -295,6 +313,39 @@ select, button.action {
   box-shadow: 0 6px 20px rgba(0,0,0,.18); pointer-events: none;
 }
 .tooltip .src { color: var(--ink-faint); display: block; margin-top: 5px; word-break: break-all; }
+
+/* --- association / identity --------------------------------------------
+ *
+ * Decisive vs Ambiguous reuses the same redundant-channel discipline as
+ * observed/inferred: a dashed border for the uncertain state, a solid one
+ * for the resolved one, PLUS a literal text label in both cases. Colour is
+ * never the only signal — this block must read correctly in greyscale.
+ */
+
+.verdict-block { padding: 10px 12px; margin-top: 10px; }
+.verdict-tag {
+  display: inline-block; font-family: var(--mono); font-size: 12px;
+  font-weight: 700; letter-spacing: 0.03em; padding: 4px 8px; margin-bottom: 8px;
+}
+.decisive-tag { border: 1px solid var(--ink); }
+.ambiguous-tag { border: 1px dashed var(--rule-strong); color: var(--ink-dim); }
+
+.assoc-readout { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 8px 0 0; font-family: var(--mono); font-size: 12px; }
+.assoc-readout dt { color: var(--ink-faint); }
+.assoc-readout dd { margin: 0; word-break: break-word; }
+
+.assoc-table td, .assoc-table th { vertical-align: top; }
+/* A winner row gets a literal text badge (".winner-badge"), never a
+ * background colour alone -- the badge text is the signal, the border is
+ * a secondary reinforcement only. This row class is applied ONLY when the
+ * verdict is Decisive (see candidatesTable() in app.js); an Ambiguous
+ * verdict's top-scoring competitor takes the same, unstyled row every
+ * other competitor does. */
+tr.assoc-winner { border-left: 3px solid var(--ink); }
+.winner-badge { font-weight: 700; }
+td.assoc-pruned { font-style: italic; }
+
+.inferred-value { font-style: italic; color: var(--ink-dim); }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }

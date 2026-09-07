@@ -49,6 +49,7 @@ class Artifacts:
     envelope_path: Path
     data_dir: Path
     events_path: Path
+    associations_dir: Path
 
     @classmethod
     def from_config(cls) -> "Artifacts":
@@ -63,6 +64,7 @@ class Artifacts:
             envelope_path=root / "configs" / "envelope" / "gate_320x180.envelope.json",
             data_dir=config.paths.resolved_data_dir,
             events_path=root / "outputs" / "events" / "events.parquet",
+            associations_dir=root / "outputs" / "associations",
         )
 
     def relative(self, path: Path) -> str:
@@ -226,6 +228,46 @@ def read_events(artifacts: Artifacts) -> dict[str, Any] | Absent:
     table = pq.read_table(artifacts.events_path)
     rows = table.to_pylist()
     return {"_source": artifacts.relative(artifacts.events_path), "rows": rows}
+
+
+def list_associations(artifacts: Artifacts) -> list[dict[str, Any]]:
+    """Every resolved association component on disk, newest first.
+
+    Written by ``scripts/build_association_demo.py`` today — see that
+    script's module docstring for why a demo producer exists at all rather
+    than a production pipeline stage (Day 35, Objective 2). Absence here
+    means the same thing it means everywhere else in this module: nothing
+    has been produced, not that nothing was asked.
+    """
+    if not artifacts.associations_dir.exists():
+        return []
+    rows = []
+    for path in sorted(artifacts.associations_dir.glob("*.json")):
+        payload = json.loads(path.read_text())
+        rows.append(
+            {
+                "file": artifacts.relative(path),
+                "component_id": payload.get("component_id", path.stem),
+                "verdict_kind": (payload.get("verdict") or {}).get("kind"),
+                "source_clip": payload.get("source_clip"),
+                "modified_epoch": path.stat().st_mtime,
+            }
+        )
+    rows.sort(key=lambda r: r.get("modified_epoch", 0), reverse=True)
+    return rows
+
+
+def read_association(artifacts: Artifacts, component_id: str) -> dict[str, Any] | Absent:
+    path = artifacts.associations_dir / f"{component_id}.json"
+    if not path.exists():
+        return Absent(
+            what=f"association resolution {component_id!r}",
+            looked_for=artifacts.relative(path),
+            produced_by="python scripts/build_association_demo.py",
+        )
+    payload = json.loads(path.read_text())
+    payload["_source"] = artifacts.relative(path)
+    return payload
 
 
 def active_golden(artifacts: Artifacts) -> dict[str, Any] | Absent:

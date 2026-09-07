@@ -185,7 +185,7 @@ function scorecardPanel(card) {
       const th = el("th", i ? "num" : null, h);
       head.append(th);
     });
-    table.append(el("thead")).firstChild.append(head);
+    { const thead = el("thead"); thead.append(head); table.append(thead); }
     const tb = el("tbody");
     const soft = [];
     const hardRows = [];
@@ -227,7 +227,7 @@ async function comparePanel(left, right) {
   const table = el("table");
   const head = el("tr");
   ["metric", left, right, "delta"].forEach((h, i) => head.append(el("th", i ? "num" : null, h)));
-  table.append(el("thead")).firstChild.append(head);
+  { const thead = el("thead"); thead.append(head); table.append(thead); }
   const tb = el("tbody");
   Object.entries(res.metrics).forEach(([name, pair]) => {
     const tr = el("tr");
@@ -415,7 +415,7 @@ async function viewEnvelope(root) {
   const head = el("tr");
   ["speed (gate px/frame)", "speed (native px/frame)", "wake threshold (silhouette gate px)", "vs derived"]
     .forEach((h, i) => head.append(el("th", i ? "num" : null, h)));
-  table.append(el("thead")).firstChild.append(head);
+  { const thead = el("thead"); thead.append(head); table.append(thead); }
   const tb = el("tbody");
   samples.forEach((s) => {
     const tr = el("tr");
@@ -504,6 +504,41 @@ function envelopeChart(samples, derived) {
 
 /* --- view: events ------------------------------------------------------- */
 
+/* Four classes, not a flag (src.model.events, schema v2, Day 13) — a
+ * two-state observed/inferred rendering asserts a false dichotomy over a
+ * four-state system (Day 35 Objective 3). Each class gets its own row
+ * class, verb-cell annotation, and glyph so the distinction survives
+ * greyscale exactly like the original observed/inferred one did; the
+ * "inferred" dashed convention itself is extended, not replaced, since it
+ * already carries that discipline for one of the four states.
+ *
+ * PredictedEvent's row must never be mistakable for ObservedEvent's in any
+ * list or narrative rendering (Day 13's rule) — its verb cell is rewritten
+ * as a forecast ("will <verb>"), not merely glyph-marked, so the text
+ * itself carries the distinction even if every visual style were stripped.
+ */
+const EVENT_CLASS_ROW = {
+  observed: { cls: null, glyph: "", verb: (v) => v, note: "" },
+  inferred: {
+    cls: "inferred",
+    glyph: "⌁ ",
+    verb: (v) => v,
+    note: "derived, not directly seen",
+  },
+  predicted: {
+    cls: "predicted",
+    glyph: "▷ ",
+    verb: (v) => `will ${v}`,
+    note: "forecast — has not happened; never evidence, never alert-eligible",
+  },
+  hypothesis: {
+    cls: "hypothesis",
+    glyph: "? ",
+    verb: (v) => `possibly ${v}`,
+    note: "open question, not a fact under review; never alert-eligible",
+  },
+};
+
 async function viewEvents(root) {
   root.textContent = "";
   const data = await api("/api/events");
@@ -517,23 +552,273 @@ async function viewEvents(root) {
   const panel = el("div", "panel");
   panel.append(el("h2", null, "Event log"));
   panel.append(el("p", "note",
-    "Rows with observed=false are dashed and italic with a ⌁ marker — the distinction must survive greyscale, so it never rests on colour."));
+    "Four classes, each rendered distinctly by class, glyph, AND verb-cell wording — never colour alone, so the distinction survives greyscale. observed=false no longer exists in this schema; event_class replaces it."));
   const table = el("table");
-  const cols = ["event_id", "subject", "verb", "object", "zone", "confidence", "importance", "observed"];
+  const cols = ["event_id", "subject", "verb", "object", "zone", "confidence", "importance", "event_class"];
   const head = el("tr");
   cols.forEach((c, i) => head.append(el("th", i >= 5 ? "num" : null, c)));
-  table.append(el("thead")).firstChild.append(head);
+  { const thead = el("thead"); thead.append(head); table.append(thead); }
   const tb = el("tbody");
   (data.rows || []).forEach((r) => {
-    const tr = el("tr", r.observed === false ? "inferred" : null);
-    cols.forEach((c, i) => tr.append(el("td", i >= 5 ? "num" : null,
-      r[c] === undefined || r[c] === null ? "—" : String(r[c]))));
+    const known = EVENT_CLASS_ROW[r.event_class];
+    // A row whose event_class is missing or unrecognised (e.g. a legacy
+    // schema-v1 file with no event_class column at all) gets its OWN
+    // distinct, explicit state — never silently defaulted to "observed",
+    // which would be exactly the false-confidence bug this fix exists to
+    // remove.
+    const spec = known || {
+      cls: "unclassified",
+      glyph: "‼ ",
+      verb: (v) => v,
+      note: "no event_class on this row — cannot place it in the four-state model; rendered as its own state, not defaulted to observed",
+    };
+    const tr = el("tr", spec.cls);
+    cols.forEach((c, i) => {
+      let value = r[c];
+      if ((c === "subject" || c === "object" || c === "zone") && value && typeof value === "object") {
+        // EntityRef, not a scalar -- String() on it would print
+        // "[object Object]" (a real, pre-existing bug this fix also
+        // closes: every populated subject/object/zone cell rendered that
+        // literal string before today).
+        value = `${value.kind}:${value.id}`;
+      }
+      if (c === "verb" && value !== undefined && value !== null) {
+        value = spec.verb(String(value));
+      }
+      if (c === "event_class") {
+        value = r.event_class || "unclassified";
+      }
+      tr.append(el("td", i >= 5 ? "num" : null,
+        value === undefined || value === null ? "—" : String(value)));
+    });
+    tr.firstChild.textContent = spec.glyph + tr.firstChild.textContent;
+    if (spec.note) tr.title = spec.note;
     tb.append(tr);
   });
   table.append(tb);
   panel.append(table);
+  const legend = el("div", "legend");
+  Object.entries(EVENT_CLASS_ROW).forEach(([name, spec]) => {
+    legend.append(el("span", null, `${spec.glyph}${name} — ${spec.note || "directly seen"}`));
+  });
+  panel.append(legend);
   panel.append(el("p", "note", `source: ${data._source}`));
   root.append(panel);
+}
+
+/* --- view: association / identity --------------------------------------- */
+
+/* Kept out of the CSS class name space entirely: an Ambiguous verdict's
+ * competitor rows get NO class that varies by rank or score — see
+ * ambiguousBlock() below. This is the one view where "no visual distinction
+ * between rows" is the correctness requirement, not an oversight. */
+
+function shortHypId(fullId) {
+  const i = fullId.indexOf("::");
+  return i === -1 ? fullId : fullId.slice(i + 2);
+}
+
+async function viewAssociation(root) {
+  root.textContent = "";
+  const list = await api("/api/associations");
+  const rows = list.associations || [];
+  if (!rows.length) {
+    root.append(absentBlock({
+      what: "any association resolution",
+      looked_for: "outputs/associations/*.json",
+      produced_by: "python scripts/build_association_demo.py",
+    }));
+    return;
+  }
+
+  const picker = el("div", "panel");
+  picker.append(el("h2", null, "Association / Identity"));
+  picker.append(el("p", "note",
+    "Which competing identity hypothesis a decision resolved to, and how strongly. The honest rendering of a genuine tie is two roughly-equal-weight items, not one item with a smaller badge on the other."));
+  const sel = el("select");
+  rows.forEach((r) => {
+    const o = el("option", null, `${r.component_id}  (${r.verdict_kind})`);
+    o.value = r.component_id;
+    sel.append(o);
+  });
+  picker.append(sel);
+  root.append(picker);
+
+  const body = el("div");
+  root.append(body);
+
+  const render = async () => {
+    body.textContent = "";
+    const data = await api(`/api/association/${sel.value}`);
+    if (data.absent) { body.append(absentBlock(data)); return; }
+    body.append(associationPanel(data));
+  };
+  sel.addEventListener("change", render);
+  await render();
+}
+
+function causeLabel(cause) {
+  if (!cause) return "kept";
+  if (cause.kind === "pruned_by_budget") {
+    return `NOT RULED OUT — resource-limited (budget ${cause.budget})`;
+  }
+  return cause.detail || cause.kind;
+}
+
+function decisiveBlock(d, verdict) {
+  const box = el("div", "verdict-block decisive");
+  const tag = el("div", "verdict-tag decisive-tag", "DECISIVE");
+  box.append(tag);
+  const winnerId = shortHypId(verdict.winner);
+  const p1 = el("p", null);
+  p1.append(el("strong", null, `winner: agent record ${winnerId}`));
+  box.append(p1);
+  const dl = el("dl", "assoc-readout");
+  dl.append(el("dt", null, "margin"));
+  dl.append(el("dd", null, Number.isFinite(verdict.margin_nats)
+    ? `${verdict.margin_nats.toFixed(4)} nats`
+    : "∞ nats (only one candidate — nothing competed)"));
+  dl.append(el("dt", null, "Kass & Raftery / Jeffreys band"));
+  dl.append(el("dd", null, verdict.kass_raftery_band
+    ? `${verdict.kass_raftery_band} (Kass & Raftery 1995, JASA 90(430) p.777, Table 4; Jeffreys 1961)`
+    : "unmeasured"));
+  box.append(dl);
+  return box;
+}
+
+function ambiguousBlock(d, verdict) {
+  const box = el("div", "verdict-block ambiguous");
+  const tag = el("div", "verdict-tag ambiguous-tag", "AMBIGUOUS — no winner");
+  box.append(tag);
+  box.append(el("p", "note",
+    "Below the decisiveness threshold. There is no winner field on this verdict at all — not a null one — so this view has nothing to highlight even if it wanted to."));
+  const dl = el("dl", "assoc-readout");
+  dl.append(el("dt", null, "margin"));
+  dl.append(el("dd", null, `${verdict.margin_nats.toFixed(4)} nats (top two candidates; below the decisiveness threshold)`));
+  box.append(dl);
+  return box;
+}
+
+function candidatesTable(d, verdict, decisionById) {
+  const isDecisive = verdict.kind === "decisive";
+  const winnerShort = isDecisive ? shortHypId(verdict.winner) : null;
+
+  // Ambiguous: rows in ALPHABETICAL hypothesis_id order, never score order —
+  // sorting by score would put the strongest-supported competitor first,
+  // which reads as "the answer" exactly like a highlighted winner would.
+  // Decisive: score order is fine, because a real winner exists to lead with.
+  const candidates = (d.candidates || []).slice();
+  if (isDecisive) {
+    candidates.sort((a, b) => b.log_likelihood_nats - a.log_likelihood_nats);
+  } else {
+    candidates.sort((a, b) => a.hypothesis_id.localeCompare(b.hypothesis_id));
+  }
+
+  const table = el("table", "assoc-table");
+  const head = el("tr");
+  ["hypothesis", "log-likelihood (nats)", "status"].forEach((h, i) =>
+    head.append(el("th", i === 1 ? "num" : null, h)));
+  { const thead = el("thead"); thead.append(head); table.append(thead); }
+  const tb = el("tbody");
+  candidates.forEach((c) => {
+    const decision = decisionById[c.hypothesis_id];
+    const tr = el("tr");
+    // The ONLY place a winner ever gets a distinguishing class, and it is
+    // gated on isDecisive, never on rank alone — an Ambiguous verdict's top
+    // scorer takes this same branch as every other row.
+    if (isDecisive && c.hypothesis_id === winnerShort) {
+      tr.className = "assoc-winner";
+    }
+    const idCell = el("td", "mono", c.hypothesis_id);
+    if (isDecisive && c.hypothesis_id === winnerShort) {
+      idCell.append(el("span", "winner-badge", " — WINNER"));
+    }
+    tr.append(idCell);
+    tr.append(el("td", "num mono", c.log_likelihood_nats.toFixed(4)));
+    const statusCell = el("td", decision && decision.cause && decision.cause.kind === "pruned_by_budget"
+      ? "assoc-pruned" : null);
+    statusCell.textContent = decision ? causeLabel(decision.cause) : "—";
+    tr.append(statusCell);
+    tb.append(tr);
+  });
+  table.append(tb);
+  return table;
+}
+
+function provenancePanel(d) {
+  const panel = el("div", "panel");
+  panel.append(el("h2", null, "Provenance"));
+  const dl = el("dl", "assoc-readout");
+  const rows = [
+    ["source clip", d.source_clip],
+    ["source file", d.source],
+    ["frame", d.frame_index],
+    ["graph_rev", d.graph_rev === null ? `unmeasured — ${d.graph_rev_note}` : d.graph_rev],
+    ["config_sha", d.config_sha],
+    ["model_shas", d.model_shas === null ? `none — ${d.model_shas_note}` : JSON.stringify(d.model_shas)],
+    ["measurement sigma", `${d.measurement_sigma_m} m — ${d.measurement_sigma_derivation}`],
+  ];
+  rows.forEach(([k, v]) => { dl.append(el("dt", null, k)); dl.append(el("dd", "mono", String(v))); });
+  panel.append(dl);
+  return panel;
+}
+
+function eventLoopPanel(d) {
+  const panel = el("div", "panel");
+  panel.append(el("h2", null, "Resulting event"));
+  const ev = d.event;
+  if (!ev) {
+    panel.append(el("p", "note", "no event was emitted for this verdict."));
+    return panel;
+  }
+  panel.append(el("p", "note",
+    "Closes the loop to Day 34 Objective 4: an Ambiguous verdict must never silently become an ObservedEvent."));
+  const dl = el("dl", "assoc-readout");
+  const basis = ev.basis || ev.predicted_by || ev.rationale || "(none)";
+  [["event_class", ev.event_class],
+   ["confidence", ev.confidence.toFixed(4)],
+   ["subject", `${ev.subject.kind}:${ev.subject.id}`],
+   ["basis / rationale", basis]].forEach(([k, v]) => {
+    dl.append(el("dt", null, k));
+    dl.append(el("dd", ev.event_class === "inferred" ? "mono inferred-value" : "mono", String(v)));
+  });
+  panel.append(dl);
+  if (ev.event_class === "observed" && (d.verdict || {}).kind === "ambiguous") {
+    // STRUCTURAL check surfaced in the UI too, not only in the audit test:
+    // this combination must never occur.
+    const warn = el("div", "warnband");
+    warn.append(el("h3", null, "Contract violation"));
+    warn.append(el("p", null, "An Ambiguous verdict produced an ObservedEvent. This should be unreachable — build_identity_event's match statement has no branch from Ambiguous to ObservedEvent."));
+    panel.append(warn);
+  }
+  return panel;
+}
+
+function associationPanel(d) {
+  const wrap = el("div");
+  const verdict = d.verdict || {};
+  const decisionById = {};
+  (d.decisions || []).forEach((dec) => { decisionById[dec.hypothesis_id] = dec; });
+
+  const head = el("div", "panel");
+  head.append(el("h2", null, `Component: ${d.component_id}`));
+  head.append(el("p", "note",
+    `subject detection: ${d.source_clip}, frame ${d.frame_index}, agent ${d.detected_agent}`));
+  if (verdict.kind === "decisive") {
+    head.append(decisiveBlock(d, verdict));
+  } else if (verdict.kind === "ambiguous") {
+    head.append(ambiguousBlock(d, verdict));
+  }
+  wrap.append(head);
+
+  const candPanel = el("div", "panel");
+  candPanel.append(el("h2", null, "Competitor set"));
+  candPanel.append(candidatesTable(d, verdict, decisionById));
+  wrap.append(candPanel);
+
+  wrap.append(provenancePanel(d));
+  wrap.append(eventLoopPanel(d));
+  return wrap;
 }
 
 /* --- view: provenance --------------------------------------------------- */
@@ -577,6 +862,7 @@ const VIEWS = {
   clip: viewClip,
   envelope: viewEnvelope,
   events: viewEvents,
+  association: viewAssociation,
   provenance: viewProvenance,
 };
 

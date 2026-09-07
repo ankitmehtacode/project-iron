@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -43,7 +44,7 @@ def build_routes(store: art.Artifacts) -> list[tuple[re.Pattern[str], Callable]]
         if isinstance(payload, art.Absent):
             payload = payload.as_dict()
             status = 404
-        body = json.dumps(payload, default=_fallback).encode("utf-8")
+        body = json.dumps(_json_safe(payload), default=_fallback).encode("utf-8")
         return status, body, "application/json; charset=utf-8"
 
     def scorecards(_: re.Match[str], __: dict[str, list[str]]):
@@ -73,6 +74,12 @@ def build_routes(store: art.Artifacts) -> list[tuple[re.Pattern[str], Callable]]
     def provenance(_: re.Match[str], __: dict[str, list[str]]):
         return json_response(art.provenance(store))
 
+    def associations(_: re.Match[str], __: dict[str, list[str]]):
+        return json_response({"associations": art.list_associations(store)})
+
+    def association(match: re.Match[str], __: dict[str, list[str]]):
+        return json_response(art.read_association(store, match.group("component")))
+
     def clip(match: re.Match[str], __: dict[str, list[str]]):
         return json_response(art.clip_analysis(store, match.group("clip")))
 
@@ -90,6 +97,8 @@ def build_routes(store: art.Artifacts) -> list[tuple[re.Pattern[str], Callable]]
         (re.compile(r"^/api/golden$"), golden),
         (re.compile(r"^/api/events$"), events),
         (re.compile(r"^/api/provenance$"), provenance),
+        (re.compile(r"^/api/associations$"), associations),
+        (re.compile(r"^/api/association/(?P<component>[\w.\-]+)$"), association),
         (re.compile(r"^/api/clip/(?P<clip>[\w.\-]+)$"), clip),
         (re.compile(r"^/api/clip/(?P<clip>[\w.\-]+)/frame/(?P<i>\d+)$"), frame),
     ]
@@ -102,6 +111,39 @@ def _fallback(value: Any) -> Any:
     if isinstance(value, Path):
         return str(value)
     raise TypeError(f"cannot serialise {type(value).__name__}")
+
+
+def _json_safe(value: Any) -> Any:
+    """Recursively replace non-finite floats with ``None`` before encoding.
+
+    Found live during Day 35's Objective 1 audit: real scorecards carry
+    genuine ``NaN`` values (an undefined baseline, ``precision`` with a
+    zero denominator, an unpopulated ``per_condition`` bucket like
+    "night"). ``json.dumps`` defaults to ``allow_nan=True`` and happily
+    emits the literal token ``NaN`` — which is NOT valid JSON per the
+    spec browsers implement, so ``response.json()`` throws and the entire
+    payload is lost, not just the one offending field. app.js's ``api()``
+    helper catches that parse failure and returns ``{error: ...}``, which
+    every view then renders as if every field were simply absent —
+    "unmeasured" is shown, but the true cause (a transport-layer crash) is
+    never surfaced anywhere. This silently corrupted EVERY real scorecard
+    view before today, since every scorecard so far has carried at least
+    one NaN field. Collapsing NaN to ``null`` matches the meaning
+    ``m.value === null`` already carries everywhere in app.js
+    ("unmeasured") — an honest reading, though it loses the (currently
+    unrepresented, see per_condition's separate ``{"undefined": true,
+    "reason": ...}`` convention for the SAME concept) distinction between
+    "never computed" and "computed and mathematically undefined". Named
+    as Day 36 follow-up in the Day-35 report rather than solved here,
+    since unifying it is a scorecard-schema change, not an Inspector one.
+    """
+    if isinstance(value, float):
+        return value if math.isfinite(value) else None
+    if isinstance(value, dict):
+        return {k: _json_safe(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_json_safe(v) for v in value]
+    return value
 
 
 class InspectorHandler(BaseHTTPRequestHandler):

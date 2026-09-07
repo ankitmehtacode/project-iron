@@ -232,13 +232,27 @@ def _resolve_component(
         raise AssertionError(f"unhandled verdict {verdict!r}")
 
     def cause_payload(cause: Any) -> dict[str, Any] | None:
+        """Every DeathCause kind, rendered with a human-readable ``detail``
+        so the UI never needs its own copy of this dispatch -- a death
+        cause the store can construct that this script never produces
+        (e.g. RefutedByHardConstraint, since no hard-constraint check is
+        implemented here) still renders correctly if it ever appears."""
         if cause is None:
             return None
-        payload = {"kind": cause.kind}
+        payload: dict[str, Any] = {"kind": cause.kind}
         if isinstance(cause, PrunedByBudget):
             payload["budget"] = cause.budget
+            payload["detail"] = (
+                f"not ruled out — resource-limited: lost a competition for "
+                f"{cause.budget} budget slot(s) before evidence ever spoke "
+                "to whether it was right (Day 28's PRUNED_BY_BUDGET rule)"
+            )
         elif isinstance(cause, DominatedByLikelihood):
             payload["dominant_hypothesis_id"] = cause.dominant_hypothesis_id
+            payload["detail"] = (
+                "evaluated and found decisively less likely than "
+                f"{cause.dominant_hypothesis_id.split('::')[-1]}"
+            )
         else:
             payload["detail"] = str(cause)
         return payload

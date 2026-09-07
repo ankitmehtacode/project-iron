@@ -50,6 +50,24 @@ def call(store: art.Artifacts, path: str, query: dict | None = None):
     raise AssertionError(f"no route matched {path}")
 
 
+def call_raw(store: art.Artifacts, path: str, query: dict | None = None):
+    """Like ``call``, but returns the undecoded response bytes.
+
+    ``json.loads`` (used by ``call``) is too lenient to catch the NaN/
+    Infinity bug below: Python's own decoder accepts those as a
+    non-standard extension, the same leniency that let the bug ship
+    undetected through every prior test in this file. Only a raw-bytes
+    check (or a strict ``parse_constant``) reproduces what a real
+    browser's ``JSON.parse`` actually rejects.
+    """
+    for pattern, handler in build_routes(store):
+        match = pattern.match(path)
+        if match:
+            status, body, content_type = handler(match, query or {})
+            return status, body, content_type
+    raise AssertionError(f"no route matched {path}")
+
+
 # --- endpoints against real artifacts ------------------------------------
 
 
@@ -74,6 +92,38 @@ def test_every_scorecard_carries_the_shas_that_identify_it(
         _, full = call(store, f"/api/scorecard/{card['name']}")
         assert full["golden_set_sha"], f"{card['name']} has no set_sha"
         assert full["_source"], "every payload names the file it was read from"
+
+
+def test_scorecard_response_never_emits_non_standard_json_constants(
+    store: art.Artifacts,
+) -> None:
+    """Found live during Day 35's Objective 1 audit: real scorecards carry
+    genuine NaN values (an unpopulated per_condition bucket like "night",
+    a zero-denominator precision). json.dumps defaults to allow_nan=True
+    and happily emits the literal token NaN -- which is NOT valid JSON per
+    the spec browsers implement, so a real browser's response.json() threw
+    on EVERY real scorecard, the whole payload was lost (not just the
+    offending field), and every view silently rendered as if every field
+    were absent -- "unmeasured" was shown with no indication the real
+    cause was a transport-layer crash. Python's own json.loads is too
+    lenient to have ever caught this (it also accepts NaN as a
+    non-standard extension) -- hence a strict parse here, and hence this
+    bug reaching Day 35 despite an otherwise well-tested server module."""
+    _, payload = call(store, "/api/scorecards")
+    cards = payload["scorecards"]
+    assert cards, "make eval has not been run; there is nothing to check"
+    for card in cards:
+        _, body, content_type = call_raw(store, f"/api/scorecard/{card['name']}")
+        assert content_type.startswith("application/json")
+
+        def _reject_non_standard_constant(token: str) -> None:
+            raise AssertionError(
+                f"{card['name']}: non-standard JSON constant {token!r} in "
+                "the response body -- a real browser's JSON parser rejects "
+                "this and the whole payload is lost, not just this field"
+            )
+
+        json.loads(body, parse_constant=_reject_non_standard_constant)
 
 
 def test_active_golden_set_matches_the_configured_one(store: art.Artifacts) -> None:
@@ -187,6 +237,82 @@ def test_a_missing_artifact_returns_the_path_and_the_command(
     assert payload["produced_by"], "and the command that produces it"
 
 
+def _four_class_event_fixture():
+    """One real, validated instance of each schema-v2 event class — built
+    through src.model.events's own dataclasses (so __post_init__ validation
+    runs), not a literal dict standing in for one."""
+    import uuid
+
+    from src.events.schema import EntityRef, Verb
+    from src.model.events import HypothesisEvent, InferredEvent, ObservedEvent, PredictedEvent
+
+    subject = EntityRef("session", "sess-day35")
+    common = dict(site_id="site-0", confidence=0.8, importance=0.5, manifest_sha="sha-day35")
+    return [
+        ObservedEvent(event_id=uuid.uuid4(), ts_ns=1, subject=subject, verb=Verb.ENTERED, **common),
+        InferredEvent(event_id=uuid.uuid4(), ts_ns=2, subject=subject, verb=Verb.EXITED, basis="retroactive resolution", **common),
+        PredictedEvent(event_id=uuid.uuid4(), ts_ns=3, subject=subject, verb=Verb.APPROACHED, predicted_by="velocity extrapolation", **common),
+        HypothesisEvent(event_id=uuid.uuid4(), ts_ns=4, subject=subject, verb=Verb.LOITERED, rationale="unconfirmed", **common),
+    ]
+
+
+def test_mixed_four_class_event_list_serves_a_distinct_event_class_per_row(
+    tmp_path: Path,
+) -> None:
+    """Objective 3's mandated test: a mixed list renders each of the four
+    classes distinguishably. Verified on the served DATA here (event_class
+    is present and correct per row); the companion tests below verify the
+    served MARKUP (app.js/style.css) maps every class to a distinct,
+    non-colour-only rendering. Neither is an eyeball check."""
+    from src.model.events import write_events_v2_parquet
+
+    events_path = tmp_path / "events.parquet"
+    write_events_v2_parquet(_four_class_event_fixture(), events_path)
+    store = art.Artifacts(
+        project_root=tmp_path,
+        scorecards_dir=tmp_path / "outputs" / "scorecards",
+        golden_dir=tmp_path / "configs" / "golden",
+        envelope_path=tmp_path / "configs" / "envelope" / "gate_320x180.envelope.json",
+        data_dir=tmp_path / "data",
+        events_path=events_path,
+        associations_dir=tmp_path / "outputs" / "associations",
+    )
+    status, payload = call(store, "/api/events")
+    assert status == 200
+    classes = [row["event_class"] for row in payload["rows"]]
+    assert classes == ["observed", "inferred", "predicted", "hypothesis"]
+
+
+def test_app_js_maps_all_four_event_classes_to_distinct_rendering() -> None:
+    """The served markup, checked structurally: EVENT_CLASS_ROW must map
+    all four classes to distinct CSS row classes and distinct verb-cell
+    wording, so a screenshot could not confuse one for another even before
+    considering colour."""
+    text = (REPO_ROOT / "src" / "inspector" / "static" / "app.js").read_text()
+    section = text[text.index("EVENT_CLASS_ROW"):text.index("async function viewEvents")]
+    for name in ("observed", "inferred", "predicted", "hypothesis"):
+        assert f"{name}:" in section, f"EVENT_CLASS_ROW is missing {name!r}"
+    # Distinct CSS classes (None counts as its own distinct, unstyled state
+    # for "observed" — the baseline every other class is distinguished FROM).
+    assert 'cls: "inferred"' in section
+    assert 'cls: "predicted"' in section
+    assert 'cls: "hypothesis"' in section
+    # PredictedEvent's own verb-cell wording must differ from a bare pass-
+    # through — Day 13's "never interchangeable with ObservedEvent" rule
+    # applied to the text itself, not just to styling.
+    assert '`will ${v}`' in section
+    assert '`possibly ${v}`' in section
+
+
+def test_style_css_gives_each_event_class_a_distinct_non_color_border() -> None:
+    """Grayscale legibility for all three non-observed classes, not only
+    the original inferred/observed pair."""
+    css = (REPO_ROOT / "src" / "inspector" / "static" / "style.css").read_text()
+    assert "tr.inferred { border-bottom: 1px dashed" in css
+    assert "tr.predicted { border-bottom: 1px dotted" in css
+    assert "tr.hypothesis { border-bottom: 3px double" in css
+
+
 def test_absent_events_are_an_instruction_not_an_empty_table(
     store: art.Artifacts,
 ) -> None:
@@ -265,6 +391,7 @@ def test_empty_state_snapshot(tmp_path: Path) -> None:
         envelope_path=tmp_path / "configs" / "envelope" / "gate_320x180.envelope.json",
         data_dir=tmp_path / "data",
         events_path=tmp_path / "outputs" / "events" / "events.parquet",
+        associations_dir=tmp_path / "outputs" / "associations",
     )
 
     assert art.list_scorecards(empty) == []
@@ -285,3 +412,138 @@ def test_empty_state_snapshot(tmp_path: Path) -> None:
     assert isinstance(events, art.Absent)
     assert events.looked_for == "outputs/events/events.parquet"
     assert "nothing has run" in events.produced_by
+
+    assert art.list_associations(empty) == []
+    association = art.read_association(empty, "any-component")
+    assert isinstance(association, art.Absent)
+    assert association.produced_by == "python scripts/build_association_demo.py"
+
+
+# --- association / identity view ------------------------------------------
+
+
+def _build_association_demo_if_absent(store: art.Artifacts) -> None:
+    """The real demo artifact this view serves is a generated output
+    (outputs/ is gitignored — see .gitignore's "generated pipeline
+    artifacts" note), not a checked-in fixture. Regenerate it if a
+    previous run has not already, exactly the way a human running
+    ``make inspect`` cold would."""
+    if store.associations_dir.exists() and list(store.associations_dir.glob("*.json")):
+        return
+    import subprocess
+    import sys
+
+    subprocess.run(
+        [sys.executable, "scripts/build_association_demo.py"],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+    )
+
+
+def test_association_endpoints_serve_real_verdicts(store: art.Artifacts) -> None:
+    _build_association_demo_if_absent(store)
+    status, payload = call(store, "/api/associations")
+    assert status == 200
+    rows = payload["associations"]
+    assert rows, "run scripts/build_association_demo.py before this test"
+    kinds = {r["verdict_kind"] for r in rows}
+    assert "decisive" in kinds and "ambiguous" in kinds, (
+        "the demo must exercise both verdict types, or the self-audit "
+        "below cannot check that they render differently"
+    )
+
+    for row in rows:
+        _, full = call(store, f"/api/association/{row['component_id']}")
+        assert full["candidates"], "a verdict without its competitor set is not evidence"
+        assert full["verdict"]["kind"] in ("decisive", "ambiguous")
+        assert (REPO_ROOT / full["_source"]).exists()
+
+
+def test_ambiguous_verdict_has_no_winner_field_on_the_wire(store: art.Artifacts) -> None:
+    """Structural, at the API boundary: an Ambiguous verdict payload must
+    not carry a ``winner`` key at all — the same discipline
+    src.estimator.joint.Ambiguous enforces in Python (no ``winner``
+    attribute exists on the dataclass), re-checked here because the JSON
+    boundary is a second place this could quietly leak back in."""
+    _build_association_demo_if_absent(store)
+    _, rows = call(store, "/api/associations")
+    ambiguous = [r for r in rows["associations"] if r["verdict_kind"] == "ambiguous"]
+    assert ambiguous, "no ambiguous demo component found"
+    _, full = call(store, f"/api/association/{ambiguous[0]['component_id']}")
+    assert "winner" not in full["verdict"]
+
+
+def test_ambiguous_verdict_never_produces_an_observed_event(store: art.Artifacts) -> None:
+    """Closes the loop to Day 34 Objective 4 at the API boundary: an
+    Ambiguous verdict's event must be InferredEvent, never ObservedEvent."""
+    _build_association_demo_if_absent(store)
+    _, rows = call(store, "/api/associations")
+    ambiguous = [r for r in rows["associations"] if r["verdict_kind"] == "ambiguous"]
+    assert ambiguous
+    _, full = call(store, f"/api/association/{ambiguous[0]['component_id']}")
+    assert full["event"]["event_class"] == "inferred"
+
+
+def test_pruned_by_budget_is_forensically_visible_in_a_real_resolution(
+    store: art.Artifacts,
+) -> None:
+    """At least one real, served decision must carry PRUNED_BY_BUDGET, or
+    the "literal, visible label" requirement (Day 35 Objective 2) has
+    nothing to render against."""
+    _build_association_demo_if_absent(store)
+    _, rows = call(store, "/api/associations")
+    found = False
+    for row in rows["associations"]:
+        _, full = call(store, f"/api/association/{row['component_id']}")
+        for decision in full["decisions"]:
+            cause = decision["cause"]
+            if cause and cause["kind"] == "pruned_by_budget":
+                found = True
+    assert found, "no PRUNED_BY_BUDGET decision in any served component"
+
+
+# --- structural self-audit: Ambiguous must never render as Decisive -------
+
+
+def test_ambiguous_rendering_has_no_rank_based_winner_styling() -> None:
+    """The anti-pattern named in the Day 35 prompt, checked structurally:
+    app.js must apply its winner class/badge ONLY inside the isDecisive
+    branch, never unconditionally on the top-ranked/top-scored row. A
+    conditional gated on verdict.kind is required; one gated on array
+    position or score rank alone would let an Ambiguous case's strongest
+    competitor be mistaken for a Decisive winner."""
+    text = (REPO_ROOT / "src" / "inspector" / "static" / "app.js").read_text()
+    # The winner class/badge must appear only inside code paths that also
+    # check isDecisive — approximated here by requiring every occurrence of
+    # the winner markers to be textually preceded, within the same
+    # function, by an isDecisive guard rather than appearing bare.
+    assoc_section = text[text.index("/* --- view: association"):text.index("/* --- view: provenance")]
+    assert "assoc-winner" in assoc_section
+    assert "winner-badge" in assoc_section
+    for marker in ("assoc-winner", "winner-badge"):
+        idx = assoc_section.index(marker)
+        preceding = assoc_section[:idx]
+        # The nearest preceding conditional must be an isDecisive check —
+        # i.e. isDecisive appears more recently before this marker than
+        # any bare score/rank comparison would need to for it to fire.
+        assert "isDecisive" in preceding, (
+            f"{marker!r} must be reachable only through an isDecisive check"
+        )
+
+
+def test_ambiguous_verdict_tag_uses_a_non_color_signal() -> None:
+    """Grayscale legibility, same discipline as observed/inferred: the
+    Decisive/Ambiguous distinction must not rest on colour alone."""
+    css = (REPO_ROOT / "src" / "inspector" / "static" / "style.css").read_text()
+    assert "ambiguous-tag" in css
+    ambiguous_rule = css[css.index(".ambiguous-tag"):css.index(".ambiguous-tag") + 200]
+    assert "dashed" in ambiguous_rule, (
+        "the ambiguous tag must carry a non-colour signal (a dashed "
+        "border, matching the observed/inferred convention), not colour alone"
+    )
+    js = (REPO_ROOT / "src" / "inspector" / "static" / "app.js").read_text()
+    assert '"AMBIGUOUS' in js or "'AMBIGUOUS" in js, (
+        "the Ambiguous state must carry a literal text label, not only a class name"
+    )
+    assert '"DECISIVE"' in js, "the Decisive state must carry a literal text label too"
