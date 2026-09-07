@@ -444,3 +444,78 @@ def test_pets2009_and_chokepoint_name_the_identity_ambiguity_eval_target() -> No
         notes = registry.get(name).notes.lower()
         assert "forward-looking eval target" in notes
         assert "associationverdict" in notes
+
+
+# -- CHIRLA (Day 36) ---------------------------------------------------------
+
+
+def test_chirla_is_registered_lane_r_unverified_with_a_validity_cell() -> None:
+    registry = DatasetRegistry.load(SEED_PATH)
+    chirla = registry.get("CHIRLA")
+    assert chirla.lane == "R"
+    assert chirla.license_snapshot is None
+    assert chirla.consent_posture == "unknown"
+    assert chirla.hypothesis_class
+    assert "multi_camera" in chirla.validity_matrix_cell
+    assert "reappearance" in chirla.validity_matrix_cell
+
+
+def test_chirla_cites_a_commit_it_was_actually_read_at() -> None:
+    """Objective 1's dossier requirement: every fact must cite the exact
+    file/commit read, not "the repo" in general — otherwise a future
+    re-read of a changed README silently invalidates this entry with
+    nothing to detect the mismatch."""
+    registry = DatasetRegistry.load(SEED_PATH)
+    notes = registry.get("CHIRLA").notes
+    assert "README.md" in notes
+    assert "commit" in notes.lower()
+    # a real, full-length git sha, not a placeholder
+    import re
+
+    assert re.search(r"\b[0-9a-f]{40}\b", notes)
+
+
+def test_chirla_is_exactly_as_inert_as_every_other_lane_r_entry() -> None:
+    """STRUCTURAL (Objective 1): registering CHIRLA must not create a
+    dataset that can be fetched, trained on, or calibrated with —
+    license_snapshot: null refuses require_fetchable, and being lane R
+    (not lane C) refuses open_for_training, exactly like every other
+    unverified lane-R entry. Nothing about adding a richer notes/
+    validity_matrix_cell payload changes that."""
+    registry = DatasetRegistry.load(SEED_PATH)
+
+    with pytest.raises(LicenseNotVerified, match="no license snapshot"):
+        registry.require_fetchable("CHIRLA")
+
+    # open_for_training checks require_fetchable before the lane check, so
+    # today's real (unverified) CHIRLA entry is refused for lack of a
+    # license snapshot before its lane is ever consulted — belt AND
+    # suspenders, and this confirms the first belt already catches it.
+    with pytest.raises(LicenseNotVerified, match="no license snapshot"):
+        registry.open_for_training("CHIRLA")
+
+    # Isolate the SECOND belt: even a hypothetically-verified CHIRLA (a
+    # snapshot attached, license check cleared) must still be refused by
+    # the lane check alone, because it is lane R. Confirms this is not
+    # inert only because nobody has verified it yet.
+    hypothetically_verified = entry("CHIRLA", "R", verified=True)
+    lane_only_registry = registry_with(hypothetically_verified)
+    with pytest.raises(LaneViolation, match="never enter a training"):
+        lane_only_registry.open_for_training("CHIRLA")
+
+
+def test_chirla_consent_posture_unknown_cannot_satisfy_a_lane_c_only_loader() -> None:
+    """STRUCTURAL (Objective 1): consent_posture is not a lane and confers
+    no permission by itself — a lane-C-only loader (calibration; see
+    scripts/build_calibration_set.py's require_lane_c) must refuse CHIRLA
+    on lane alone, the same refusal every lane-R entry gets, regardless of
+    what its consent_posture says. This pins that consent_posture: unknown
+    is not a backdoor around the lane check."""
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT / "scripts"))
+    import build_calibration_set as builder
+
+    registry = DatasetRegistry.load(SEED_PATH)
+    with pytest.raises(LaneViolation, match="lane R"):
+        builder.require_lane_c(registry, "CHIRLA")

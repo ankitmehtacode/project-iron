@@ -156,6 +156,60 @@ datasets:
       inherited from MEVA (built on it) — re-verify together, not
       independently.
 
+  - name: CHIRLA
+    lane: R
+    subsystem: reid
+    consent_posture: unknown
+    hypothesis_class: >-
+      README states "publicly available under the CC-BY license" (no
+      version number, no LICENSE file in the repo — prose claim only).
+      UNVERIFIED — recorded as a hypothesis only, same discipline as every
+      other entry here; no snapshot exists and nothing may be fetched on
+      the strength of this line. See docs/chirla_verification_checklist.md
+      for the exact human task that would clear it.
+    validity_matrix_cell: >-
+      appearance_semantics / reid — long-term (7-month) multi-camera re-ID
+      with real clothing/appearance change over time. The repository's own
+      benchmark/ split names four scenarios this registry has no other
+      coverage for: multi_camera (re-ID across simultaneous camera views),
+      multi_camera_long_term (the two combined), and reappearance
+      (re-identifying a person after they leave every camera's view and
+      later re-enter — nothing else currently registered evaluates a
+      dropout-and-return scenario at all). Also brief_occlusions and
+      multiple_people_occlusions under benchmark/tracking/. MEVID
+      (consent_posture staged_actors) is this registry's only other
+      clothing-change re-ID entry; CHIRLA's subjects are recorded staff/
+      students of a university robotics lab under public_cctv_no_consent-
+      adjacent conditions — see consent_posture note below for why this
+      entry is recorded "unknown" rather than either fixed value.
+    notes: >-
+      Day 36. Registered from github.com/bdager/CHIRLA README.md at commit
+      fcb6f53359d5888b6e8fb745b65a411697dcc22c (read 2026-09-07 via
+      raw.githubusercontent.com; Claude Code's network access cannot reach
+      huggingface.co, sciencedb.cn or arxiv.org, so the HuggingFace card,
+      the ScienceDB DOI page and the arXiv paper body are NOT verified by
+      this entry — see docs/chirla_verification_checklist.md for the human
+      task that covers them). Confirmed from the README at that commit:
+      22 individuals, 7 multi-view cameras, 70 video sequences, 596,345
+      frames, 963,554 bounding-box annotations, 1080x720 @ 30fps, captured
+      over 7 months at the Robotics, Vision, and Intelligent Systems
+      Research Group (University of Alicante, Spain) covering
+      "laboratories, hallways, and shared workspaces." Semi-automatic
+      labeling: YOLOv8x detection + Deep SORT tracklets, then manual
+      cross-camera identity verification via a custom GUI. DISCREPANCY
+      FROM THE DAY-36 PROMPT: the prompt text describes "four connected
+      indoor environments" as a fact to record; the README at the commit
+      actually read does not state an environment count anywhere — that
+      clause is not verified and is deliberately NOT repeated as fact
+      here. consent_posture recorded "unknown", not
+      public_cctv_no_consent: subjects are named lab-affiliated
+      individuals recorded on their own research group's premises, which
+      reads closer to staged/known-population than anonymous CCTV of the
+      public, but the README documents no consent or notice process
+      (contrast MEVA's hired-actor posture, which IS documented) — a
+      guess between the two fixed values would misrepresent a real
+      unknown as a verified one.
+
   - name: Market-1501
     lane: R
     subsystem: reid
