@@ -1,1236 +1,985 @@
-# Dataset registry — seeded from the data-strategy shortlist.
-#
-# EVERY license_snapshot below is null, deliberately. The lane and
-# hypothesis_class fields record what the strategy document *believes* from
-# memory; nothing here may be fetched until a human reads the actual license
-# text and records a snapshot via:
-#
-#     python scripts/fetch_dataset.py --verify-license <name>
-#
-# Lanes: S = synthetic (train/calibrate/eval), R = research (EVAL ONLY),
-#        C = consented self-collected (everything, incl. INT8 calibration).
-#
-# DukeMTMC, its derivatives, and MS-Celeb are on the PERMANENT blocklist in
-# src/data/registry.py itself. They appear here as blocked entries for
-# visibility, but deleting these lines does not unblock them — the in-code
-# list outranks this file by design.
-
+# Regenerated in place by scripts/fetch_dataset.py — comments above
+# individual entries may have been altered; the registry semantics
+# live in src/data/registry.py.
 datasets:
-  # -- activity / verbs / scripting --------------------------------------
-  - name: OA18
-    lane: R
-    subsystem: activity
-    consent_posture: staged_actors
-    hypothesis_class: >-
-      Believed research-only (office-actions benchmark; ~18-class office
-      activity taxonomy). UNVERIFIED — recorded as a hypothesis only, the
-      same as every other entry here; no snapshot exists and nothing may
-      be fetched on the strength of this line.
-    validity_matrix_cell: >-
-      appearance_semantics — closest available real-domain match to this
-      product's own office-monitoring activity taxonomy (more directly
-      relevant than MEVA's surveillance-generic verbs or Charades'
-      crowdsourced home activity).
-    notes: >-
-      Office-actions dataset; day's registry addition (Day 23). Do not
-      fetch — license unverified, not yet prioritized above MEVA/DA-2K
-      in the verification order (see FOUNDATION_REPORT.md Day-23).
-
-  - name: MEVA
-    lane: R
-    subsystem: activity
-    consent_posture: staged_actors
-    hypothesis_class: >-
-      Historically released under unusually permissive terms for this
-      category (hired, consented actors). If verification confirms
-      permissive, MEVA may earn broader use — verify before assuming.
-    validity_matrix_cell: >-
-      appearance_semantics — multi-camera facility footage with
-      surveillance-style activity annotations; the single closest public
-      match to this product's own deployment shape (overlapping indoor
-      cameras, verb-level activity).
-    notes: >-
-      Best public match to the product: multi-camera facility footage,
-      surveillance-style activity annotations, overlapping cameras.
-      Verify FIRST — highest product impact. STILL FIRST as of Day 35:
-      today's CCTV-dataset additions (i-LIDS, PETS2009, ChokePoint, PRW,
-      CUHK-SYSU, CAVIAR, UCSD Anomaly Detection) do not change this
-      ordering — MEVA licence verification remains the single highest-
-      product-impact pending data item (see FOUNDATION_REPORT.md, tracked
-      continuously since Day 23).
-
-  - name: NTU-RGBD-120
-    lane: R
-    subsystem: activity
-    consent_posture: staged_actors
-    hypothesis_class: research-only
-    validity_matrix_cell: >-
-      appearance_semantics — skeleton-annotated lab actions; POSE-verb
-      benchmarking specifically (sat/stood/fell-type verbs), not
-      surveillance-realistic scenes.
-    notes: 120 lab action classes with skeletons; POSE-verb benchmarking.
-
-  - name: Toyota-Smarthome
-    lane: R
-    subsystem: activity
-    consent_posture: staged_actors
-    hypothesis_class: research-only
-    validity_matrix_cell: >-
-      appearance_semantics — untrimmed daily-living activity; the hardest
-      realistic pose-verb eval available (unstaged, long-duration).
-    notes: Untrimmed daily-living activity; hardest realistic pose-verb eval.
-
-  - name: InHARD
-    lane: R
-    subsystem: activity
-    consent_posture: staged_actors
-    hypothesis_class: research-only
-    validity_matrix_cell: >-
-      appearance_semantics — industrial hand/assembly actions; Tier-2
-      factory-verb eval only, not indoor-surveillance-relevant today.
-    notes: Industrial assembly actions; Tier-2 factory verb eval.
-
-  - name: MECCANO
-    lane: R
-    subsystem: activity
-    consent_posture: staged_actors
-    hypothesis_class: research-only
-    validity_matrix_cell: >-
-      appearance_semantics — egocentric industrial assembly actions;
-      Tier-2 factory-verb eval only, same caveat as InHARD.
-    notes: Industrial assembly actions; Tier-2 factory verb eval.
-
-  - name: Charades
-    lane: R
-    subsystem: activity
-    consent_posture: staged_actors
-    hypothesis_class: research-ish — verify carefully
-    validity_matrix_cell: >-
-      appearance_semantics — crowdsourced indoor daily activity; breadth
-      of verb generalization rather than surveillance realism.
-    notes: Crowdsourced indoor daily activity; verb-generalization breadth.
-
-  - name: VIRAT
-    lane: R
-    subsystem: activity
-    consent_posture: staged_actors
-    hypothesis_class: research-only
-    validity_matrix_cell: >-
-      appearance_semantics — older surveillance-activity benchmark;
-      secondary eval, largely superseded in relevance by MEVA.
-    notes: Older surveillance activity classic; secondary eval.
-
-  # -- multi-camera tracking / re-ID -------------------------------------
-  - name: MMPTRACK
-    lane: R
-    subsystem: tracking
-    consent_posture: staged_actors
-    hypothesis_class: research-only
-    validity_matrix_cell: >-
-      No registered validity-matrix capability covers cross-camera
-      multi-person tracking directly (src/data/validity.py's GATES are
-      motion_geometry / state_estimation / depth / appearance_semantics /
-      point_tracking). Closest is motion_geometry — correct cross-camera
-      association still needs trustworthy world-frame motion — but this
-      is a genuine gap, not a clean fit; recorded as such rather than
-      forced into a cell it does not really belong in.
-    notes: Indoor multi-camera multi-person tracking; cross-camera handoff eval.
-
-  - name: WILDTRACK
-    lane: R
-    subsystem: tracking
-    consent_posture: public_cctv_no_consent
-    hypothesis_class: research non-commercial
-    notes: >-
-      7-camera overlapping plaza; global association eval. Real,
-      uncontrolled pedestrian traffic on a university square, not staged
-      performers (Day 35 consent_posture backfill).
-
-  - name: MEVID
-    lane: R
-    subsystem: reid
-    consent_posture: staged_actors
-    hypothesis_class: verify with MEVA (built on it)
-    notes: >-
-      Multi-view extended re-ID; clothing-change eval. consent_posture
-      inherited from MEVA (built on it) — re-verify together, not
-      independently.
-
-  - name: CHIRLA
-    lane: R
-    subsystem: reid
-    consent_posture: staged_actors
-    hypothesis_class: >-
-      CC-BY-4.0. As of Day 38, confirmed identically across three
-      independent sources a human read directly (Claude Code's network
-      access reaches none of the three): GitHub (bdager/CHIRLA README,
-      current as of this session — prose only, no version number, no
-      LICENSE file), the HuggingFace dataset card
-      (huggingface.co/datasets/bdager/CHIRLA, its own structured License
-      field, not just prose), and the paper (Domínguez-Dager et al.,
-      Scientific Data, DOI 10.1038/s41597-025-06425-3, via PMC12852133).
-      Still UNVERIFIED by this registry's own discipline: three-source
-      agreement is not a LicenseSnapshot, and nothing may be fetched on the
-      strength of this line — see docs/chirla_verification_checklist.md
-      item 1 (now answered) and item 3, not yet converted into a snapshot
-      via scripts/fetch_dataset.py --verify-license.
-    validity_matrix_cell: >-
-      appearance_semantics / reid — long-term (7-month) multi-camera re-ID
-      with real clothing/appearance change over time. The repository's own
-      benchmark/ split names four scenarios this registry has no other
-      coverage for: multi_camera (re-ID across simultaneous camera views),
-      multi_camera_long_term (the two combined), and reappearance
-      (re-identifying a person after they leave every camera's view and
-      later re-enter — nothing else currently registered evaluates a
-      dropout-and-return scenario at all). Also brief_occlusions and
-      multiple_people_occlusions under benchmark/tracking/. MEVID
-      (consent_posture staged_actors) is this registry's only other
-      clothing-change re-ID entry; see consent_posture note below (Day 38
-      update) for why CHIRLA now shares that value rather than remaining
-      "unknown".
-    deployment_scope_restriction:
-      text: >-
-        Any deployment aimed at surveillance, identification, or
-        monitoring of real people without explicit consent or where it
-        violates privacy or law.
-      source: >-
-        HuggingFace dataset card, "Out-of-Scope Use" section,
-        https://huggingface.co/datasets/bdager/CHIRLA (read by a human,
-        Day 38, 2026-09-08 — Claude Code's network access does not reach
-        huggingface.co; this clause is absent from both the GitHub README
-        and the paper).
-      resolved: false
-      resolution: null
-    notes: >-
-      Day 36. Registered from github.com/bdager/CHIRLA README.md at commit
-      fcb6f53359d5888b6e8fb745b65a411697dcc22c (read 2026-09-07 via
-      raw.githubusercontent.com; Claude Code's network access cannot reach
-      huggingface.co, sciencedb.cn or arxiv.org, so the HuggingFace card,
-      the ScienceDB DOI page and the arXiv paper body are NOT verified by
-      this entry — see docs/chirla_verification_checklist.md for the human
-      task that covers them). Confirmed from the README at that commit:
-      22 individuals, 7 multi-view cameras, 70 video sequences, 596,345
-      frames, 963,554 bounding-box annotations, 1080x720 @ 30fps, captured
-      over 7 months at the Robotics, Vision, and Intelligent Systems
-      Research Group (University of Alicante, Spain) covering
-      "laboratories, hallways, and shared workspaces." Semi-automatic
-      labeling: YOLOv8x detection + Deep SORT tracklets, then manual
-      cross-camera identity verification via a custom GUI. DISCREPANCY
-      FROM THE DAY-36 PROMPT: the prompt text describes "four connected
-      indoor environments" as a fact to record; the README at the commit
-      actually read does not state an environment count anywhere — that
-      clause is not verified and is deliberately NOT repeated as fact
-      here. consent_posture was recorded "unknown" at the time (Day 36)
-      because the README documents no consent or notice process (contrast
-      MEVA's hired-actor posture, which IS documented) — superseded below.
+- name: OA18
+  lane: R
+  subsystem: activity
+  consent_posture: staged_actors
+  hypothesis_class: Believed research-only (office-actions benchmark; ~18-class office
+    activity taxonomy). UNVERIFIED — recorded as a hypothesis only, the same as every
+    other entry here; no snapshot exists and nothing may be fetched on the strength
+    of this line.
+  validity_matrix_cell: appearance_semantics — closest available real-domain match
+    to this product's own office-monitoring activity taxonomy (more directly relevant
+    than MEVA's surveillance-generic verbs or Charades' crowdsourced home activity).
+  notes: Office-actions dataset; day's registry addition (Day 23). Do not fetch —
+    license unverified, not yet prioritized above MEVA/DA-2K in the verification order
+    (see FOUNDATION_REPORT.md Day-23).
+- name: MEVA
+  lane: R
+  subsystem: activity
+  consent_posture: staged_actors
+  hypothesis_class: Historically released under unusually permissive terms for this
+    category (hired, consented actors). If verification confirms permissive, MEVA
+    may earn broader use — verify before assuming.
+  validity_matrix_cell: appearance_semantics — multi-camera facility footage with
+    surveillance-style activity annotations; the single closest public match to this
+    product's own deployment shape (overlapping indoor cameras, verb-level activity).
+  notes: 'Best public match to the product: multi-camera facility footage, surveillance-style
+    activity annotations, overlapping cameras. Verify FIRST — highest product impact.
+    STILL FIRST as of Day 35: today''s CCTV-dataset additions (i-LIDS, PETS2009, ChokePoint,
+    PRW, CUHK-SYSU, CAVIAR, UCSD Anomaly Detection) do not change this ordering —
+    MEVA licence verification remains the single highest- product-impact pending data
+    item (see FOUNDATION_REPORT.md, tracked continuously since Day 23).'
+- name: NTU-RGBD-120
+  lane: R
+  subsystem: activity
+  consent_posture: staged_actors
+  hypothesis_class: research-only
+  validity_matrix_cell: appearance_semantics — skeleton-annotated lab actions; POSE-verb
+    benchmarking specifically (sat/stood/fell-type verbs), not surveillance-realistic
+    scenes.
+  notes: 120 lab action classes with skeletons; POSE-verb benchmarking.
+- name: Toyota-Smarthome
+  lane: R
+  subsystem: activity
+  consent_posture: staged_actors
+  hypothesis_class: research-only
+  validity_matrix_cell: appearance_semantics — untrimmed daily-living activity; the
+    hardest realistic pose-verb eval available (unstaged, long-duration).
+  notes: Untrimmed daily-living activity; hardest realistic pose-verb eval.
+- name: InHARD
+  lane: R
+  subsystem: activity
+  consent_posture: staged_actors
+  hypothesis_class: research-only
+  validity_matrix_cell: appearance_semantics — industrial hand/assembly actions; Tier-2
+    factory-verb eval only, not indoor-surveillance-relevant today.
+  notes: Industrial assembly actions; Tier-2 factory verb eval.
+- name: MECCANO
+  lane: R
+  subsystem: activity
+  consent_posture: staged_actors
+  hypothesis_class: research-only
+  validity_matrix_cell: appearance_semantics — egocentric industrial assembly actions;
+    Tier-2 factory-verb eval only, same caveat as InHARD.
+  notes: Industrial assembly actions; Tier-2 factory verb eval.
+- name: Charades
+  lane: R
+  subsystem: activity
+  consent_posture: staged_actors
+  hypothesis_class: research-ish — verify carefully
+  validity_matrix_cell: appearance_semantics — crowdsourced indoor daily activity;
+    breadth of verb generalization rather than surveillance realism.
+  notes: Crowdsourced indoor daily activity; verb-generalization breadth.
+- name: VIRAT
+  lane: R
+  subsystem: activity
+  consent_posture: staged_actors
+  hypothesis_class: research-only
+  validity_matrix_cell: appearance_semantics — older surveillance-activity benchmark;
+    secondary eval, largely superseded in relevance by MEVA.
+  notes: Older surveillance activity classic; secondary eval.
+- name: MMPTRACK
+  lane: R
+  subsystem: tracking
+  consent_posture: staged_actors
+  hypothesis_class: research-only
+  validity_matrix_cell: No registered validity-matrix capability covers cross-camera
+    multi-person tracking directly (src/data/validity.py's GATES are motion_geometry
+    / state_estimation / depth / appearance_semantics / point_tracking). Closest is
+    motion_geometry — correct cross-camera association still needs trustworthy world-frame
+    motion — but this is a genuine gap, not a clean fit; recorded as such rather than
+    forced into a cell it does not really belong in.
+  notes: Indoor multi-camera multi-person tracking; cross-camera handoff eval.
+- name: WILDTRACK
+  lane: R
+  subsystem: tracking
+  consent_posture: public_cctv_no_consent
+  hypothesis_class: research non-commercial
+  notes: 7-camera overlapping plaza; global association eval. Real, uncontrolled pedestrian
+    traffic on a university square, not staged performers (Day 35 consent_posture
+    backfill).
+- name: MEVID
+  lane: R
+  subsystem: reid
+  consent_posture: staged_actors
+  hypothesis_class: verify with MEVA (built on it)
+  notes: Multi-view extended re-ID; clothing-change eval. consent_posture inherited
+    from MEVA (built on it) — re-verify together, not independently.
+- name: CHIRLA
+  lane: R
+  subsystem: reid
+  consent_posture: staged_actors
+  hypothesis_class: 'CC-BY-4.0. As of Day 38, confirmed identically across three independent
+    sources a human read directly (Claude Code''s network access reaches none of the
+    three): GitHub (bdager/CHIRLA README, current as of this session — prose only,
+    no version number, no LICENSE file), the HuggingFace dataset card (huggingface.co/datasets/bdager/CHIRLA,
+    its own structured License field, not just prose), and the paper (Domínguez-Dager
+    et al., Scientific Data, DOI 10.1038/s41597-025-06425-3, via PMC12852133). Still
+    UNVERIFIED by this registry''s own discipline: three-source agreement is not a
+    LicenseSnapshot, and nothing may be fetched on the strength of this line — see
+    docs/chirla_verification_checklist.md item 1 (now answered) and item 3, not yet
+    converted into a snapshot via scripts/fetch_dataset.py --verify-license.'
+  validity_matrix_cell: 'appearance_semantics / reid — long-term (7-month) multi-camera
+    re-ID with real clothing/appearance change over time. The repository''s own benchmark/
+    split names four scenarios this registry has no other coverage for: multi_camera
+    (re-ID across simultaneous camera views), multi_camera_long_term (the two combined),
+    and reappearance (re-identifying a person after they leave every camera''s view
+    and later re-enter — nothing else currently registered evaluates a dropout-and-return
+    scenario at all). Also brief_occlusions and multiple_people_occlusions under benchmark/tracking/.
+    MEVID (consent_posture staged_actors) is this registry''s only other clothing-change
+    re-ID entry; see consent_posture note below (Day 38 update) for why CHIRLA now
+    shares that value rather than remaining "unknown".'
+  deployment_scope_restriction:
+    text: Any deployment aimed at surveillance, identification, or monitoring of real
+      people without explicit consent or where it violates privacy or law.
+    source: HuggingFace dataset card, "Out-of-Scope Use" section, https://huggingface.co/datasets/bdager/CHIRLA
+      (read by a human, Day 38, 2026-09-08 — Claude Code's network access does not
+      reach huggingface.co; this clause is absent from both the GitHub README and
+      the paper).
+    resolved: false
+    resolution: null
+  notes: 'Day 36. Registered from github.com/bdager/CHIRLA README.md at commit fcb6f53359d5888b6e8fb745b65a411697dcc22c
+    (read 2026-09-07 via raw.githubusercontent.com; Claude Code''s network access
+    cannot reach huggingface.co, sciencedb.cn or arxiv.org, so the HuggingFace card,
+    the ScienceDB DOI page and the arXiv paper body are NOT verified by this entry
+    — see docs/chirla_verification_checklist.md for the human task that covers them).
+    Confirmed from the README at that commit: 22 individuals, 7 multi-view cameras,
+    70 video sequences, 596,345 frames, 963,554 bounding-box annotations, 1080x720
+    @ 30fps, captured over 7 months at the Robotics, Vision, and Intelligent Systems
+    Research Group (University of Alicante, Spain) covering "laboratories, hallways,
+    and shared workspaces." Semi-automatic labeling: YOLOv8x detection + Deep SORT
+    tracklets, then manual cross-camera identity verification via a custom GUI. DISCREPANCY
+    FROM THE DAY-36 PROMPT: the prompt text describes "four connected indoor environments"
+    as a fact to record; the README at the commit actually read does not state an
+    environment count anywhere — that clause is not verified and is deliberately NOT
+    repeated as fact here. consent_posture was recorded "unknown" at the time (Day
+    36) because the README documents no consent or notice process (contrast MEVA''s
+    hired-actor posture, which IS documented) — superseded below.
 
 
-      Day 38 update (a human read the HuggingFace card, the paper via PMC,
-      and the GitHub README directly — none of the three hosts is reachable
-      from this environment, so this paragraph encodes what was found
-      rather than re-deriving it). Three distinct legal questions, three
-      different answers:
+    Day 38 update (a human read the HuggingFace card, the paper via PMC, and the GitHub
+    README directly — none of the three hosts is reachable from this environment,
+    so this paragraph encodes what was found rather than re-deriving it). Three distinct
+    legal questions, three different answers:
 
-      (1) COPYRIGHT/REDISTRIBUTION — clean, CC-BY-4.0, confirmed
-      identically across all three sources (see hypothesis_class above).
+    (1) COPYRIGHT/REDISTRIBUTION — clean, CC-BY-4.0, confirmed identically across
+    all three sources (see hypothesis_class above).
 
-      (2) DATA-SUBJECT CONSENT — unusually strong; consent_posture upgraded
-      from "unknown" to "staged_actors" on the strength of the paper's
-      Methods section, quoted verbatim rather than paraphrased: "This study
-      was conducted under the supervision of the Ethical Committee of the
-      University of Alicante (Approval No. UA-2022-11-12). All participants
-      were informed about the study, including data handling procedures,
-      and provided their consent for participation and unrestricted data
-      use. Specifically, participants granted permission for their
-      inclusion in dataset video recordings, which capture physical data
-      (face and body features), and consented to making these recordings
-      publicly available with unrestricted use." This is the cleanest
-      consent statement in this registry's history across all 63 entries.
+    (2) DATA-SUBJECT CONSENT — unusually strong; consent_posture upgraded from "unknown"
+    to "staged_actors" on the strength of the paper''s Methods section, quoted verbatim
+    rather than paraphrased: "This study was conducted under the supervision of the
+    Ethical Committee of the University of Alicante (Approval No. UA-2022-11-12).
+    All participants were informed about the study, including data handling procedures,
+    and provided their consent for participation and unrestricted data use. Specifically,
+    participants granted permission for their inclusion in dataset video recordings,
+    which capture physical data (face and body features), and consented to making
+    these recordings publicly available with unrestricted use." This is the cleanest
+    consent statement in this registry''s history across all 63 entries.
 
-      (3) DEPLOYMENT-SCOPE RESTRICTION — newly discovered, unresolved, and
-      NEITHER of the above: see the deployment_scope_restriction field.
-      The HuggingFace card's "Out-of-Scope Use" clause is absent from the
-      GitHub README and the paper — it does not read as boilerplate, and
-      resolving which of its two plausible readings governs (narrow:
-      permits use if the DEPLOYED system has its own valid consent
-      architecture; broad: excludes any surveillance/identification/
-      monitoring product regardless of deployment consent) is a legal
-      interpretation. No one — not this entry, not Claude Code, not the
-      chat assistant that first found it — is authorized to resolve which
-      reading governs. See docs/blocker_ledger.yaml's
-      chirla_deployment_scope_legal_review entry.
+    (3) DEPLOYMENT-SCOPE RESTRICTION — newly discovered, unresolved, and NEITHER of
+    the above: see the deployment_scope_restriction field. The HuggingFace card''s
+    "Out-of-Scope Use" clause is absent from the GitHub README and the paper — it
+    does not read as boilerplate, and resolving which of its two plausible readings
+    governs (narrow: permits use if the DEPLOYED system has its own valid consent
+    architecture; broad: excludes any surveillance/identification/ monitoring product
+    regardless of deployment consent) is a legal interpretation. No one — not this
+    entry, not Claude Code, not the chat assistant that first found it — is authorized
+    to resolve which reading governs. See docs/blocker_ledger.yaml''s chirla_deployment_scope_legal_review
+    entry.
 
-      PROCEDURAL NOTE, separate from all three legal questions above:
-      CHIRLA is gated on HuggingFace — downloading requires an account
-      login and click-through acceptance of the dataset's conditions
-      before any file access. That gate is orthogonal to license
-      verification and is one more reason this cannot be resolved by
-      Claude Code alone (no HuggingFace account, and no network access to
-      huggingface.co either).
+    PROCEDURAL NOTE, separate from all three legal questions above: CHIRLA is gated
+    on HuggingFace — downloading requires an account login and click-through acceptance
+    of the dataset''s conditions before any file access. That gate is orthogonal to
+    license verification and is one more reason this cannot be resolved by Claude
+    Code alone (no HuggingFace account, and no network access to huggingface.co either).
 
 
-      Did NOT, in this update: flip license_snapshot from null, change
-      CHIRLA's lane from R, or write a resolution for
-      deployment_scope_restriction — see
-      src.data.registry.DatasetRegistry.require_product_claim_clearance
-      for the one place resolved is read, and FOUNDATION_REPORT.md's
-      Day-38 section for why self-certifying any of the three would have
-      been the finding to report, not an action to take.
-
-  - name: Market-1501
-    lane: R
-    subsystem: reid
-    consent_posture: public_cctv_no_consent
-    hypothesis_class: research-only, consent debt
-    notes: >-
-      Model SELECTION only, reported internally. Never in demos: scraped
-      pedestrians who never consented.
-
-  - name: MSMT17
-    lane: R
-    subsystem: reid
-    consent_posture: public_cctv_no_consent
-    hypothesis_class: research-only, consent debt
-    notes: Model selection only; never in demos.
-
-  - name: RandPerson
-    lane: S
-    subsystem: reid
-    hypothesis_class: verify — goal is lane S
-    notes: >-
-      Synthetic re-ID. Lane S is CONDITIONAL on verification confirming
-      every asset in its generation stack is commercially cleared
-      (see the SMPL trap); demote to R if not.
-
-  - name: UnrealPerson
-    lane: S
-    subsystem: reid
-    hypothesis_class: verify — goal is lane S
-    notes: Synthetic re-ID; same conditional-lane-S caveat as RandPerson.
-
-  - name: ClonedPerson
-    lane: S
-    subsystem: reid
-    hypothesis_class: verify — goal is lane S
-    notes: Synthetic re-ID; same conditional-lane-S caveat.
-
-  - name: PersonX
-    lane: S
-    subsystem: reid
-    hypothesis_class: verify — goal is lane S
-    notes: Synthetic re-ID; same conditional-lane-S caveat.
-
-  # -- gait ---------------------------------------------------------------
-  # All research-only, some application-gated. There is NO commercially
-  # usable public gait data; the trainable gait corpus is Site Zero, full
-  # stop. These exist to benchmark the module.
-  - name: CASIA-B
-    lane: R
-    subsystem: gait
-    consent_posture: staged_actors
-    hypothesis_class: research-only
-  - name: OU-MVLP
-    lane: R
-    subsystem: gait
-    consent_posture: staged_actors
-    hypothesis_class: research-only, application-gated
-  - name: GREW
-    lane: R
-    subsystem: gait
-    consent_posture: unknown
-    hypothesis_class: research-only, application-gated
-    notes: >-
-      Unlike CASIA-B/OU-MVLP's lab-recruited walkers, GREW is built from
-      real outdoor surveillance video — closer to public_cctv_no_consent
-      in spirit, but not confidently verified either way from memory
-      alone; recorded unknown rather than guessed (Day 35).
-  - name: Gait3D
-    lane: R
-    subsystem: gait
-    consent_posture: unknown
-    hypothesis_class: research-only
-    notes: >-
-      Built from real in-the-wild supermarket surveillance cameras, same
-      caveat as GREW — likely public_cctv_no_consent in fact, recorded
-      unknown pending actual verification (Day 35).
-
-  # -- depth / geometry / twin -------------------------------------------
-  - name: Infinigen-Indoors
-    lane: S
-    subsystem: depth
-    hypothesis_class: BSD-3 generator; generated data ours
-    notes: >-
-      Procedural indoor scenes with exact depth/normals/segmentation.
-      Assets procedurally generated — clean of the SMPL trap. Generator
-      CODE license still needs its snapshot.
-
-  - name: Kubric
-    lane: S
-    subsystem: depth
-    hypothesis_class: Apache-2.0 generator; per-asset check (ShapeNet/GSO)
-    notes: Dynamic-scene GT (tracks, occlusion, depth). Verify per-asset terms.
-
-  - name: NYUv2
-    lane: R
-    subsystem: depth
-    consent_posture: unknown
-    hypothesis_class: research-only
-    notes: >-
-      Classic real indoor depth; sanity eval. Scene-geometry dataset, not
-      a people dataset — incidental bystanders possible, consent posture
-      not confidently characterizable either way; recorded unknown rather
-      than assumed benign (Day 35).
-
-  - name: SUN-RGBD
-    lane: R
-    subsystem: depth
-    consent_posture: unknown
-    hypothesis_class: research-only
-    notes: >-
-      Classic real indoor depth; sanity eval. Same scene-geometry caveat
-      as NYUv2 (Day 35).
-
-  - name: Hypersim
-    lane: R
-    subsystem: depth
-    consent_posture: unknown
-    hypothesis_class: verify — likely non-commercial
-    notes: >-
-      Photoreal synthetic indoor. CAUTION for eval use: DA-V2's indoor
-      metric checkpoint was trained on it, so evaluating DA-V2 against it
-      double-counts. Prefer Infinigen-Indoors for depth eval.
-      consent_posture: unknown, not null, despite being synthetic (Day
-      35) — this entry is registered lane R rather than S, and whether
-      "synthetic" here means procedurally generated (no consent question
-      at all) or photogrammetry/scan-derived from real scenes (which can
-      carry real incidental people) is not confidently known from memory;
-      recorded unknown rather than assumed clean.
-
-  - name: ScanNet
-    lane: R
-    subsystem: twin
-    consent_posture: unknown
-    hypothesis_class: research-only, application-gated
-    notes: >-
-      Real RGB-D building scans, not synthetic — incidental real people
-      possible in some scans; consent posture not confidently
-      characterizable from memory, recorded unknown (Day 35).
-  - name: Matterport3D
-    lane: R
-    subsystem: twin
-    consent_posture: unknown
-    hypothesis_class: research-only, application-gated
-    notes: Same real-scan caveat as ScanNet (Day 35).
-  - name: HM3D
-    lane: R
-    subsystem: twin
-    consent_posture: unknown
-    hypothesis_class: research-only, application-gated
-    notes: Same real-scan caveat as ScanNet (Day 35).
-
-  # -- detection / anomaly / HOI -----------------------------------------
-  - name: PeopleSansPeople
-    lane: S
-    subsystem: detection
-    hypothesis_class: verify Unity asset terms
-    notes: Synthetic person generator; conditional lane S pending asset check.
-
-  - name: COCO
-    lane: R
-    subsystem: detection
-    consent_posture: unknown
-    hypothesis_class: annotations CC-BY-4.0; images individually licensed
-    notes: >-
-      Eval-only posture because of the per-image license patchwork.
-      Scraped Flickr photos of real people under heterogeneous individual
-      circumstances — neither a staged research programme nor CCTV;
-      recorded unknown rather than forced into either bucket (Day 35).
-
-  - name: CrowdHuman
-    lane: R
-    subsystem: detection
-    consent_posture: unknown
-    hypothesis_class: research-only
-    notes: >-
-      Eval only. Internet-scraped crowd photos of real, unconsenting
-      people, same heterogeneous-provenance caveat as COCO — not literal
-      CCTV, recorded unknown rather than mislabeled public_cctv_no_consent
-      (Day 35).
-
-  - name: UBnormal
-    lane: R
-    subsystem: anomaly
-    consent_posture: unknown
-    hypothesis_class: synthetic, open-set — verify, possibly usable more broadly
-    notes: >-
-      Lane R until verification says otherwise, synthetic or not.
-      consent_posture recorded unknown rather than "not applicable" (Day
-      35): hypothesis_class already states synthetic/no real subjects,
-      but this registry reserves a bare absent consent_posture for lane
-      S/C/C_pending_consent entries where the field structurally does not
-      apply — a lane-R entry gets one of the three named values for
-      backfill-completeness consistency, even when, as here, the honest
-      answer is close to "not applicable".
-
-  - name: ShanghaiTech-Campus
-    lane: R
-    subsystem: anomaly
-    consent_posture: public_cctv_no_consent
-    hypothesis_class: research-only
-    notes: Real campus surveillance camera footage of real, uncontrolled pedestrians (Day 35).
-  - name: CUHK-Avenue
-    lane: R
-    subsystem: anomaly
-    consent_posture: public_cctv_no_consent
-    hypothesis_class: research-only
-    notes: Real fixed-camera footage of a real campus avenue (Day 35).
-  - name: UCF-Crime
-    lane: R
-    subsystem: anomaly
-    consent_posture: public_cctv_no_consent
-    hypothesis_class: research-only
-    notes: >-
-      Mostly outdoor/street; off-domain for this product anyway. Real
-      compiled CCTV/security-camera and user-submitted footage of real,
-      uncontrolled, unconsenting subjects (Day 35).
-
-  - name: UCSD-Anomaly-Detection
-    lane: R
-    subsystem: anomaly
-    consent_posture: public_cctv_no_consent
-    hypothesis_class: research-only — verify
-    validity_matrix_cell: >-
-      appearance_semantics — pedestrian-walkway anomaly detection
-      (bikers, skaters, carts, vehicles among pedestrians), alongside the
-      already-registered ShanghaiTech-Campus/CUHK-Avenue/UCF-Crime
-      anomaly benchmarks.
-    notes: >-
-      Day 35. Additional anomaly benchmark: fixed real camera over a UCSD
-      campus pedestrian walkway. Anomalies are naturally-occurring atypical
-      objects/behaviour on a real walkway, not staged incidents — real,
-      uncontrolled, unconsenting foot traffic, same posture as its
-      anomaly-dataset siblings above.
-
-  # -- CCTV-specific (Day 35) ---------------------------------------------
-  # Each cross-referenced to the validity-matrix cell(s) it would fill.
-  # consent_posture is the load-bearing new field here: this lane has had
-  # an implicit, unrecorded staged-vs-real-surveillance split for thirty
-  # days (see the backfill above) and it becomes structural starting now.
-  - name: i-LIDS
-    lane: R
-    subsystem: activity
-    consent_posture: staged_actors
-    hypothesis_class: >-
-      UK Home Office AVSS benchmark, historically distributed by the
-      i-LIDS community for research/challenge use. UNVERIFIED — recorded
-      as a hypothesis only; no snapshot exists and nothing may be fetched
-      on the strength of this line.
-    validity_matrix_cell: >-
-      appearance_semantics — directly relevant to asset-left-behind
-      (abandoned bag: a put_down + no-carrier-return interaction chain)
-      and restricted-zone (sterile zone / doorway: a zone entered/dwelled
-      pair) scenarios. The closest public match this registry has for
-      those two specific verb/zone combinations.
-    notes: >-
-      Day 35. AVSS 2007 challenge scenarios: abandoned bag, parked
-      vehicle, doorway, sterile zone. Staged reenactments performed by
-      recruited participants for the benchmark, not real incidents caught
-      on live CCTV — hence staged_actors, not public_cctv_no_consent,
-      despite the CCTV-realistic camera placement.
-
-  - name: PETS2009
-    lane: R
-    subsystem: tracking
-    consent_posture: staged_actors
-    hypothesis_class: >-
-      Classic PETS-workshop multi-camera benchmark, historically freely
-      distributed for research. UNVERIFIED — recorded as a hypothesis
-      only, same discipline as every other entry here.
-    validity_matrix_cell: >-
-      No registered validity-matrix capability covers cross-camera
-      multi-person tracking directly (same gap MMPTRACK's entry above
-      already names) — closest is motion_geometry, same caveat: a genuine
-      gap, not a clean fit.
-    notes: >-
-      Day 35. 7/8-camera overlapping-view crowd dataset (counting, flow
-      analysis, tracking); choreographed scenarios performed by recruited
-      participants at the University of Reading, not candid footage.
-      FORWARD-LOOKING EVAL TARGET, NOT TODAY'S WORK: alongside ChokePoint
-      below, a candidate for supplying real, human-annotated identity-
-      ambiguity cases — genuine confusable pairs in a real overlapping-
-      camera crowd — that could validate AssociationVerdict's
-      Decisive/Ambiguous split against human-perceived ambiguity, once
-      licence status permits any use at all.
-
-  - name: ChokePoint
-    lane: R
-    subsystem: reid
-    consent_posture: public_cctv_no_consent
-    hypothesis_class: >-
-      Historically distributed for research re-identification benchmarking.
-      UNVERIFIED — recorded as a hypothesis only. consent_posture itself is
-      also a hypothesis, not an independently re-verified fact (see
-      ConsentPosture's docstring) — re-verify alongside the licence.
-    validity_matrix_cell: >-
-      appearance_semantics / reid — portal/gate re-identification under
-      natural pose variation as people walk through a real entry point;
-      fills the re-id cell alongside MEVID/Market-1501/MSMT17 with a
-      distinctly different capture geometry (a single chokepoint, not
-      open-area cameras).
-    notes: >-
-      Day 35. Real uncontrolled foot traffic through a portal at a real
-      point of entry — not a staged research programme. FORWARD-LOOKING
-      EVAL TARGET, NOT TODAY'S WORK: alongside PETS2009 above, a candidate
-      for supplying real, human-annotated identity-ambiguity cases to
-      validate AssociationVerdict's Decisive/Ambiguous split against
-      human-perceived ambiguity, once licence status permits any use at
-      all.
-
-  - name: PRW
-    lane: R
-    subsystem: reid
-    consent_posture: public_cctv_no_consent
-    hypothesis_class: >-
-      Historically distributed for research person-search benchmarking.
-      UNVERIFIED — recorded as a hypothesis only, same discipline as
-      every other entry here.
-    validity_matrix_cell: >-
-      appearance_semantics / reid — person search (joint detection +
-      re-id) from a real campus surveillance camera network, same lineage
-      and campus as Market-1501.
-    notes: >-
-      Day 35. Real, uncontrolled campus surveillance footage of real
-      students and staff — same posture as Market-1501/MSMT17, its close
-      relatives.
-
-  - name: CUHK-SYSU
-    lane: R
-    subsystem: reid
-    consent_posture: public_cctv_no_consent
-    hypothesis_class: >-
-      Historically distributed for research person-search benchmarking.
-      UNVERIFIED — recorded as a hypothesis only, same discipline as
-      every other entry here.
-    validity_matrix_cell: >-
-      appearance_semantics / reid — person search from real street-camera
-      snapshots (plus movie/TV frames in the same release), complementing
-      PRW's single-campus-network capture with a more heterogeneous real-
-      world camera mix.
-    notes: >-
-      Day 35. Street-camera component is real, uncontrolled, unconsenting
-      surveillance; the movie/TV-frame component is a different (posed,
-      performed) provenance the registry does not currently split out —
-      recorded public_cctv_no_consent for the dataset as a whole per this
-      task's classification, flagged for finer-grained re-verification
-      before any actual use.
-
-  - name: CAVIAR
-    lane: R
-    subsystem: activity
-    consent_posture: staged_actors
-    hypothesis_class: >-
-      EU CAVIAR project dataset, historically freely distributed for
-      research. UNVERIFIED — recorded as a hypothesis only, same
-      discipline as every other entry here.
-    validity_matrix_cell: >-
-      appearance_semantics — indoor corridor/shop scenarios with labeled
-      interactions (browsing, meeting, fighting, leaving an object/
-      abandoned bag). FLAGGED EXPLICITLY: an unusually close match to
-      this project's own verb vocabulary (INTERACTION verbs picked_up/
-      put_down/carried, GEOMETRIC dwelled/approached) — closer than MEVA's
-      surveillance-generic activities or Charades' home-activity breadth.
-    notes: >-
-      Day 35. Recorded scenarios performed by actors at a shopping-centre
-      corridor and an INRIA lab entrance for the EU CAVIAR project —
-      staged by construction, not candid surveillance.
-
-  - name: Something-Something-v2
-    lane: R
-    subsystem: hoi
-    consent_posture: staged_actors
-    hypothesis_class: research/NC
-    notes: >-
-      Hand-object interaction benchmarking only. Crowdworker-submitted
-      self-recordings under a task agreement, not candid surveillance
-      (Day 35).
-  - name: EPIC-KITCHENS
-    lane: R
-    subsystem: hoi
-    consent_posture: staged_actors
-    hypothesis_class: non-commercial
-    notes: >-
-      Hand-object interaction benchmarking only. Recruited participants
-      wearing cameras in their own kitchens under informed research
-      consent (Day 35).
-
-
-  - name: synthetic-indoor-v1
-    lane: S
-    subsystem: everything
-    hypothesis_class: >-
-      Ours outright. Every asset is generated by
-      scripts/gen_synthetic_indoor.py from geometric primitives; nothing is
-      imported, so there is no third-party license in the stack and the SMPL
-      trap does not apply. Lane S is not conditional here.
-    content_sha: "c1dac6732d18e716..."
-    notes: >-
-      Analytic indoor scenes with EXACT ground truth (metric depth, 3D agent
-      positions, occlusion-flagged tracks, instance segmentation, exact
-      intrinsics/extrinsics). NOT photorealistic and NOT Kubric — see the
-      dataset manifest for why. SYNTHETIC-ONLY BASELINE: Site Zero footage
-      supersedes it for every product claim, and a scorecard from it must not
-      be quoted externally.
-    asset_clearance:
-      - asset: room shell (floor, ceiling, four walls)
-        origin: axis-aligned planes generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-      - asset: furniture (desks, cabinets, partitions)
-        origin: axis-aligned boxes generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-      - asset: agents (torso box, head sphere, two leg cylinders)
-        origin: articulated primitives generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "NO — this is the SMPL trap, avoided by construction. No body model, no scan, no likeness of any person."
-      - asset: textures
-        origin: seeded procedural noise generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-
-  - name: synthetic-indoor-v3
-    lane: S
-    subsystem: everything
-    hypothesis_class: >-
-      Ours outright, on the same footing as synthetic-indoor-v1: every asset is
-      generated by scripts/gen_synthetic_indoor.py from geometric primitives,
-      nothing is imported, and the SMPL trap does not apply. Lane S is not
-      conditional here.
-    content_sha: "minted by --write-golden; see configs/golden/v3-indoor.golden.json"
-    notes: >-
-      Re-authored indoor scenes, superseding synthetic-indoor-v1 as the active
-      eval set. v1 scored observable_fraction 0.4444 — its agents walked off
-      the bottom frame edge because the cameras had yaw-only extrinsics, and a
-      partition slab sat on the primary sightline. Cameras here are pitched
-      down, paths are held inside a 3.5-11 m band, and furniture occludes from
-      the side. Agent speed is a set property rather than an accident: paths
-      span roughly 0.04 to 10 gate px/frame, straddling the background
-      absorption floor, so the set exercises the measured envelope curve
-      instead of one point on it. v1 is NOT deleted — it remains the record of
-      what was measured before, and its numbers are not comparable to these.
-      SYNTHETIC-ONLY: Site Zero footage supersedes it for every product claim.
-    asset_clearance:
-      - asset: room shell (floor, ceiling, four walls)
-        origin: axis-aligned planes generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-      - asset: furniture (desks, cabinets, partitions)
-        origin: axis-aligned boxes generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-      - asset: agents (torso box, head sphere, two leg cylinders)
-        origin: articulated primitives generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "NO — this is the SMPL trap, avoided by construction. No body model, no scan, no likeness of any person."
-      - asset: textures
-        origin: seeded procedural noise generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-
-  - name: synthetic-indoor-v4-gate
-    lane: S
-    subsystem: motion_gate
-    hypothesis_class: >-
-      Ours outright, same footing and same generator as synthetic-indoor-v3 —
-      scripts/gen_synthetic_indoor.py, geometric primitives only, nothing
-      imported, SMPL trap does not apply. Lane S is not conditional here
-      either.
-    content_sha: "minted by --write-golden; see configs/golden/v4-gate.golden.json"
-    notes: >-
-      Day 16. A parallel instrument to v3, not a successor — v3 measures
-      tracking and depth and is authored to keep agents moving and in frame;
-      v4-gate measures the motion gate and is authored quiet on purpose,
-      because Day 15 found v3 structurally cannot: its moving_frame_fraction
-      is 0.9667 aggregate and 1.0000 in its occupied bucket, so it has no
-      hours where nothing happens for a gate to sleep through. Eight clips:
-      two camera views of a genuinely empty room, one empty room with a
-      lights-off transient, two camera views of one occupant present the
-      whole clip who never moves (speed_scale=0.0), and three brief-entry
-      clips (agent walks in over ~1/7 of the clip then stands still for the
-      remaining ~86%, one of them plus a lights-off transient after the
-      agent has settled). Per-clip moving_frame_fraction is 0.0000 for the
-      empty-room and long-static-occupant clips (three of eight) and 0.1500
-      for the three brief-entry clips — inside the ~0.02-0.30 target band
-      but not reaching its top edge, because "single brief entries" bounds
-      how much of a short clip can be genuinely in motion without becoming a
-      different scene. empty_room and empty_room_lights_off are NOT tagged
-      low_activity: an empty room is trivially NO_MOTION on every frame, so
-      those two clip the observability floor on their own and are what gives
-      the floor something to check (see MIN_OBSERVABLE_FRACTION's low_activity
-      exemption, src/data/golden.py). SYNTHETIC-ONLY, and more so than v3:
-      the renderer has no sensor-noise model, so an empty room renders
-      bit-identical frame to frame — real quiet has HVAC-driven shadow drift,
-      sensor noise, and compression artifacts that authored stillness does
-      not, and those are exactly what a background model reacts to. Neither
-      v3 nor v4-gate is the Tier-1 economic claim; that requires 24 hours of
-      real office footage including nights and weekends.
-    asset_clearance:
-      - asset: room shell (floor, ceiling, four walls)
-        origin: axis-aligned planes generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-      - asset: furniture (desks, cabinets, partitions)
-        origin: axis-aligned boxes generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-      - asset: agents (torso box, head sphere, two leg cylinders)
-        origin: articulated primitives generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "NO — this is the SMPL trap, avoided by construction. No body model, no scan, no likeness of any person."
-      - asset: textures
-        origin: seeded procedural noise generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-
-  - name: synthetic-indoor-v4.1-gate
-    lane: S
-    subsystem: motion_gate
-    hypothesis_class: >-
-      Ours outright, same footing and same generator as synthetic-indoor-v3
-      and v4-gate — scripts/gen_synthetic_indoor.py, geometric primitives
-      only, nothing imported, SMPL trap does not apply.
-    content_sha: "minted by --write-golden; see configs/golden/v4.1-gate.golden.json"
-    notes: >-
-      Day 17. SUPERSEDES synthetic-indoor-v4-gate: same 8 scenes, same
-      conditions, same low_activity tags, re-rendered under the gait-phase
-      fix (Agent.progress_at, scripts/gen_synthetic_indoor.py) — v4-gate
-      itself is retained, never edited, as the record of what "authored
-      quiet" measured before the fix existed. Day 16 found v4-gate's leg-
-      gait animation was driven by elapsed clip time rather than by
-      whether the agent was moving, so long_static_occupant — the one
-      clip authored to be entirely motionless (speed_scale=0.0) — rendered
-      a silhouette that changed on 38 of 40 frames (Shi-Tomasi-visible,
-      not just sub-pixel), and gt_moved_from_render (the Day-9 silhouette-
-      diff ground truth that gate.recall_retained and gate.miss_cost are
-      scored against) counted it as in near-constant motion. Verified
-      fixed here: long_static_occupant's silhouette-based motion is now
-      0/40 frames (matches world_motion(), which was always 0/40 — the two
-      signals agree for the first time), and brief_entry's motion window
-      correctly tracks only its actual ~6-frame entry rather than the
-      whole clip. v2 and v3 are BYTE-IDENTICAL under this fix (verified by
-      re-render + content_sha diff against their committed golden
-      manifests, 0 mismatches across 9 + 30 clips) — neither ever uses a
-      non-default Agent.speed_scale, so this set is the only one the fix
-      actually changes. SYNTHETIC-ONLY, and still without a sensor-noise
-      model: an empty room renders bit-identical frame to frame, which
-      real quiet never is. Not the Tier-1 economic claim; that requires 24
-      hours of real office footage including nights and weekends.
-    asset_clearance:
-      - asset: room shell (floor, ceiling, four walls)
-        origin: axis-aligned planes generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-      - asset: furniture (desks, cabinets, partitions)
-        origin: axis-aligned boxes generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-      - asset: agents (torso box, head sphere, two leg cylinders)
-        origin: articulated primitives generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "NO — this is the SMPL trap, avoided by construction. No body model, no scan, no likeness of any person."
-      - asset: textures
-        origin: seeded procedural noise generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-
-  - name: synthetic-indoor-v5-cessation
-    lane: S
-    subsystem: everything
-    hypothesis_class: >-
-      Ours outright, same footing and same generator as synthetic-indoor-v3/
-      v4-gate/v4.1-gate — scripts/gen_synthetic_indoor.py, geometric
-      primitives only, nothing imported, SMPL trap does not apply.
-    validity_matrix_cell: >-
-      motion_geometry / state_estimation — geometry-derived capabilities
-      this set can actually certify, since its GT is exact synthetic
-      position. Depth/appearance are NOT claims this set can make (Day-10
-      validity gate; see the matrix row for the measured verdict).
-    content_sha: "minted by --write-golden; see configs/golden/v5-cessation.golden.json"
-    notes: >-
-      Day 23. A fourth distinct instrument, parallel to v3/v4-gate/
-      v4.1-gate rather than a successor to any of them — it never touches
-      their directories or clips. Purpose-built for ONE gap: Day 22 found
-      the no-trade criterion for a cessation fix UNSCOREABLE because
-      cessation had 0 frames (v3-indoor) or 3 (v4.1-gate), both from a
-      single anticipatory frame per track — not enough to certify or
-      refute anything. 19 clips built from a new MultiSegmentAgent
-      (piecewise-linear walk/pause paths, abrupt or ease_out-gradual
-      deceleration): 8 radial (toward/away from camera, varying R
-      throughout the walk) and 8 lateral (crossing at fixed depth) stop
-      events, each spanning slow/medium/fast approach x near/far distance
-      x abrupt/gradual deceleration x a long-hold variant, plus 2
-      stop-then-restart clips and 1 double-stop clip. Measured directly
-      via classify_track over every scene's raw GT track (not asserted):
-      1059 total frames, cessation 373 (>= the 200-frame mint-time floor,
-      enforced by enforce_regime_volume/RegimeVolumeError — a set that
-      cannot score the criterion it exists for must not mint), static 260,
-      sustained 282, onset 129, maneuver 15 (declared out of scope per
-      V5_CESSATION_EXEMPT_REGIMES — this generator's straight-leg paths
-      cannot genuinely exercise heading-change maneuvers without either
-      dozens of hand-authored turns or a curved-path model neither exists
-      here; the 15 are incidental ease-out artifacts, measured and
-      reported, not hidden). Stopped-agent bit-identity verified on this
-      set's own pause segments (Day-17 discipline, carried forward). GEOMETRY
-      ONLY: this set supplies cessation VOLUME for the estimator/regime
-      layer, not the appearance-learned signal a real stop also changes
-      (gait dissipation, balance micro-motion) — docs/capture_runbook.md's
-      walk-then-stop block exists because this gap is real and synthetic
-      data cannot fill it. SYNTHETIC-ONLY: Site Zero footage supersedes it
-      for every product claim.
-    asset_clearance:
-      - asset: room shell (floor, ceiling, four walls)
-        origin: axis-aligned planes generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-      - asset: furniture (desk)
-        origin: axis-aligned box generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-      - asset: agent (torso box, head sphere, two leg cylinders; path driven
-          by the new MultiSegmentAgent/PathSegment classes, same primitive
-          body as every other synthetic-indoor set)
-        origin: articulated primitives generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "NO — this is the SMPL trap, avoided by construction. No body model, no scan, no likeness of any person."
-      - asset: textures
-        origin: seeded procedural noise generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-
-  - name: synthetic-indoor-v6-motion
-    lane: S
-    subsystem: everything
-    hypothesis_class: >-
-      Ours outright, same footing and same generator as synthetic-indoor-v3/
-      v4-gate/v4.1-gate/v5-cessation — scripts/gen_synthetic_indoor.py,
-      geometric primitives only, nothing imported, SMPL trap does not apply.
-    validity_matrix_cell: >-
-      motion_geometry / state_estimation — geometry-derived capabilities
-      this set can certify, since its GT is exact synthetic position.
-      Depth/appearance are NOT claims this set can make (Day-10 validity
-      gate; see the matrix row for the measured verdict).
-    content_sha: "minted by --write-golden; see configs/golden/v6-motion.golden.json"
-    notes: >-
-      Day 30. SUPERSEDES synthetic-indoor-v5-cessation — the second case in
-      this project where a set exists because the old one should stop being
-      quoted rather than because it measures something new (the first was
-      v4.1-gate over v4-gate). Same purpose, same room, same two cameras,
-      same walk/stop/restart coverage; re-authored because v5-cessation's
-      GT is physically impossible. Day 30 Objective 1 measured it: 14 of
-      v5's 22 stop events peak above 1g, MEDIAN peak 15.13 m/s^2 (1.54g),
-      max 36.58 (3.7g) — where a world-class sprinter peaks near 1g. All 12
-      of v5's abrupt stops violate; its "gradual" ease_out tail doubles
-      speed instantaneously at its start, so 2 of 10 gradual stops violate
-      too. Every Day 21-29 cessation number was measured on that.
-      v5-cessation is NOT edited or deleted: it remains the record of what
-      those days measured, exactly as v4-gate stayed the record after
-      v4.1-gate superseded it.
-      WHAT CHANGED: agent trajectories are GENERATED under physiological
-      kinematic bounds (GaitBounds/PhysicalAgent), not post-filtered. Each
-      leg is a rest-to-rest jerk-limited smoothstep speed profile, so peak
-      |a| = 1.5*v/T and peak |jerk| = 6*v/T^2 are satisfied BY
-      CONSTRUCTION — there is no clip, clamp, or smoothing pass anywhere.
-      Bounds (V6_GAIT_BOUNDS, each cited at the constant): max speed 2.0
-      m/s (brisk walk; normative comfortable gait is 1.2-1.4 m/s), max
-      acceleration 1.1 m/s^2 (gait-initiation COM acceleration), max
-      deceleration 2.0 m/s^2 (gait termination — ASYMMETRIC, humans stop
-      faster than they start), max jerk 8.0 m/s^3 (minimum-jerk models of
-      voluntary movement). Corroboration, not used to choose the value:
-      2.0 m/s^2 applied to a 1.4 m/s walk gives a 1.05 s stop, against
-      PEDESTRIAN_STOP_DURATION_S = 1.0 s declared independently on Day 22.
-      Measured GT: max |a| 1.995 m/s^2 (0.20g) across the whole set, zero
-      frames above 1g, zero stop events above 1g.
-      MINT-TIME PHYSICALITY GATE (new, Day 30): a set whose GT violates any
-      hard constraint in src.estimator.constraints.HARD_CONSTRAINTS does not
-      mint (enforce_gt_physicality/GtPhysicalityError). This is now the
-      DEFAULT for every set; the pre-Day-30 sets must name a
-      LEGACY_UNPHYSICAL_EXEMPT declaration at the call site, and the
-      measurement still runs and still lands in their manifest. v5-cessation
-      records 23 violations under it.
-      CARRIED FORWARD, unchanged: the Day-23 regime-volume floor (>= 200
-      cessation frames, >= 30 in every other non-exempt regime), the Day-16
-      observability floor, the low_activity exemption, Day-17 speed-coupled
-      gait animation (now genuinely ramped, since progress is a real speed
-      profile), and stopped-agent bit-identity on PhysicalHold legs.
-      `maneuver` is declared out of scope (V6_MOTION_EXEMPT_REGIMES), same
-      as v5 but for a sharper reason: PhysicalAgent turns ONLY at zero
-      speed, structurally, because a moving agent that changes heading
-      instantaneously has unbounded lateral acceleration however carefully
-      its speed profile is shaped. Physical maneuvers need a curved-path
-      model with a lateral-acceleration budget; that is not built here.
-      NEARER THAN v5, and why: physically bounded motion spends many frames
-      moving slowly, and the measured motion-gate envelope demands a much
-      larger silhouette from a slow mover (535 gate px below 0.5 gate
-      px/frame, vs 110 above 1.5). v5 cleared the observability floor at
-      greater depths precisely BECAUSE its motion was abrupt — an
-      instantaneous stop has no slow phase to be unobservable during. The
-      first v6 render, at v5's depths, was REFUSED at 0.7978 against the
-      0.80 floor; V6_MAX_DEPTH_M = 5.9 m is the resulting authoring rule,
-      derived from that envelope and the measured silhouette law
-      (area_gate_px ~ 19000 / depth^2), not tuned until the gate passed.
-      Its cost is stated: the near/far axis is compressed (stops at ~3.4 m
-      vs ~6.0 m rather than ~4.5 m vs ~11 m) and the radial lane is too
-      short for a 2.0 m/s approach-and-stop, so those legs' cruise speed is
-      reduced by the solver and the achieved value is recorded per clip.
-      GEOMETRY ONLY, same as v5: this set supplies physically reachable
-      cessation VOLUME for the estimator/regime layer, not the
-      appearance-learned signal a real stop also changes (gait dissipation,
-      balance micro-motion) — docs/capture_runbook.md's walk-then-stop block
-      exists because that gap is real and synthetic data cannot fill it.
-      SYNTHETIC-ONLY: Site Zero footage supersedes it for every product
-      claim.
-    asset_clearance:
-      - asset: room shell (floor, ceiling, four walls)
-        origin: axis-aligned planes generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-      - asset: furniture (desk)
-        origin: axis-aligned box generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-      - asset: agent (torso box, head sphere, two leg cylinders; path driven
-          by the new PhysicalAgent/PhysicalWalk/PhysicalHold classes under
-          GaitBounds, same primitive body as every other synthetic-indoor
-          set)
-        origin: articulated primitives generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "NO — this is the SMPL trap, avoided by construction. No body model, no scan, no likeness of any person."
-      - asset: textures
-        origin: seeded procedural noise generated by this file
-        license: ours — no third-party asset
-        smpl_derived: "no"
-
-  # -- real depth evaluation (day 10) ------------------------------------
-  # Depth is appearance-learned and cannot be scored on anything this project
-  # can generate — v2 and v3 both fail the depth validity gate. These are the
-  # candidates that can. NONE is fetched; each needs a human to read its terms.
-  - name: DA-2K
-    lane: R
-    subsystem: depth
-    consent_posture: unknown
-    hypothesis_class: >-
-      Depth-Anything's own relative-depth benchmark. Believed research-only.
-      VERIFY before any use beyond local eval.
-    validity_matrix_cell: >-
-      depth — pairwise RELATIVE depth on annotated pixel pairs, which
-      disparity_rel scores with NO metric alignment (so no scale/shift fit
-      can launder a constant prediction into a good number, unlike
-      AbsRel). The single most defect-resistant depth cell available.
-    notes: >-
-      PAIRWISE RELATIVE DEPTH on annotated pixel pairs — which is exactly what
-      disparity_rel can be scored on, with NO metric alignment and therefore no
-      scale/shift fit to launder a constant prediction into a good number. That
-      makes it the single best first real depth eval for this project. Adapter
-      implemented and tested against a synthesized 5-pair fixture; ready the
-      moment the licence clears. HUMAN ACTION: read the DA-2K terms and record
-      a licence snapshot. consent_posture unknown (Day 35): curated scene
-      photos, may include real incidental people, not characterized either
-      way.
-  - name: ETH3D
-    lane: R
-    subsystem: depth
-    consent_posture: unknown
-    hypothesis_class: research/non-commercial — verify
-    validity_matrix_cell: >-
-      depth — high-accuracy laser-scanned metric GT, real materials and
-      lighting; the metric-AbsRel/RMSE cell analytic-primitive synthetic
-      sets (v3/v4.1-gate) structurally cannot fill (Day 20/21: DA-V2
-      scored rank correlation −0.59 against v3-indoor's exact GT).
-    notes: >-
-      High-accuracy laser-scanned indoor/outdoor GT. Real materials, real
-      lighting, so it can exercise what analytic primitives cannot. HUMAN
-      ACTION: verify licence.
-  - name: iBims-1
-    lane: R
-    subsystem: depth
-    consent_posture: unknown
-    hypothesis_class: research-only — verify
-    validity_matrix_cell: >-
-      depth — planarity / depth-boundary / directed-error metrics, not a
-      single pooled AbsRel; closest public match to this product's indoor
-      domain among the depth candidates.
-    notes: >-
-      Indoor benchmark built for exactly this failure mode: planarity, depth
-      boundaries and directed depth error rather than a single pooled AbsRel.
-      Closest public match to the product's domain. HUMAN ACTION: verify licence.
-  - name: DIODE-indoor
-    lane: R
-    subsystem: depth
-    consent_posture: unknown
-    hypothesis_class: research-only — verify
-    validity_matrix_cell: >-
-      depth — dense indoor GT at long range, where this project's own
-      coverage/far-field question already lives (Day 15's
-      coverage.observable_fraction finding).
-    notes: >-
-      Dense indoor GT at long range, which is where this project's coverage
-      question lives. HUMAN ACTION: verify licence.
-  - name: Infinigen-Indoors-depth-candidate
-    lane: S
-    subsystem: depth
-    hypothesis_class: >-
-      BSD-3 generator, procedurally generated assets, ours outright once
-      generated — same standing as synthetic-indoor-v3.
-    notes: >-
-      CANDIDATE ONLY, AND NOT TRUSTED FOR DEPTH. Procedural materials and real
-      shading may restore the cues analytic primitives delete, or may not.
-      ACCEPTANCE PROCEDURE, binding: generate a set, run it through the
-      Objective-2 depth validity gate (rank correlation >= 0.30, dynamic range
-      >= 3.0, no distance band above 90% of pixels), and only then may a depth
-      number be computed on it. The same test condemned v3-indoor. Being
-      synthetic-but-photorealistic is a hypothesis, not a pass. HUMAN ACTION:
-      none — this one is unblocked by work, not by paperwork.
-      DAY 11: default indoors pipeline does NOT generate humans — the human
-      assets live in a separate Infinigen branch and are not commercially
-      cleared. This entry is therefore silent on human-appearance capabilities.
-      DAY 11 GENERATION VERDICT: no scoreable sample was produced on this box.
-      Two paths were attempted from a clean .venv-infinigen (Python 3.11.15,
-      bpy==4.2.0, infinigen==1.12.2 — Infinigen requires ==3.11.*, so the pinned
-      3.10 measurement env stayed untouched; scikit-image was constrained to
-      0.21.0 because Infinigen's pinned 0.19.3 cannot build on macOS 15 clang).
-      Furnished path (`fast_solve.gin`) ran 623 constraint-annealing iterations
-      over 21m35s, completed 7 of many solver stages across 5 rooms, and was
-      killed with 0 frames rendered — each annealing iteration takes 25-55s
-      and per-stage budgets are 100 iterations. Empty-room path
-      (`singleroom.gin + fast_solve.gin + no_objects.gin`) exits in ~30s on
-      an `AssertionError: (0.024, 0.018, 1280, 720)` inside
-      `get_sensor_coords` — the default sensor is 4:3 and the default render
-      resolution is 16:9, and the `--overrides execute_tasks.generate_resolution=[160,120]`
-      needed to reconcile them is silently not applied by gin. Full logs
-      preserved at docs/day11/infinigen_render_stall.log (furnished path) and
-      docs/day11/infinigen_empty_room_stderr.log (empty-room assertion).
-      Strategic consequence: no renderer available to us can
-      score appearance-learned capabilities in a decision-quality session
-      budget on this hardware, which makes real data the sole path for depth,
-      semantics and re-ID. This is a finding about *our compute*, not about
-      Infinigen's quality: on a GPU box with hours of budget, the acceptance
-      procedure remains the right test.
-      DAY 12 CORRECTION: the Day-11 verdict above overclaimed. What Day 11
-      established is that generation did not COMPLETE within a session
-      budget on this hardware — it never established that Infinigen CANNOT
-      generate a passing sample. Those are different claims and the first
-      does not imply the second. The depth validity gate on this candidate
-      remains UNMEASURED, not REFUSED — no sample has ever been scored
-      against it, so there is no gate evidence either way. Corrected
-      status: BLOCKED ON GENERATION THROUGHPUT, not blocked on renderer
-      capability. See docs/day12/infinigen_throughput.md for the measured
-      per-stage timing, the scenes/hour extrapolation, and the decision
-      memo (overnight local vs. rented GPU) this correction is based on.
-    asset_clearance:
-      - asset: Infinigen generator (code)
-        origin: github.com/princeton-vl/infinigen v1.12.2, pip wheel on PyPI
-          (v1.15.5 unavailable to us — its scikit-image==0.19.3 pin does not
-          build on macOS 15 clang, and the pip resolver dropped to 1.12.2)
-        license: BSD-3-Clause
-        smpl_derived: "no"
-      - asset: bpy 4.2.0 (Blender Python module)
-        origin: PyPI wheel, pinned by Infinigen
-        license: GPL-3.0 (Blender). Runs the generator; does not ship in our
-          product. Rendered pixel arrays are not GPL-encumbered outputs.
-        smpl_derived: "no"
-      - asset: room shells, furniture, decor
-        origin: procedurally generated by Infinigen from CC0/self-authored
-          primitives (see infinigen/assets/objects/)
-        license: procedurally generated — no third-party asset in the render
-        smpl_derived: "no"
-      - asset: materials and textures
-        origin: procedural shaders (Blender node graphs authored in Infinigen)
-        license: procedurally generated — no third-party asset
-        smpl_derived: "no"
-      - asset: agents (humans, animals)
-        origin: NOT USED — default indoors pipeline places no humans
-        license: n/a
-        smpl_derived: "n/a — none placed. Human-body assets live in a separate
-          branch and are excluded from this sample by construction."
-
-  # -- consented self-collected ------------------------------------------
-  - name: site-zero
-    lane: C
-    subsystem: everything
-    hypothesis_class: ours — consent records stored with the data
-    notes: >-
-      Our office as deployment #1 and dataset #1. The only lane admissible
-      for INT8 calibration. Does not exist yet; the capture protocol and
-      consent template are in the Day-5 report.
-
-  - name: office-capture-v1
-    lane: C
-    subsystem: everything
-    hypothesis_class: >-
-      Ours, consented. Ingested by scripts/ingest_capture.py, which REFUSES
-      without a resolvable consent record — lane C is defined by that record,
-      and footage without one is not lane C.
-    content_sha: "per-clip; see data/captures/office-capture-v1/capture_manifest.json"
-    notes: >-
-      Office corridor capture at 720p and 1080p. NOT YET INGESTED — the
-      footage does not exist in this repository. The ingest path is built and
-      tested against a synthesized stand-in; no parity number may be derived
-      from that stand-in, and none has been. Frames are decoded once at ingest
-      and stored, because OpenCV builds disagree frame-for-frame and a
-      re-decoded fixture is not a fixture. Each clip records whether it is
-      larger than the 320x180 gate raster: a clip that is not never exercises
-      the downscale, which is precisely how the day-2 parity claim came to be
-      vacuous.
-
-  # -- self-collected, consent basis not yet attached (Day 23) -----------
-  - name: thinkwill-cctv-archive
-    lane: C_pending_consent
-    subsystem: everything
-    hypothesis_class: >-
-      Ours (company-owned premises-security CCTV footage, existing
-      Thinkwill system) — not third-party licensed content, so
-      hypothesis_class/license_snapshot do not apply the way they do for a
-      public dataset. The applicable gate here is CONSENT, not license.
-    notes: >-
-      Registered lane C_pending_consent (Day 23), deliberately NOT lane C:
-      this archive was recorded under a premises-security purpose, and
-      using it for AI development is a NEW purpose that generally needs
-      its own notice and consent under the DPDP Act, 2023 — a purpose
-      change is not automatically covered by whatever notice (if any)
-      accompanied the original premises-security recording. See
-      docs/site_zero_consent_TEMPLATE.md (unreviewed draft) for the shape
-      that notice would take. src/data/registry.py's DatasetRegistry
-      rejects this entry from every training, calibration, and eval
-      loader (DatasetRegistry._require_consent) until a ConsentRecord is
-      attached to its consent_record field. No footage from this archive
-      has been fetched, copied, viewed, or processed by anything in this
-      repository — the entry exists to make the consent gap a recorded,
-      visible fact rather than a silent absence.
-
-  # -- blocked (visibility only; the in-code blocklist is authoritative) --
-  - name: DukeMTMC
-    lane: R
-    subsystem: reid
-    consent_posture: public_cctv_no_consent
-    blocked: true
-    blocked_reason: RETRACTED 2019 — ethics investigation; see registry.py.
-  - name: DukeMTMC-reID
-    lane: R
-    subsystem: reid
-    consent_posture: public_cctv_no_consent
-    blocked: true
-    blocked_reason: Derivative of DukeMTMC; inherits the retraction.
-  - name: MS-Celeb
-    lane: R
-    subsystem: reid
-    consent_posture: unknown
-    blocked: true
-    blocked_reason: Withdrawn by Microsoft 2019; scraped without consent.
-    notes: >-
-      consent_posture recorded unknown, not public_cctv_no_consent (Day
-      35): this is scraped web photography, not video surveillance — a
-      different modality from the CCTV-shaped datasets this distinction
-      was introduced for, even though the underlying ethics problem
-      (real, non-consenting subjects) is the same. blocked_reason already
-      states the actual violation; this field is not doing double duty as
-      a euphemism for it.
+    Did NOT, in this update: flip license_snapshot from null, change CHIRLA''s lane
+    from R, or write a resolution for deployment_scope_restriction — see src.data.registry.DatasetRegistry.require_product_claim_clearance
+    for the one place resolved is read, and FOUNDATION_REPORT.md''s Day-38 section
+    for why self-certifying any of the three would have been the finding to report,
+    not an action to take.'
+  license_snapshot:
+    url: https://huggingface.co/datasets/bdager/CHIRLA
+    verified_date: '2026-09-08'
+    text_sha256: d3a1eccc86bbf36341e2eb8a5aa3921fcf9723051763b6911787ee91d88095db
+    verified_by: Ankit Mehta
+    verified_class: CC-BY-4.0
+- name: Market-1501
+  lane: R
+  subsystem: reid
+  consent_posture: public_cctv_no_consent
+  hypothesis_class: research-only, consent debt
+  notes: 'Model SELECTION only, reported internally. Never in demos: scraped pedestrians
+    who never consented.'
+- name: MSMT17
+  lane: R
+  subsystem: reid
+  consent_posture: public_cctv_no_consent
+  hypothesis_class: research-only, consent debt
+  notes: Model selection only; never in demos.
+- name: RandPerson
+  lane: S
+  subsystem: reid
+  hypothesis_class: verify — goal is lane S
+  notes: Synthetic re-ID. Lane S is CONDITIONAL on verification confirming every asset
+    in its generation stack is commercially cleared (see the SMPL trap); demote to
+    R if not.
+- name: UnrealPerson
+  lane: S
+  subsystem: reid
+  hypothesis_class: verify — goal is lane S
+  notes: Synthetic re-ID; same conditional-lane-S caveat as RandPerson.
+- name: ClonedPerson
+  lane: S
+  subsystem: reid
+  hypothesis_class: verify — goal is lane S
+  notes: Synthetic re-ID; same conditional-lane-S caveat.
+- name: PersonX
+  lane: S
+  subsystem: reid
+  hypothesis_class: verify — goal is lane S
+  notes: Synthetic re-ID; same conditional-lane-S caveat.
+- name: CASIA-B
+  lane: R
+  subsystem: gait
+  consent_posture: staged_actors
+  hypothesis_class: research-only
+- name: OU-MVLP
+  lane: R
+  subsystem: gait
+  consent_posture: staged_actors
+  hypothesis_class: research-only, application-gated
+- name: GREW
+  lane: R
+  subsystem: gait
+  consent_posture: unknown
+  hypothesis_class: research-only, application-gated
+  notes: Unlike CASIA-B/OU-MVLP's lab-recruited walkers, GREW is built from real outdoor
+    surveillance video — closer to public_cctv_no_consent in spirit, but not confidently
+    verified either way from memory alone; recorded unknown rather than guessed (Day
+    35).
+- name: Gait3D
+  lane: R
+  subsystem: gait
+  consent_posture: unknown
+  hypothesis_class: research-only
+  notes: Built from real in-the-wild supermarket surveillance cameras, same caveat
+    as GREW — likely public_cctv_no_consent in fact, recorded unknown pending actual
+    verification (Day 35).
+- name: Infinigen-Indoors
+  lane: S
+  subsystem: depth
+  hypothesis_class: BSD-3 generator; generated data ours
+  notes: Procedural indoor scenes with exact depth/normals/segmentation. Assets procedurally
+    generated — clean of the SMPL trap. Generator CODE license still needs its snapshot.
+- name: Kubric
+  lane: S
+  subsystem: depth
+  hypothesis_class: Apache-2.0 generator; per-asset check (ShapeNet/GSO)
+  notes: Dynamic-scene GT (tracks, occlusion, depth). Verify per-asset terms.
+- name: NYUv2
+  lane: R
+  subsystem: depth
+  consent_posture: unknown
+  hypothesis_class: research-only
+  notes: Classic real indoor depth; sanity eval. Scene-geometry dataset, not a people
+    dataset — incidental bystanders possible, consent posture not confidently characterizable
+    either way; recorded unknown rather than assumed benign (Day 35).
+- name: SUN-RGBD
+  lane: R
+  subsystem: depth
+  consent_posture: unknown
+  hypothesis_class: research-only
+  notes: Classic real indoor depth; sanity eval. Same scene-geometry caveat as NYUv2
+    (Day 35).
+- name: Hypersim
+  lane: R
+  subsystem: depth
+  consent_posture: unknown
+  hypothesis_class: verify — likely non-commercial
+  notes: 'Photoreal synthetic indoor. CAUTION for eval use: DA-V2''s indoor metric
+    checkpoint was trained on it, so evaluating DA-V2 against it double-counts. Prefer
+    Infinigen-Indoors for depth eval. consent_posture: unknown, not null, despite
+    being synthetic (Day 35) — this entry is registered lane R rather than S, and
+    whether "synthetic" here means procedurally generated (no consent question at
+    all) or photogrammetry/scan-derived from real scenes (which can carry real incidental
+    people) is not confidently known from memory; recorded unknown rather than assumed
+    clean.'
+- name: ScanNet
+  lane: R
+  subsystem: twin
+  consent_posture: unknown
+  hypothesis_class: research-only, application-gated
+  notes: Real RGB-D building scans, not synthetic — incidental real people possible
+    in some scans; consent posture not confidently characterizable from memory, recorded
+    unknown (Day 35).
+- name: Matterport3D
+  lane: R
+  subsystem: twin
+  consent_posture: unknown
+  hypothesis_class: research-only, application-gated
+  notes: Same real-scan caveat as ScanNet (Day 35).
+- name: HM3D
+  lane: R
+  subsystem: twin
+  consent_posture: unknown
+  hypothesis_class: research-only, application-gated
+  notes: Same real-scan caveat as ScanNet (Day 35).
+- name: PeopleSansPeople
+  lane: S
+  subsystem: detection
+  hypothesis_class: verify Unity asset terms
+  notes: Synthetic person generator; conditional lane S pending asset check.
+- name: COCO
+  lane: R
+  subsystem: detection
+  consent_posture: unknown
+  hypothesis_class: annotations CC-BY-4.0; images individually licensed
+  notes: Eval-only posture because of the per-image license patchwork. Scraped Flickr
+    photos of real people under heterogeneous individual circumstances — neither a
+    staged research programme nor CCTV; recorded unknown rather than forced into either
+    bucket (Day 35).
+- name: CrowdHuman
+  lane: R
+  subsystem: detection
+  consent_posture: unknown
+  hypothesis_class: research-only
+  notes: Eval only. Internet-scraped crowd photos of real, unconsenting people, same
+    heterogeneous-provenance caveat as COCO — not literal CCTV, recorded unknown rather
+    than mislabeled public_cctv_no_consent (Day 35).
+- name: UBnormal
+  lane: R
+  subsystem: anomaly
+  consent_posture: unknown
+  hypothesis_class: synthetic, open-set — verify, possibly usable more broadly
+  notes: 'Lane R until verification says otherwise, synthetic or not. consent_posture
+    recorded unknown rather than "not applicable" (Day 35): hypothesis_class already
+    states synthetic/no real subjects, but this registry reserves a bare absent consent_posture
+    for lane S/C/C_pending_consent entries where the field structurally does not apply
+    — a lane-R entry gets one of the three named values for backfill-completeness
+    consistency, even when, as here, the honest answer is close to "not applicable".'
+- name: ShanghaiTech-Campus
+  lane: R
+  subsystem: anomaly
+  consent_posture: public_cctv_no_consent
+  hypothesis_class: research-only
+  notes: Real campus surveillance camera footage of real, uncontrolled pedestrians
+    (Day 35).
+- name: CUHK-Avenue
+  lane: R
+  subsystem: anomaly
+  consent_posture: public_cctv_no_consent
+  hypothesis_class: research-only
+  notes: Real fixed-camera footage of a real campus avenue (Day 35).
+- name: UCF-Crime
+  lane: R
+  subsystem: anomaly
+  consent_posture: public_cctv_no_consent
+  hypothesis_class: research-only
+  notes: Mostly outdoor/street; off-domain for this product anyway. Real compiled
+    CCTV/security-camera and user-submitted footage of real, uncontrolled, unconsenting
+    subjects (Day 35).
+- name: UCSD-Anomaly-Detection
+  lane: R
+  subsystem: anomaly
+  consent_posture: public_cctv_no_consent
+  hypothesis_class: research-only — verify
+  validity_matrix_cell: appearance_semantics — pedestrian-walkway anomaly detection
+    (bikers, skaters, carts, vehicles among pedestrians), alongside the already-registered
+    ShanghaiTech-Campus/CUHK-Avenue/UCF-Crime anomaly benchmarks.
+  notes: 'Day 35. Additional anomaly benchmark: fixed real camera over a UCSD campus
+    pedestrian walkway. Anomalies are naturally-occurring atypical objects/behaviour
+    on a real walkway, not staged incidents — real, uncontrolled, unconsenting foot
+    traffic, same posture as its anomaly-dataset siblings above.'
+- name: i-LIDS
+  lane: R
+  subsystem: activity
+  consent_posture: staged_actors
+  hypothesis_class: UK Home Office AVSS benchmark, historically distributed by the
+    i-LIDS community for research/challenge use. UNVERIFIED — recorded as a hypothesis
+    only; no snapshot exists and nothing may be fetched on the strength of this line.
+  validity_matrix_cell: 'appearance_semantics — directly relevant to asset-left-behind
+    (abandoned bag: a put_down + no-carrier-return interaction chain) and restricted-zone
+    (sterile zone / doorway: a zone entered/dwelled pair) scenarios. The closest public
+    match this registry has for those two specific verb/zone combinations.'
+  notes: 'Day 35. AVSS 2007 challenge scenarios: abandoned bag, parked vehicle, doorway,
+    sterile zone. Staged reenactments performed by recruited participants for the
+    benchmark, not real incidents caught on live CCTV — hence staged_actors, not public_cctv_no_consent,
+    despite the CCTV-realistic camera placement.'
+- name: PETS2009
+  lane: R
+  subsystem: tracking
+  consent_posture: staged_actors
+  hypothesis_class: Classic PETS-workshop multi-camera benchmark, historically freely
+    distributed for research. UNVERIFIED — recorded as a hypothesis only, same discipline
+    as every other entry here.
+  validity_matrix_cell: 'No registered validity-matrix capability covers cross-camera
+    multi-person tracking directly (same gap MMPTRACK''s entry above already names)
+    — closest is motion_geometry, same caveat: a genuine gap, not a clean fit.'
+  notes: 'Day 35. 7/8-camera overlapping-view crowd dataset (counting, flow analysis,
+    tracking); choreographed scenarios performed by recruited participants at the
+    University of Reading, not candid footage. FORWARD-LOOKING EVAL TARGET, NOT TODAY''S
+    WORK: alongside ChokePoint below, a candidate for supplying real, human-annotated
+    identity- ambiguity cases — genuine confusable pairs in a real overlapping- camera
+    crowd — that could validate AssociationVerdict''s Decisive/Ambiguous split against
+    human-perceived ambiguity, once licence status permits any use at all.'
+- name: ChokePoint
+  lane: R
+  subsystem: reid
+  consent_posture: public_cctv_no_consent
+  hypothesis_class: Historically distributed for research re-identification benchmarking.
+    UNVERIFIED — recorded as a hypothesis only. consent_posture itself is also a hypothesis,
+    not an independently re-verified fact (see ConsentPosture's docstring) — re-verify
+    alongside the licence.
+  validity_matrix_cell: appearance_semantics / reid — portal/gate re-identification
+    under natural pose variation as people walk through a real entry point; fills
+    the re-id cell alongside MEVID/Market-1501/MSMT17 with a distinctly different
+    capture geometry (a single chokepoint, not open-area cameras).
+  notes: 'Day 35. Real uncontrolled foot traffic through a portal at a real point
+    of entry — not a staged research programme. FORWARD-LOOKING EVAL TARGET, NOT TODAY''S
+    WORK: alongside PETS2009 above, a candidate for supplying real, human-annotated
+    identity-ambiguity cases to validate AssociationVerdict''s Decisive/Ambiguous
+    split against human-perceived ambiguity, once licence status permits any use at
+    all.'
+- name: PRW
+  lane: R
+  subsystem: reid
+  consent_posture: public_cctv_no_consent
+  hypothesis_class: Historically distributed for research person-search benchmarking.
+    UNVERIFIED — recorded as a hypothesis only, same discipline as every other entry
+    here.
+  validity_matrix_cell: appearance_semantics / reid — person search (joint detection
+    + re-id) from a real campus surveillance camera network, same lineage and campus
+    as Market-1501.
+  notes: Day 35. Real, uncontrolled campus surveillance footage of real students and
+    staff — same posture as Market-1501/MSMT17, its close relatives.
+- name: CUHK-SYSU
+  lane: R
+  subsystem: reid
+  consent_posture: public_cctv_no_consent
+  hypothesis_class: Historically distributed for research person-search benchmarking.
+    UNVERIFIED — recorded as a hypothesis only, same discipline as every other entry
+    here.
+  validity_matrix_cell: appearance_semantics / reid — person search from real street-camera
+    snapshots (plus movie/TV frames in the same release), complementing PRW's single-campus-network
+    capture with a more heterogeneous real- world camera mix.
+  notes: Day 35. Street-camera component is real, uncontrolled, unconsenting surveillance;
+    the movie/TV-frame component is a different (posed, performed) provenance the
+    registry does not currently split out — recorded public_cctv_no_consent for the
+    dataset as a whole per this task's classification, flagged for finer-grained re-verification
+    before any actual use.
+- name: CAVIAR
+  lane: R
+  subsystem: activity
+  consent_posture: staged_actors
+  hypothesis_class: EU CAVIAR project dataset, historically freely distributed for
+    research. UNVERIFIED — recorded as a hypothesis only, same discipline as every
+    other entry here.
+  validity_matrix_cell: 'appearance_semantics — indoor corridor/shop scenarios with
+    labeled interactions (browsing, meeting, fighting, leaving an object/ abandoned
+    bag). FLAGGED EXPLICITLY: an unusually close match to this project''s own verb
+    vocabulary (INTERACTION verbs picked_up/ put_down/carried, GEOMETRIC dwelled/approached)
+    — closer than MEVA''s surveillance-generic activities or Charades'' home-activity
+    breadth.'
+  notes: Day 35. Recorded scenarios performed by actors at a shopping-centre corridor
+    and an INRIA lab entrance for the EU CAVIAR project — staged by construction,
+    not candid surveillance.
+- name: Something-Something-v2
+  lane: R
+  subsystem: hoi
+  consent_posture: staged_actors
+  hypothesis_class: research/NC
+  notes: Hand-object interaction benchmarking only. Crowdworker-submitted self-recordings
+    under a task agreement, not candid surveillance (Day 35).
+- name: EPIC-KITCHENS
+  lane: R
+  subsystem: hoi
+  consent_posture: staged_actors
+  hypothesis_class: non-commercial
+  notes: Hand-object interaction benchmarking only. Recruited participants wearing
+    cameras in their own kitchens under informed research consent (Day 35).
+- name: synthetic-indoor-v1
+  lane: S
+  subsystem: everything
+  hypothesis_class: Ours outright. Every asset is generated by scripts/gen_synthetic_indoor.py
+    from geometric primitives; nothing is imported, so there is no third-party license
+    in the stack and the SMPL trap does not apply. Lane S is not conditional here.
+  content_sha: c1dac6732d18e716...
+  notes: 'Analytic indoor scenes with EXACT ground truth (metric depth, 3D agent positions,
+    occlusion-flagged tracks, instance segmentation, exact intrinsics/extrinsics).
+    NOT photorealistic and NOT Kubric — see the dataset manifest for why. SYNTHETIC-ONLY
+    BASELINE: Site Zero footage supersedes it for every product claim, and a scorecard
+    from it must not be quoted externally.'
+  asset_clearance:
+  - asset: room shell (floor, ceiling, four walls)
+    origin: axis-aligned planes generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+  - asset: furniture (desks, cabinets, partitions)
+    origin: axis-aligned boxes generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+  - asset: agents (torso box, head sphere, two leg cylinders)
+    origin: articulated primitives generated by this file
+    license: ours — no third-party asset
+    smpl_derived: NO — this is the SMPL trap, avoided by construction. No body model,
+      no scan, no likeness of any person.
+  - asset: textures
+    origin: seeded procedural noise generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+- name: synthetic-indoor-v3
+  lane: S
+  subsystem: everything
+  hypothesis_class: 'Ours outright, on the same footing as synthetic-indoor-v1: every
+    asset is generated by scripts/gen_synthetic_indoor.py from geometric primitives,
+    nothing is imported, and the SMPL trap does not apply. Lane S is not conditional
+    here.'
+  content_sha: minted by --write-golden; see configs/golden/v3-indoor.golden.json
+  notes: 'Re-authored indoor scenes, superseding synthetic-indoor-v1 as the active
+    eval set. v1 scored observable_fraction 0.4444 — its agents walked off the bottom
+    frame edge because the cameras had yaw-only extrinsics, and a partition slab sat
+    on the primary sightline. Cameras here are pitched down, paths are held inside
+    a 3.5-11 m band, and furniture occludes from the side. Agent speed is a set property
+    rather than an accident: paths span roughly 0.04 to 10 gate px/frame, straddling
+    the background absorption floor, so the set exercises the measured envelope curve
+    instead of one point on it. v1 is NOT deleted — it remains the record of what
+    was measured before, and its numbers are not comparable to these. SYNTHETIC-ONLY:
+    Site Zero footage supersedes it for every product claim.'
+  asset_clearance:
+  - asset: room shell (floor, ceiling, four walls)
+    origin: axis-aligned planes generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+  - asset: furniture (desks, cabinets, partitions)
+    origin: axis-aligned boxes generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+  - asset: agents (torso box, head sphere, two leg cylinders)
+    origin: articulated primitives generated by this file
+    license: ours — no third-party asset
+    smpl_derived: NO — this is the SMPL trap, avoided by construction. No body model,
+      no scan, no likeness of any person.
+  - asset: textures
+    origin: seeded procedural noise generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+- name: synthetic-indoor-v4-gate
+  lane: S
+  subsystem: motion_gate
+  hypothesis_class: Ours outright, same footing and same generator as synthetic-indoor-v3
+    — scripts/gen_synthetic_indoor.py, geometric primitives only, nothing imported,
+    SMPL trap does not apply. Lane S is not conditional here either.
+  content_sha: minted by --write-golden; see configs/golden/v4-gate.golden.json
+  notes: 'Day 16. A parallel instrument to v3, not a successor — v3 measures tracking
+    and depth and is authored to keep agents moving and in frame; v4-gate measures
+    the motion gate and is authored quiet on purpose, because Day 15 found v3 structurally
+    cannot: its moving_frame_fraction is 0.9667 aggregate and 1.0000 in its occupied
+    bucket, so it has no hours where nothing happens for a gate to sleep through.
+    Eight clips: two camera views of a genuinely empty room, one empty room with a
+    lights-off transient, two camera views of one occupant present the whole clip
+    who never moves (speed_scale=0.0), and three brief-entry clips (agent walks in
+    over ~1/7 of the clip then stands still for the remaining ~86%, one of them plus
+    a lights-off transient after the agent has settled). Per-clip moving_frame_fraction
+    is 0.0000 for the empty-room and long-static-occupant clips (three of eight) and
+    0.1500 for the three brief-entry clips — inside the ~0.02-0.30 target band but
+    not reaching its top edge, because "single brief entries" bounds how much of a
+    short clip can be genuinely in motion without becoming a different scene. empty_room
+    and empty_room_lights_off are NOT tagged low_activity: an empty room is trivially
+    NO_MOTION on every frame, so those two clip the observability floor on their own
+    and are what gives the floor something to check (see MIN_OBSERVABLE_FRACTION''s
+    low_activity exemption, src/data/golden.py). SYNTHETIC-ONLY, and more so than
+    v3: the renderer has no sensor-noise model, so an empty room renders bit-identical
+    frame to frame — real quiet has HVAC-driven shadow drift, sensor noise, and compression
+    artifacts that authored stillness does not, and those are exactly what a background
+    model reacts to. Neither v3 nor v4-gate is the Tier-1 economic claim; that requires
+    24 hours of real office footage including nights and weekends.'
+  asset_clearance:
+  - asset: room shell (floor, ceiling, four walls)
+    origin: axis-aligned planes generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+  - asset: furniture (desks, cabinets, partitions)
+    origin: axis-aligned boxes generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+  - asset: agents (torso box, head sphere, two leg cylinders)
+    origin: articulated primitives generated by this file
+    license: ours — no third-party asset
+    smpl_derived: NO — this is the SMPL trap, avoided by construction. No body model,
+      no scan, no likeness of any person.
+  - asset: textures
+    origin: seeded procedural noise generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+- name: synthetic-indoor-v4.1-gate
+  lane: S
+  subsystem: motion_gate
+  hypothesis_class: Ours outright, same footing and same generator as synthetic-indoor-v3
+    and v4-gate — scripts/gen_synthetic_indoor.py, geometric primitives only, nothing
+    imported, SMPL trap does not apply.
+  content_sha: minted by --write-golden; see configs/golden/v4.1-gate.golden.json
+  notes: 'Day 17. SUPERSEDES synthetic-indoor-v4-gate: same 8 scenes, same conditions,
+    same low_activity tags, re-rendered under the gait-phase fix (Agent.progress_at,
+    scripts/gen_synthetic_indoor.py) — v4-gate itself is retained, never edited, as
+    the record of what "authored quiet" measured before the fix existed. Day 16 found
+    v4-gate''s leg- gait animation was driven by elapsed clip time rather than by
+    whether the agent was moving, so long_static_occupant — the one clip authored
+    to be entirely motionless (speed_scale=0.0) — rendered a silhouette that changed
+    on 38 of 40 frames (Shi-Tomasi-visible, not just sub-pixel), and gt_moved_from_render
+    (the Day-9 silhouette- diff ground truth that gate.recall_retained and gate.miss_cost
+    are scored against) counted it as in near-constant motion. Verified fixed here:
+    long_static_occupant''s silhouette-based motion is now 0/40 frames (matches world_motion(),
+    which was always 0/40 — the two signals agree for the first time), and brief_entry''s
+    motion window correctly tracks only its actual ~6-frame entry rather than the
+    whole clip. v2 and v3 are BYTE-IDENTICAL under this fix (verified by re-render
+    + content_sha diff against their committed golden manifests, 0 mismatches across
+    9 + 30 clips) — neither ever uses a non-default Agent.speed_scale, so this set
+    is the only one the fix actually changes. SYNTHETIC-ONLY, and still without a
+    sensor-noise model: an empty room renders bit-identical frame to frame, which
+    real quiet never is. Not the Tier-1 economic claim; that requires 24 hours of
+    real office footage including nights and weekends.'
+  asset_clearance:
+  - asset: room shell (floor, ceiling, four walls)
+    origin: axis-aligned planes generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+  - asset: furniture (desks, cabinets, partitions)
+    origin: axis-aligned boxes generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+  - asset: agents (torso box, head sphere, two leg cylinders)
+    origin: articulated primitives generated by this file
+    license: ours — no third-party asset
+    smpl_derived: NO — this is the SMPL trap, avoided by construction. No body model,
+      no scan, no likeness of any person.
+  - asset: textures
+    origin: seeded procedural noise generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+- name: synthetic-indoor-v5-cessation
+  lane: S
+  subsystem: everything
+  hypothesis_class: Ours outright, same footing and same generator as synthetic-indoor-v3/
+    v4-gate/v4.1-gate — scripts/gen_synthetic_indoor.py, geometric primitives only,
+    nothing imported, SMPL trap does not apply.
+  validity_matrix_cell: motion_geometry / state_estimation — geometry-derived capabilities
+    this set can actually certify, since its GT is exact synthetic position. Depth/appearance
+    are NOT claims this set can make (Day-10 validity gate; see the matrix row for
+    the measured verdict).
+  content_sha: minted by --write-golden; see configs/golden/v5-cessation.golden.json
+  notes: 'Day 23. A fourth distinct instrument, parallel to v3/v4-gate/ v4.1-gate
+    rather than a successor to any of them — it never touches their directories or
+    clips. Purpose-built for ONE gap: Day 22 found the no-trade criterion for a cessation
+    fix UNSCOREABLE because cessation had 0 frames (v3-indoor) or 3 (v4.1-gate), both
+    from a single anticipatory frame per track — not enough to certify or refute anything.
+    19 clips built from a new MultiSegmentAgent (piecewise-linear walk/pause paths,
+    abrupt or ease_out-gradual deceleration): 8 radial (toward/away from camera, varying
+    R throughout the walk) and 8 lateral (crossing at fixed depth) stop events, each
+    spanning slow/medium/fast approach x near/far distance x abrupt/gradual deceleration
+    x a long-hold variant, plus 2 stop-then-restart clips and 1 double-stop clip.
+    Measured directly via classify_track over every scene''s raw GT track (not asserted):
+    1059 total frames, cessation 373 (>= the 200-frame mint-time floor, enforced by
+    enforce_regime_volume/RegimeVolumeError — a set that cannot score the criterion
+    it exists for must not mint), static 260, sustained 282, onset 129, maneuver 15
+    (declared out of scope per V5_CESSATION_EXEMPT_REGIMES — this generator''s straight-leg
+    paths cannot genuinely exercise heading-change maneuvers without either dozens
+    of hand-authored turns or a curved-path model neither exists here; the 15 are
+    incidental ease-out artifacts, measured and reported, not hidden). Stopped-agent
+    bit-identity verified on this set''s own pause segments (Day-17 discipline, carried
+    forward). GEOMETRY ONLY: this set supplies cessation VOLUME for the estimator/regime
+    layer, not the appearance-learned signal a real stop also changes (gait dissipation,
+    balance micro-motion) — docs/capture_runbook.md''s walk-then-stop block exists
+    because this gap is real and synthetic data cannot fill it. SYNTHETIC-ONLY: Site
+    Zero footage supersedes it for every product claim.'
+  asset_clearance:
+  - asset: room shell (floor, ceiling, four walls)
+    origin: axis-aligned planes generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+  - asset: furniture (desk)
+    origin: axis-aligned box generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+  - asset: agent (torso box, head sphere, two leg cylinders; path driven by the new
+      MultiSegmentAgent/PathSegment classes, same primitive body as every other synthetic-indoor
+      set)
+    origin: articulated primitives generated by this file
+    license: ours — no third-party asset
+    smpl_derived: NO — this is the SMPL trap, avoided by construction. No body model,
+      no scan, no likeness of any person.
+  - asset: textures
+    origin: seeded procedural noise generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+- name: synthetic-indoor-v6-motion
+  lane: S
+  subsystem: everything
+  hypothesis_class: Ours outright, same footing and same generator as synthetic-indoor-v3/
+    v4-gate/v4.1-gate/v5-cessation — scripts/gen_synthetic_indoor.py, geometric primitives
+    only, nothing imported, SMPL trap does not apply.
+  validity_matrix_cell: motion_geometry / state_estimation — geometry-derived capabilities
+    this set can certify, since its GT is exact synthetic position. Depth/appearance
+    are NOT claims this set can make (Day-10 validity gate; see the matrix row for
+    the measured verdict).
+  content_sha: minted by --write-golden; see configs/golden/v6-motion.golden.json
+  notes: 'Day 30. SUPERSEDES synthetic-indoor-v5-cessation — the second case in this
+    project where a set exists because the old one should stop being quoted rather
+    than because it measures something new (the first was v4.1-gate over v4-gate).
+    Same purpose, same room, same two cameras, same walk/stop/restart coverage; re-authored
+    because v5-cessation''s GT is physically impossible. Day 30 Objective 1 measured
+    it: 14 of v5''s 22 stop events peak above 1g, MEDIAN peak 15.13 m/s^2 (1.54g),
+    max 36.58 (3.7g) — where a world-class sprinter peaks near 1g. All 12 of v5''s
+    abrupt stops violate; its "gradual" ease_out tail doubles speed instantaneously
+    at its start, so 2 of 10 gradual stops violate too. Every Day 21-29 cessation
+    number was measured on that. v5-cessation is NOT edited or deleted: it remains
+    the record of what those days measured, exactly as v4-gate stayed the record after
+    v4.1-gate superseded it. WHAT CHANGED: agent trajectories are GENERATED under
+    physiological kinematic bounds (GaitBounds/PhysicalAgent), not post-filtered.
+    Each leg is a rest-to-rest jerk-limited smoothstep speed profile, so peak |a|
+    = 1.5*v/T and peak |jerk| = 6*v/T^2 are satisfied BY CONSTRUCTION — there is no
+    clip, clamp, or smoothing pass anywhere. Bounds (V6_GAIT_BOUNDS, each cited at
+    the constant): max speed 2.0 m/s (brisk walk; normative comfortable gait is 1.2-1.4
+    m/s), max acceleration 1.1 m/s^2 (gait-initiation COM acceleration), max deceleration
+    2.0 m/s^2 (gait termination — ASYMMETRIC, humans stop faster than they start),
+    max jerk 8.0 m/s^3 (minimum-jerk models of voluntary movement). Corroboration,
+    not used to choose the value: 2.0 m/s^2 applied to a 1.4 m/s walk gives a 1.05
+    s stop, against PEDESTRIAN_STOP_DURATION_S = 1.0 s declared independently on Day
+    22. Measured GT: max |a| 1.995 m/s^2 (0.20g) across the whole set, zero frames
+    above 1g, zero stop events above 1g. MINT-TIME PHYSICALITY GATE (new, Day 30):
+    a set whose GT violates any hard constraint in src.estimator.constraints.HARD_CONSTRAINTS
+    does not mint (enforce_gt_physicality/GtPhysicalityError). This is now the DEFAULT
+    for every set; the pre-Day-30 sets must name a LEGACY_UNPHYSICAL_EXEMPT declaration
+    at the call site, and the measurement still runs and still lands in their manifest.
+    v5-cessation records 23 violations under it. CARRIED FORWARD, unchanged: the Day-23
+    regime-volume floor (>= 200 cessation frames, >= 30 in every other non-exempt
+    regime), the Day-16 observability floor, the low_activity exemption, Day-17 speed-coupled
+    gait animation (now genuinely ramped, since progress is a real speed profile),
+    and stopped-agent bit-identity on PhysicalHold legs. `maneuver` is declared out
+    of scope (V6_MOTION_EXEMPT_REGIMES), same as v5 but for a sharper reason: PhysicalAgent
+    turns ONLY at zero speed, structurally, because a moving agent that changes heading
+    instantaneously has unbounded lateral acceleration however carefully its speed
+    profile is shaped. Physical maneuvers need a curved-path model with a lateral-acceleration
+    budget; that is not built here. NEARER THAN v5, and why: physically bounded motion
+    spends many frames moving slowly, and the measured motion-gate envelope demands
+    a much larger silhouette from a slow mover (535 gate px below 0.5 gate px/frame,
+    vs 110 above 1.5). v5 cleared the observability floor at greater depths precisely
+    BECAUSE its motion was abrupt — an instantaneous stop has no slow phase to be
+    unobservable during. The first v6 render, at v5''s depths, was REFUSED at 0.7978
+    against the 0.80 floor; V6_MAX_DEPTH_M = 5.9 m is the resulting authoring rule,
+    derived from that envelope and the measured silhouette law (area_gate_px ~ 19000
+    / depth^2), not tuned until the gate passed. Its cost is stated: the near/far
+    axis is compressed (stops at ~3.4 m vs ~6.0 m rather than ~4.5 m vs ~11 m) and
+    the radial lane is too short for a 2.0 m/s approach-and-stop, so those legs''
+    cruise speed is reduced by the solver and the achieved value is recorded per clip.
+    GEOMETRY ONLY, same as v5: this set supplies physically reachable cessation VOLUME
+    for the estimator/regime layer, not the appearance-learned signal a real stop
+    also changes (gait dissipation, balance micro-motion) — docs/capture_runbook.md''s
+    walk-then-stop block exists because that gap is real and synthetic data cannot
+    fill it. SYNTHETIC-ONLY: Site Zero footage supersedes it for every product claim.'
+  asset_clearance:
+  - asset: room shell (floor, ceiling, four walls)
+    origin: axis-aligned planes generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+  - asset: furniture (desk)
+    origin: axis-aligned box generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+  - asset: agent (torso box, head sphere, two leg cylinders; path driven by the new
+      PhysicalAgent/PhysicalWalk/PhysicalHold classes under GaitBounds, same primitive
+      body as every other synthetic-indoor set)
+    origin: articulated primitives generated by this file
+    license: ours — no third-party asset
+    smpl_derived: NO — this is the SMPL trap, avoided by construction. No body model,
+      no scan, no likeness of any person.
+  - asset: textures
+    origin: seeded procedural noise generated by this file
+    license: ours — no third-party asset
+    smpl_derived: 'no'
+- name: DA-2K
+  lane: R
+  subsystem: depth
+  consent_posture: unknown
+  hypothesis_class: Depth-Anything's own relative-depth benchmark. Believed research-only.
+    VERIFY before any use beyond local eval.
+  validity_matrix_cell: depth — pairwise RELATIVE depth on annotated pixel pairs,
+    which disparity_rel scores with NO metric alignment (so no scale/shift fit can
+    launder a constant prediction into a good number, unlike AbsRel). The single most
+    defect-resistant depth cell available.
+  notes: 'PAIRWISE RELATIVE DEPTH on annotated pixel pairs — which is exactly what
+    disparity_rel can be scored on, with NO metric alignment and therefore no scale/shift
+    fit to launder a constant prediction into a good number. That makes it the single
+    best first real depth eval for this project. Adapter implemented and tested against
+    a synthesized 5-pair fixture; ready the moment the licence clears. HUMAN ACTION:
+    read the DA-2K terms and record a licence snapshot. consent_posture unknown (Day
+    35): curated scene photos, may include real incidental people, not characterized
+    either way.'
+- name: ETH3D
+  lane: R
+  subsystem: depth
+  consent_posture: unknown
+  hypothesis_class: research/non-commercial — verify
+  validity_matrix_cell: 'depth — high-accuracy laser-scanned metric GT, real materials
+    and lighting; the metric-AbsRel/RMSE cell analytic-primitive synthetic sets (v3/v4.1-gate)
+    structurally cannot fill (Day 20/21: DA-V2 scored rank correlation −0.59 against
+    v3-indoor''s exact GT).'
+  notes: 'High-accuracy laser-scanned indoor/outdoor GT. Real materials, real lighting,
+    so it can exercise what analytic primitives cannot. HUMAN ACTION: verify licence.'
+- name: iBims-1
+  lane: R
+  subsystem: depth
+  consent_posture: unknown
+  hypothesis_class: research-only — verify
+  validity_matrix_cell: depth — planarity / depth-boundary / directed-error metrics,
+    not a single pooled AbsRel; closest public match to this product's indoor domain
+    among the depth candidates.
+  notes: 'Indoor benchmark built for exactly this failure mode: planarity, depth boundaries
+    and directed depth error rather than a single pooled AbsRel. Closest public match
+    to the product''s domain. HUMAN ACTION: verify licence.'
+- name: DIODE-indoor
+  lane: R
+  subsystem: depth
+  consent_posture: unknown
+  hypothesis_class: research-only — verify
+  validity_matrix_cell: depth — dense indoor GT at long range, where this project's
+    own coverage/far-field question already lives (Day 15's coverage.observable_fraction
+    finding).
+  notes: 'Dense indoor GT at long range, which is where this project''s coverage question
+    lives. HUMAN ACTION: verify licence.'
+- name: Infinigen-Indoors-depth-candidate
+  lane: S
+  subsystem: depth
+  hypothesis_class: BSD-3 generator, procedurally generated assets, ours outright
+    once generated — same standing as synthetic-indoor-v3.
+  notes: 'CANDIDATE ONLY, AND NOT TRUSTED FOR DEPTH. Procedural materials and real
+    shading may restore the cues analytic primitives delete, or may not. ACCEPTANCE
+    PROCEDURE, binding: generate a set, run it through the Objective-2 depth validity
+    gate (rank correlation >= 0.30, dynamic range >= 3.0, no distance band above 90%
+    of pixels), and only then may a depth number be computed on it. The same test
+    condemned v3-indoor. Being synthetic-but-photorealistic is a hypothesis, not a
+    pass. HUMAN ACTION: none — this one is unblocked by work, not by paperwork. DAY
+    11: default indoors pipeline does NOT generate humans — the human assets live
+    in a separate Infinigen branch and are not commercially cleared. This entry is
+    therefore silent on human-appearance capabilities. DAY 11 GENERATION VERDICT:
+    no scoreable sample was produced on this box. Two paths were attempted from a
+    clean .venv-infinigen (Python 3.11.15, bpy==4.2.0, infinigen==1.12.2 — Infinigen
+    requires ==3.11.*, so the pinned 3.10 measurement env stayed untouched; scikit-image
+    was constrained to 0.21.0 because Infinigen''s pinned 0.19.3 cannot build on macOS
+    15 clang). Furnished path (`fast_solve.gin`) ran 623 constraint-annealing iterations
+    over 21m35s, completed 7 of many solver stages across 5 rooms, and was killed
+    with 0 frames rendered — each annealing iteration takes 25-55s and per-stage budgets
+    are 100 iterations. Empty-room path (`singleroom.gin + fast_solve.gin + no_objects.gin`)
+    exits in ~30s on an `AssertionError: (0.024, 0.018, 1280, 720)` inside `get_sensor_coords`
+    — the default sensor is 4:3 and the default render resolution is 16:9, and the
+    `--overrides execute_tasks.generate_resolution=[160,120]` needed to reconcile
+    them is silently not applied by gin. Full logs preserved at docs/day11/infinigen_render_stall.log
+    (furnished path) and docs/day11/infinigen_empty_room_stderr.log (empty-room assertion).
+    Strategic consequence: no renderer available to us can score appearance-learned
+    capabilities in a decision-quality session budget on this hardware, which makes
+    real data the sole path for depth, semantics and re-ID. This is a finding about
+    *our compute*, not about Infinigen''s quality: on a GPU box with hours of budget,
+    the acceptance procedure remains the right test. DAY 12 CORRECTION: the Day-11
+    verdict above overclaimed. What Day 11 established is that generation did not
+    COMPLETE within a session budget on this hardware — it never established that
+    Infinigen CANNOT generate a passing sample. Those are different claims and the
+    first does not imply the second. The depth validity gate on this candidate remains
+    UNMEASURED, not REFUSED — no sample has ever been scored against it, so there
+    is no gate evidence either way. Corrected status: BLOCKED ON GENERATION THROUGHPUT,
+    not blocked on renderer capability. See docs/day12/infinigen_throughput.md for
+    the measured per-stage timing, the scenes/hour extrapolation, and the decision
+    memo (overnight local vs. rented GPU) this correction is based on.'
+  asset_clearance:
+  - asset: Infinigen generator (code)
+    origin: github.com/princeton-vl/infinigen v1.12.2, pip wheel on PyPI (v1.15.5
+      unavailable to us — its scikit-image==0.19.3 pin does not build on macOS 15
+      clang, and the pip resolver dropped to 1.12.2)
+    license: BSD-3-Clause
+    smpl_derived: 'no'
+  - asset: bpy 4.2.0 (Blender Python module)
+    origin: PyPI wheel, pinned by Infinigen
+    license: GPL-3.0 (Blender). Runs the generator; does not ship in our product.
+      Rendered pixel arrays are not GPL-encumbered outputs.
+    smpl_derived: 'no'
+  - asset: room shells, furniture, decor
+    origin: procedurally generated by Infinigen from CC0/self-authored primitives
+      (see infinigen/assets/objects/)
+    license: procedurally generated — no third-party asset in the render
+    smpl_derived: 'no'
+  - asset: materials and textures
+    origin: procedural shaders (Blender node graphs authored in Infinigen)
+    license: procedurally generated — no third-party asset
+    smpl_derived: 'no'
+  - asset: agents (humans, animals)
+    origin: NOT USED — default indoors pipeline places no humans
+    license: n/a
+    smpl_derived: n/a — none placed. Human-body assets live in a separate branch and
+      are excluded from this sample by construction.
+- name: site-zero
+  lane: C
+  subsystem: everything
+  hypothesis_class: ours — consent records stored with the data
+  notes: 'Our office as deployment #1 and dataset #1. The only lane admissible for
+    INT8 calibration. Does not exist yet; the capture protocol and consent template
+    are in the Day-5 report.'
+- name: office-capture-v1
+  lane: C
+  subsystem: everything
+  hypothesis_class: Ours, consented. Ingested by scripts/ingest_capture.py, which
+    REFUSES without a resolvable consent record — lane C is defined by that record,
+    and footage without one is not lane C.
+  content_sha: per-clip; see data/captures/office-capture-v1/capture_manifest.json
+  notes: 'Office corridor capture at 720p and 1080p. NOT YET INGESTED — the footage
+    does not exist in this repository. The ingest path is built and tested against
+    a synthesized stand-in; no parity number may be derived from that stand-in, and
+    none has been. Frames are decoded once at ingest and stored, because OpenCV builds
+    disagree frame-for-frame and a re-decoded fixture is not a fixture. Each clip
+    records whether it is larger than the 320x180 gate raster: a clip that is not
+    never exercises the downscale, which is precisely how the day-2 parity claim came
+    to be vacuous.'
+- name: thinkwill-cctv-archive
+  lane: C_pending_consent
+  subsystem: everything
+  hypothesis_class: Ours (company-owned premises-security CCTV footage, existing Thinkwill
+    system) — not third-party licensed content, so hypothesis_class/license_snapshot
+    do not apply the way they do for a public dataset. The applicable gate here is
+    CONSENT, not license.
+  notes: 'Registered lane C_pending_consent (Day 23), deliberately NOT lane C: this
+    archive was recorded under a premises-security purpose, and using it for AI development
+    is a NEW purpose that generally needs its own notice and consent under the DPDP
+    Act, 2023 — a purpose change is not automatically covered by whatever notice (if
+    any) accompanied the original premises-security recording. See docs/site_zero_consent_TEMPLATE.md
+    (unreviewed draft) for the shape that notice would take. src/data/registry.py''s
+    DatasetRegistry rejects this entry from every training, calibration, and eval
+    loader (DatasetRegistry._require_consent) until a ConsentRecord is attached to
+    its consent_record field. No footage from this archive has been fetched, copied,
+    viewed, or processed by anything in this repository — the entry exists to make
+    the consent gap a recorded, visible fact rather than a silent absence.'
+- name: DukeMTMC
+  lane: R
+  subsystem: reid
+  consent_posture: public_cctv_no_consent
+  blocked: true
+  blocked_reason: RETRACTED 2019 — ethics investigation; see registry.py.
+- name: DukeMTMC-reID
+  lane: R
+  subsystem: reid
+  consent_posture: public_cctv_no_consent
+  blocked: true
+  blocked_reason: Derivative of DukeMTMC; inherits the retraction.
+- name: MS-Celeb
+  lane: R
+  subsystem: reid
+  consent_posture: unknown
+  blocked: true
+  blocked_reason: Withdrawn by Microsoft 2019; scraped without consent.
+  notes: 'consent_posture recorded unknown, not public_cctv_no_consent (Day 35): this
+    is scraped web photography, not video surveillance — a different modality from
+    the CCTV-shaped datasets this distinction was introduced for, even though the
+    underlying ethics problem (real, non-consenting subjects) is the same. blocked_reason
+    already states the actual violation; this field is not doing double duty as a
+    euphemism for it.'
