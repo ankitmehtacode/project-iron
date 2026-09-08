@@ -11038,3 +11038,237 @@ run — not a frozen count from whenever a given day's section was written.
    re-verifying `consent_posture: unknown` entries, MEVA licence
    verification (now on the Blocker Ledger, not just this list), and the
    `black`/`flake8` CI gate.
+
+# Day 38
+
+**No code path was found today that lets a `deployment_scope_restriction`
+with `resolved: False` silently pass through into a report or claim.**
+That is checked directly, not assumed: `require_product_claim_clearance`
+(Objective 1) is the only place `deployment_scope_restriction.resolved` is
+read anywhere in this codebase, it raises rather than warns, and nothing
+calls it with a value that bypasses the check. The honest limit is the one
+this section states plainly rather than implying away: nothing today wires
+every future report-writing code path through that gate, and nothing in
+this mechanism can stop a human from typing a product claim about CHIRLA
+directly into prose by hand — see Objective 1's Verdict below for that
+boundary stated in full.
+
+**No timing, throughput, CPU-percentage, or latency claim is made anywhere
+in this section as a PRODUCT figure** — unchanged hard scope rule. Test
+durations and suite counts remain in scope, as process measurements.
+
+## Verdicts
+
+- **Objective 1.** A human read CHIRLA's actual sources directly — the
+  HuggingFace dataset card, the GitHub README, and the *Scientific Data*
+  paper via PMC — because none of the three hosts is reachable from this
+  environment. Three distinct legal questions came back three different
+  answers: license (CC-BY-4.0, clean, agrees identically across all three
+  sources), consent (unusually strong — IRB-approved, Approval No.
+  UA-2022-11-12, quoted verbatim from the paper's own Methods section, the
+  cleanest consent statement in this registry's 63 entries), and a
+  **deployment-scope restriction** on the HuggingFace card, absent from
+  both the README and the paper, that the registry's existing two fields
+  (`hypothesis_class`/`license_snapshot` for copyright,
+  `consent_posture`/`consent_record` for subject consent) had no way to
+  represent. `DeploymentScopeRestriction` (`src/data/registry.py`) is that
+  third field — `text`/`source`/`resolved`/`resolution`, `resolved`
+  defaulting `False` — and `DatasetRegistry.require_product_claim_
+  clearance` is the enforcement half: refuses, loudly
+  (`DeploymentScopeUnresolved`), any call that would cite CHIRLA's results
+  for a product- or capability-level claim while `resolved` is `False`,
+  deliberately orthogonal to `open_for_eval` — pure internal algorithm
+  benchmarking is untouched by this gate and remains blocked only on
+  `chirla-license-verification-confirm` below. Did **not**, under any
+  temptation the prompt itself named: flip `license_snapshot` from `null`,
+  change CHIRLA's lane from `R`, or write a `resolution` for the
+  deployment-scope restriction — checked directly against the entry
+  (`configs/datasets.yaml`) and the new test suite
+  (`tests/test_data_registry.py`, 6 new tests). **Stated plainly, not
+  implied away:** this is a partial, code-side safeguard. It fires only
+  for a call site that actually invokes `require_product_claim_clearance`;
+  whether a human writing a business document remembers to run that check
+  is a process question no code in this repository closes. → Objective 1.
+- **Objective 2.** `docs/registry_deployment_scope_audit.md` triages all
+  63 registered datasets for the same blind spot CHIRLA exposed: **9**
+  excluded (this project's own first-party captures/synthetic sets — no
+  third-party terms to re-read), **3** excluded (permanently blocked,
+  moot), **1** excluded (CHIRLA itself, the confirmed reference case),
+  **50** remaining, ranked from what the registry already records
+  (`consent_posture`, `subsystem`) rather than from any newly-fetched
+  page — **21** Tier 1 (re-ID/tracking/gait/anomaly subsystems and/or
+  `public_cctv_no_consent`, the same shape of dataset CHIRLA is — MEVA,
+  MMPTRACK, WILDTRACK, ChokePoint, PRW, CUHK-SYSU among them, per the
+  prompt's own example ranking), **4** Tier 2 (synthetic re-ID,
+  application-gated distribution), **25** Tier 3 (pure depth/geometry/
+  detection, lower surveillance relevance). Verified programmatically that
+  the three tiers plus the four exclusion buckets cover exactly the 63
+  registered names, no gaps, no double-counting. Explicitly a triage pass
+  over what this repository already records, not a re-verification pass —
+  no external host was fetched, per today's own unchanged network
+  boundary. → Objective 2.
+- **Objective 3.** `docs/blocker_ledger.yaml` now holds 9 entries (6 prior
+  + 3 new), every `first_recorded` sha/date verified against real git
+  history (`scripts/blocker_report.py --verify-git`, `tests/
+  test_blocker_ledger.py::TestLedgerMatchesGit`). The three new entries —
+  `chirla-deployment-scope-legal-review` (human_decision, requires
+  counsel), `chirla-license-verification-confirm` (human_verification,
+  under five minutes, evidence already assembled by Objective 1), and
+  `registry-deployment-scope-reaudit` (human_verification, effort
+  proportional to Objective 2's priority list) — all correctly show age 0
+  as of today, not backdated to Day 36's checklist commit: the granular
+  split these three entries represent (deployment-scope vs. license-
+  confirm vs. registry-wide reaudit as three *separate* blockers) did not
+  exist before today, so today is genuinely when each was first recorded
+  as such. `chirla-deployment-scope-legal-review` and `chirla-license-
+  verification-confirm` are kept deliberately separate — different
+  owners, different timescales, and merging them would hide that the
+  license-confirm item is genuinely a five-minute task while the
+  deployment-scope item is not a duration question at all. → Objective 3.
+- **Objective 4.** `docs/chirla_published_baselines.md` records CHIRLA's
+  own published CMC/mAP figures across ~30 re-ID backbones, labeled
+  **EXTERNAL PUBLISHED RESULTS — not measured on this system, cited for
+  calibrating expectations only**, and kept structurally apart from
+  `src/identity/bakeoff.py`'s Day-36 self-test artifacts (a separate
+  `docs/` page, never written into anything the harness itself emits).
+  Long-term re-ID tops out at **18.81% CMC@1 / 23.24% mAP** (ResNet101)
+  even for the best of ~30 models tested; reappearance is comparatively
+  easy at **65.73% CMC@1** (ResNet101-IBN); multi-camera long-term is
+  reported as the second-hardest scenario. Once this project's own
+  bake-off harness runs against real CHIRLA data (pending Objective 3's
+  two CHIRLA blockers), these are the numbers a real long-term-scenario
+  result should land near — a measured mAP far above 23.24% should read
+  as a likely methodology error before it reads as good news. → Objective
+  4.
+
+## Blockers
+
+Computed fresh against `docs/blocker_ledger.yaml` via
+`python scripts/blocker_report.py --as-of 2026-09-08 --verify-git`, every
+sha/date re-verified against real git history at report time:
+
+| age (days) | id | category | first recorded | estimated human effort |
+|---:|---|---|---|---|
+| 39 | `consent-template-counsel-review` | human_verification | 2026-07-31 (`3eed2eb`) | A yes/no plus redlines from counsel — realistically an afternoon of legal review, not an engineering estimate. |
+| 39 | `dataset-license-and-consent-verification` | human_verification | 2026-07-31 (`bf85e75`) | CHIRLA: five minutes (four checkboxes, `docs/chirla_verification_checklist.md`) — now actually answered, see `chirla-license-verification-confirm` below for the remaining mechanical step. MEVA and the remaining ~61 entries: unknown per-entry — nobody has attempted even one, so no real estimate exists yet. |
+| 31 | `site-zero-capture` | human_capture | 2026-08-08 (`e8162cd`) | Hardware on hand plus one overnight capture window — realistically a day, once consent-template-counsel-review and reference-hardware-procurement both clear. |
+| 29 | `git-history-divergence` | human_decision | 2026-08-10 (`d36a835`) | A yes/no on the relationship between the two repositories, then ~5 minutes to execute ADR 0009's Option B once answered. |
+| 29 | `reference-hardware-procurement` | human_procurement | 2026-08-10 (`72db508`) | A purchase decision — `reference_hardware.md` names the SKUs; someone has to approve the spend. |
+| 1 | `component-cap-carrier-identity-type-change` | human_decision | 2026-09-07 (`4b1c557`) | A design decision, not a coding task — small in code-change size once decided, but a schema call this repository has twice declined to make for itself. |
+| 0 | `chirla-deployment-scope-legal-review` | human_decision | 2026-09-08 (`8d6aec6`) | Requires counsel, not a fixed duration — a legal interpretation question, not an engineering estimate. |
+| 0 | `chirla-license-verification-confirm` | human_verification | 2026-09-08 (`8d6aec6`) | Under five minutes — evidence already assembled by Objective 1; running the recording command is the only remaining step. |
+| 0 | `registry-deployment-scope-reaudit` | human_verification | 2026-09-08 (`b6326c5`) | Proportional to the Objective-2 priority list — 21 Tier-1 re-reads before the 4 Tier-2 and 25 Tier-3 entries; no single fixed estimate, since each is a different host's page. |
+
+**Single highest-leverage blocker if resolved today:** unchanged reasoning
+from Day 37 — `dataset-license-and-consent-verification` still gates the
+largest downstream cluster (`FrozenBackbone`, the bake-off harness, the
+adapter promotion gate on real data). Its CHIRLA-specific slice is now
+itself split into two: `chirla-license-verification-confirm` (fast,
+mechanical, blocks nothing but eval-harness use) and `chirla-deployment-
+scope-legal-review` (slow, a legal call, blocks anything CHIRLA-derived
+beyond internal benchmarking). Resolving the fast one today would not
+unblock a product claim; resolving only the slow one without the fast one
+would not unblock anything either — both are required, on different
+tracks, for CHIRLA specifically.
+
+## Objective 0 — push, start and end of day
+
+Branch `foundation/day-38` created off `foundation/day-37` and pushed
+immediately, per standing rule, before Objective 1. Push again at end of
+day.
+
+## Objective 1 — `deployment_scope_restriction`, encoded on CHIRLA
+
+See Verdicts above for the full account. Implementation note:
+`require_product_claim_clearance` is deliberately a separate method from
+`open_for_eval`/`open_for_training`, not a parameter added to either —
+the two questions ("may this be fetched/used at all" vs. "may this back a
+product claim") have different owners and different failure modes, and
+folding the second into the first would have made a lane-R eval-only
+dataset's benchmarking permanently gated on a legal review it does not
+need. `src/data/__init__.py` exports `DeploymentScopeRestriction` and
+`DeploymentScopeUnresolved` alongside the existing registry surface.
+
+## Objective 2 — the registry-wide audit
+
+See Verdicts above. `docs/registry_deployment_scope_audit.md`. Method
+note stated in the doc itself, restated here because it matters: with the
+single exception of CHIRLA, no entry in `configs/datasets.yaml` records
+an actual hosting URL, so this triage ranks by `consent_posture` and
+`subsystem` — a real signal already in the registry, but not the same
+thing as having confirmed where each dataset's terms actually live. The
+tiering is a prioritized guess at where to look first, not a verified
+map of exposure.
+
+## Objective 3 — the Blocker Ledger, fed
+
+See Verdicts and Blockers above for the full account.
+
+## Objective 4 — CHIRLA's published baselines
+
+See Verdicts above. `docs/chirla_published_baselines.md`.
+
+## Full suite, mypy, lint
+
+`mypy` (scoped per `mypy.ini`): clean, **0 errors, 79 source files** —
+unchanged from Day 37 (today's new files are `docs/` markdown and YAML,
+none land in mypy's scope; `src/data/registry.py` and `src/data/
+__init__.py` were edited, not added). `black --check .`: **28 files**
+would be reformatted — exactly Day 37's own count, checked directly
+(`flake8 .`: **26 files**, same list of pre-existing offenders as Day
+35/36/37, confirmed by name, none newly added — every file touched or
+added today individually checked clean: `src/data/registry.py`, `src/
+data/__init__.py`, `tests/test_data_registry.py`).
+
+Quick-loop suite (`-m "not slow and not requires_weights"`, this session,
+re-run after this section was written so the one `tests/test_blocker_
+ledger.py::TestReportOpensWithBlockers` test that failed mid-day —
+because this section did not exist yet — is measured passing, not just
+asserted to be): **1389 passed, 1 skipped, 21 deselected, 0 failures**
+(`artifacts/pytest/day38_quick.xml`) — up from Day 37's 1383 by **6**,
+checked directly against the diff rather than estimated: all six new
+tests are in `tests/test_data_registry.py`
+(`test_chirla_deployment_scope_restriction_is_recorded_and_unresolved`,
+`test_chirla_deployment_scope_is_independent_of_license_and_consent`,
+`test_require_product_claim_clearance_refuses_chirla_while_unresolved`,
+`test_require_product_claim_clearance_is_orthogonal_to_eval_use`,
+`test_require_product_claim_clearance_passes_once_resolved`,
+`test_product_claim_clearance_is_noop_without_a_restriction`).
+
+## Still blocked on a human
+
+Per [[iron-blocked-on-humans]] and `docs/blocker_ledger.yaml` — see
+Blockers above for the full, aged table. CHIRLA's single blocker from Day
+37 has split into two independently-tracked entries today; every other
+entry is unchanged in substance from Day 37, ages advanced honestly.
+
+## Process change, Day 38
+
+None. `docs/blocker_ledger.yaml`'s Day-37 mechanism (mandatory `##
+Blockers`, checked structurally) is used as-is, extended with three more
+entries rather than modified.
+
+## Day 39, in order
+
+1. **`chirla-license-verification-confirm`** — the cheapest item on the
+   Blocker Ledger now (under five minutes, evidence fully assembled) and
+   still not this repository's to do; note it does NOT unblock
+   `chirla-deployment-scope-legal-review`, which is independent.
+2. **`registry-deployment-scope-reaudit`'s Tier 1** — 21 datasets
+   (`docs/registry_deployment_scope_audit.md`) most likely to carry an
+   unread deployment-scope restriction of their own; MEVA and MMPTRACK
+   are the highest-product-impact of the 21 given their existing
+   priority on the license-verification blocker too.
+3. **Densify the real association sweep, or accept 0/71 as the honest
+   answer** — carried forward unchanged from Day 37's Day-38 list, not
+   touched today.
+4. **Restore real Events-tab data, or accept the regression** — carried
+   forward unchanged from Day 37's Day-38 list, not touched today.
+5. **A real `FrozenBackbone` implementation** — still blocked on the same
+   thing (verified lane-C or lane-R data), unchanged from Day 36's list.
+6. **Everything else on Day 37's carried-forward list not touched
+   today** — the state-estimator NIS/NEES view, the four-golden-set
+   scorecard view, ChokePoint/PETS2009 identity-ambiguity validation,
+   re-verifying `consent_posture: unknown` entries (now zero CHIRLA-shaped
+   ones, but others in the registry still carry it), and the
+   `black`/`flake8` CI gate.
