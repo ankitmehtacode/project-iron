@@ -122,6 +122,109 @@ async function viewScorecard(root) {
   await render();
 }
 
+const CONDITION_BUCKETS = ["occupied", "empty", "night", "degenerate"];
+/* Canonical order, matching src.data.scorecard._CONDITION_BUCKETS exactly —
+ * not alphabetical, not insertion order, so a reader always finds a bucket
+ * in the same place across every scorecard. */
+
+function metricValueText(v) {
+  // Same three states app.js already distinguishes for a top-level metric
+  // (see the metric-grid loop below), applied to a per_condition cell:
+  // never computed (null, NaN collapsed to null over the wire — see
+  // server.py's _json_safe), computed-but-undefined (the explicit
+  // {undefined: true, reason} form), or a real number.
+  if (v === null || v === undefined) return "unmeasured";
+  if (typeof v === "object" && v.undefined) return `undefined (${v.reason})`;
+  return Number(v).toFixed(4);
+}
+
+function capabilityGatesPanel(card) {
+  const gates = card.capability_gates || [];
+  const panel = el("div", "panel");
+  panel.append(el("h2", null, "Capability gates"));
+  panel.append(el("p", "note",
+    "Whether a measurement taken here would mean anything, checked BEFORE any metric below is computed. A gate that refused means no metric for that capability exists this run — it is not a caveat on one, it is the reason there is nothing to caveat."));
+  if (!gates.length) {
+    panel.append(el("p", "note", "No capability gate was evaluated for this run."));
+    return panel;
+  }
+  gates.forEach((g) => {
+    const box = el("div", g.passed ? "gate gate-passed" : "gate gate-refused refusal");
+    box.append(el("h3", null, `${g.capability} on ${g.dataset} — ${g.passed ? "passed" : "REFUSED"}`));
+    box.append(el("p", null, g.reason));
+    const evidence = g.evidence || {};
+    if (Object.keys(evidence).length) {
+      const dl = el("dl", "mono gate-evidence");
+      Object.entries(evidence).forEach(([k, v]) => {
+        dl.append(el("dt", null, k));
+        dl.append(el("dd", null, String(v)));
+      });
+      box.append(dl);
+    }
+    panel.append(box);
+  });
+  return panel;
+}
+
+function perConditionPanel(card) {
+  const rows = card.per_condition || {};
+  const bucketsPresent = CONDITION_BUCKETS.filter((b) => b in rows);
+  if (!bucketsPresent.length) return null;
+  const panel = el("div", "panel");
+  panel.append(el("h2", null, "Per condition"));
+  panel.append(el("p", "note",
+    "gate.wake_fraction and its required pairing, per condition bucket (Objective 3, Day 15). The aggregate metric above is not the headline — a single wake_fraction averaged across occupied, empty, night and degenerate clips is uninterpretable on its own."));
+  const table = el("table");
+  const head = el("tr");
+  ["condition", "clips", "presented", "wake_fraction", "recall_retained", "moving_frac"].forEach((h, i) => {
+    head.append(el("th", i ? "num" : null, h));
+  });
+  { const thead = el("thead"); thead.append(head); table.append(thead); }
+  const tb = el("tbody");
+  bucketsPresent.forEach((bucket) => {
+    const row = rows[bucket];
+    const isEmpty = Number(row.clips) === 0;
+    const tr = el("tr", isEmpty ? "empty-bucket" : null);
+    tr.append(el("td", null, bucket));
+    tr.append(el("td", "num", metricValueText(row.clips)));
+    tr.append(el("td", "num", metricValueText(row.presented)));
+    tr.append(el("td", "num", metricValueText(row.wake_fraction)));
+    tr.append(el("td", "num", metricValueText(row.recall_retained)));
+    tr.append(el("td", "num", metricValueText(row.moving_frame_fraction)));
+    tb.append(tr);
+  });
+  table.append(tb);
+  panel.append(table);
+  panel.append(el("p", "note",
+    "An empty condition bucket (0 clips) is a finding about this golden set's coverage, not a gap to hide by omission — it is marked, never dropped from the table."));
+  return panel;
+}
+
+function caveatsPanel(card) {
+  const caveats = card.caveats || [];
+  if (!caveats.length) return null;
+  const panel = el("div", "panel");
+  panel.append(el("h2", null, "Caveats"));
+  // A retirement/do-not-quote notice sorts to the top regardless of
+  // insertion order, mirroring Scorecard.render()'s own ordering rule
+  // (src/data/scorecard.py) exactly — the one caveat that must not be
+  // scrolled past does not get to depend on which caller appended it last.
+  const doNotQuote = caveats.filter((c) => c.startsWith("DO NOT QUOTE"));
+  const rest = caveats.filter((c) => !c.startsWith("DO NOT QUOTE"));
+  doNotQuote.forEach((c) => {
+    const warn = el("div", "warnband");
+    warn.append(el("h3", null, "DO NOT QUOTE"));
+    warn.append(el("p", null, c));
+    panel.append(warn);
+  });
+  if (rest.length) {
+    const ul = el("ul", "caveat-list");
+    rest.forEach((c) => ul.append(el("li", null, c)));
+    panel.append(ul);
+  }
+  return panel;
+}
+
 function scorecardPanel(card) {
   const wrap = el("div");
 
@@ -144,6 +247,11 @@ function scorecardPanel(card) {
   dl.append(grid);
   ident.append(dl);
   wrap.append(ident);
+
+  // Capability gates render BEFORE Metrics, deliberately: a refusal here
+  // means a metric below was never computed for that capability at all,
+  // and a reader must see that before, not after, trusting the numbers.
+  wrap.append(capabilityGatesPanel(card));
 
   const metrics = el("div", "panel");
   metrics.append(el("h2", null, "Metrics"));
@@ -206,6 +314,13 @@ function scorecardPanel(card) {
     tp.append(table);
     wrap.append(tp);
   }
+
+  const perCond = perConditionPanel(card);
+  if (perCond) wrap.append(perCond);
+
+  const caveats = caveatsPanel(card);
+  if (caveats) wrap.append(caveats);
+
   return wrap;
 }
 

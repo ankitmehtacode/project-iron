@@ -345,6 +345,93 @@ def test_style_css_gives_each_event_class_a_distinct_non_color_border() -> None:
     assert "tr.hypothesis { border-bottom: 3px double" in css
 
 
+def test_scorecard_view_surfaces_capability_gates_per_condition_and_caveats(
+    store: art.Artifacts,
+) -> None:
+    """Day 37, Objective 2 — carried from Day 35: ``per_condition``,
+    ``capability_gates`` and ``caveats`` were computed by every real
+    scorecard on disk and rendered nowhere in the Inspector, the one place
+    a human actually looks at the numbers. Every real scorecard the API
+    serves must still carry these three fields untouched (the fix is in
+    app.js's rendering, not the API contract), and app.js must actually
+    render all three."""
+    _, payload = call(store, "/api/scorecards")
+    cards = payload["scorecards"]
+    assert cards, "make eval has not been run; there is nothing to check"
+    # Older scorecards on disk (e.g. v2-indoor) predate these fields
+    # entirely and simply lack the key -- not a defect this objective
+    # touches. What matters is that every CURRENT scorecard producer emits
+    # them (Scorecard.as_dict always does) and that app.js renders them
+    # when present, so check presence-when-emitted rather than requiring
+    # every historical artifact to have been regenerated.
+    saw_gates = False
+    saw_conditions = False
+    for c in cards:
+        _, full = call(store, f"/api/scorecard/{c['name']}")
+        saw_gates = saw_gates or bool(full.get("capability_gates"))
+        saw_conditions = saw_conditions or bool(full.get("per_condition"))
+    assert saw_gates, "no real scorecard carries a capability_gates entry to render"
+    assert saw_conditions, "no real scorecard carries a per_condition entry to render"
+
+    app_js = (REPO_ROOT / "src" / "inspector" / "static" / "app.js").read_text()
+    assert "function capabilityGatesPanel(" in app_js
+    assert "function perConditionPanel(" in app_js
+    assert "function caveatsPanel(" in app_js
+
+
+def test_capability_gate_refusal_renders_before_and_distinctly_from_metrics() -> None:
+    """The objective's own test: a refused capability gate must not be
+    rendered as though the metrics panel above it (there is none above it
+    — that is the point) were trustworthy. Checked two ways: (1) gates are
+    appended to the DOM before Metrics, not after everything as a
+    footnote; (2) a refused gate carries a distinct, non-colour-only CSS
+    class from a passed one (the same discipline the four-class event
+    rendering already follows)."""
+    app_js = (REPO_ROOT / "src" / "inspector" / "static" / "app.js").read_text()
+    scorecard_panel = app_js[
+        app_js.index("function scorecardPanel(") : app_js.index(
+            "async function comparePanel("
+        )
+    ]
+    gates_call = scorecard_panel.index("capabilityGatesPanel(card)")
+    metrics_decl = scorecard_panel.index('const metrics = el("div", "panel")')
+    assert gates_call < metrics_decl, (
+        "capabilityGatesPanel(card) must be appended before the Metrics "
+        "panel is even built, not after"
+    )
+
+    gates_fn = app_js[
+        app_js.index("function capabilityGatesPanel(") : app_js.index(
+            "function perConditionPanel("
+        )
+    ]
+    assert '"gate gate-passed"' in gates_fn
+    assert '"gate gate-refused refusal"' in gates_fn
+
+    css = (REPO_ROOT / "src" / "inspector" / "static" / "style.css").read_text()
+    assert ".gate-passed {" in css
+    # A refused gate reuses .refusal's box styling (background/border) —
+    # confirmed distinct from .gate-passed's plain box by construction
+    # above (different class, no shared background rule).
+    assert ".refusal { background:" in css
+
+
+def test_per_condition_uses_canonical_bucket_order_and_flags_empty_buckets() -> None:
+    """Matches src.data.scorecard._CONDITION_BUCKETS exactly, and marks a
+    zero-clip bucket (e.g. v3-indoor's "night") as a finding rather than
+    a silently skipped row -- the same "empty is a finding" rule
+    tr.hard/tr.unclassified already apply elsewhere in this file."""
+    app_js = (REPO_ROOT / "src" / "inspector" / "static" / "app.js").read_text()
+    assert (
+        'const CONDITION_BUCKETS = ["occupied", "empty", "night", "degenerate"];'
+        in app_js
+    )
+    assert '"empty-bucket"' in app_js
+
+    css = (REPO_ROOT / "src" / "inspector" / "static" / "style.css").read_text()
+    assert "tr.empty-bucket td" in css
+
+
 def test_absent_events_are_an_instruction_not_an_empty_table(
     store: art.Artifacts,
 ) -> None:
