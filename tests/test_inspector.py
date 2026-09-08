@@ -306,6 +306,7 @@ def test_mixed_four_class_event_list_serves_a_distinct_event_class_per_row(
         data_dir=tmp_path / "data",
         events_path=events_path,
         associations_dir=tmp_path / "outputs" / "associations",
+        coverage_queries_dir=tmp_path / "outputs" / "coverage_queries",
     )
     status, payload = call(store, "/api/events")
     assert status == 200
@@ -511,6 +512,7 @@ def test_empty_state_snapshot(tmp_path: Path) -> None:
         data_dir=tmp_path / "data",
         events_path=tmp_path / "outputs" / "events" / "events.parquet",
         associations_dir=tmp_path / "outputs" / "associations",
+        coverage_queries_dir=tmp_path / "outputs" / "coverage_queries",
     )
 
     assert art.list_scorecards(empty) == []
@@ -536,6 +538,11 @@ def test_empty_state_snapshot(tmp_path: Path) -> None:
     association = art.read_association(empty, "any-component")
     assert isinstance(association, art.Absent)
     assert association.produced_by == "python scripts/associate_golden_set.py"
+
+    assert art.list_coverage_queries(empty) == []
+    coverage_query = art.read_coverage_query(empty, "any-query")
+    assert isinstance(coverage_query, art.Absent)
+    assert coverage_query.produced_by == "python scripts/prove_absence_query.py"
 
 
 # --- association / identity view ------------------------------------------
@@ -679,11 +686,129 @@ def test_boundary_fixture_component_is_visually_flagged_in_app_js() -> None:
     app_js = (REPO_ROOT / "src" / "inspector" / "static" / "app.js").read_text()
     panel_fn = app_js[
         app_js.index("function associationPanel(") : app_js.index(
-            "async function viewProvenance("
+            "/* --- view: coverage / absence"
         )
     ]
     assert 'd.selection === "boundary_fixture_hand_selected"' in panel_fn
     assert "warnband" in panel_fn
+
+
+# --- coverage / absence view -----------------------------------------------
+
+
+def _run_prove_absence_query_if_absent(store: art.Artifacts) -> None:
+    """The real query results this view serves are a generated output
+    (outputs/ is gitignored), not a checked-in fixture. Regenerate them if
+    a previous run has not already, the way a human running ``make
+    inspect`` cold would."""
+    if store.coverage_queries_dir.exists() and list(
+        store.coverage_queries_dir.glob("*.json")
+    ):
+        return
+    import subprocess
+    import sys
+
+    subprocess.run(
+        [sys.executable, "scripts/prove_absence_query.py"],
+        cwd=REPO_ROOT,
+        check=True,
+        capture_output=True,
+    )
+
+
+def test_coverage_endpoints_serve_real_prove_absence_results(
+    store: art.Artifacts,
+) -> None:
+    _run_prove_absence_query_if_absent(store)
+    status, payload = call(store, "/api/coverage_queries")
+    assert status == 200
+    rows = payload["coverage_queries"]
+    assert rows, "run scripts/prove_absence_query.py before this test"
+    kinds = {r["kind"] for r in rows}
+    assert "absence" in kinds and "cannot_establish" in kinds, (
+        "the served set must exercise both AbsenceResult shapes, or the "
+        "view has nothing to render either branch against"
+    )
+    realisms = {r["scenario_realism"] for r in rows}
+    assert (
+        "actual_project_state" in realisms and "constructed_from_real_types" in realisms
+    )
+
+    for row in rows:
+        _, full = call(store, f"/api/coverage_query/{row['query_id']}")
+        assert full["kind"] in ("absence", "cannot_establish")
+        assert (REPO_ROOT / full["_source"]).exists()
+
+
+def test_no_coverage_query_is_the_real_current_site_zero_state(
+    store: art.Artifacts,
+) -> None:
+    """The one query with scenario_realism == "actual_project_state" must
+    be a real CannotEstablish(reason="no_coverage") -- querying this
+    project's real, current, empty Site Zero coverage log, not a
+    constructed illustration. This is the objective's own named
+    structural guarantee, checked at the API boundary: an empty coverage
+    log renders CannotEstablish, never something that could be misread as
+    a proven absence."""
+    _run_prove_absence_query_if_absent(store)
+    _, rows = call(store, "/api/coverage_queries")
+    real = [
+        r
+        for r in rows["coverage_queries"]
+        if r["scenario_realism"] == "actual_project_state"
+    ]
+    assert real, "no actual_project_state query served"
+    for row in real:
+        _, full = call(store, f"/api/coverage_query/{row['query_id']}")
+        assert full["kind"] == "cannot_establish"
+        assert full["reason"] == "no_coverage"
+        assert full["uncovered_subintervals"], (
+            "a no_coverage result with no uncovered_subintervals would be "
+            "indistinguishable from full coverage — the whole query window "
+            "must be reported uncovered"
+        )
+
+
+def test_app_js_coverage_view_has_no_fallback_that_renders_blank() -> None:
+    """Structural, mirroring src/model/coverage.py's own STRUCTURAL
+    guarantee exactly: coveragePanel() must branch on `kind === "absence"`
+    with a bare `else` (not `else if kind === "cannot_establish"`), so
+    that ANY non-absence payload -- including a malformed or unrecognized
+    one -- renders as a refusal rather than silently falling through to
+    nothing rendered at all."""
+    app_js = (REPO_ROOT / "src" / "inspector" / "static" / "app.js").read_text()
+    panel_fn = app_js[
+        app_js.index("function coveragePanel(") : app_js.index("function absenceBlock(")
+    ]
+    kind_branch = panel_fn[panel_fn.index('if (q.kind === "absence")') :]
+    assert kind_branch.startswith('if (q.kind === "absence") {')
+    assert "} else {" in kind_branch
+    assert "else if" not in kind_branch
+
+
+def test_app_js_cannot_establish_always_renders_all_three_sections() -> None:
+    """Even when uncovered_subintervals / envelope_violations / gaps are
+    all empty (e.g. reason="predicate_held"), the CannotEstablish view
+    must still show all three headings with an explicit "none" rather
+    than omitting a section -- an omitted section reads as "not asked",
+    an empty one with "none" reads as "asked and clear". Mirrors the
+    per_condition empty-bucket rule (Objective 2) applied to this view."""
+    app_js = (REPO_ROOT / "src" / "inspector" / "static" / "app.js").read_text()
+    fn = app_js[
+        app_js.index("function cannotEstablishBlock(") : app_js.index(
+            "/* --- view: provenance"
+        )
+    ]
+    assert 'el("h2", null, "Uncovered subintervals")' in fn
+    assert 'el("h2", null, "Envelope violations")' in fn
+    assert 'el("h2", null, "Gaps")' in fn
+    # Each heading's own append call is unconditional (outside any `if`) --
+    # approximated by requiring exactly one occurrence of each heading
+    # append per function body, since a conditionally-appended heading
+    # would need one call per branch or a guard directly before it.
+    for heading in ("Uncovered subintervals", "Envelope violations", "Gaps"):
+        marker = f'el("h2", null, "{heading}")'
+        assert fn.count(marker) == 1
 
 
 # --- structural self-audit: Ambiguous must never render as Decisive -------
@@ -702,7 +827,9 @@ def test_ambiguous_rendering_has_no_rank_based_winner_styling() -> None:
     # the winner markers to be textually preceded, within the same
     # function, by an isDecisive guard rather than appearing bare.
     assoc_section = text[
-        text.index("/* --- view: association") : text.index("/* --- view: provenance")
+        text.index("/* --- view: association") : text.index(
+            "/* --- view: coverage / absence"
+        )
     ]
     assert "assoc-winner" in assoc_section
     assert "winner-badge" in assoc_section

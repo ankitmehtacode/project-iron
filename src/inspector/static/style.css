@@ -38,6 +38,9 @@
   --refuse-bg: #fdecec;
   --refuse-ink: #8c1d1d;
   --refuse-rule: #d06666;
+  --absence-bg: #eaf6ec;
+  --absence-ink: #1e5c2c;
+  --absence-rule: #5c9c68;
 
   --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
   --sans: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -65,6 +68,9 @@
     --refuse-bg: #2a1616;
     --refuse-ink: #f0a0a0;
     --refuse-rule: #7a3030;
+    --absence-bg: #16261a;
+    --absence-ink: #8fd89c;
+    --absence-rule: #3d6b47;
   }
 }
 
@@ -275,6 +281,16 @@ tr.unclassified td { background: var(--warn-bg); color: var(--warn-ink); }
 .refusal { background: var(--refuse-bg); color: var(--refuse-ink); border-color: var(--refuse-rule); }
 .refusal ul { margin: 8px 0 0; padding-left: 18px; }
 .warnband { background: var(--warn-bg); color: var(--warn-ink); border-color: var(--warn-rule); margin-bottom: 16px; }
+
+/* A PROVEN Absence, styled deliberately unlike a refusal (.refusal, above)
+ * or a warning (.warnband) -- a distinct hue AND a left border (not just
+ * colour) so the three severities survive greyscale. */
+.absence-proven {
+  border: 1px solid var(--rule-strong); border-left: 4px solid var(--absence-rule);
+  padding: 14px 16px; font-size: 13px;
+  background: var(--absence-bg); color: var(--absence-ink); margin-bottom: 16px;
+}
+.absence-proven h3 { margin: 0 0 8px; font-size: 13px; }
 
 /* Capability gates: a refused gate carries the .refusal class too (see
  * capabilityGatesPanel in app.js) and inherits its box styling above —

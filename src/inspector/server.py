@@ -80,6 +80,12 @@ def build_routes(store: art.Artifacts) -> list[tuple[re.Pattern[str], Callable]]
     def association(match: re.Match[str], __: dict[str, list[str]]):
         return json_response(art.read_association(store, match.group("component")))
 
+    def coverage_queries(_: re.Match[str], __: dict[str, list[str]]):
+        return json_response({"coverage_queries": art.list_coverage_queries(store)})
+
+    def coverage_query(match: re.Match[str], __: dict[str, list[str]]):
+        return json_response(art.read_coverage_query(store, match.group("query_id")))
+
     def clip(match: re.Match[str], __: dict[str, list[str]]):
         return json_response(art.clip_analysis(store, match.group("clip")))
 
@@ -99,6 +105,8 @@ def build_routes(store: art.Artifacts) -> list[tuple[re.Pattern[str], Callable]]
         (re.compile(r"^/api/provenance$"), provenance),
         (re.compile(r"^/api/associations$"), associations),
         (re.compile(r"^/api/association/(?P<component>[\w.\-]+)$"), association),
+        (re.compile(r"^/api/coverage_queries$"), coverage_queries),
+        (re.compile(r"^/api/coverage_query/(?P<query_id>[\w.\-]+)$"), coverage_query),
         (re.compile(r"^/api/clip/(?P<clip>[\w.\-]+)$"), clip),
         (re.compile(r"^/api/clip/(?P<clip>[\w.\-]+)/frame/(?P<i>\d+)$"), frame),
     ]

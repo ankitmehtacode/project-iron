@@ -50,6 +50,7 @@ class Artifacts:
     data_dir: Path
     events_path: Path
     associations_dir: Path
+    coverage_queries_dir: Path
 
     @classmethod
     def from_config(cls) -> "Artifacts":
@@ -65,6 +66,7 @@ class Artifacts:
             data_dir=config.paths.resolved_data_dir,
             events_path=root / "outputs" / "events" / "events.parquet",
             associations_dir=root / "outputs" / "associations",
+            coverage_queries_dir=root / "outputs" / "coverage_queries",
         )
 
     def relative(self, path: Path) -> str:
@@ -273,6 +275,50 @@ def read_association(
             what=f"association resolution {component_id!r}",
             looked_for=artifacts.relative(path),
             produced_by="python scripts/associate_golden_set.py",
+        )
+    payload = json.loads(path.read_text())
+    payload["_source"] = artifacts.relative(path)
+    return payload
+
+
+def list_coverage_queries(artifacts: Artifacts) -> list[dict[str, Any]]:
+    """Every `prove_absence` result on disk, newest first.
+
+    Written by ``scripts/prove_absence_query.py`` (Day 37, Objective 4).
+    Every row's own ``kind`` (``"absence"`` or ``"cannot_establish"``) and
+    ``scenario_realism`` (``"actual_project_state"`` or
+    ``"constructed_from_real_types"``) travel with it, so a viewer can
+    never mistake a query built to exercise a rendering path for one that
+    reports something that occurred. Absence here means the same thing it
+    means everywhere else in this module: nothing has been produced, not
+    that nothing was asked.
+    """
+    if not artifacts.coverage_queries_dir.exists():
+        return []
+    rows = []
+    for path in sorted(artifacts.coverage_queries_dir.glob("*.json")):
+        payload = json.loads(path.read_text())
+        rows.append(
+            {
+                "file": artifacts.relative(path),
+                "query_id": payload.get("query_id", path.stem),
+                "kind": payload.get("kind"),
+                "scenario_realism": payload.get("scenario_realism"),
+                "subject_id": payload.get("subject_id"),
+                "modified_epoch": path.stat().st_mtime,
+            }
+        )
+    rows.sort(key=lambda r: r.get("modified_epoch", 0), reverse=True)
+    return rows
+
+
+def read_coverage_query(artifacts: Artifacts, query_id: str) -> dict[str, Any] | Absent:
+    path = artifacts.coverage_queries_dir / f"{query_id}.json"
+    if not path.exists():
+        return Absent(
+            what=f"coverage/absence query {query_id!r}",
+            looked_for=artifacts.relative(path),
+            produced_by="python scripts/prove_absence_query.py",
         )
     payload = json.loads(path.read_text())
     payload["_source"] = artifacts.relative(path)

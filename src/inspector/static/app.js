@@ -944,6 +944,200 @@ function associationPanel(d) {
   return wrap;
 }
 
+/* --- view: coverage / absence -------------------------------------------- */
+
+/* Day 37, Objective 4. Coverage records what was actually watched;
+ * prove_absence (src/model/coverage.py) is the only sanctioned way to turn
+ * that record into a negative claim, and its return type is a strict union
+ * of Absence | CannotEstablish -- never a bare "nothing happened". This
+ * view mirrors that exactly: coveragePanel() below has exactly two render
+ * branches, keyed on `kind === "absence"`, and the ELSE branch (not an
+ * "else if kind === cannot_establish") is deliberate -- ANY payload that is
+ * not explicitly, literally an Absence renders as a refusal, so a missing,
+ * malformed, or unrecognized `kind` can never fall through to a blank
+ * section a viewer could misread as "confirmed nothing happened". */
+
+function formatInterval(interval) {
+  const startS = interval.start_ns / 1e9;
+  const endS = interval.end_ns / 1e9;
+  const durS = endS - startS;
+  return `${startS.toFixed(3)}s – ${endS.toFixed(3)}s  (duration ${durS.toFixed(3)}s)`;
+}
+
+async function viewCoverage(root) {
+  root.textContent = "";
+  const list = await api("/api/coverage_queries");
+  const rows = list.coverage_queries || [];
+  if (!rows.length) {
+    root.append(absentBlock({
+      what: "any coverage/absence query result",
+      looked_for: "outputs/coverage_queries/*.json",
+      produced_by: "python scripts/prove_absence_query.py",
+    }));
+    return;
+  }
+
+  const picker = el("div", "panel");
+  picker.append(el("h2", null, "Coverage / Absence"));
+  picker.append(el("p", "note",
+    "Coverage records what was actually watched. prove_absence is the only sanctioned way to turn that record into a negative claim — it returns exactly a proven Absence with its Coverage basis, or a structured CannotEstablish. Never a bare \"nothing happened\"."));
+  const sel = el("select");
+  rows.forEach((r) => {
+    const o = el("option", null, `${r.query_id}  (${r.kind})`);
+    o.value = r.query_id;
+    sel.append(o);
+  });
+  picker.append(sel);
+  root.append(picker);
+
+  const body = el("div");
+  root.append(body);
+
+  const render = async () => {
+    body.textContent = "";
+    const q = await api(`/api/coverage_query/${sel.value}`);
+    if (q.absent) { body.append(absentBlock(q)); return; }
+    body.append(coveragePanel(q));
+  };
+  sel.addEventListener("change", render);
+  await render();
+}
+
+function coveragePanel(q) {
+  const wrap = el("div");
+
+  const head = el("div", "panel");
+  head.append(el("h2", null, `Query: ${q.query_id}`));
+  head.append(el("p", "note",
+    `subject: ${q.subject_id} (${q.subject_kind}) — predicate: "${q.predicate_description}" — window: ${formatInterval(q.query_interval)}`));
+  if (q.scenario_realism === "constructed_from_real_types") {
+    const warn = el("div", "warnband");
+    warn.append(el("h3", null, "Constructed example"));
+    warn.append(el("p", null,
+      `Real Coverage/Gap types, run through the real prove_absence — chosen to exercise this rendering path, not a report of something that occurred. ${q.scenario_note || ""}`));
+    head.append(warn);
+  } else if (q.scenario_realism === "actual_project_state") {
+    head.append(el("p", "note", `Real project state, not a constructed example — ${q.scenario_note || ""}`));
+  }
+  wrap.append(head);
+
+  if (q.kind === "absence") {
+    wrap.append(absenceBlock(q));
+  } else {
+    wrap.append(cannotEstablishBlock(q));
+  }
+  return wrap;
+}
+
+function absenceBlock(q) {
+  const panel = el("div", "panel");
+  const banner = el("div", "absence-proven");
+  banner.append(el("h3", null, "PROVEN ABSENCE"));
+  banner.append(el("p", null,
+    `"${q.predicate}" did not hold, for the entire window, on the Coverage below.`));
+  panel.append(banner);
+
+  panel.append(el("h2", null, "Coverage basis"));
+  panel.append(el("p", "note",
+    "Every Coverage record this proof rests on. A proven Absence with no basis here would be exactly the silent-as-absence bug this type exists to prevent."));
+  const basis = q.coverage_basis || [];
+  if (!basis.length) {
+    // Structurally unreachable for a real Absence (Absence.__post_init__
+    // refuses an empty coverage_basis at construction) — rendered
+    // explicitly anyway so a malformed payload reads as a visible
+    // contract violation, never as blank space.
+    const warn = el("div", "warnband");
+    warn.append(el("h3", null, "Contract violation"));
+    warn.append(el("p", null,
+      "This result claims kind=\"absence\" with an empty coverage_basis. Absence itself refuses this at construction time — this payload should be unreachable."));
+    panel.append(warn);
+    return panel;
+  }
+  const table = el("table");
+  const thr = el("tr");
+  ["subject", "kind", "interval", "status", "gaps", "envelope_ref"].forEach((h) => thr.append(el("th", null, h)));
+  { const thead = el("thead"); thead.append(thr); table.append(thead); }
+  const tb = el("tbody");
+  basis.forEach((c) => {
+    const tr = el("tr");
+    tr.append(el("td", null, c.subject_id));
+    tr.append(el("td", null, c.subject_kind));
+    tr.append(el("td", "mono", formatInterval(c.interval)));
+    tr.append(el("td", null, c.status));
+    tr.append(el("td", "num", String((c.gaps || []).length)));
+    tr.append(el("td", "mono", c.envelope_ref));
+    tb.append(tr);
+  });
+  table.append(tb);
+  panel.append(table);
+  return panel;
+}
+
+function cannotEstablishBlock(q) {
+  const panel = el("div", "panel");
+  const banner = el("div", "refusal");
+  banner.append(el("h3", null, "CANNOT ESTABLISH"));
+  banner.append(el("p", null,
+    `reason: ${q.reason || "(missing from payload — see below)"}`));
+  panel.append(banner);
+  if (!q.reason) {
+    const warn = el("div", "warnband");
+    warn.append(el("h3", null, "Contract violation"));
+    warn.append(el("p", null,
+      "This result is not kind=\"absence\" but carries no reason either. CannotEstablish itself refuses an empty reason at construction time — this payload should be unreachable."));
+    panel.append(warn);
+  }
+
+  panel.append(el("h2", null, "Uncovered subintervals"));
+  panel.append(el("p", "note",
+    "Parts of the query window with no Coverage record at all, or that fall inside a Gap."));
+  const uncovered = q.uncovered_subintervals || [];
+  if (uncovered.length) {
+    const ul = el("ul");
+    uncovered.forEach((iv) => ul.append(el("li", "mono", formatInterval(iv))));
+    panel.append(ul);
+  } else {
+    panel.append(el("p", "note",
+      "none — every part of the window has SOME Coverage record; the refusal, if any, comes from status or a Gap below, not missing coverage."));
+  }
+
+  panel.append(el("h2", null, "Envelope violations"));
+  panel.append(el("p", "note",
+    "Coverage existed but its status was not sufficient (degraded, occluded, or offline) to certify a negative result."));
+  const violations = q.envelope_violations || [];
+  if (violations.length) {
+    const ul = el("ul");
+    violations.forEach((v) => ul.append(el("li", "mono", v)));
+    panel.append(ul);
+  } else {
+    panel.append(el("p", "note", "none."));
+  }
+
+  panel.append(el("h2", null, "Gaps"));
+  panel.append(el("p", "note",
+    "Specific interruptions (dropped frames, backpressure, disconnects) responsible, when applicable."));
+  const gaps = q.gaps || [];
+  if (gaps.length) {
+    const table = el("table");
+    const thr = el("tr");
+    ["camera", "interval", "reason"].forEach((h) => thr.append(el("th", null, h)));
+    { const thead = el("thead"); thead.append(thr); table.append(thead); }
+    const tb = el("tbody");
+    gaps.forEach((g) => {
+      const tr = el("tr");
+      tr.append(el("td", null, g.camera_id));
+      tr.append(el("td", "mono", formatInterval(g.interval)));
+      tr.append(el("td", null, g.reason));
+      tb.append(tr);
+    });
+    table.append(tb);
+    panel.append(table);
+  } else {
+    panel.append(el("p", "note", "none."));
+  }
+  return panel;
+}
+
 /* --- view: provenance --------------------------------------------------- */
 
 async function viewProvenance(root) {
@@ -986,6 +1180,7 @@ const VIEWS = {
   envelope: viewEnvelope,
   events: viewEvents,
   association: viewAssociation,
+  coverage: viewCoverage,
   provenance: viewProvenance,
 };
 
