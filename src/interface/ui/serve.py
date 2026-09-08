@@ -15,4 +15,3 @@ if __name__ == "__main__":
     handler = functools.partial(SecurityHeadersHandler, directory=str(ui_dir))
     print("Server running at http://localhost:8000")
     HTTPServer(("localhost", 8000), handler).serve_forever()
-

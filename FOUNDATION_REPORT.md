@@ -10777,3 +10777,264 @@ last step on any future day that produces SELF_TEST-labelled artifacts.
    regression in `extract_features_no_grad`'s isolation or the lane-gate
    pass-through would currently only be caught by someone remembering to
    run `pytest tests/test_identity_*.py` by hand.
+
+# Day 37
+
+**The Blocker Ledger's oldest entries are 39 days old.** Per this day's own
+framing rule: a blocker older than most of this project's engineering days
+is no longer a queue position, it is a decision, made by inaction, and it
+is named as one here rather than carried forward as another restated
+sentence. `dataset-license-and-consent-verification` (first recorded
+`bf85e75`, 2026-07-31 — the same commit that introduced the dataset
+registry MEVA's 52 restatements trace back to) and
+`consent-template-counsel-review` (first recorded `3eed2eb`, same date)
+have now sat unresolved for longer than this project's entire numbered-day
+history has been running in real calendar time. Nobody has read a license.
+Nobody has sent the consent template to counsel. Both are five-minute-to-
+afternoon human tasks, not engineering work, and this section exists
+specifically to stop that fact from being quietly re-absorbed into next
+week's "still blocked on a human" list.
+
+**No timing, throughput, CPU-percentage, or latency claim is made anywhere
+in this section as a PRODUCT figure** — unchanged hard scope rule. Test
+durations and suite counts remain in scope, as process measurements.
+
+## Verdicts
+
+- **Objective 1.** The Blocker Ledger (`docs/blocker_ledger.yaml`,
+  `scripts/blocker_report.py`) now holds 6 entries, every `first_recorded`
+  sha/date verified against real git history
+  (`tests/test_blocker_ledger.py::TestLedgerMatchesGit`), sorted oldest
+  first below. **Highest-leverage if resolved today:**
+  `dataset-license-and-consent-verification` — it is tied for oldest (39
+  days) and it is the one blocker whose resolution unblocks the largest
+  downstream cluster: a real `FrozenBackbone` implementation, the backbone
+  bake-off harness actually running (Day 36 Objective 4, built but never
+  run against real data), and the identity adapter's promotion gate being
+  exercised on anything but a synthetic Gaussian gallery — all of Phase 3's
+  remaining work sits behind at least one verified dataset existing, and
+  zero currently do. `consent-template-counsel-review` is a close second
+  (it separately gates Site Zero capture) but unblocks one capability
+  cluster, not several. → Objective 1.
+- **Objective 2.** `capability_gates`, `per_condition`, and `caveats` now
+  render in the Inspector's Scorecard view, in that order, ahead of
+  Metrics — a capability-gate refusal is visually load-bearing (own panel,
+  own styling, appears before any metric it would have gated), not a
+  footnote. Verified against v3-indoor's real scorecard, which happens to
+  exercise all three: a passed `motion_geometry` gate, an empty `night`
+  condition bucket (flagged, not dropped), and a DO-NOT-QUOTE caveat
+  (rendered as a prominent warnband, sorted first per
+  `Scorecard.render()`'s own rule). → Objective 2.
+- **Objective 3.** The prompt named v6-motion as the default target for a
+  real `resolve_data_association` sweep. Checked directly against every
+  one of v6-motion's 19 clips' own `agent_xyz` arrays (never the
+  manifest's free-text notes): **every v6-motion clip has exactly 1
+  agent** — no competing hypothesis is possible there, so the prompt's own
+  parenthetical ("or the most appropriate existing golden set") governs.
+  v3-indoor (30 clips, up to 6 agents) is the only golden set with enough
+  multi-agent clips to be worth sweeping. `scripts/associate_golden_set.py`
+  resolved 71 real components (every multi-agent clip, one pre-registered
+  frame each, every agent in turn as detected, budget=1 uniformly — no
+  parameter tuned per-component to reach a chosen answer). **Real answer to
+  this objective's own question: 0 of 71 are Ambiguous; all 71 are
+  Decisive.** The Association view's Ambiguous-rendering path remains
+  validated only against one hand-selected boundary fixture (the same
+  near-tie case Day 35 found by searching), self-labelled
+  `selection="boundary_fixture_hand_selected"` and flagged with its own
+  warnband — never confused with a systematic-sweep result, structurally
+  (`tests/test_inspector.py::test_systematic_sweep_answers_whether_real_
+  data_is_ever_ambiguous`). This is a real, reported gap, not a footnote:
+  see Day 38, item 2. → Objective 3.
+- **Objective 4.** `prove_absence` (src/model/coverage.py) is now visually
+  inspectable: a new Coverage / Absence tab renders a proven `Absence`'s
+  full `coverage_basis`, or a `CannotEstablish`'s `uncovered_subintervals`
+  / `envelope_violations` / `gaps`, every field visible even when empty
+  ("none.", never an omitted section). `scripts/prove_absence_query.py`
+  runs the real function against real dataclass instances for 4 queries;
+  one is not a constructed example at all — it queries this project's
+  actual, current Site Zero coverage log, which is genuinely empty (zero
+  minutes of Site Zero footage have ever been captured), and the real,
+  current answer is `CannotEstablish(reason="no_coverage")`, rendered as a
+  red refusal band with the full window listed as uncovered — never blank
+  space. STRUCTURAL, mirroring the backend exactly: the render function
+  branches on `kind === "absence"` with a bare `else`, so any non-absence,
+  malformed, or unrecognized payload renders as a refusal, never nothing.
+  → Objective 4.
+
+## Blockers
+
+Computed fresh against `docs/blocker_ledger.yaml` via
+`python scripts/blocker_report.py --as-of 2026-09-08 --verify-git`, every
+sha/date re-verified against real git history at report time, not carried
+forward from a prior day's numbers:
+
+| age (days) | id | category | first recorded | estimated human effort |
+|---:|---|---|---|---|
+| 39 | `consent-template-counsel-review` | human_verification | 2026-07-31 (`3eed2eb`) | A yes/no plus redlines from counsel — realistically an afternoon of legal review, not an engineering estimate. |
+| 39 | `dataset-license-and-consent-verification` | human_verification | 2026-07-31 (`bf85e75`) | CHIRLA: five minutes (four checkboxes, `docs/chirla_verification_checklist.md`). MEVA and the remaining ~61 entries: unknown per-entry — nobody has attempted even one, so no real estimate exists yet. |
+| 31 | `site-zero-capture` | human_capture | 2026-08-08 (`e8162cd`) | Hardware on hand plus one overnight capture window — realistically a day, once consent-template-counsel-review and reference-hardware-procurement both clear. |
+| 29 | `git-history-divergence` | human_decision | 2026-08-10 (`d36a835`) | A yes/no on the relationship between the two repositories, then ~5 minutes to execute ADR 0009's Option B once answered. |
+| 29 | `reference-hardware-procurement` | human_procurement | 2026-08-10 (`72db508`) | A purchase decision — `reference_hardware.md` names the SKUs; someone has to approve the spend. |
+| 1 | `component-cap-carrier-identity-type-change` | human_decision | 2026-09-07 (`4b1c557`) | A design decision, not a coding task — small in code-change size once decided, but a schema call this repository has twice declined to make for itself. |
+
+**Single highest-leverage blocker if resolved today:**
+`dataset-license-and-consent-verification` (see Objective 1's Verdict
+above for the full reasoning) — not because it is oldest (it ties for
+that), but because every other Phase-3 capability this project has built
+and not yet run for real (`FrozenBackbone`, the bake-off harness, the
+adapter promotion gate on real data) sits behind it specifically, while
+every other ledger entry unblocks exactly one downstream item.
+
+## Objective 0 — push, start and end of day
+
+Start-of-day: found `src/interface/ui/serve.py` still carrying the exact
+uncommitted diff Day 35 and Day 36 both reviewed, confirmed correct, and
+declined to commit under someone else's objectives — Day 36's own Day-37
+list, item 3, named it a "one-line human call: commit it, or say why not."
+Committed first, before Objective 1, as its own chore commit: it is a
+real, unrelated, already-twice-reviewed bugfix, and staging it under any
+of today's numbered objectives would have misattributed it the same way
+Day 36 warned against. Push at start and end of day, per standing rule.
+
+## Objective 1 — the Blocker Ledger
+
+See Verdicts and Blockers above for the full account. One methodological
+note: `first_recorded` for the grouped "63 registered, never-fetched
+datasets" entry is anchored to `bf85e75` (`feat: dataset registry with
+lanes, license snapshots, permanent blocklist`) — the commit that
+introduced the registry and therefore the earliest point any dataset could
+have been marked verified and was not — rather than to any later commit
+that merely restated the count. `docs/blocker_ledger.yaml`'s own header
+comment documents this rule (COMPUTED via git log, never estimated) so a
+future entry cannot drift into "first mentioned in the day's own prose"
+by mistake. Did not resolve, self-certify, or unilaterally decide any
+blocker — checked directly against the temptation the objective itself
+named (marking ADR 0009 Accepted, self-certifying a license snapshot,
+picking the component-cap type change unilaterally) and did none of them.
+
+## Objective 2 — Scorecard fields surfaced
+
+See Verdicts above. `src/inspector/static/app.js`: `capabilityGatesPanel`,
+`perConditionPanel`, `caveatsPanel`, wired into `scorecardPanel` in that
+order (gates before Metrics — the ordering IS the "not a footnote"
+requirement, checked structurally in
+`tests/test_inspector.py::test_capability_gate_refusal_renders_before_
+and_distinctly_from_metrics`). `per_condition`'s empty `night` bucket gets
+a `∅` glyph and warn-band row styling — colour is never the only channel,
+per this file's own stated design rule.
+
+## Objective 3 — real AssociationVerdict persistence
+
+See Verdicts above for the central finding (v6-motion is single-agent;
+71/71 real v3-indoor components are Decisive). Additional detail: the
+measurement model (real Gaussian log-density over real geometry, the same
+cited velocity-uncertainty-derived sigma) was extracted from the retired
+`scripts/build_association_demo.py` into
+`src/estimator/association_from_geometry.py` so it backs both the sweep
+and the one boundary fixture from one shared, tested implementation rather
+than two copies that could drift. `scripts/build_association_demo.py`
+itself is deleted; `src/inspector/artifacts.py`, `app.js`, and
+`tests/test_inspector.py` all repoint at `associate_golden_set.py`.
+
+**Side effect noticed, not fully resolved:** the retired demo also wrote
+`outputs/events/events.parquet` (real identity events plus one
+demonstration `PredictedEvent`/`HypothesisEvent` pair) as a side effect,
+giving the Events tab real four-class data to render. `associate_golden_
+set.py` does not reproduce this — the Events view's own tests (tmp_path
+fixtures) are unaffected, but a human running `make inspect` cold today
+gets an Absent Events tab where they previously got real observed/inferred
+events. Named here rather than silently accepted; see Day 38, item 3.
+
+## Objective 4 — Coverage/Absence view
+
+See Verdicts above. `scripts/prove_absence_query.py` and the new Coverage
+/ Absence Inspector tab. One naming note: the prompt's own illustrative
+example asked about a "vault" — this project's real, planned capture
+(`docs/capture_runbook.md`) uses "zone"/"corridor" language, not "vault",
+so the real-project-state query uses `site-zero-corridor-a` rather than
+inventing a "vault" zone this project has never actually planned. The
+`scenario_realism` field on every persisted query (`actual_project_state`
+vs `constructed_from_real_types`) is the self-labelling fix Day 36 applied
+to `PromotionResult`, applied here to a different kind of "could be
+mistaken for a real result out of context."
+
+## Full suite, mypy, lint
+
+`mypy` (scoped per `mypy.ini`): clean, **0 errors, 79 source files** — up
+from Day 36's 78 (`src/estimator/association_from_geometry.py` is the one
+new file landing directly in the strict set, `src/estimator` already being
+in scope). `black --check .`: **28 files** would be reformatted — exactly
+Day 36's own count, checked directly (`flake8 .`: **26 files**, same
+list of pre-existing offenders as Day 35/36, confirmed by name, none
+newly added). Every file touched or added today (`scripts/blocker_
+report.py`, `scripts/associate_golden_set.py`, `scripts/prove_absence_
+query.py`, `src/estimator/association_from_geometry.py`, `src/inspector/
+artifacts.py`, `src/inspector/server.py`, `src/inspector/static/app.js`,
+`src/inspector/static/style.css`, `src/inspector/static/index.html`,
+`src/interface/ui/serve.py`, `tests/test_blocker_ledger.py`, `tests/
+test_inspector.py`) is individually `black`-formatted and `flake8`-clean,
+checked directly per file, not assumed from the run that formatted it —
+including a one-line trailing-blank-line fix to `serve.py` caught by this
+same final pass, folded into this commit rather than its own.
+
+Quick-loop suite (`-m "not slow and not requires_weights"`, this session,
+re-run after this section was written so the two `tests/test_blocker_
+ledger.py::TestReportOpensWithBlockers` tests that failed mid-day —
+because this section did not exist yet — are measured passing, not just
+asserted to be): **1383 passed, 1 skipped, 21 deselected, 0 failures**
+(`artifacts/pytest/day37_quick.xml`, 107.80s) — up from Day 36's 1364 by
+**19**, checked directly against the diff rather than estimated: 10 new
+`tests/test_blocker_ledger.py` tests, 9 new `tests/test_inspector.py`
+tests (`test_scorecard_view_surfaces_capability_gates_per_condition_and_
+caveats`, `test_capability_gate_refusal_renders_before_and_distinctly_
+from_metrics`, `test_per_condition_uses_canonical_bucket_order_and_
+flags_empty_buckets`, `test_systematic_sweep_answers_whether_real_data_
+is_ever_ambiguous`, `test_boundary_fixture_component_is_visually_
+flagged_in_app_js`, `test_coverage_endpoints_serve_real_prove_absence_
+results`, `test_no_coverage_query_is_the_real_current_site_zero_state`,
+`test_app_js_coverage_view_has_no_fallback_that_renders_blank`,
+`test_app_js_cannot_establish_always_renders_all_three_sections`).
+
+## Still blocked on a human
+
+Per [[iron-blocked-on-humans]] and now, structurally, per
+`docs/blocker_ledger.yaml` — see Blockers above for the full, aged table.
+Unchanged in substance from Day 36, now with honest ages attached instead
+of a restated sentence.
+
+## Process change, Day 37
+
+The Blocker Ledger itself (Objective 1) is today's process change: from
+Day 37 onward, `## Blockers` is mandatory and checked structurally
+(`tests/test_blocker_ledger.py`), the same mechanism as the Day-25
+Verdicts lint. A future day cannot add code without restating every
+currently-open blocker's age, checked against the live ledger every suite
+run — not a frozen count from whenever a given day's section was written.
+
+## Day 38, in order
+
+1. **CHIRLA's four-item human checklist** — still the cheapest item on the
+   Blocker Ledger by a wide margin (five minutes) and still not this
+   repository's to do; carried forward again, unchanged, per Day 36's own
+   list.
+2. **Densify the real association sweep, or accept 0/71 as the honest
+   answer** — Objective 3 found zero Ambiguous verdicts in a systematic
+   one-frame-per-clip sweep of v3-indoor. Before concluding real
+   multi-agent geometry in this project's golden sets never produces a
+   genuine near-tie, a denser temporal sample (multiple frames per clip,
+   still pre-registered before looking at results) should be tried. Not a
+   human-gated blocker — an engineering item.
+3. **Restore real Events-tab data, or accept the regression** —
+   Objective 3's retirement of `build_association_demo.py` dropped the
+   `outputs/events/events.parquet` side effect that gave the Events view
+   real four-class data. Either wire identity-event writing into
+   `associate_golden_set.py`, or explicitly decide the Events tab's
+   real-data demonstration is no longer maintained.
+4. **A real `FrozenBackbone` implementation** — still blocked on the same
+   thing (verified lane-C or lane-R data), unchanged from Day 36's list.
+5. **Everything else on Day 36's carried-forward Day-37 list not touched
+   today** — the state-estimator NIS/NEES view, the four-golden-set
+   scorecard view, ChokePoint/PETS2009 identity-ambiguity validation,
+   re-verifying `consent_posture: unknown` entries, MEVA licence
+   verification (now on the Blocker Ledger, not just this list), and the
+   `black`/`flake8` CI gate.
