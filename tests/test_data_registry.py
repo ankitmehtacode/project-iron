@@ -24,6 +24,7 @@ from src.data import (
     DatasetRegistry,
     DeploymentScopeRestriction,
     DeploymentScopeUnresolved,
+    Hosting,
     Lane,
     LaneViolation,
     LicenseNotVerified,
@@ -625,3 +626,39 @@ def test_product_claim_clearance_is_noop_without_a_restriction() -> None:
     registry = DatasetRegistry.load(SEED_PATH)
     meva = registry.require_product_claim_clearance("MEVA")
     assert meva.deployment_scope_restriction is None
+
+
+# ---------------------------------------------------------------------------
+# Day 39: hosting — a fourth axis, independent of license/consent/scope
+# ---------------------------------------------------------------------------
+
+
+def test_dataset_entry_accepts_every_hosting_literal() -> None:
+    for hosting in get_args(Hosting):
+        entry = DatasetEntry(name="x", lane="R", hosting=hosting)
+        assert entry.hosting == hosting
+
+
+def test_dataset_entry_hosting_defaults_to_unknown() -> None:
+    """Unlike consent_posture (default None), hosting has no "not
+    applicable" case — every entry is hosted somewhere — so the honest
+    default is the explicit "unknown" value, not None."""
+    assert DatasetEntry(name="x", lane="R").hosting == "unknown"
+
+
+def test_chirla_hosting_is_huggingface() -> None:
+    """Objective 1: CHIRLA is the entry that exposed why this field needs
+    to exist (Day 39) — backfilled explicitly rather than left unknown."""
+    registry = DatasetRegistry.load(SEED_PATH)
+    assert registry.get("CHIRLA").hosting == "huggingface"
+
+
+def test_only_chirla_is_backfilled_today() -> None:
+    """STRUCTURAL (Objective 1): today backfills exactly one entry.
+    Classifying the other 62 is deliberately out of scope — the same
+    reaudit deployment_scope_restriction got on Day 38, not attempted
+    today. If this count ever grows, it should grow because a real
+    reaudit pass updated it, not because a stray edit crept in."""
+    registry = DatasetRegistry.load(SEED_PATH)
+    classified = [e.name for e in registry.entries() if e.hosting != "unknown"]
+    assert classified == ["CHIRLA"]

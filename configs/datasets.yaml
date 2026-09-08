@@ -111,6 +111,7 @@ datasets:
 - name: CHIRLA
   lane: R
   subsystem: reid
+  hosting: huggingface
   consent_posture: staged_actors
   hypothesis_class: 'CC-BY-4.0. As of Day 38, confirmed identically across three independent
     sources a human read directly (Claude Code''s network access reaches none of the
