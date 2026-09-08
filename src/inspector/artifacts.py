@@ -233,11 +233,17 @@ def read_events(artifacts: Artifacts) -> dict[str, Any] | Absent:
 def list_associations(artifacts: Artifacts) -> list[dict[str, Any]]:
     """Every resolved association component on disk, newest first.
 
-    Written by ``scripts/build_association_demo.py`` today — see that
-    script's module docstring for why a demo producer exists at all rather
-    than a production pipeline stage (Day 35, Objective 2). Absence here
-    means the same thing it means everywhere else in this module: nothing
-    has been produced, not that nothing was asked.
+    Written by ``scripts/associate_golden_set.py`` (Day 37, Objective 3) —
+    a real, systematic sweep of a golden set's multi-agent clips through
+    ``resolve_data_association``, not the two hand-picked components
+    ``scripts/build_association_demo.py`` (Day 35, retired) used to prove
+    the Inspector could render both verdict shapes. Every row's own
+    ``selection`` field says HOW it was chosen (``"systematic_sweep"`` vs
+    the one ``"boundary_fixture_hand_selected"`` case kept only because the
+    systematic sweep itself produced no Ambiguous verdict — see that
+    script's module docstring). Absence here means the same thing it means
+    everywhere else in this module: nothing has been produced, not that
+    nothing was asked.
     """
     if not artifacts.associations_dir.exists():
         return []
@@ -250,6 +256,7 @@ def list_associations(artifacts: Artifacts) -> list[dict[str, Any]]:
                 "component_id": payload.get("component_id", path.stem),
                 "verdict_kind": (payload.get("verdict") or {}).get("kind"),
                 "source_clip": payload.get("source_clip"),
+                "selection": payload.get("selection"),
                 "modified_epoch": path.stat().st_mtime,
             }
         )
@@ -265,7 +272,7 @@ def read_association(
         return Absent(
             what=f"association resolution {component_id!r}",
             looked_for=artifacts.relative(path),
-            produced_by="python scripts/build_association_demo.py",
+            produced_by="python scripts/associate_golden_set.py",
         )
     payload = json.loads(path.read_text())
     payload["_source"] = artifacts.relative(path)

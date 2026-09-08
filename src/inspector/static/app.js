@@ -741,7 +741,7 @@ async function viewAssociation(root) {
     root.append(absentBlock({
       what: "any association resolution",
       looked_for: "outputs/associations/*.json",
-      produced_by: "python scripts/build_association_demo.py",
+      produced_by: "python scripts/associate_golden_set.py",
     }));
     return;
   }
@@ -752,7 +752,8 @@ async function viewAssociation(root) {
     "Which competing identity hypothesis a decision resolved to, and how strongly. The honest rendering of a genuine tie is two roughly-equal-weight items, not one item with a smaller badge on the other."));
   const sel = el("select");
   rows.forEach((r) => {
-    const o = el("option", null, `${r.component_id}  (${r.verdict_kind})`);
+    const fixtureTag = r.selection === "boundary_fixture_hand_selected" ? ", hand-selected fixture" : "";
+    const o = el("option", null, `${r.component_id}  (${r.verdict_kind}${fixtureTag})`);
     o.value = r.component_id;
     sel.append(o);
   });
@@ -919,6 +920,13 @@ function associationPanel(d) {
   head.append(el("h2", null, `Component: ${d.component_id}`));
   head.append(el("p", "note",
     `subject detection: ${d.source_clip}, frame ${d.frame_index}, agent ${d.detected_agent}`));
+  if (d.selection === "boundary_fixture_hand_selected") {
+    const warn = el("div", "warnband");
+    warn.append(el("h3", null, "Hand-selected boundary fixture"));
+    warn.append(el("p", null,
+      "Chosen to exercise this view's Ambiguous rendering path — the systematic sweep (scripts/associate_golden_set.py) this same run also produced found zero Ambiguous verdicts among its real, non-cherry-picked components. Not evidence of how often real data actually produces ambiguity."));
+    head.append(warn);
+  }
   if (verdict.kind === "decisive") {
     head.append(decisiveBlock(d, verdict));
   } else if (verdict.kind === "ambiguous") {

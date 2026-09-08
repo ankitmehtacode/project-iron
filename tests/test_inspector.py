@@ -535,25 +535,27 @@ def test_empty_state_snapshot(tmp_path: Path) -> None:
     assert art.list_associations(empty) == []
     association = art.read_association(empty, "any-component")
     assert isinstance(association, art.Absent)
-    assert association.produced_by == "python scripts/build_association_demo.py"
+    assert association.produced_by == "python scripts/associate_golden_set.py"
 
 
 # --- association / identity view ------------------------------------------
 
 
-def _build_association_demo_if_absent(store: art.Artifacts) -> None:
-    """The real demo artifact this view serves is a generated output
+def _run_association_sweep_if_absent(store: art.Artifacts) -> None:
+    """The real sweep artifacts this view serves are a generated output
     (outputs/ is gitignored — see .gitignore's "generated pipeline
-    artifacts" note), not a checked-in fixture. Regenerate it if a
+    artifacts" note), not a checked-in fixture. Regenerate them if a
     previous run has not already, exactly the way a human running
-    ``make inspect`` cold would."""
+    ``make inspect`` cold would. Day 37, Objective 3: replaces the Day-35
+    two-hand-picked-components demo with a real, systematic sweep of
+    v3-indoor's multi-agent clips through resolve_data_association."""
     if store.associations_dir.exists() and list(store.associations_dir.glob("*.json")):
         return
     import subprocess
     import sys
 
     subprocess.run(
-        [sys.executable, "scripts/build_association_demo.py"],
+        [sys.executable, "scripts/associate_golden_set.py", "--clear"],
         cwd=REPO_ROOT,
         check=True,
         capture_output=True,
@@ -561,15 +563,15 @@ def _build_association_demo_if_absent(store: art.Artifacts) -> None:
 
 
 def test_association_endpoints_serve_real_verdicts(store: art.Artifacts) -> None:
-    _build_association_demo_if_absent(store)
+    _run_association_sweep_if_absent(store)
     status, payload = call(store, "/api/associations")
     assert status == 200
     rows = payload["associations"]
-    assert rows, "run scripts/build_association_demo.py before this test"
+    assert rows, "run scripts/associate_golden_set.py before this test"
     kinds = {r["verdict_kind"] for r in rows}
     assert "decisive" in kinds and "ambiguous" in kinds, (
-        "the demo must exercise both verdict types, or the self-audit "
-        "below cannot check that they render differently"
+        "the served set must exercise both verdict types, or the "
+        "self-audit below cannot check that they render differently"
     )
 
     for row in rows:
@@ -578,7 +580,47 @@ def test_association_endpoints_serve_real_verdicts(store: art.Artifacts) -> None
             "candidates"
         ], "a verdict without its competitor set is not evidence"
         assert full["verdict"]["kind"] in ("decisive", "ambiguous")
+        assert full["selection"] in (
+            "systematic_sweep",
+            "boundary_fixture_hand_selected",
+        ), (
+            f"{row['component_id']} has no valid provenance label: "
+            f"{full.get('selection')!r}"
+        )
         assert (REPO_ROOT / full["_source"]).exists()
+
+
+def test_systematic_sweep_answers_whether_real_data_is_ever_ambiguous(
+    store: art.Artifacts,
+) -> None:
+    """Day 37, Objective 3's own named question, checked at the API
+    boundary rather than only in a script's stdout: among components
+    genuinely produced by the systematic sweep (selection ==
+    "systematic_sweep" -- excluding the one hand-selected boundary
+    fixture kept only to exercise the rendering path), is any real verdict
+    Ambiguous? As of this real v3-indoor sweep the honest answer is no --
+    asserted here so a future change to the sweep's methodology that
+    silently starts mixing fixture and sweep provenance, or that drops the
+    `selection` label, is caught structurally rather than by someone
+    re-reading a printout."""
+    _run_association_sweep_if_absent(store)
+    _, rows = call(store, "/api/associations")
+    swept = [r for r in rows["associations"] if r["selection"] == "systematic_sweep"]
+    fixtures = [
+        r
+        for r in rows["associations"]
+        if r["selection"] == "boundary_fixture_hand_selected"
+    ]
+    assert swept, "no systematic_sweep component served"
+    assert fixtures, "no boundary_fixture_hand_selected component served"
+    swept_kinds = {r["verdict_kind"] for r in swept}
+    assert swept_kinds == {"decisive"}, (
+        f"expected the real systematic sweep to be all-decisive as measured "
+        f"(Day 37, Objective 3), found kinds={swept_kinds} instead -- if "
+        "this now legitimately includes 'ambiguous', update this test and "
+        "the Day-37 report finding together, do not just loosen the assert"
+    )
+    assert {r["verdict_kind"] for r in fixtures} == {"ambiguous"}
 
 
 def test_ambiguous_verdict_has_no_winner_field_on_the_wire(
@@ -589,10 +631,10 @@ def test_ambiguous_verdict_has_no_winner_field_on_the_wire(
     src.estimator.joint.Ambiguous enforces in Python (no ``winner``
     attribute exists on the dataclass), re-checked here because the JSON
     boundary is a second place this could quietly leak back in."""
-    _build_association_demo_if_absent(store)
+    _run_association_sweep_if_absent(store)
     _, rows = call(store, "/api/associations")
     ambiguous = [r for r in rows["associations"] if r["verdict_kind"] == "ambiguous"]
-    assert ambiguous, "no ambiguous demo component found"
+    assert ambiguous, "no ambiguous component found"
     _, full = call(store, f"/api/association/{ambiguous[0]['component_id']}")
     assert "winner" not in full["verdict"]
 
@@ -602,7 +644,7 @@ def test_ambiguous_verdict_never_produces_an_observed_event(
 ) -> None:
     """Closes the loop to Day 34 Objective 4 at the API boundary: an
     Ambiguous verdict's event must be InferredEvent, never ObservedEvent."""
-    _build_association_demo_if_absent(store)
+    _run_association_sweep_if_absent(store)
     _, rows = call(store, "/api/associations")
     ambiguous = [r for r in rows["associations"] if r["verdict_kind"] == "ambiguous"]
     assert ambiguous
@@ -616,7 +658,7 @@ def test_pruned_by_budget_is_forensically_visible_in_a_real_resolution(
     """At least one real, served decision must carry PRUNED_BY_BUDGET, or
     the "literal, visible label" requirement (Day 35 Objective 2) has
     nothing to render against."""
-    _build_association_demo_if_absent(store)
+    _run_association_sweep_if_absent(store)
     _, rows = call(store, "/api/associations")
     found = False
     for row in rows["associations"]:
@@ -626,6 +668,22 @@ def test_pruned_by_budget_is_forensically_visible_in_a_real_resolution(
             if cause and cause["kind"] == "pruned_by_budget":
                 found = True
     assert found, "no PRUNED_BY_BUDGET decision in any served component"
+
+
+def test_boundary_fixture_component_is_visually_flagged_in_app_js() -> None:
+    """A component chosen to exercise a rendering path (selection ==
+    "boundary_fixture_hand_selected") must render its own warnband saying
+    so, the same self-labelling discipline Day 36 required of
+    PromotionResult -- a reader must never mistake it for a naturally
+    occurring result of the systematic sweep."""
+    app_js = (REPO_ROOT / "src" / "inspector" / "static" / "app.js").read_text()
+    panel_fn = app_js[
+        app_js.index("function associationPanel(") : app_js.index(
+            "async function viewProvenance("
+        )
+    ]
+    assert 'd.selection === "boundary_fixture_hand_selected"' in panel_fn
+    assert "warnband" in panel_fn
 
 
 # --- structural self-audit: Ambiguous must never render as Decisive -------
