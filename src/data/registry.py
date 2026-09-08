@@ -158,6 +158,22 @@ class LaneViolation(RegistryError):
     """Raised when a dataset is used outside what its lane permits."""
 
 
+class DeploymentScopeUnresolved(RegistryError):
+    """Raised when a report or document-generation path asks to cite a
+    dataset's results for a product- or capability-level claim, and the
+    entry carries a :class:`DeploymentScopeRestriction` whose ``resolved``
+    flag is still ``False``.
+
+    Deliberately distinct from :class:`LaneViolation` /
+    :class:`LicenseNotVerified`: those gate whether data may be fetched or
+    scored at all (copyright, lane). This gates whether a downstream
+    deployment-scope restriction — independent of copyright, independent of
+    subject consent — has actually been read and closed out by a human
+    before its results back a claim about the product. A dataset can pass
+    every other gate in this module and still trip this one.
+    """
+
+
 class UnknownDataset(RegistryError):
     """Raised for a name the registry has never heard of.
 
@@ -188,6 +204,53 @@ class LicenseSnapshot(BaseModel):
     verified_class: str = ""
     """The license class as determined from the read text — which may differ
     from the entry's ``hypothesis_class``, and wins when it does."""
+
+
+class DeploymentScopeRestriction(BaseModel):
+    """A downstream deployment-scope restriction stated by a dataset's own
+    terms, discovered Day 38 on CHIRLA's HuggingFace card and structurally
+    distinct from the registry's other two legal dimensions:
+
+    - :class:`LicenseSnapshot` / ``hypothesis_class`` govern COPYRIGHT — who
+      may copy, redistribute, or train on the recording.
+    - :data:`ConsentPosture` / :class:`ConsentRecord` govern SUBJECT
+      CONSENT — whether the people on camera agreed to being filmed.
+    - This class governs neither: it is a restriction the dataset's own
+      terms place on HOW its data may be USED once obtained, independent of
+      copyright and independent of whether the subjects consented. A
+      dataset can score cleanly on both other axes and still carry this
+      kind of restriction — CHIRLA does (CC-BY-4.0, IRB-approved unrestricted
+      consent) while its HuggingFace card separately states: "Any
+      deployment aimed at surveillance, identification, or monitoring of
+      real people without explicit consent or where it violates privacy or
+      law."
+
+    ``resolved`` defaults to ``False`` and nothing in this module ever sets
+    it ``True`` on its own judgment: two readings of a clause like CHIRLA's
+    carry materially different consequences (narrow: permits use if the
+    DEPLOYED system has its own valid consent architecture; broad: excludes
+    any surveillance/identification/monitoring product regardless of
+    deployment consent), and choosing between them is a legal
+    interpretation — see
+    :meth:`DatasetRegistry.require_product_claim_clearance`, the only place
+    this field is read, and ``docs/blocker_ledger.yaml``'s
+    ``chirla_deployment_scope_legal_review`` entry.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    text: str | None = None
+    """Verbatim quote of the restriction, never a paraphrase — a summary
+    can silently narrow or broaden a legal clause; the exact text is the
+    only thing a reviewing human should trust."""
+    source: str = ""
+    """Exact URL/host and retrieval date the quote was read from."""
+    resolved: bool = False
+    resolution: str | None = None
+    """Who resolved this and how — null until a human (counsel, per
+    :class:`RegistryError`'s discipline elsewhere in this module) actually
+    does so. Never set by inference from how clean the rest of an entry's
+    license/consent fields look."""
 
 
 class ConsentRecord(BaseModel):
@@ -240,6 +303,15 @@ class DatasetEntry(BaseModel):
     lane ``C``'s consent is assumed already established by the time an
     entry is registered under that lane rather than
     ``C_pending_consent``."""
+    deployment_scope_restriction: DeploymentScopeRestriction | None = None
+    """A downstream deployment-scope restriction stated by the dataset's
+    own terms — see :class:`DeploymentScopeRestriction` for why this is a
+    third, independent axis from ``hypothesis_class``/``license_snapshot``
+    (copyright) and ``consent_posture``/``consent_record`` (subject
+    consent). ``None`` for the overwhelming majority of entries, not
+    because they are known clear on this axis but because nobody has read
+    their non-GitHub hosting pages to find out — see
+    ``docs/registry_deployment_scope_audit.md``."""
     validity_matrix_cell: str = ""
     """Which (capability, domain) cell of scripts/validity_matrix.py's
     grid this dataset would fill if verified and used for eval — e.g.
@@ -439,5 +511,49 @@ class DatasetRegistry:
                 f"module marked {TRAINING_PATH_MARKER}. Eval-only data cannot "
                 "be loaded on a training path, whatever the loading function "
                 "is called."
+            )
+        return entry
+
+    def require_product_claim_clearance(self, name: str) -> DatasetEntry:
+        """Gate for report/document-generation paths that would cite a
+        dataset's results for a product- or capability-level claim, as
+        opposed to pure internal algorithm benchmarking (which goes through
+        :meth:`open_for_eval` alone and is entirely unaffected by this
+        method — CHIRLA may still be benchmarked internally the moment its
+        license is verified, regardless of how this gate resolves).
+
+        Deliberately orthogonal to lane/license enforcement: a caller that
+        also wants those checks calls :meth:`open_for_eval` (or
+        :meth:`open_for_training`) itself; this method's only job is
+        surfacing an unresolved :class:`DeploymentScopeRestriction` rather
+        than letting it pass through silently into a claim.
+
+        Raises:
+            DeploymentScopeUnresolved: if the entry carries a
+                ``deployment_scope_restriction`` and its ``resolved`` flag
+                is still ``False``.
+
+        **Bounded, explicitly** (Day 38): this only fires for a call site
+        that actually calls it. Nothing in this codebase currently forces
+        every future report- or document-writing code path through here,
+        and nothing here can stop a human from typing a product claim
+        directly into prose (``FOUNDATION_REPORT.md`` and similar) by hand.
+        That is a process gap this mechanism cannot close by itself — see
+        ``docs/blocker_ledger.yaml``'s ``chirla_deployment_scope_legal_
+        review`` entry and FOUNDATION_REPORT.md's Day-38 section for that
+        limit stated in full, not implied away.
+        """
+        entry = self.get(name)
+        restriction = entry.deployment_scope_restriction
+        if restriction is not None and not restriction.resolved:
+            raise DeploymentScopeUnresolved(
+                f"{entry.name!r} carries an unresolved deployment_scope_"
+                f"restriction and cannot back a product- or capability-"
+                f"level claim: {restriction.text!r} (source: "
+                f"{restriction.source}). This is a legal interpretation "
+                "question, not an engineering one — resolve it (counsel "
+                "review) and record entry.deployment_scope_restriction."
+                "resolution before citing this dataset's results outside "
+                "pure internal algorithm benchmarking."
             )
         return entry

@@ -159,14 +159,21 @@ datasets:
   - name: CHIRLA
     lane: R
     subsystem: reid
-    consent_posture: unknown
+    consent_posture: staged_actors
     hypothesis_class: >-
-      README states "publicly available under the CC-BY license" (no
-      version number, no LICENSE file in the repo — prose claim only).
-      UNVERIFIED — recorded as a hypothesis only, same discipline as every
-      other entry here; no snapshot exists and nothing may be fetched on
-      the strength of this line. See docs/chirla_verification_checklist.md
-      for the exact human task that would clear it.
+      CC-BY-4.0. As of Day 38, confirmed identically across three
+      independent sources a human read directly (Claude Code's network
+      access reaches none of the three): GitHub (bdager/CHIRLA README,
+      current as of this session — prose only, no version number, no
+      LICENSE file), the HuggingFace dataset card
+      (huggingface.co/datasets/bdager/CHIRLA, its own structured License
+      field, not just prose), and the paper (Domínguez-Dager et al.,
+      Scientific Data, DOI 10.1038/s41597-025-06425-3, via PMC12852133).
+      Still UNVERIFIED by this registry's own discipline: three-source
+      agreement is not a LicenseSnapshot, and nothing may be fetched on the
+      strength of this line — see docs/chirla_verification_checklist.md
+      item 1 (now answered) and item 3, not yet converted into a snapshot
+      via scripts/fetch_dataset.py --verify-license.
     validity_matrix_cell: >-
       appearance_semantics / reid — long-term (7-month) multi-camera re-ID
       with real clothing/appearance change over time. The repository's own
@@ -178,10 +185,22 @@ datasets:
       dropout-and-return scenario at all). Also brief_occlusions and
       multiple_people_occlusions under benchmark/tracking/. MEVID
       (consent_posture staged_actors) is this registry's only other
-      clothing-change re-ID entry; CHIRLA's subjects are recorded staff/
-      students of a university robotics lab under public_cctv_no_consent-
-      adjacent conditions — see consent_posture note below for why this
-      entry is recorded "unknown" rather than either fixed value.
+      clothing-change re-ID entry; see consent_posture note below (Day 38
+      update) for why CHIRLA now shares that value rather than remaining
+      "unknown".
+    deployment_scope_restriction:
+      text: >-
+        Any deployment aimed at surveillance, identification, or
+        monitoring of real people without explicit consent or where it
+        violates privacy or law.
+      source: >-
+        HuggingFace dataset card, "Out-of-Scope Use" section,
+        https://huggingface.co/datasets/bdager/CHIRLA (read by a human,
+        Day 38, 2026-09-08 — Claude Code's network access does not reach
+        huggingface.co; this clause is absent from both the GitHub README
+        and the paper).
+      resolved: false
+      resolution: null
     notes: >-
       Day 36. Registered from github.com/bdager/CHIRLA README.md at commit
       fcb6f53359d5888b6e8fb745b65a411697dcc22c (read 2026-09-07 via
@@ -201,14 +220,62 @@ datasets:
       indoor environments" as a fact to record; the README at the commit
       actually read does not state an environment count anywhere — that
       clause is not verified and is deliberately NOT repeated as fact
-      here. consent_posture recorded "unknown", not
-      public_cctv_no_consent: subjects are named lab-affiliated
-      individuals recorded on their own research group's premises, which
-      reads closer to staged/known-population than anonymous CCTV of the
-      public, but the README documents no consent or notice process
-      (contrast MEVA's hired-actor posture, which IS documented) — a
-      guess between the two fixed values would misrepresent a real
-      unknown as a verified one.
+      here. consent_posture was recorded "unknown" at the time (Day 36)
+      because the README documents no consent or notice process (contrast
+      MEVA's hired-actor posture, which IS documented) — superseded below.
+
+
+      Day 38 update (a human read the HuggingFace card, the paper via PMC,
+      and the GitHub README directly — none of the three hosts is reachable
+      from this environment, so this paragraph encodes what was found
+      rather than re-deriving it). Three distinct legal questions, three
+      different answers:
+
+      (1) COPYRIGHT/REDISTRIBUTION — clean, CC-BY-4.0, confirmed
+      identically across all three sources (see hypothesis_class above).
+
+      (2) DATA-SUBJECT CONSENT — unusually strong; consent_posture upgraded
+      from "unknown" to "staged_actors" on the strength of the paper's
+      Methods section, quoted verbatim rather than paraphrased: "This study
+      was conducted under the supervision of the Ethical Committee of the
+      University of Alicante (Approval No. UA-2022-11-12). All participants
+      were informed about the study, including data handling procedures,
+      and provided their consent for participation and unrestricted data
+      use. Specifically, participants granted permission for their
+      inclusion in dataset video recordings, which capture physical data
+      (face and body features), and consented to making these recordings
+      publicly available with unrestricted use." This is the cleanest
+      consent statement in this registry's history across all 63 entries.
+
+      (3) DEPLOYMENT-SCOPE RESTRICTION — newly discovered, unresolved, and
+      NEITHER of the above: see the deployment_scope_restriction field.
+      The HuggingFace card's "Out-of-Scope Use" clause is absent from the
+      GitHub README and the paper — it does not read as boilerplate, and
+      resolving which of its two plausible readings governs (narrow:
+      permits use if the DEPLOYED system has its own valid consent
+      architecture; broad: excludes any surveillance/identification/
+      monitoring product regardless of deployment consent) is a legal
+      interpretation. No one — not this entry, not Claude Code, not the
+      chat assistant that first found it — is authorized to resolve which
+      reading governs. See docs/blocker_ledger.yaml's
+      chirla_deployment_scope_legal_review entry.
+
+      PROCEDURAL NOTE, separate from all three legal questions above:
+      CHIRLA is gated on HuggingFace — downloading requires an account
+      login and click-through acceptance of the dataset's conditions
+      before any file access. That gate is orthogonal to license
+      verification and is one more reason this cannot be resolved by
+      Claude Code alone (no HuggingFace account, and no network access to
+      huggingface.co either).
+
+
+      Did NOT, in this update: flip license_snapshot from null, change
+      CHIRLA's lane from R, or write a resolution for
+      deployment_scope_restriction — see
+      src.data.registry.DatasetRegistry.require_product_claim_clearance
+      for the one place resolved is read, and FOUNDATION_REPORT.md's
+      Day-38 section for why self-certifying any of the three would have
+      been the finding to report, not an action to take.
 
   - name: Market-1501
     lane: R

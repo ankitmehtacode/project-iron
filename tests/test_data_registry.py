@@ -22,6 +22,8 @@ from src.data import (
     ConsentRecord,
     DatasetEntry,
     DatasetRegistry,
+    DeploymentScopeRestriction,
+    DeploymentScopeUnresolved,
     Lane,
     LaneViolation,
     LicenseNotVerified,
@@ -454,7 +456,7 @@ def test_chirla_is_registered_lane_r_unverified_with_a_validity_cell() -> None:
     chirla = registry.get("CHIRLA")
     assert chirla.lane == "R"
     assert chirla.license_snapshot is None
-    assert chirla.consent_posture == "unknown"
+    assert chirla.consent_posture == "staged_actors"
     assert chirla.hypothesis_class
     assert "multi_camera" in chirla.validity_matrix_cell
     assert "reappearance" in chirla.validity_matrix_cell
@@ -504,13 +506,14 @@ def test_chirla_is_exactly_as_inert_as_every_other_lane_r_entry() -> None:
         lane_only_registry.open_for_training("CHIRLA")
 
 
-def test_chirla_consent_posture_unknown_cannot_satisfy_a_lane_c_only_loader() -> None:
+def test_chirla_consent_posture_cannot_satisfy_a_lane_c_only_loader() -> None:
     """STRUCTURAL (Objective 1): consent_posture is not a lane and confers
     no permission by itself — a lane-C-only loader (calibration; see
     scripts/build_calibration_set.py's require_lane_c) must refuse CHIRLA
     on lane alone, the same refusal every lane-R entry gets, regardless of
-    what its consent_posture says. This pins that consent_posture: unknown
-    is not a backdoor around the lane check."""
+    what its consent_posture says (Day 38: "staged_actors", upgraded from
+    "unknown" — see Day-38's test for that upgrade). This pins that a
+    permissive consent_posture is not a backdoor around the lane check."""
     import sys
 
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
@@ -519,3 +522,106 @@ def test_chirla_consent_posture_unknown_cannot_satisfy_a_lane_c_only_loader() ->
     registry = DatasetRegistry.load(SEED_PATH)
     with pytest.raises(LaneViolation, match="lane R"):
         builder.require_lane_c(registry, "CHIRLA")
+
+
+# ---------------------------------------------------------------------------
+# Day 38: deployment_scope_restriction — a third, independent legal axis
+# ---------------------------------------------------------------------------
+
+
+def test_chirla_deployment_scope_restriction_is_recorded_and_unresolved() -> None:
+    """Objective 1: CHIRLA's HuggingFace "Out-of-Scope Use" clause is
+    recorded verbatim, with a source, and unresolved — the whole point of
+    today's schema addition is that strong-looking license/consent
+    evidence must not quietly resolve this third, independent field."""
+    registry = DatasetRegistry.load(SEED_PATH)
+    chirla = registry.get("CHIRLA")
+    restriction = chirla.deployment_scope_restriction
+    assert restriction is not None
+    assert restriction.text is not None
+    assert "surveillance" in restriction.text
+    assert "identification" in restriction.text
+    assert "huggingface.co" in restriction.source.lower()
+    assert restriction.resolved is False
+    assert restriction.resolution is None
+
+
+def test_chirla_deployment_scope_is_independent_of_license_and_consent() -> None:
+    """STRUCTURAL: CHIRLA scores cleanly on license (three sources agree)
+    and consent (IRB-approved, unusually strong) yet still carries an
+    unresolved deployment_scope_restriction — the three fields must not be
+    conflatable into one "is this dataset clean" bit."""
+    registry = DatasetRegistry.load(SEED_PATH)
+    chirla = registry.get("CHIRLA")
+    assert chirla.consent_posture == "staged_actors"
+    assert "CC-BY-4.0" in chirla.hypothesis_class
+    assert chirla.deployment_scope_restriction is not None
+    assert chirla.deployment_scope_restriction.resolved is False
+
+
+def test_require_product_claim_clearance_refuses_chirla_while_unresolved() -> None:
+    """Objective 1's enforcement half: a report/document-generation path
+    that would cite CHIRLA's results for a product- or capability-level
+    claim must be refused, loudly, while resolved is False — never a
+    silent pass-through."""
+    registry = DatasetRegistry.load(SEED_PATH)
+    with pytest.raises(DeploymentScopeUnresolved, match="surveillance"):
+        registry.require_product_claim_clearance("CHIRLA")
+
+
+def test_require_product_claim_clearance_is_orthogonal_to_eval_use() -> None:
+    """Pure internal algorithm benchmarking goes through open_for_eval
+    alone and is unaffected by an unresolved deployment_scope_restriction
+    — only a call that explicitly asks for product-claim clearance is
+    gated. (CHIRLA itself is not reachable here because it also has no
+    license_snapshot; a hypothetically-verified entry isolates the
+    deployment-scope check from the license check the same way
+    test_chirla_is_exactly_as_inert_as_every_other_lane_r_entry does.)"""
+    restriction = DeploymentScopeRestriction(
+        text="Any deployment aimed at surveillance...",
+        source="https://huggingface.co/datasets/bdager/CHIRLA",
+        resolved=False,
+    )
+    hypothetically_verified = DatasetEntry(
+        name="CHIRLA",
+        lane="R",
+        license_snapshot=snapshot(),
+        deployment_scope_restriction=restriction,
+    )
+    registry = registry_with(hypothetically_verified)
+
+    # Pure eval use: unaffected.
+    registry.open_for_eval("CHIRLA")
+
+    # A product-claim use: refused.
+    with pytest.raises(DeploymentScopeUnresolved):
+        registry.require_product_claim_clearance("CHIRLA")
+
+
+def test_require_product_claim_clearance_passes_once_resolved() -> None:
+    """The gate is not permanent — once a human records a resolution, the
+    same call site clears. Never auto-flippable from within this module."""
+    restriction = DeploymentScopeRestriction(
+        text="Any deployment aimed at surveillance...",
+        source="https://huggingface.co/datasets/bdager/CHIRLA",
+        resolved=True,
+        resolution="counsel reviewed 2026-09-08: narrow reading applies",
+    )
+    resolved_entry = DatasetEntry(
+        name="CHIRLA",
+        lane="R",
+        license_snapshot=snapshot(),
+        deployment_scope_restriction=restriction,
+    )
+    registry = registry_with(resolved_entry)
+    cleared = registry.require_product_claim_clearance("CHIRLA")
+    assert cleared.name == "CHIRLA"
+
+
+def test_product_claim_clearance_is_noop_without_a_restriction() -> None:
+    """Most of the registry has no deployment_scope_restriction recorded at
+    all (see docs/registry_deployment_scope_audit.md) — that must not be
+    confused with "resolved"; the gate simply does not apply."""
+    registry = DatasetRegistry.load(SEED_PATH)
+    meva = registry.require_product_claim_clearance("MEVA")
+    assert meva.deployment_scope_restriction is None
