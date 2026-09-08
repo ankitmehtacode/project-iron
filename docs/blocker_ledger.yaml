@@ -170,6 +170,97 @@
        lowest-leverage item on this ledger despite being old)."
   estimated_human_effort: "A yes/no on the relationship between the two repositories, then ~5 minutes to execute ADR 0009's Option B once answered."
 
+- id: chirla-deployment-scope-legal-review
+  description: >-
+    configs/datasets.yaml's CHIRLA entry now records a
+    deployment_scope_restriction (Day 38, Objective 1): its HuggingFace
+    dataset card states, verbatim, "Any deployment aimed at surveillance,
+    identification, or monitoring of real people without explicit consent
+    or where it violates privacy or law." -- a clause absent from both the
+    GitHub README and the published paper. This is independent of
+    CHIRLA's license (clean, CC-BY-4.0) and of its subject consent
+    (unusually strong, IRB-approved) -- a third axis this registry had no
+    field for until today. Two readings exist with materially different
+    consequences (narrow: permits use if the DEPLOYED system has its own
+    valid consent architecture; broad: excludes any surveillance/
+    identification/monitoring product regardless of deployment consent),
+    and choosing between them is a legal interpretation this codebase is
+    not authorized to make for itself -- see
+    src.data.registry.DeploymentScopeRestriction and
+    DatasetRegistry.require_product_claim_clearance.
+  category: human_decision
+  first_recorded:
+    sha: 8d6aec6729758f22242aa53875779eafbe0eaa70
+    date: 2026-09-08
+  unblocks:
+    - "Any use of CHIRLA's data beyond internal algorithm benchmarking,
+       including any product-facing claim about re-ID performance --
+       require_product_claim_clearance refuses silently-passing-through
+       use while deployment_scope_restriction.resolved is False."
+  estimated_human_effort: >-
+    Requires counsel, not a fixed duration -- a legal interpretation
+    question, not an engineering estimate.
+
+- id: chirla-license-verification-confirm
+  description: >-
+    docs/chirla_verification_checklist.md's four items have now been
+    answered by a human (Day 38): the HuggingFace license field, the
+    GitHub README license line, and the paper all agree CC-BY-4.0, and
+    the paper's Methods section supplies the ethics/consent statement
+    item 4 asked for. configs/datasets.yaml's CHIRLA entry encodes all of
+    this (Objective 1). What remains is purely mechanical and distinct
+    from chirla-deployment-scope-legal-review above: run
+    `scripts/fetch_dataset.py --verify-license CHIRLA --license-url
+    <the authoritative page> --i-have-read-it` to convert the now-assembled
+    evidence into a recorded LicenseSnapshot. Deliberately kept as its own
+    entry, not merged with the deployment-scope item above -- they have
+    different owners (a five-minute confirmation vs. counsel) and
+    different timescales, and merging them would hide that this one is
+    genuinely fast.
+  category: human_verification
+  first_recorded:
+    sha: 8d6aec6729758f22242aa53875779eafbe0eaa70
+    date: 2026-09-08
+  unblocks:
+    - "CHIRLA's use in the eval harness for internal benchmarking
+       (src/identity/bakeoff.py's open_bakeoff_eval_set) -- currently
+       refused by require_fetchable for lack of a LicenseSnapshot, same
+       as every other unverified registry entry."
+  estimated_human_effort: >-
+    Under five minutes -- evidence already assembled by Objective 1;
+    running the recording command is the only remaining step.
+
+- id: registry-deployment-scope-reaudit
+  description: >-
+    docs/registry_deployment_scope_audit.md (Day 38, Objective 2) triaged
+    all 63 registry entries for the same blind spot CHIRLA exposed:
+    9 excluded (this project's own first-party data), 3 excluded
+    (permanently blocked, moot), 1 excluded (CHIRLA, already handled), 50
+    remaining ranked into three tiers -- 21 Tier 1 (re-ID/tracking/gait/
+    anomaly subsystems and/or public_cctv_no_consent, the same shape of
+    dataset CHIRLA is: MEVA, MMPTRACK, WILDTRACK, ChokePoint, PRW,
+    CUHK-SYSU, MEVID, Market-1501, MSMT17, i-LIDS, PETS2009, CAVIAR,
+    UBnormal, ShanghaiTech-Campus, CUHK-Avenue, UCF-Crime,
+    UCSD-Anomaly-Detection, CASIA-B, OU-MVLP, GREW, Gait3D), 4 Tier 2
+    (synthetic re-ID, application-gated distribution), 25 Tier 3 (pure
+    depth/geometry/detection, lower surveillance relevance). Zero of the
+    50 have been re-read against their actual hosting pages -- this was a
+    triage pass over what the registry already records, not a
+    re-verification pass, per this same day's own network-boundary rule.
+  category: human_verification
+  first_recorded:
+    sha: b6326c5186280df9c341b271c6dd63674d2ecf1b
+    date: 2026-09-08
+  unblocks:
+    - "Closing the same blind spot for every other HuggingFace-hosted (or
+       otherwise externally-hosted) registry entry -- until re-read, any
+       Tier-1 dataset could carry its own unread deployment-scope
+       restriction exactly like CHIRLA's, undetected by this registry."
+  estimated_human_effort: >-
+    Proportional to the Objective-2 priority list -- 21 Tier-1 re-reads
+    before the 4 Tier-2 and 25 Tier-3 entries; no single fixed estimate,
+    since each is a different host's page.
+
 - id: component-cap-carrier-identity-type-change
   description: >-
     resolve_component_membership takes (existing: Component,
