@@ -20,6 +20,12 @@ pandas>=2.1
 # Used by the cascade motion gate; the headless build has no GUI deps, which
 # matters in a container. The gate falls back to frame differencing without it.
 opencv-python-headless>=4.8
+# scripts/fetch_dataset.py's hosting: huggingface path (Day 39) — commit-sha
+# resolution, repo-file listing with authoritative per-file hashes, and the
+# cached login token. Method signatures (HfApi.dataset_info, list_repo_tree,
+# get_token) verified directly against 0.36.2 before writing code against
+# them; a future bump should re-check them rather than assume they held.
+huggingface_hub>=0.36.0
 
 # Test and lint tooling. black and flake8 are pinned to exactly the versions in
 # .pre-commit-config.yaml so a local hook and a CI run can never disagree —
