@@ -92,10 +92,75 @@ MEVA's entry documents "hired, consented actors."
 
 ## After checking all four
 
-Only then does `scripts/fetch_dataset.py --verify-license CHIRLA
---license-url <the page with the authoritative terms> --i-have-read-it`
-become appropriate — and even then it only records a `LicenseSnapshot`
+**Day-39 update, replacing this section's original instruction:** the
+original text here said to point `--license-url` at "the page with the
+authoritative terms" — i.e. the rendered HuggingFace dataset-card page
+itself. Do not do that. That page embeds per-request-volatile state
+(`lastModified`, live download/like counts, discussion stats) around the
+license text; hashing it whole produces a different hash on every fetch
+even when the license itself is unchanged — this was tried, on this exact
+dataset, and confirmed live: two fetches minutes apart, two different
+hashes, identical license text underneath. `scripts/fetch_dataset.py` now
+refuses that URL shape outright for `hosting: huggingface` entries
+(`configs/datasets.yaml`'s CHIRLA entry records `hosting: huggingface`, and
+the fixed tool reads it before touching any URL).
+
+Run this instead — the raw, non-rendered file at a commit the tool pins
+for you automatically (you do not need to look up a commit sha by hand):
+
+```
+python scripts/fetch_dataset.py --verify-license CHIRLA \
+  --license-url https://huggingface.co/datasets/bdager/CHIRLA/raw/main/README.md \
+  --i-have-read-it \
+  --verified-class "CC-BY-4.0" \
+  --verified-by "<your name>"
+```
+
+This still only records a `LicenseSnapshot`
 (`DatasetRegistry.require_fetchable`'s gate); it does not change
 `consent_posture`, `lane`, or anything else in `configs/datasets.yaml`,
 which must be hand-edited separately with whatever items 1-4 above actually
-found.
+found. It also does not, by itself, satisfy `chirla-license-verification-
+confirm` on `docs/blocker_ledger.yaml` if a prior snapshot already exists
+against the volatile page shape — CHIRLA's own `notes` field carries a Day-39
+correction record explaining that state; re-read it before assuming this
+step is done.
+
+## Fetching the six benchmark scenarios (once verified)
+
+Requires the cached `huggingface-cli login` token (or `--hf-token`) and
+network access to huggingface.co, neither available inside Claude Code's
+sandbox — run this from a human terminal, same as the verification command
+above. The dataset's own declared configs are fetched by name, never a raw
+directory glob; `videos` is deliberately excluded (it accounts for most of
+the repository's ~10.9GB and is not needed for any of the six benchmarks
+below, which total ~932.5MB combined — see CHIRLA's `notes` field for where
+that figure comes from):
+
+```
+python scripts/fetch_dataset.py CHIRLA \
+  --hf-config reid_long_term \
+  --hf-config reid_multi_cam \
+  --hf-config reid_multi_cam_long_term \
+  --hf-config reid_reappearance \
+  --hf-config tracking_brief \
+  --hf-config tracking_multi
+```
+
+Each config is idempotent and independently verified (HuggingFace's own
+per-file hash, re-checked after download; a mismatch deletes that config's
+staged files and refuses rather than installing something that doesn't
+match) — a partial failure on one config does not need the whole command
+re-run, and re-running the whole command after a partial success re-fetches
+only what is missing. Each writes a `_manifest.json` under
+`data/raw/CHIRLA/<commit_sha>/<config_name>/` recording the commit, the
+files stored, and the per-split example counts/byte sizes HuggingFace's own
+card reports.
+
+**Cross-check once this runs for real:** compare the manifest's split
+counts against the dataset's own published reference figures — for
+`reid_long_term`, gallery/query/train/val should read 368/4903/65/1177. A
+mismatch there means something is wrong with the fetch (a stale commit, a
+config-pattern change upstream), not with the reference numbers, since those
+came directly from the dataset's own published metadata, read the same
+night this checklist was updated.

@@ -1,4 +1,4 @@
-# Regenerated in place by scripts/fetch_dataset.py — comments above
+# Regenerated in place by scripts/fetch_dataset.py -- comments above
 # individual entries may have been altered; the registry semantics
 # live in src/data/registry.py.
 datasets:
@@ -202,13 +202,65 @@ datasets:
     from R, or write a resolution for deployment_scope_restriction — see src.data.registry.DatasetRegistry.require_product_claim_clearance
     for the one place resolved is read, and FOUNDATION_REPORT.md''s Day-38 section
     for why self-certifying any of the three would have been the finding to report,
-    not an action to take.'
-  license_snapshot:
-    url: https://huggingface.co/datasets/bdager/CHIRLA
-    verified_date: '2026-09-08'
-    text_sha256: d3a1eccc86bbf36341e2eb8a5aa3921fcf9723051763b6911787ee91d88095db
-    verified_by: Ankit Mehta
-    verified_class: CC-BY-4.0
+    not an action to take.
+
+
+    Day 39 CORRECTION: the license_snapshot recorded immediately above (2026-09-08,
+    text_sha256 d3a1eccc86...) was taken against the RENDERED HuggingFace dataset-card
+    page (https://huggingface.co/datasets/bdager/CHIRLA), not a raw file -- confirmed
+    live, that same night, to be unstable: the page embeds a data-props JSON blob
+    (lastModified, live download/like counts, discussion stats) around the license
+    text, and two fetches minutes apart hashed differently even though the license
+    and Out-of-Scope-Use text itself was independently confirmed unchanged. scripts/fetch_dataset.py
+    now refuses this exact URL shape structurally for hosting: huggingface entries
+    (Day 39, Objective 2) and, separately, resolves a pinned commit sha before hashing
+    a raw file, rather than trusting whatever "main" happens to point at. This snapshot
+    is SUPERSEDED, not deleted or overwritten -- both states stay visible in git history
+    (see the commit that first recorded it) per this project''s own append-not-overwrite
+    correction convention, the same one the Day-12-corrects-Day-11 Infinigen entry
+    earlier in this file already uses. NOTE ON CITATION DISCIPLINE: an earlier draft
+    of this correction was asked to cite "this project''s data model, section 7" for
+    that convention -- checked directly against docs/data_model/v0.3.md before writing
+    it here, and no such section exists; that document''s own "Section numbers NOT
+    in use" list places sections 1-9 explicitly outside this codebase''s citation
+    scheme, and inventing one would have been exactly the kind of unverified citation
+    tests/test_data_model_citations.py exists to catch. The convention being reused
+    is the precedent above, not a numbered section.
+
+
+    The correct re-verification command, once a human has network access to huggingface.co
+    (Objective 2 resolves "main" to a pinned commit sha automatically -- the human
+    does not need to find it by hand): `python scripts/fetch_dataset.py --verify-license
+    CHIRLA --license-url https://huggingface.co/datasets/bdager/CHIRLA/raw/main/README.md
+    --i-have-read-it --verified-class "CC-BY-4.0" --verified-by "<name>"`. Until that
+    command actually runs, chirla-license-verification-confirm on the Blocker Ledger
+    stays open -- the snapshot above does not count as satisfying it, precisely because
+    it was taken against an unstable source.
+
+
+    Also recorded here, sourced to the same night''s session reading CHIRLA''s own
+    embedded dataset_info YAML on its HuggingFace card, not an estimate: the full
+    repository is approximately 10.9GB, but the six benchmark configs this project
+    actually needs (reid_long_term, reid_multi_cam, reid_multi_cam_long_term, reid_reappearance,
+    tracking_brief, tracking_multi) total approximately 932.5MB combined -- the `videos`
+    config accounts for the bulk of the remainder and is deliberately excluded from
+    every fetch command in docs/chirla_verification_checklist.md. reid_long_term''s
+    own published split counts (gallery/query/train/val: 368/4903/65/1177) are the
+    reference a real fetch''s manifest should be cross-checked against; a mismatch
+    there means the fetch is wrong, not the reference.
+
+
+    Registry-enforcement consequence of the correction above: license_snapshot is
+    reset to null here, in this same commit -- not left populated. require_fetchable
+    only checks presence, not source stability, so leaving the volatile-page snapshot
+    in place would let it silently satisfy the gate the correction above says it does
+    not satisfy (chirla-license-verification-confirm stays open on docs/blocker_ledger.yaml
+    precisely because of this). The full recorded snapshot (url, date, text_sha256,
+    verified_by) is not lost -- it is preserved verbatim in git history at the commit
+    that first added it, and restated in full in the correction paragraph above. Nulling
+    it here is the transparent choice, not the silent one: the alternative (leaving
+    it populated) is what would have been silent.'
+  license_snapshot: null
 - name: Market-1501
   lane: R
   subsystem: reid

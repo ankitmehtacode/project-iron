@@ -208,15 +208,25 @@
     GitHub README license line, and the paper all agree CC-BY-4.0, and
     the paper's Methods section supplies the ethics/consent statement
     item 4 asked for. configs/datasets.yaml's CHIRLA entry encodes all of
-    this (Objective 1). What remains is purely mechanical and distinct
-    from chirla-deployment-scope-legal-review above: run
-    `scripts/fetch_dataset.py --verify-license CHIRLA --license-url
-    <the authoritative page> --i-have-read-it` to convert the now-assembled
-    evidence into a recorded LicenseSnapshot. Deliberately kept as its own
-    entry, not merged with the deployment-scope item above -- they have
-    different owners (a five-minute confirmation vs. counsel) and
-    different timescales, and merging them would hide that this one is
-    genuinely fast.
+    this (Objective 1). Deliberately kept as its own entry, not merged
+    with the deployment-scope item above -- they have different owners (a
+    five-minute confirmation vs. counsel) and different timescales, and
+    merging them would hide that this one is genuinely fast.
+
+    Day 39 update: a human DID run the recording command the night
+    between Day 38 and Day 39 -- and it does not count as satisfying this
+    blocker. It was pointed at the rendered HuggingFace dataset-card page
+    rather than a raw file, which this project confirmed live is
+    unstable (a per-request-volatile JSON blob wraps the license text, so
+    two fetches minutes apart hash differently even though the license
+    itself is unchanged). configs/datasets.yaml's CHIRLA entry now
+    carries that snapshot AND a correction note explaining why it is
+    superseded, not deleted (both stay visible in git history). What
+    remains, still purely mechanical: scripts/fetch_dataset.py now
+    refuses that URL shape outright for hosting: huggingface entries and
+    resolves a pinned commit sha automatically -- re-run the corrected
+    command in docs/chirla_verification_checklist.md's "After checking
+    all four" section from a human terminal with huggingface.co access.
   category: human_verification
   first_recorded:
     sha: 8d6aec6729758f22242aa53875779eafbe0eaa70
@@ -228,7 +238,39 @@
        as every other unverified registry entry."
   estimated_human_effort: >-
     Under five minutes -- evidence already assembled by Objective 1;
-    running the recording command is the only remaining step.
+    running the (now corrected) recording command is the only remaining
+    step.
+
+- id: chirla-benchmark-fetch
+  description: >-
+    Day 39 built the mechanism (scripts/fetch_dataset.py's hosting:
+    huggingface fetch path, Objective 3) and prepared the exact commands
+    (docs/chirla_verification_checklist.md's "Fetching the six benchmark
+    scenarios" section) to fetch CHIRLA's six needed configs
+    (reid_long_term, reid_multi_cam, reid_multi_cam_long_term,
+    reid_reappearance, tracking_brief, tracking_multi -- videos
+    deliberately excluded, ~932.5MB combined vs. the full repo's
+    ~10.9GB). Blocked on two things neither of which this repository can
+    do for itself: chirla-license-verification-confirm above (the fetch
+    path refuses without a LicenseSnapshot, same gate as every entry),
+    and network access to huggingface.co plus a HuggingFace login, both
+    outside Claude Code's sandbox for the same reason every other
+    HuggingFace interaction in this project has been.
+  category: human_verification
+  first_recorded:
+    sha: fe780977f4ee599674d33d6d03850fb1679b7763
+    date: 2026-09-09
+  unblocks:
+    - "Real CHIRLA data on disk for src/identity/bakeoff.py's bake-off
+       harness -- currently self-tested only, never run against a real
+       clothing-change re-ID distribution."
+    - "A real measured mAP/CMC comparison against
+       docs/chirla_published_baselines.md's external reference figures."
+  estimated_human_effort: >-
+    A few minutes of command execution once chirla-license-verification-
+    confirm clears -- the commands are prepared and idempotent per
+    config; actual download time depends on network conditions this
+    project does not estimate.
 
 - id: registry-deployment-scope-reaudit
   description: >-
