@@ -11272,3 +11272,292 @@ entries rather than modified.
    re-verifying `consent_posture: unknown` entries (now zero CHIRLA-shaped
    ones, but others in the registry still carry it), and the
    `black`/`flake8` CI gate.
+
+# Day 39
+
+**Zero other registry entries carry a volatile-page license snapshot** —
+checked directly, not assumed: every one of the 63 entries'
+`license_snapshot` fields was read after this day's Objective 4 correction
+landed, and exactly zero are populated (CHIRLA's own was the only one ever
+recorded, and this same day's work already accounts for it in full — see
+Objective 4). Last night's bug was caught before a second entry could repeat
+it, not discovered as a symptom of a wider, already-committed problem.
+
+**No timing, throughput, CPU-percentage, or latency claim is made anywhere in
+this section as a PRODUCT figure** — unchanged hard scope rule. Test
+durations and suite counts remain in scope, as process measurements.
+
+**Stated as its own line, not folded into a paragraph:** this fix
+generalizes to every HuggingFace-hosted entry named in Day 38's registry
+audit (`docs/registry_deployment_scope_audit.md`'s 21 Tier-1 and 4 Tier-2
+entries) the moment each is backfilled `hosting: huggingface` — that
+reclassification pass is not today's work (Objective 1 deliberately
+backfills CHIRLA alone), but today removes the technical reason any of
+those 21 would fail the same way CHIRLA did: `verify_license` routes on a
+typed field, never a URL guess, so a future entry inherits the fix from a
+one-line backfill, not a second investigation.
+
+## Verdicts
+
+- **Objective 1.** `DatasetEntry.hosting: huggingface | direct_url | other |
+  unknown` (`src/data/registry.py`) joins `hypothesis_class`/
+  `license_snapshot` (copyright), `consent_posture`/`consent_record`
+  (subject consent), and `deployment_scope_restriction` (deployment scope)
+  as a fourth, independent axis — answering HOW a dataset's terms are
+  hosted, which determines which verification mechanism is even valid.
+  Backfilled on CHIRLA only (`huggingface`); the other 62 entries default
+  `unknown`, pinned by `test_only_chirla_is_backfilled_today` so a future
+  reaudit changes that count on purpose, not by a stray edit.
+  `LicenseSnapshot.resolved_commit_sha` (used by Objective 2) added in the
+  same commit. 4 new tests, all passing; mypy clean (1 source file
+  checked directly). → Objective 1.
+- **Objective 2.** `verify_license` now reads `entry.hosting` before
+  touching any URL and routes `hosting: huggingface` entries through
+  `_verify_license_huggingface`, which refuses a rendered dataset-card URL
+  (no `/raw/`or `/blob/` segment) outright — naming the SSR-volatility
+  reason and the correct raw-file shape — and otherwise resolves an
+  unpinned revision (e.g. `main`) to a real commit sha via
+  `huggingface_hub.HfApi().dataset_info(...).sha` before hashing
+  `/raw/<sha>/<path>`; an already-pinned 40-hex sha in the URL is respected
+  as-is. Authenticates via `huggingface_hub.get_token()` (the same cache
+  `huggingface-cli login` writes) by default, `--hf-token` overrides. The
+  non-HF path is untouched — renamed to `_verify_license_direct`, not
+  rewritten; all 7 pre-existing tests pass unchanged, which is itself the
+  confirmation. Regression test
+  `test_hashing_a_rendered_page_whole_is_volatile_by_construction`
+  reproduces last night's exact mechanism (two fake page fetches, identical
+  embedded license text, different volatile wrapper fields, different
+  whole-response hashes) without needing a live HuggingFace call; its
+  paired test proves the new raw-endpoint route hashes identically across
+  two calls despite the same "page" being volatile. Method signatures
+  (`HfApi.dataset_info`, `get_token`) verified directly against the
+  installed `huggingface_hub==0.36.2` before writing code against them, per
+  this project's own "verify, don't remember" discipline. → Objective 2.
+- **Objective 3.** `fetch_huggingface` (new path in
+  `scripts/fetch_dataset.py`) activates for `hosting: huggingface` entries;
+  `--url`/`--expected-sha` tarball entries route to `_fetch_tarball`,
+  otherwise byte-for-byte the prior `fetch()` body. `--hf-config <name>`
+  (repeatable) fetches the dataset's own declared configs — glob patterns
+  read from the card's `configs:` YAML, never a re-derived directory
+  layout. Per-file authoritative hash comes from HuggingFace's own
+  `list_repo_tree`: `sibling.lfs.sha256` for Git-LFS files,
+  `sibling.blob_id` (git blob sha1) otherwise — verified locally after
+  download via a from-scratch `_git_blob_sha1`, pinned against git's own
+  algorithm (`test_git_blob_sha1_matches_gits_own_algorithm`, the empty-blob
+  hash). A mismatch deletes the staged directory and refuses, exactly like
+  the tarball path's sha256 check — never installs a payload that doesn't
+  match. Content-addressed by commit
+  (`data/raw/<name>/<commit_sha>/<config>/`), idempotent (pinned by
+  `test_hf_fetch_is_idempotent` counting real download calls across two
+  runs, not just checking the directory exists). Each config writes a
+  `_manifest.json` (config, commit sha, repo id, method
+  `"huggingface_configs_v1"`, fetch timestamp, per-split example
+  counts/byte sizes from the card's own `dataset_info:` YAML, files
+  stored). An unknown config name refuses clearly before any download
+  starts. All 8 new fetch-path tests mock the same four seams
+  (`_resolve_hf_commit_sha`, `_hf_card_data`, `_hf_matching_files`,
+  `_fetch_hf_raw_file`) — zero live network calls, matching the tarball
+  tests' existing `file://` convention. Objectives 2 and 3 landed in one
+  commit (`fe78097`): both routes share all four seam functions, and
+  splitting them would have required an artificial intermediate state
+  where `fetch()` calls a `fetch_huggingface` that does not exist yet —
+  each objective's contribution is still independently described above and
+  independently tested. → Objective 3.
+- **Objective 4.** Human-executed by design — nothing here ran a real
+  fetch or a real verification; Claude Code's sandbox does not reach
+  huggingface.co, same boundary as every prior HuggingFace interaction in
+  this project. `docs/chirla_verification_checklist.md`'s closing
+  instruction (which literally told a human to point `--license-url` at
+  "the page with the authoritative terms" — the exact shape that produced
+  the bug) is replaced with the corrected raw-file command, plus a new
+  section with the exact `--hf-config` command for the six needed
+  scenarios (`reid_long_term`, `reid_multi_cam`,
+  `reid_multi_cam_long_term`, `reid_reappearance`, `tracking_brief`,
+  `tracking_multi` — `videos` excluded) and the `reid_long_term` reference
+  counts (368/4903/65/1177 gallery/query/train/val) a real fetch's
+  manifest should be cross-checked against. CHIRLA's `notes` field carries
+  a correction record: what the prior snapshot recorded, why it's unstable,
+  the fixed command to re-run it — and, as a registry-enforcement
+  consequence stated explicitly rather than left implicit,
+  `license_snapshot` is reset to `null` in this same commit (`3cfa052`),
+  because `require_fetchable` only checks presence, not source stability,
+  and leaving the volatile-page snapshot populated would let it silently
+  satisfy a gate the correction text itself says it does not satisfy. The
+  full original snapshot is not lost: it is preserved verbatim in git
+  history at `a2c1837` and restated in the correction prose — both states
+  visible in history via two separate commits, not one. **Checked directly
+  rather than assumed:** the prompt driving today's work cited "this
+  project's data model, §7, Correction" as the precedent for this
+  append-not-overwrite convention; `docs/data_model/v0.3.md`'s own
+  "Section numbers NOT in use" list places §1-§9 explicitly outside this
+  codebase's citation scheme, so no such section exists. The correction
+  cites the real precedent instead (the Day-12-corrects-Day-11 Infinigen
+  entry, same file) rather than repeating an unverified citation into a
+  permanent doc — exactly what `tests/test_data_model_citations.py` exists
+  to catch. `docs/blocker_ledger.yaml`'s `chirla-license-verification-
+  confirm` updated in place (its `first_recorded` unchanged — the blocker
+  concept is unchanged, only its state) to record the failed attempt and
+  why it doesn't count; new entry `chirla-benchmark-fetch` tracks the
+  six-scenario fetch Objective 3 built the mechanism for but nobody has
+  run for real yet. Consequence: the 3 tests that went red the moment last
+  night's snapshot was committed
+  (`test_every_seed_entry_awaits_human_verification` and two
+  CHIRLA-inertness tests) are green again. → Objective 4.
+
+## Blockers
+
+Computed fresh against `docs/blocker_ledger.yaml` via
+`python scripts/blocker_report.py --as-of 2026-09-09 --verify-git`, every
+sha/date re-verified against real git history at report time:
+
+| age (days) | id | category | first recorded | estimated human effort |
+|---:|---|---|---|---|
+| 40 | `consent-template-counsel-review` | human_verification | 2026-07-31 (`3eed2eb`) | A yes/no plus redlines from counsel — realistically an afternoon of legal review, not an engineering estimate. |
+| 40 | `dataset-license-and-consent-verification` | human_verification | 2026-07-31 (`bf85e75`) | CHIRLA: five minutes (four checkboxes, `docs/chirla_verification_checklist.md`). MEVA and the remaining ~61 entries: unknown per-entry — nobody has attempted even one, so no real estimate exists yet. |
+| 32 | `site-zero-capture` | human_capture | 2026-08-08 (`e8162cd`) | Hardware on hand plus one overnight capture window — realistically a day, once consent-template-counsel-review and reference-hardware-procurement both clear. |
+| 30 | `git-history-divergence` | human_decision | 2026-08-10 (`d36a835`) | A yes/no on the relationship between the two repositories, then ~5 minutes to execute ADR 0009's Option B once answered. |
+| 30 | `reference-hardware-procurement` | human_procurement | 2026-08-10 (`72db508`) | A purchase decision — `reference_hardware.md` names the SKUs; someone has to approve the spend. |
+| 2 | `component-cap-carrier-identity-type-change` | human_decision | 2026-09-07 (`4b1c557`) | A design decision, not a coding task — small in code-change size once decided, but a schema call this repository has twice declined to make for itself. |
+| 1 | `chirla-deployment-scope-legal-review` | human_decision | 2026-09-08 (`8d6aec6`) | Requires counsel, not a fixed duration — a legal interpretation question, not an engineering estimate. |
+| 1 | `chirla-license-verification-confirm` | human_verification | 2026-09-08 (`8d6aec6`) | Under five minutes — evidence already assembled; running the (now corrected) recording command is the only remaining step. |
+| 1 | `registry-deployment-scope-reaudit` | human_verification | 2026-09-08 (`b6326c5`) | Proportional to the Objective-2 priority list — 21 Tier-1 re-reads before the 4 Tier-2 and 25 Tier-3 entries; no single fixed estimate, since each is a different host's page. |
+| 0 | `chirla-benchmark-fetch` | human_verification | 2026-09-09 (`fe78097`) | A few minutes of command execution once `chirla-license-verification-confirm` clears — the commands are prepared and idempotent per config; download time depends on network conditions this project does not estimate. |
+
+**Single highest-leverage blocker if resolved today:** unchanged reasoning
+from Day 38 — `dataset-license-and-consent-verification` still gates the
+largest downstream cluster. Its CHIRLA-specific slice is now three entries
+deep rather than two: `chirla-license-verification-confirm` (fast,
+mechanical, now pointed at the corrected command), `chirla-benchmark-fetch`
+(new today, a few minutes, blocked on the first), and
+`chirla-deployment-scope-legal-review` (slow, a legal call, independent of
+both). Resolving the first two today would unblock real CHIRLA data on
+disk for internal benchmarking; it would not, by itself, unblock any
+product-facing claim about it — that still needs the third, separately.
+
+## Objective 0 — push, start and end of day
+
+Branch `foundation/day-39` created off `foundation/day-38` and pushed
+immediately, per standing rule, before Objective 1 — but first, a
+preliminary commit (`a2c1837`) captured last night's manual terminal
+session's actual output (CHIRLA's volatile-hash `license_snapshot`,
+recorded exactly as the buggy tool produced it) so that state exists in
+git history before this day's fix and correction touch it. Push again at
+end of day.
+
+## Objective 1 — `hosting`, a fourth registry axis
+
+See Verdicts above for the full account. Implementation note: `hosting`
+defaults `"unknown"` rather than `None` (unlike `consent_posture`, which
+uses `None` for "genuinely inapplicable") because there is no lane where
+the hosting question does not apply — every entry is hosted somewhere,
+even if nobody has confirmed where yet.
+
+## Objective 2 — `verify_license`, fixed at the source
+
+See Verdicts above. Implementation note: the refusal message for a
+rendered-page URL tries to resolve the current commit sha to hand the
+human a ready-to-paste raw URL, and degrades gracefully (a clear note, not
+a stack trace) when that resolution itself fails — the sandbox this runs
+in cannot reach huggingface.co, so this path was verified via
+`test_verify_license_refuses_a_rendered_hf_page`'s monkeypatched failure,
+not a live call.
+
+## Objective 3 — HuggingFace-native fetch mode
+
+See Verdicts above. `_hf_repo_id` derives the repo id from the entry's own
+`license_snapshot.url` rather than a fifth registry field — the URL
+already names the repo under either verification-path shape, so a second,
+separately-maintained field would have been a parallel abstraction for
+information already present.
+
+## Objective 4 — CHIRLA re-verification prep + correction record
+
+See Verdicts above for the full account, including the citation-honesty
+finding (no `§7` exists in `docs/data_model/v0.3.md`) and the decision to
+reset `license_snapshot` to `null` rather than leave it populated.
+
+## Full suite, mypy, lint
+
+`mypy` (scoped per `mypy.ini`): clean, **0 errors, 79 source files** —
+unchanged from Day 38 (`scripts/fetch_dataset.py` is not in `mypy.ini`'s
+`files =` list and was not added to it today; `src/data/registry.py` was
+edited, already in scope). `black --check .`: **28 files** would be
+reformatted — exactly Day 38's own count, checked directly; none of today's
+touched files (`scripts/fetch_dataset.py`, `tests/test_fetch_dataset.py`,
+`src/data/registry.py`, `src/data/__init__.py`,
+`tests/test_data_registry.py`) are among them — all four run clean through
+`black --check` individually. `flake8 .`: **26 files**, same list of
+pre-existing offenders as Days 35-38, confirmed by name; none of today's
+touched files appear.
+
+Quick-loop suite (`-m "not slow and not requires_weights"`, this session,
+`artifacts/pytest/day39_quick.xml`): **1404 passed, 1 skipped, 21
+deselected, 0 failures** — up from Day 38's 1389 by **15**: 4 in
+`tests/test_data_registry.py` (Objective 1's hosting tests — a 5th,
+`test_only_chirla_is_backfilled_today`, is also new; the net figure already
+includes it), 11 in `tests/test_fetch_dataset.py` (Objectives 2 and 3's
+regression and fetch-path tests). The 3 tests that went red the moment
+`a2c1837` was committed
+(`test_every_seed_entry_awaits_human_verification`,
+`test_chirla_is_registered_lane_r_unverified_with_a_validity_cell`,
+`test_chirla_is_exactly_as_inert_as_every_other_lane_r_entry`) are counted
+in this 0-failures total — Objective 4's `license_snapshot: null` reset
+made them pass again, confirmed directly by re-running
+`tests/test_data_registry.py` alone (74/74) both before writing this
+section and again after, so the number above is measured, not asserted.
+
+## Still blocked on a human
+
+Per [[iron-blocked-on-humans]] and `docs/blocker_ledger.yaml` — see
+Blockers above for the full, aged table. `chirla-license-verification-
+confirm` did NOT resolve today despite a real attempt overnight — the
+attempt is exactly why it stays open, recorded in the ledger's own updated
+description rather than silently re-aged as if nothing happened. One new
+entry, `chirla-benchmark-fetch`, exists today because the mechanism it
+blocks on (Objective 3) did not exist before today.
+
+## Process change, Day 39
+
+None structurally — `docs/blocker_ledger.yaml`'s Day-37 mechanism is used
+as-is, one entry updated in place and one added, both reflected in this
+section's `## Blockers` block per the existing lint
+(`tests/test_blocker_ledger.py`). Worth naming as a practice, not a
+mechanism change: this is the first day a prompt's own factual claim (the
+`§7` citation) was checked against the actual codebase before being
+repeated into a permanent doc, rather than trusted because it read as
+plausible. Nothing in this project's tooling enforces that check on a
+day's own prompt text the way `tests/test_data_model_citations.py`
+enforces it on code — this was caught by reading the file, not by a gate.
+
+**Noted, not addressed today:** `_update_registry_yaml`'s
+`yaml.safe_load`/`yaml.safe_dump` round-trip strips hand-written comments
+from `configs/datasets.yaml` on every write (confirmed directly:
+`a2c1837`'s diff removed ~36 lines of section-header comments the function's
+own docstring claims "survive" — that claim is false). Out of scope for
+today's five objectives; flagged here so it does not silently recur as an
+assumption in a future day's work.
+
+## Day 40, in order
+
+1. **`chirla-license-verification-confirm`** — run the corrected command
+   from a human terminal with huggingface.co access; still under five
+   minutes, still not this repository's to do.
+2. **`chirla-benchmark-fetch`** — the six `--hf-config` scenarios, once the
+   item above clears; cross-check the resulting manifests against
+   `reid_long_term`'s 368/4903/65/1177 reference counts.
+3. **`registry-deployment-scope-reaudit`'s Tier 1** — unchanged from Day
+   38's own Day-39 list, not touched today; 21 datasets most likely to
+   carry an unread deployment-scope restriction of their own, and now also
+   candidates for a `hosting` backfill once Objective 1's typed field
+   exists to write the answer into.
+4. **Densify the real association sweep, or accept 0/71 as the honest
+   answer** — carried forward unchanged, not touched today.
+5. **Restore real Events-tab data, or accept the regression** — carried
+   forward unchanged, not touched today.
+6. **A real `FrozenBackbone` implementation** — still blocked on the same
+   thing (verified lane-C or lane-R data), unchanged.
+7. **Everything else on Day 38's carried-forward list not touched
+   today** — the state-estimator NIS/NEES view, the four-golden-set
+   scorecard view, ChokePoint/PETS2009 identity-ambiguity validation,
+   re-verifying `consent_posture: unknown` entries, and the `black`/
+   `flake8` CI gate.
