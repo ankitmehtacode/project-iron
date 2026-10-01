@@ -201,37 +201,6 @@
     Requires counsel, not a fixed duration -- a legal interpretation
     question, not an engineering estimate.
 
-- id: chirla-benchmark-fetch
-  description: >-
-    Day 39 built the mechanism (scripts/fetch_dataset.py's hosting:
-    huggingface fetch path, Objective 3) and prepared the exact commands
-    (docs/chirla_verification_checklist.md's "Fetching the six benchmark
-    scenarios" section) to fetch CHIRLA's six needed configs
-    (reid_long_term, reid_multi_cam, reid_multi_cam_long_term,
-    reid_reappearance, tracking_brief, tracking_multi -- videos
-    deliberately excluded, ~932.5MB combined vs. the full repo's
-    ~10.9GB). Blocked on two things neither of which this repository can
-    do for itself: chirla-license-verification-confirm above (the fetch
-    path refuses without a LicenseSnapshot, same gate as every entry),
-    and network access to huggingface.co plus a HuggingFace login, both
-    outside Claude Code's sandbox for the same reason every other
-    HuggingFace interaction in this project has been.
-  category: human_verification
-  first_recorded:
-    sha: fe780977f4ee599674d33d6d03850fb1679b7763
-    date: 2026-09-09
-  unblocks:
-    - "Real CHIRLA data on disk for src/identity/bakeoff.py's bake-off
-       harness -- currently self-tested only, never run against a real
-       clothing-change re-ID distribution."
-    - "A real measured mAP/CMC comparison against
-       docs/chirla_published_baselines.md's external reference figures."
-  estimated_human_effort: >-
-    A few minutes of command execution once chirla-license-verification-
-    confirm clears -- the commands are prepared and idempotent per
-    config; actual download time depends on network conditions this
-    project does not estimate.
-
 - id: registry-deployment-scope-reaudit
   description: >-
     docs/registry_deployment_scope_audit.md (Day 38, Objective 2) triaged
