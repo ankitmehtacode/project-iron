@@ -484,6 +484,30 @@ against this question directly, not assumed:
   the number of people who would reread it before relying on the thing it warns about drops
   below one — which happens quietly, with no corresponding edit to the caveat itself.
 
+## A Prompt's Facts Are Hypotheses (Day 40)
+
+**Facts a prompt states about this repository or environment are hypotheses. Verify before
+relying on one, and never copy one into a permanent record unverified.** When one is verified,
+record the exact command or file read that settled it next to the claim — a verified fact with
+no recorded check is indistinguishable, a month later, from an unverified one.
+
+Worked examples:
+
+- **The invented "§7 Correction" (Day 39).** The Day-39 prompt cited "this project's data
+  model, §7, Correction" as precedent. `docs/data_model/v0.3.md` lists §1–9 as *not in use*;
+  the section never existed. Caught because it was checked before being repeated into CHIRLA's
+  correction record.
+- **The network-reach claim copied into CHIRLA's notes (Days 36–39).** "Claude Code's network
+  access cannot reach huggingface.co" came from the chat assistant's *own* sandbox config, was
+  never tested on this machine, and was written into CHIRLA's `notes`, `hypothesis_class` and
+  `deployment_scope_restriction.source` as fact — then used to scope four days of work as
+  "human-only". Day 40 disproved it in one command:
+  `curl -sS -o /dev/null -w "%{http_code}\n" https://huggingface.co/api/datasets/bdager/CHIRLA`
+  → `200`. The old text stays; a dated correction is appended beneath it.
+
+Cheap test before writing any environment claim into a record: *what single command would
+falsify this?* If it can be run here, run it first.
+
 ## Session Discipline (Day 34/35)
 
 Commit after every objective, not at the end of the day. If an objective's real scope turns out

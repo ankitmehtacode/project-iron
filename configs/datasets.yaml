@@ -259,7 +259,23 @@ datasets:
     verified_by) is not lost -- it is preserved verbatim in git history at the commit
     that first added it, and restated in full in the correction paragraph above. Nulling
     it here is the transparent choice, not the silent one: the alternative (leaving
-    it populated) is what would have been silent.'
+    it populated) is what would have been silent.
+
+
+    Day 40 CORRECTION (appended; the text above is left as written): every statement
+    above that Claude Code''s network access cannot reach huggingface.co is FALSE on
+    this machine. It originated in the chat assistant''s OWN sandbox configuration
+    (Days 36-39), was never tested here, and was copied into this entry -- the notes,
+    hypothesis_class and deployment_scope_restriction.source -- as fact. Disproved
+    2026-10-01 from Claude Code''s bash: `curl -sS -o /dev/null -w "%{http_code}\n"
+    https://huggingface.co/api/datasets/bdager/CHIRLA` returned 200. The same session
+    also reached arxiv.org (`curl ... https://arxiv.org/abs/2502.06681` -> 200), so
+    that half of the claim is false too. sciencedb.cn is genuinely not reached, but
+    for a different reason than stated: the TLS handshake fails (curl exit 35, "sslv3
+    alert handshake failure"; Python urllib, same error) -- a TLS incompatibility, not
+    proof of a network block. Not changed by this correction: the license attestation
+    (--i-have-read-it) remains a human signature whatever the network can reach, and
+    deployment_scope_restriction stays unresolved.'
   license_snapshot: null
 - name: Market-1501
   lane: R
