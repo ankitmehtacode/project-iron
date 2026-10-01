@@ -291,7 +291,13 @@ datasets:
     proof of a network block. Not changed by this correction: the license attestation
     (--i-have-read-it) remains a human signature whatever the network can reach, and
     deployment_scope_restriction stays unresolved.'
-  license_snapshot: null
+  license_snapshot:
+    url: https://huggingface.co/datasets/bdager/CHIRLA/raw/f6571836e7a2bfbdf76a2f6ccaa5f11a660e832f/README.md
+    verified_date: '2026-10-01'
+    text_sha256: f7babb4d80c3674edaa9f8e5530c5d571a3da68e430da34c8693065999d59d40
+    verified_by: Ankit Mehta
+    verified_class: CC-BY-4.0
+    resolved_commit_sha: f6571836e7a2bfbdf76a2f6ccaa5f11a660e832f
 - name: Market-1501
   lane: R
   subsystem: reid

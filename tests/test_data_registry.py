@@ -8,6 +8,8 @@ data into a training path through a helper function.
 
 from __future__ import annotations
 
+import re
+
 from datetime import date
 from pathlib import Path
 from typing import get_args
@@ -70,18 +72,27 @@ def test_seed_registry_loads() -> None:
     assert len(registry.entries()) >= 30
 
 
+# Every entry a human has attested with --i-have-read-it, by name. Adding one
+# is a deliberate edit here, in the same change that records its snapshot.
+HUMAN_ATTESTED = {
+    "CHIRLA",  # Day 40: raw README at f6571836..., attested by Ankit Mehta
+}
+
+
 def test_every_seed_entry_awaits_human_verification() -> None:
     """Nothing in the seed is fetchable: hypothesis classes are not clearances.
 
     The strategy document's license classes were written from memory. If any
     entry shipped pre-verified, that memory would become a download
     authorisation, which is exactly the shortcut the registry exists to block.
+    The only exceptions are the human attestations named in HUMAN_ATTESTED, so
+    a snapshot cannot appear in the registry without a matching edit here.
     """
     registry = DatasetRegistry.load(SEED_PATH)
     unblocked = [e for e in registry.entries() if not e.blocked]
     assert unblocked, "seed registry is empty"
-    for e in unblocked:
-        assert e.license_snapshot is None, f"{e.name} shipped pre-verified"
+    snapshotted = {e.name for e in unblocked if e.license_snapshot is not None}
+    assert snapshotted == HUMAN_ATTESTED
 
 
 def test_seed_contains_the_four_lanes() -> None:
@@ -452,11 +463,10 @@ def test_pets2009_and_chokepoint_name_the_identity_ambiguity_eval_target() -> No
 # -- CHIRLA (Day 36) ---------------------------------------------------------
 
 
-def test_chirla_is_registered_lane_r_unverified_with_a_validity_cell() -> None:
+def test_chirla_is_registered_lane_r_with_a_validity_cell() -> None:
     registry = DatasetRegistry.load(SEED_PATH)
     chirla = registry.get("CHIRLA")
     assert chirla.lane == "R"
-    assert chirla.license_snapshot is None
     assert chirla.consent_posture == "staged_actors"
     assert chirla.hypothesis_class
     assert "multi_camera" in chirla.validity_matrix_cell
@@ -478,33 +488,29 @@ def test_chirla_cites_a_commit_it_was_actually_read_at() -> None:
     assert re.search(r"\b[0-9a-f]{40}\b", notes)
 
 
-def test_chirla_is_exactly_as_inert_as_every_other_lane_r_entry() -> None:
-    """STRUCTURAL (Objective 1): registering CHIRLA must not create a
-    dataset that can be fetched, trained on, or calibrated with —
-    license_snapshot: null refuses require_fetchable, and being lane R
-    (not lane C) refuses open_for_training, exactly like every other
-    unverified lane-R entry. Nothing about adding a richer notes/
-    validity_matrix_cell payload changes that."""
+def test_chirla_snapshot_is_pinned_to_a_raw_file_at_a_commit() -> None:
+    """Day 40: the human attestation landed through the Day-39 HF path --
+    the raw README at a resolved commit, never the rendered card page whose
+    hash changes on every fetch."""
+    snapshot = DatasetRegistry.load(SEED_PATH).get("CHIRLA").license_snapshot
+    assert snapshot is not None
+    sha = snapshot.resolved_commit_sha
+    assert sha is not None and re.fullmatch(r"[0-9a-f]{40}", sha)
+    assert snapshot.url == (
+        f"https://huggingface.co/datasets/bdager/CHIRLA/raw/{sha}/README.md"
+    )
+    assert snapshot.verified_class == "CC-BY-4.0"
+
+
+def test_chirla_is_fetchable_for_eval_but_never_trainable() -> None:
+    """STRUCTURAL. Until Day 40 CHIRLA was refused by the license belt
+    (no snapshot). With the human attestation recorded it may be fetched for
+    evaluation -- and the lane belt alone must still keep it out of every
+    training or calibration loader, because it is lane R."""
     registry = DatasetRegistry.load(SEED_PATH)
-
-    with pytest.raises(LicenseNotVerified, match="no license snapshot"):
-        registry.require_fetchable("CHIRLA")
-
-    # open_for_training checks require_fetchable before the lane check, so
-    # today's real (unverified) CHIRLA entry is refused for lack of a
-    # license snapshot before its lane is ever consulted — belt AND
-    # suspenders, and this confirms the first belt already catches it.
-    with pytest.raises(LicenseNotVerified, match="no license snapshot"):
-        registry.open_for_training("CHIRLA")
-
-    # Isolate the SECOND belt: even a hypothetically-verified CHIRLA (a
-    # snapshot attached, license check cleared) must still be refused by
-    # the lane check alone, because it is lane R. Confirms this is not
-    # inert only because nobody has verified it yet.
-    hypothetically_verified = entry("CHIRLA", "R", verified=True)
-    lane_only_registry = registry_with(hypothetically_verified)
+    assert registry.require_fetchable("CHIRLA").name == "CHIRLA"
     with pytest.raises(LaneViolation, match="never enter a training"):
-        lane_only_registry.open_for_training("CHIRLA")
+        registry.open_for_training("CHIRLA")
 
 
 def test_chirla_consent_posture_cannot_satisfy_a_lane_c_only_loader() -> None:
