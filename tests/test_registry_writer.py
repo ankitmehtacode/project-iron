@@ -28,25 +28,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import fetch_dataset  # noqa: E402
 
-from src.data.registry import LicenseSnapshot  # noqa: E402
+from src.data.registry import LicenseSnapshot, RegistryError  # noqa: E402
 
 REAL_REGISTRY = Path(__file__).resolve().parent.parent / "configs" / "datasets.yaml"
-
-# Red half of red-before-green: removed, together with these markers, in the
-# commit that fixes the writer.
-_KNOWN_BUG = (
-    pytest.mark.known_bug,
-    pytest.mark.xfail(
-        strict=False,
-        reason="_update_registry_yaml round-trips through safe_dump and drops comments",
-    ),
-)
-
-
-def _known_bug(fn):  # type: ignore[no-untyped-def]
-    for mark in reversed(_KNOWN_BUG):
-        fn = mark(fn)
-    return fn
 
 
 @pytest.fixture
@@ -97,14 +81,12 @@ def _attestation_snapshot() -> dict[str, object]:
     ).model_dump(mode="json")
 
 
-@_known_bug
 def test_noop_write_is_byte_identical(registry_copy: Path) -> None:
     before = registry_copy.read_bytes()
     fetch_dataset._update_registry_yaml("CHIRLA", {})
     assert registry_copy.read_bytes() == before
 
 
-@_known_bug
 def test_rewriting_a_value_it_already_has_is_byte_identical(
     registry_copy: Path,
 ) -> None:
@@ -115,7 +97,6 @@ def test_rewriting_a_value_it_already_has_is_byte_identical(
     assert registry_copy.read_bytes() == before
 
 
-@_known_bug
 def test_attestation_write_touches_only_that_entry(registry_copy: Path) -> None:
     """The real next write: CHIRLA's license_snapshot, null -> a mapping."""
     before = registry_copy.read_text()
@@ -160,7 +141,6 @@ datasets:
 """
 
 
-@_known_bug
 def test_every_comment_survives_add_replace_and_nested_writes(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -191,6 +171,6 @@ def test_every_comment_survives_add_replace_and_nested_writes(
 
 def test_unknown_entry_raises_and_leaves_the_file_alone(registry_copy: Path) -> None:
     before = registry_copy.read_bytes()
-    with pytest.raises(fetch_dataset.RegistryError):
+    with pytest.raises(RegistryError):
         fetch_dataset._update_registry_yaml("no-such-dataset", {"lane": "R"})
     assert registry_copy.read_bytes() == before

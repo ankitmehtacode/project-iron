@@ -89,24 +89,116 @@ def sha256_file(path: Path) -> str:
 
 
 def _update_registry_yaml(name: str, updates: dict[str, Any]) -> None:
-    """Apply field updates to one entry in configs/datasets.yaml.
+    """Apply field updates to one entry in configs/datasets.yaml, in place.
 
-    The YAML stays the single at-rest source; this rewrites the one entry
-    rather than regenerating the file, so hand-written comments survive.
+    Only the lines of each updated field change: they are spliced out and
+    replaced by a fresh dump of the new value, or appended to the end of the
+    entry for a field it did not have. A field already holding the new value
+    is left alone, so a no-op write is byte-identical. Every other line --
+    including every hand-written ``#`` comment -- is copied through untouched.
+
+    Until Day 40 this round-tripped the whole file through ``safe_dump``,
+    which drops comments; the a2c1837 write removed all 36 comment lines that
+    way. So the result is checked before it is written: it must parse to
+    exactly the old registry with ``updates`` applied, and keep every comment
+    line, in order. Either check failing raises and leaves the file untouched.
     """
-    payload = yaml.safe_load(REGISTRY_PATH.read_text())
-    for raw in payload.get("datasets", []):
-        if normalise(str(raw.get("name", ""))) == normalise(name):
-            raw.update(updates)
-            break
-    else:
-        raise RegistryError(f"{name!r} not found in {REGISTRY_PATH}")
-    REGISTRY_PATH.write_text(
-        "# Regenerated in place by scripts/fetch_dataset.py — comments above\n"
-        "# individual entries may have been altered; the registry semantics\n"
-        "# live in src/data/registry.py.\n"
-        + yaml.safe_dump(payload, sort_keys=False, allow_unicode=True)
+    text = REGISTRY_PATH.read_text()
+    before = yaml.safe_load(text)
+    entry = next(
+        (
+            raw
+            for raw in before.get("datasets", [])
+            if normalise(str(raw.get("name", ""))) == normalise(name)
+        ),
+        None,
     )
+    if entry is None:
+        raise RegistryError(f"{name!r} not found in {REGISTRY_PATH}")
+    expected = yaml.safe_load(text)
+    for raw in expected["datasets"]:
+        if raw["name"] == entry["name"]:
+            raw.update(updates)
+
+    new_text = text
+    for key, value in updates.items():
+        if key in entry and entry[key] == value:
+            continue
+        new_text = _splice_field(new_text, entry["name"], key, value)
+
+    if yaml.safe_load(new_text) != expected:
+        raise RegistryError(
+            f"refusing to write {REGISTRY_PATH}: the in-place edit of {name!r} "
+            "did not parse back to the intended registry"
+        )
+    if _comment_lines(new_text) != _comment_lines(text):
+        raise RegistryError(
+            f"refusing to write {REGISTRY_PATH}: the in-place edit of {name!r} "
+            "would have changed or dropped a comment line"
+        )
+    if new_text != text:
+        REGISTRY_PATH.write_text(new_text)
+
+
+def _comment_lines(text: str) -> list[str]:
+    return [line for line in text.splitlines() if line.lstrip().startswith("#")]
+
+
+def _splice_field(text: str, name: str, key: str, value: Any) -> str:
+    """``text`` with field ``key`` of entry ``name`` replaced by ``value``
+    (or appended to the entry), every other line copied through verbatim."""
+    root = yaml.compose(text)
+    datasets = next(v for k, v in root.value if k.value == "datasets")
+    entry = next(
+        node
+        for node in datasets.value
+        if any(k.value == "name" and v.value == name for k, v in node.value)
+    )
+    fields = entry.value
+    indent = fields[0][0].start_mark.column
+    lines = text.splitlines(keepends=True)
+    replacement = _dump_field(key, value, indent)
+
+    for i, (key_node, _) in enumerate(fields):
+        if key_node.value == key:
+            start = key_node.start_mark.line
+            end = _field_end_line(lines, fields, i, indent)
+            return "".join(lines[:start] + replacement + lines[end:])
+
+    end = _field_end_line(lines, fields, len(fields) - 1, indent)
+    if end and not lines[end - 1].endswith("\n"):
+        lines[end - 1] += "\n"
+    return "".join(lines[:end] + replacement + lines[end:])
+
+
+def _field_end_line(lines: list[str], fields: list[Any], i: int, indent: int) -> int:
+    """Exclusive end line of field ``i``: up to the next field, or the end of
+    its value, minus any trailing blank or comment lines -- a comment at the
+    entry's own indent or shallower belongs to whatever follows it."""
+    start = fields[i][0].start_mark.line
+    if i + 1 < len(fields):
+        end = fields[i + 1][0].start_mark.line
+    else:
+        mark = fields[i][1].end_mark
+        end = min(mark.line + (1 if mark.column > 0 else 0), len(lines))
+    while end - 1 > start:
+        line = lines[end - 1]
+        stripped = line.lstrip()
+        depth = len(line) - len(stripped)
+        if stripped.strip() and not (stripped.startswith("#") and depth <= indent):
+            break
+        end -= 1
+    return end
+
+
+def _dump_field(key: str, value: Any, indent: int) -> list[str]:
+    """``key: value`` dumped exactly as ``safe_dump`` would inside a list
+    item, re-indented to ``indent`` columns."""
+    dumped = yaml.safe_dump([{key: value}], sort_keys=False, allow_unicode=True)
+    return [
+        (" " * indent + line[2:]) if line.strip() else line
+        for line in dumped.splitlines(keepends=True)
+    ]
 
 
 def verify_license(args: argparse.Namespace) -> int:
