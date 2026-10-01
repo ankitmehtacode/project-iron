@@ -43,6 +43,7 @@ import fnmatch
 import getpass
 import hashlib
 import json
+import posixpath
 import re
 import shutil
 import sys
@@ -308,12 +309,28 @@ def _fetch_hf_raw_file(
 ) -> bytes:
     """Bytes of one file at one pinned commit, via the raw (non-rendered)
     endpoint — the stable content the volatile dataset-card page wraps in
-    per-request state."""
+    per-request state. For license text only: on a Git-LFS file /raw/
+    returns the LFS pointer, not the content — see :func:`_fetch_hf_file`."""
     url = f"https://huggingface.co/datasets/{repo_id}/raw/{commit_sha}/{path}"
+    return _hf_get(url, token, timeout=60)
+
+
+def _fetch_hf_file(
+    repo_id: str, commit_sha: str, path: str, token: str | None
+) -> bytes:
+    """Bytes of one data file at one pinned commit, via /resolve/ — the
+    endpoint that follows Git-LFS to the real content. Found live on CHIRLA
+    (Day 40): every benchmark parquet is LFS, and /raw/ returned its
+    ~130-byte pointer ("version https://git-lfs.github.com/spec/v1 ...")."""
+    url = f"https://huggingface.co/datasets/{repo_id}/resolve/{commit_sha}/{path}"
+    return _hf_get(url, token, timeout=600)
+
+
+def _hf_get(url: str, token: str | None, timeout: float) -> bytes:
     request = urllib.request.Request(url)
     if token:
         request.add_header("Authorization", f"Bearer {token}")
-    with urllib.request.urlopen(request, timeout=60) as response:
+    with urllib.request.urlopen(request, timeout=timeout) as response:
         return response.read()
 
 
@@ -532,10 +549,15 @@ def _hf_matching_files(
     normalised to ``{path, size, sha256, git_sha1}`` — ``sha256`` set for
     Git-LFS files (the authoritative hash HuggingFace itself reports via
     ``sibling.lfs.sha256``), ``git_sha1`` set otherwise (``sibling.blob_id``,
-    verified via :func:`_git_blob_sha1` after download)."""
+    verified via :func:`_git_blob_sha1` after download).
+
+    The listing is scoped to the deepest directory every pattern shares:
+    recursing over CHIRLA's whole 10.9GB repo did not return in two minutes
+    (Day 40); its configs all live under ``data/``, listed in under one."""
     matches: list[dict[str, Any]] = []
     for item in huggingface_hub.list_repo_tree(
         repo_id,
+        path_in_repo=_patterns_root(patterns),
         recursive=True,
         expand=True,
         revision=commit_sha,
@@ -558,6 +580,15 @@ def _hf_matching_files(
             }
         )
     return matches
+
+
+def _patterns_root(patterns: list[str]) -> str | None:
+    """The deepest directory every glob pattern's literal prefix shares, or
+    ``None`` (the repo root) when they share none."""
+    roots = [posixpath.dirname(re.split(r"[*?\[]", p, maxsplit=1)[0]) for p in patterns]
+    if not roots:
+        return None
+    return posixpath.commonpath(roots) or None
 
 
 def fetch_huggingface(args: argparse.Namespace, entry: DatasetEntry) -> int:
@@ -584,9 +615,14 @@ def fetch_huggingface(args: argparse.Namespace, entry: DatasetEntry) -> int:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
 
-    print(f"Resolving {repo_id}@main to a commit sha ...")
+    print(f"Resolving {repo_id}@{args.revision} (and main) to commit shas ...")
     try:
-        commit_sha = _resolve_hf_commit_sha(repo_id, "main", token)
+        commit_sha = _resolve_hf_commit_sha(repo_id, args.revision, token)
+        main_head_sha = (
+            commit_sha
+            if args.revision == "main"
+            else _resolve_hf_commit_sha(repo_id, "main", token)
+        )
         card_data = _hf_card_data(repo_id, commit_sha, token)
     except Exception as exc:  # noqa: BLE001 -- CLI boundary, see module note
         print(f"Could not reach {repo_id} on huggingface.co: {exc}", file=sys.stderr)
@@ -595,10 +631,12 @@ def fetch_huggingface(args: argparse.Namespace, entry: DatasetEntry) -> int:
     iron_config = IronConfig.load()
     dataset_root = iron_config.paths.resolved_data_dir / "raw" / entry.name / commit_sha
 
+    print(f"Fetching {repo_id}@{commit_sha} (main is at {main_head_sha})")
+    provenance = {"requested_revision": args.revision, "main_head_sha": main_head_sha}
     exit_code = 0
     for config_name in args.hf_config:
         code = _fetch_hf_config(
-            repo_id, commit_sha, config_name, card_data, dataset_root, token
+            repo_id, commit_sha, config_name, card_data, dataset_root, token, provenance
         )
         exit_code = code if code != 0 else exit_code
     return exit_code
@@ -611,6 +649,7 @@ def _fetch_hf_config(
     card_data: Any,
     dataset_root: Path,
     token: str | None,
+    provenance: dict[str, str],
 ) -> int:
     """Fetch one named config into ``dataset_root/<config_name>/``."""
     dest_dir = dataset_root / config_name
@@ -656,7 +695,7 @@ def _fetch_hf_config(
         target.parent.mkdir(parents=True, exist_ok=True)
         print(f"  downloading {meta['path']} ...")
         try:
-            content = _fetch_hf_raw_file(repo_id, commit_sha, meta["path"], token)
+            content = _fetch_hf_file(repo_id, commit_sha, meta["path"], token)
         except (urllib.error.URLError, OSError) as exc:
             shutil.rmtree(staging)
             print(f"Download failed on {meta['path']}: {exc}", file=sys.stderr)
@@ -667,7 +706,7 @@ def _fetch_hf_config(
         else:
             actual, expected = _git_blob_sha1(content), meta["git_sha1"]
 
-        if expected is not None and actual != expected:
+        if expected is None or actual != expected:
             shutil.rmtree(staging)
             print(
                 f"HASH MISMATCH on {meta['path']}: HuggingFace reports "
@@ -684,6 +723,7 @@ def _fetch_hf_config(
         "commit_sha": commit_sha,
         "repo_id": repo_id,
         "method": "huggingface_configs_v1",
+        **provenance,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
         "splits": _hf_config_split_stats(card_data, config_name),
         "files": [{"path": m["path"], "size": m["size"]} for m in files],
@@ -783,6 +823,14 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "named HuggingFace dataset config/scenario to fetch (hosting: "
             "huggingface entries only; repeatable)"
+        ),
+    )
+    parser.add_argument(
+        "--revision",
+        default="main",
+        help=(
+            "branch, tag or commit to fetch (hosting: huggingface only); "
+            "resolved to a commit sha, and main's sha is recorded alongside"
         ),
     )
     parser.add_argument(

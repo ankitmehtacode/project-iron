@@ -411,7 +411,7 @@ def _stub_hf_config(
     )
     monkeypatch.setattr(
         fetch_dataset,
-        "_fetch_hf_raw_file",
+        "_fetch_hf_file",
         lambda repo_id, commit_sha, path, token: content_by_path[path],
     )
 
@@ -444,13 +444,13 @@ def test_hf_fetch_downloads_verifies_and_writes_a_manifest(
 def test_hf_fetch_is_idempotent(sandbox: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     calls = []
     _stub_hf_config(monkeypatch, {"scenario_a/train.jsonl": b"row one\n"})
-    real_fetch = fetch_dataset._fetch_hf_raw_file
+    real_fetch = fetch_dataset._fetch_hf_file
 
     def counting_fetch(repo_id, commit_sha, path, token):
         calls.append(path)
         return real_fetch(repo_id, commit_sha, path, token)
 
-    monkeypatch.setattr(fetch_dataset, "_fetch_hf_raw_file", counting_fetch)
+    monkeypatch.setattr(fetch_dataset, "_fetch_hf_file", counting_fetch)
 
     assert fetch_dataset.main(["hf-verified", "--hf-config", "scenario_a"]) == 0
     assert len(calls) == 1
@@ -469,7 +469,7 @@ def test_hf_fetch_hash_mismatch_deletes_and_refuses(
     _stub_hf_config(monkeypatch, {"scenario_a/train.jsonl": b"expected content"})
     monkeypatch.setattr(
         fetch_dataset,
-        "_fetch_hf_raw_file",
+        "_fetch_hf_file",
         lambda repo_id, commit_sha, path, token: b"corrupted in transit",
     )
 
@@ -522,10 +522,6 @@ def test_git_blob_sha1_matches_gits_own_algorithm() -> None:
 # whole 10.9GB repo (annotations/, benchmark/, videos/) when every config's
 # files sit under data/.
 
-_KNOWN_BUG_DAY40 = pytest.mark.xfail(
-    strict=False, reason="Day-39 HF fetch: /raw/ endpoint, whole-repo listing"
-)
-
 
 # The real download functions, captured before any test stubs them.
 _REAL_DOWNLOADERS = {
@@ -535,8 +531,6 @@ _REAL_DOWNLOADERS = {
 }
 
 
-@pytest.mark.known_bug
-@_KNOWN_BUG_DAY40
 def test_hf_data_files_download_via_resolve_not_raw(
     sandbox: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -573,8 +567,6 @@ def test_hf_data_files_download_via_resolve_not_raw(
     ]
 
 
-@pytest.mark.known_bug
-@_KNOWN_BUG_DAY40
 def test_hf_listing_is_scoped_to_the_patterns_directory(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -599,8 +591,6 @@ def test_hf_listing_is_scoped_to_the_patterns_directory(
     assert seen.get("path_in_repo") == "data"
 
 
-@pytest.mark.known_bug
-@_KNOWN_BUG_DAY40
 def test_hf_fetch_pins_an_explicit_revision_and_records_main_too(
     sandbox: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
