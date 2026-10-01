@@ -36,6 +36,7 @@ from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
+import numpy.typing as npt
 import torch
 
 from src.data.registry import DatasetEntry, DatasetRegistry
@@ -282,6 +283,65 @@ def clothing_change_robustness(
         self_test=self_test,
         chance_map=chance_map,
         clean_map=clean_map,
+    )
+
+
+@dataclass(frozen=True)
+class QueryGalleryScores:
+    """CMC@k and mAP for one query set against one gallery."""
+
+    cmc: dict[int, float]
+    mean_ap: float
+    n_queries: int
+    n_excluded_queries: int
+
+
+def query_gallery_retrieval(
+    sim: npt.NDArray[np.floating[Any]],
+    query_ids: npt.NDArray[np.int_],
+    gallery_ids: npt.NDArray[np.int_],
+    topk: tuple[int, ...] = (1, 5, 10),
+) -> QueryGalleryScores:
+    """Closed-set query -> gallery CMC@k and mAP from a similarity matrix
+    (``sim[i, j]``: query ``i`` to gallery ``j``, higher = closer).
+
+    A query is scored only if its id is non-negative AND present in the
+    gallery — CHIRLA's closed-set rule (``evaluate_reid.py``,
+    ``evaluate_cmc_map_with_unknowns``: negative ids are distractors). The
+    rest are counted in ``n_excluded_queries``, never scored as 0. No
+    same-camera exclusion: CHIRLA's protocol applies none (Day 40, read
+    from its eval code at bdager/CHIRLA@fcb6f53), and query and gallery come
+    from different subsets.
+
+    AP per query is :func:`src.eval.retrieval.average_precision`, the same
+    function the self-test probes above use.
+    """
+    if sim.shape != (len(query_ids), len(gallery_ids)):
+        raise ValueError(
+            f"sim is {sim.shape}, expected ({len(query_ids)}, {len(gallery_ids)})"
+        )
+    scored = (query_ids >= 0) & np.isin(query_ids, gallery_ids)
+    if not scored.any():
+        raise ValueError(
+            "no query has a match in the gallery; refusing to report CMC/mAP "
+            "over an empty query set (Day 9's Undefined-vs-NaN rule)"
+        )
+    hits_at = {k: 0 for k in topk}
+    aps: list[float] = []
+    for i in np.flatnonzero(scored):
+        row = sim[i].astype(np.float64)
+        ap = average_precision(int(i), row, gallery_ids, int(query_ids[i]))
+        assert ap is not None  # guaranteed by `scored`
+        aps.append(ap)
+        ranked = gallery_ids[np.argsort(-row)]
+        for k in topk:
+            hits_at[k] += bool((ranked[:k] == query_ids[i]).any())
+    n = int(scored.sum())
+    return QueryGalleryScores(
+        cmc={k: hits_at[k] / n for k in topk},
+        mean_ap=float(np.mean(aps)),
+        n_queries=n,
+        n_excluded_queries=int((~scored).sum()),
     )
 
 

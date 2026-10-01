@@ -156,3 +156,53 @@ def test_bakeoff_module_carries_no_training_path_marker() -> None:
     from src.data.registry import TRAINING_PATH_MARKER
 
     assert not getattr(bakeoff_module, TRAINING_PATH_MARKER, False)
+
+
+# ---------------------------------------------------------------------------
+# Day 40: query -> gallery CMC/mAP (synthetic only -- no CHIRLA data here)
+# ---------------------------------------------------------------------------
+
+
+def test_query_gallery_retrieval_hand_computed_case() -> None:
+    import numpy as np
+
+    from src.identity.bakeoff import query_gallery_retrieval
+
+    gallery = np.array([7, 8, 7, 9])
+    queries = np.array([7, 9])
+    sim = np.array(
+        [
+            [0.8, 0.9, 0.1, 0.5],  # query 7 ranks 8, 7, 9, 7: hits at 2 and 4
+            [0.0, 0.0, 0.0, 1.0],  # query 9 ranks 9 first: hit at 1
+        ]
+    )
+    scores = query_gallery_retrieval(sim, queries, gallery, topk=(1, 2, 4))
+
+    # query 7: AP = (1/2 + 2/4) / 2 = 0.5; query 9: AP = 1
+    assert scores.mean_ap == pytest.approx(0.75)
+    assert scores.cmc == {1: 0.5, 2: 1.0, 4: 1.0}
+    assert scores.n_queries == 2 and scores.n_excluded_queries == 0
+
+
+def test_query_gallery_retrieval_excludes_distractors_and_absent_ids() -> None:
+    import numpy as np
+
+    from src.identity.bakeoff import query_gallery_retrieval
+
+    gallery = np.array([1, 2])
+    queries = np.array([1, -4, 3])  # -4 distractor, 3 not in gallery
+    sim = np.array([[1.0, 0.0], [0.5, 0.5], [0.2, 0.8]])
+    scores = query_gallery_retrieval(sim, queries, gallery, topk=(1,))
+    assert scores.n_queries == 1 and scores.n_excluded_queries == 2
+    assert scores.cmc == {1: 1.0} and scores.mean_ap == 1.0
+
+
+def test_query_gallery_retrieval_refuses_an_empty_query_set() -> None:
+    import numpy as np
+
+    from src.identity.bakeoff import query_gallery_retrieval
+
+    with pytest.raises(ValueError, match="empty query set"):
+        query_gallery_retrieval(
+            np.zeros((1, 2)), np.array([-1]), np.array([1, 2]), topk=(1,)
+        )
