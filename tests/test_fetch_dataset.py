@@ -508,3 +508,119 @@ def test_git_blob_sha1_matches_gits_own_algorithm() -> None:
     assert (
         fetch_dataset._git_blob_sha1(b"") == "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391"
     )
+
+
+# ---------------------------------------------------------------------------
+# Day 40: the Day-39 HF fetch path against CHIRLA's real repo shape
+# ---------------------------------------------------------------------------
+#
+# Found live on bdager/CHIRLA@f657183: all 22 benchmark parquet files are
+# Git-LFS. /raw/<sha>/<path> returns the ~130-byte LFS *pointer* ("version
+# https://git-lfs.github.com/spec/v1 ..."), /resolve/<sha>/<path> returns the
+# parquet ("PAR1..."). The Day-39 tests stubbed the download seam, so the
+# endpoint choice was never exercised. Separately, listing recursed over the
+# whole 10.9GB repo (annotations/, benchmark/, videos/) when every config's
+# files sit under data/.
+
+_KNOWN_BUG_DAY40 = pytest.mark.xfail(
+    strict=False, reason="Day-39 HF fetch: /raw/ endpoint, whole-repo listing"
+)
+
+
+# The real download functions, captured before any test stubs them.
+_REAL_DOWNLOADERS = {
+    name: getattr(fetch_dataset, name)
+    for name in ("_fetch_hf_raw_file", "_fetch_hf_file")
+    if hasattr(fetch_dataset, name)
+}
+
+
+@pytest.mark.known_bug
+@_KNOWN_BUG_DAY40
+def test_hf_data_files_download_via_resolve_not_raw(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    content = b"PAR1 pretend parquet"
+    _stub_hf_config(monkeypatch, {"scenario_a/train.parquet": content})
+    for name, real in _REAL_DOWNLOADERS.items():
+        monkeypatch.setattr(fetch_dataset, name, real)
+
+    requested: list[str] = []
+
+    class _Response:
+        status = 200
+
+        def __enter__(self) -> "_Response":
+            return self
+
+        def __exit__(self, *exc: object) -> None:
+            return None
+
+        def read(self, *size: int) -> bytes:
+            data, self._done = (b"" if getattr(self, "_done", False) else content), True
+            return data
+
+    def fake_urlopen(request: object, timeout: float = 0) -> _Response:
+        requested.append(getattr(request, "full_url", str(request)))
+        return _Response()
+
+    monkeypatch.setattr(fetch_dataset.urllib.request, "urlopen", fake_urlopen)
+
+    assert fetch_dataset.main(["hf-verified", "--hf-config", "scenario_a"]) == 0
+    assert requested == [
+        "https://huggingface.co/datasets/org/repo/resolve/"
+        f"{HF_COMMIT_SHA}/scenario_a/train.parquet"
+    ]
+
+
+@pytest.mark.known_bug
+@_KNOWN_BUG_DAY40
+def test_hf_listing_is_scoped_to_the_patterns_directory(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    seen: dict[str, object] = {}
+
+    def fake_list_repo_tree(repo_id: str, **kwargs: object) -> list[object]:
+        seen.update(kwargs)
+        return []
+
+    monkeypatch.setattr(
+        fetch_dataset.huggingface_hub, "list_repo_tree", fake_list_repo_tree
+    )
+    fetch_dataset._hf_matching_files(
+        "bdager/CHIRLA",
+        HF_COMMIT_SHA,
+        [
+            "data/reid_reappearance_gallery.parquet/gallery-*",
+            "data/reid_reappearance_query.parquet/query-*",
+        ],
+        None,
+    )
+    assert seen.get("path_in_repo") == "data"
+
+
+@pytest.mark.known_bug
+@_KNOWN_BUG_DAY40
+def test_hf_fetch_pins_an_explicit_revision_and_records_main_too(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    pinned, head = "c" * 40, "d" * 40
+    _stub_hf_config(monkeypatch, {"scenario_a/train.jsonl": b"row\n"})
+    monkeypatch.setattr(
+        fetch_dataset,
+        "_resolve_hf_commit_sha",
+        lambda repo_id, revision, token: pinned if revision == pinned else head,
+    )
+
+    code = fetch_dataset.main(
+        ["hf-verified", "--hf-config", "scenario_a", "--revision", pinned]
+    )
+    assert code == 0
+
+    import json
+
+    dest = sandbox / "data" / "raw" / "hf-verified" / pinned / "scenario_a"
+    manifest = json.loads((dest / "_manifest.json").read_text())
+    assert manifest["commit_sha"] == pinned
+    assert manifest["requested_revision"] == pinned
+    assert manifest["main_head_sha"] == head
