@@ -1,0 +1,24 @@
+05a9a94 fix(data): the registry writer edits one field in place and keeps every comment (Day 40 Objective 2c)
+WARNING: Cache entry deserialization failed, entry ignored
+WARNING: Cache entry deserialization failed, entry ignored
+WARNING: Cache entry deserialization failed, entry ignored
+WARNING: Cache entry deserialization failed, entry ignored
+lock-install rc=0
+hf 0.26.0
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_cascade.py::test_static_input_wakes_nothing
+FAILED tests/test_golden_sets.py::test_eval_report_scores_the_populated_indoor_set
+FAILED tests/test_inspector.py::test_scorecards_endpoint_lists_real_files - A...
+FAILED tests/test_inspector.py::test_scorecard_response_never_emits_non_standard_json_constants
+FAILED tests/test_inspector.py::test_comparison_across_different_envelopes_is_refused
+FAILED tests/test_inspector.py::test_scorecard_view_surfaces_capability_gates_per_condition_and_caveats
+FAILED tests/test_inspector.py::test_association_endpoints_serve_real_verdicts
+FAILED tests/test_inspector.py::test_systematic_sweep_answers_whether_real_data_is_ever_ambiguous
+FAILED tests/test_inspector.py::test_ambiguous_verdict_has_no_winner_field_on_the_wire
+FAILED tests/test_inspector.py::test_ambiguous_verdict_never_produces_an_observed_event
+FAILED tests/test_inspector.py::test_pruned_by_budget_is_forensically_visible_in_a_real_resolution
+11 failed, 1409 passed, 11 skipped, 1 warning in 1872.65s (0:31:12)
+
+[exited with code 0]

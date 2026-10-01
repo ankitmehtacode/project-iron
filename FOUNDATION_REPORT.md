@@ -11561,3 +11561,216 @@ assumption in a future day's work.
    scorecard view, ChokePoint/PETS2009 identity-ambiguity validation,
    re-verifying `consent_posture: unknown` entries, and the `black`/
    `flake8` CI gate.
+
+# Day 40
+
+**Lead finding (rule 1 of the Day-40 prompt's lead order fired): the
+harness's mAP disagrees with CHIRLA's own evaluation code on one value.**
+On `reid_long_term` / `hsv_full`, this harness reports mAP **0.162693001**
+and CHIRLA's `evaluate_reid.py` (bdager/CHIRLA@fcb6f53, `run_evaluation`,
+`--per-subset`) reports **0.162696661** on the same embeddings and the same
+cosine matrix — `|diff|` 3.66e-6, above the 1e-6 tolerance. The other 23
+of 24 compared values agree exactly (`|diff|` ≤ 2.2e-16), every CMC
+value included. **Diagnosed, not tuned away:** 4 queries in that run have
+exactly tied similarity scores; on 2 of them sklearn's
+`average_precision_score` (which treats tied scores as one threshold) and
+`src.eval.retrieval.average_precision` (which ranks ties in sort order)
+give different AP; every query without a tie agrees exactly. It is a
+tie-handling convention, not a ranking bug — but by this project's rule the
+measurement tool disagreed with the reference, so it leads, and the
+convention choice is on the Day-41 list rather than silently resolved.
+
+**Behind it, the plain fact: the first real-data measurement in this
+project's history.** CHIRLA query → gallery re-ID with two weight-free
+baselines — numbers in the Verdicts below, with their limits.
+
+**No timing, throughput, CPU-percentage, or latency claim is made anywhere
+in this section** — unchanged hard scope rule. Suite durations are process
+measurements, not product figures.
+
+## Verdicts
+
+### Assertions A1–A7 — all seven verified (Objective 1)
+
+| | claim | verdict | how it was settled |
+|---|---|---|---|
+| A1 | Claude Code's bash reaches huggingface.co | **VERIFIED** | `curl -sS -o /dev/null -w "%{http_code}\n" https://huggingface.co/api/datasets/bdager/CHIRLA` → `200` |
+| A2 | bdager/CHIRLA ships CMC/mAP eval code incl. same-camera handling | **VERIFIED** | read `benchmark/reid/evaluate_reid.py` at `fcb6f53`: per-subset (`test_k` vs `train_k`), closed set by default, cosine, sklearn AP, **no same-camera exclusion at all**, all-zero subsets dropped from the average |
+| A3 | DOI 10.57967/hf/7113 pins `f6571836…`, which has all six configs | **VERIFIED** | DOI CSL-JSON `"version": "f657183"`; `HfApi().dataset_info(revision=…)` lists all six configs plus `videos`; it is also current `main` |
+| A4 | 22 per-split counts; six-config `dataset_size` 932,527,694 | **VERIFIED** | `dataset_info` card metadata at `f657183`, every count and the byte total exact |
+| A5 | `_update_registry_yaml` drops `#` comments | **VERIFIED** | code read; `a2c1837` took the registry from 36 comment lines to 3 |
+| A6 | `data/` is ignored | **VERIFIED** | `git check-ignore -v data/raw/CHIRLA/x.parquet` → `.gitignore:43:/data/` |
+| A7 | one open discussion thread | **VERIFIED** | `/api/datasets/bdager/CHIRLA/discussions`: #1, the parquet-converter bot's notice — no defect, mislabel or split report |
+
+**A1 falsifies four days of scoping.** "Claude Code's network access cannot
+reach huggingface.co" came from the chat assistant's own sandbox config and
+was copied into CHIRLA's registry notes as fact (Days 36–39); a correction
+is appended there, the old text untouched. arxiv.org is reachable too.
+sciencedb.cn is not — but by TLS handshake failure (curl exit 35), not a
+network block. `iron-eval-discipline` gains *A Prompt's Facts Are
+Hypotheses*, with this and Day 39's invented "§7" as worked examples.
+
+### Registry damage, assessed and restored (Objective 2)
+
+`git log -G'Regenerated in place by scripts/fetch_dataset.py'` finds two
+commits: `a2c1837` removed all 36 comment lines; `3cfa052` only
+re-punctuated the generated header. **Substantive reasoning was lost**
+(lead rule 4 also fired): the header (why every snapshot starts null; lane
+definitions, R = eval only; the in-code blocklist outranks the file), the
+gait note (no commercially usable public gait data; Site Zero is the
+trainable corpus), the CCTV note (`consent_posture` is load-bearing) and
+the real-depth note (depth cannot be scored on generated data). Restored
+verbatim with the nine cosmetic section dividers they hang under
+(`4e6399d`); parsed YAML identical before and after.
+
+**The writer is fixed without the suggested library.** ruamel.yaml 0.19.1
+was measured first: a no-change round-trip of this registry produced 494
+diff lines and trailing whitespace, failing the first required test. The
+writer now splices only the updated field's lines (located by
+`yaml.compose` marks) and refuses to write unless the result parses to
+exactly the intended registry and keeps every comment line. Red first
+(`6ca4f9c`: 4 failed against the old writer), green in `05a9a94`. No
+dependency added, so nothing new to pin.
+
+### Checkpoint — passed
+
+The human ran `verify_license` against
+`…/bdager/CHIRLA/raw/f6571836…/README.md` with `--i-have-read-it`: snapshot
+`f7babb4d80c3674e…`, `resolved_commit_sha` `f6571836…`. `git diff`: one hunk,
+`license_snapshot: null` → the 6-field mapping, 36 comment lines before and
+after — **the writer fix held on its first real write.** An independent
+`curl | shasum -a 256` minutes later gave the same hash.
+`chirla-license-verification-confirm` is resolved and off the ledger.
+
+### Fetch — the Day-39 path could not fetch CHIRLA; fixed, fetched, exact
+
+Found live before fetching: all 22 data files are Git-LFS, and Day 39's
+fetch downloaded via `/raw/`, which returns the ~130-byte LFS pointer, so
+every file would have mismatched and been refused (fails safe, fetches
+nothing). Its listing also recursed over the whole 10.9GB repo (>2 min,
+no result) where `data/` lists in 0.8s. Day 39's tests stubbed the
+download seam, so neither was ever exercised. Red (`91e34c5`), fixed with
+`/resolve/`, a scoped listing, a refusal when no authoritative hash exists,
+and `--revision` (`4b3f1f8`).
+
+Fetched by Claude Code at the DOI-pinned commit, which equals `main`
+(`requested_revision`, `commit_sha`, `main_head_sha` all `f6571836…`).
+**Cross-check: 22/22 splits exact against A4**, counted from parquet
+footers rather than copied metadata; 20 files, 904,139,367 bytes; every file
+matched HuggingFace's LFS sha256. Landed under the ignored `data/raw/`.
+`tests/test_biometric_data_hygiene.py` keeps `data/` and any image or
+parquet bytes out of git. `chirla-benchmark-fetch` is resolved and off the
+ledger.
+
+### The first real-data numbers (Objective 4)
+
+CHIRLA's protocol, read from its code: per subset, closed set, cosine, no
+same-camera exclusion, unweighted mean over subsets (0 dropped as all-zero
+in every run). Query → gallery only; `train`/`val` never opened. No learned
+weights. Format: `value (baseline: chance, margin)`, chance = mean of 10
+seeds of random embeddings.
+
+| scenario | method | CMC@1 | CMC@5 | CMC@10 | mAP |
+|---|---|---|---|---|---|
+| reappearance | HSV full | 0.459 (0.198, +0.261) | 0.735 (0.633, +0.102) | 0.869 (0.850, +0.019) | 0.521 (0.284, +0.236) |
+| reappearance | HSV two-stripe | 0.472 (0.198, +0.274) | 0.713 (0.633, +0.080) | 0.869 (0.850, +0.019) | 0.516 (0.284, +0.231) |
+| long_term | HSV full | 0.077 (0.077, +0.000) | 0.260 (0.342, **−0.081**) | 0.418 (0.579, **−0.161**) | 0.163 (0.135, +0.027) |
+| long_term | HSV two-stripe | 0.085 (0.077, +0.008) | 0.272 (0.342, **−0.070**) | 0.426 (0.579, **−0.153**) | 0.162 (0.135, +0.027) |
+
+Chance's own spread across the 10 seeds: CMC@1 0.170–0.250 (reappearance),
+0.072–0.085 (long_term).
+
+- **P1 held.** Colour beats chance clearly on reappearance: +0.26 CMC@1,
+  roughly 3× the widest seed-to-seed spread.
+- **P2 held.** Colour is at chance on long_term CMC@1 (two-stripe's +0.008
+  sits inside chance's seed range). At CMC@5 and @10 it is **below
+  chance**: a person's own months-earlier crops are ranked *behind*
+  strangers wearing similar colours. That is clothing change measured
+  directly — and the sharpest real-data argument yet that the colour
+  shortcut is not merely weak on this split, it is actively misleading.
+- **P3 not triggered.** No clothing-colour leak across the long_term split.
+- **Against the published figures** (external, trained models, not
+  comparable to untrained baselines — `docs/chirla_published_baselines.md`):
+  the best long-term CMC@1 of 18.81% is about 2.4× this chance floor of
+  7.7%; reappearance's 65.73% compares to a colour-histogram 47.2% and a
+  chance 19.8%. **Chance is high here** because each reappearance
+  subset's gallery holds only a few identities — any number on this
+  scenario must be read against 19.8%, not 0.
+
+Labelled on every artifact (`artifacts/chirla/day40_untrained_baselines.json`):
+*CHIRLA — lane R, eval-only, internal benchmarking.
+deployment_scope_restriction: UNRESOLVED. Not a product claim.*
+`require_product_claim_clearance("CHIRLA")` raised
+`DeploymentScopeUnresolved` — it refused rather than passing silently —
+and the refusal text is recorded in the artifact.
+
+### Fresh-clone install check — the lockfile installs; the suite does not pass
+
+Clone of `05a9a94`, venv from `locking-requirements.txt`, `pip install -e .`:
+install rc 0. Full suite (`artifacts/pytest/day40_fresh_clone.log`, its captured
+output): **11 failed, 1409 passed, 11 skipped** (31 min).
+None is caused by Day 40, by diagnosis and not by a Day-39 rerun: 9
+`test_inspector.py` tests stop on "make eval has not been run; there is
+nothing to inspect", `test_golden_sets.py::test_eval_report_scores_the_populated_indoor_set`
+on "No clips could be scored" for `v3-indoor` (the same
+working-directory dependency the earlier fresh-clone fix addressed for
+`v2-indoor` has come back for its successor), and
+`test_cascade.py::test_static_input_wakes_nothing` passes alone, so it is
+order-dependent. The lockfile pins `huggingface-hub==0.26.0` while
+`requirements-dev.txt` needs `>=0.36.0` (Day 39): the two files conflict if
+installed together, and a lockfile-only environment runs the HF code
+against an API version it was never checked on.
+
+## Blockers
+
+Computed fresh against `docs/blocker_ledger.yaml` via
+`python scripts/blocker_report.py --as-of 2026-10-01 --verify-git`:
+
+| age (days) | id | category | first recorded | estimated human effort |
+|---:|---|---|---|---|
+| 62 | `consent-template-counsel-review` | human_verification | 2026-07-31 (`3eed2eb`) | A yes/no plus redlines from counsel — realistically an afternoon of legal review, not an engineering estimate. |
+| 62 | `dataset-license-and-consent-verification` | human_verification | 2026-07-31 (`bf85e75`) | CHIRLA: five minutes (docs/chirla_verification_checklist.md, four checkboxes). MEVA and the remaining ~61 entries: unknown per-entry, plausibly minutes-to-hours each depending on how each license is published; nobody has attempted even one, so no real estimate exists yet — reported as unknown rather than guessed. |
+| 54 | `site-zero-capture` | human_capture | 2026-08-08 (`e8162cd`) | Hardware on hand (see reference-hardware-procurement) plus one overnight capture window, per capture_runbook.md's own sequencing — realistically a day, once consent-template-counsel-review and reference-hardware-procurement both clear. |
+| 52 | `git-history-divergence` | human_decision | 2026-08-10 (`d36a835`) | A yes/no on the relationship between the two repositories, then ~5 minutes to execute ADR 0009's Option B once answered. |
+| 52 | `reference-hardware-procurement` | human_procurement | 2026-08-10 (`72db508`) | A purchase decision — reference_hardware.md names the SKUs; someone has to approve the spend. |
+| 24 | `component-cap-carrier-identity-type-change` | human_decision | 2026-09-07 (`4b1c557`) | A design decision, not a coding task — small in code-change size once decided, but it is a schema call this repository has twice declined to make for itself. |
+| 23 | `chirla-deployment-scope-legal-review` | human_decision | 2026-09-08 (`8d6aec6`) | Requires counsel, not a fixed duration -- a legal interpretation question, not an engineering estimate. |
+| 23 | `registry-deployment-scope-reaudit` | human_verification | 2026-09-08 (`b6326c5`) | Proportional to the Objective-2 priority list -- 21 Tier-1 re-reads before the 4 Tier-2 and 25 Tier-3 entries; no single fixed estimate, since each is a different host's page. |
+
+**Resolved today, removed from the ledger:** `chirla-license-verification-confirm`
+(the human attestation above) and `chirla-benchmark-fetch` (the fetch
+above). **CHIRLA's remaining gate is `chirla-deployment-scope-legal-review`**:
+internal benchmarking is now running; nothing beyond it is cleared.
+
+## Full suite, mypy, lint
+
+Quick-loop suite (`-m "not slow and not requires_weights"`, this session,
+`artifacts/pytest/day40_quick.xml`): **1419 passed, 1 skipped, 21
+deselected, 0 failures** — up from Day 39's 1404 by **15**, all new today:
+5 in `tests/test_registry_writer.py`, 3 in `tests/test_fetch_dataset.py`,
+3 in `tests/test_biometric_data_hygiene.py`, 3 in
+`tests/test_identity_bakeoff.py`, and a net 1 in
+`tests/test_data_registry.py` (CHIRLA's "is inert" test split into
+"snapshot is pinned" and "fetchable but never trainable"). The fresh-clone
+full suite above is a separate, failing run and is not folded into this
+count.
+
+`mypy` (scoped per `mypy.ini`): **0 errors, 79 source files**
+(`src/identity/bakeoff.py` is in scope). `black --check` and `flake8` are
+clean on all nine Python files touched today.
+
+## Day 41, in order
+
+1. **Pick the AP tie convention, explicitly.** Either adopt sklearn's
+   tie-as-one-threshold convention in `src.eval.retrieval.average_precision`
+   (matches CHIRLA and most re-ID code) or keep rank-order and document the
+   divergence; then re-run `scripts/chirla_reference_check.py` to 24/24.
+2. **Licence-verify one learned backbone** for the bake-off (model slate
+   rule R2), then measure it against today's floors: chance and colour.
+3. **Make the fresh-clone suite green:** materialise `v3-indoor` and the
+   inspector's scorecards in fixtures, as was done for `v2-indoor`, and
+   isolate the order-dependent cascade test.
+4. **Reconcile the `huggingface-hub` pins** (lockfile 0.26.0 vs ≥0.36.0).
+5. **`chirla-deployment-scope-legal-review`** — counsel, not code.
+6. **`registry-deployment-scope-reaudit`'s Tier 1** — carried forward.
+7. Everything else on Day 39's list not touched today, carried forward.
