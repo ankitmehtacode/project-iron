@@ -664,7 +664,45 @@ def test_only_chirla_is_backfilled_today() -> None:
     Classifying the other 62 is deliberately out of scope — the same
     reaudit deployment_scope_restriction got on Day 38, not attempted
     today. If this count ever grows, it should grow because a real
-    reaudit pass updated it, not because a stray edit crept in."""
+    reaudit pass updated it, not because a stray edit crept in.
+
+    2026-10-14: PhysicalAI-SmartSpaces and its real-world-test split are
+    NEW registrations whose hosting was read from their HuggingFace card at
+    registration time — not backfills of the 62, which remain unclassified."""
     registry = DatasetRegistry.load(SEED_PATH)
     classified = [e.name for e in registry.entries() if e.hosting != "unknown"]
-    assert classified == ["CHIRLA"]
+    assert classified == [
+        "CHIRLA",
+        "PhysicalAI-SmartSpaces",
+        "PhysicalAI-SmartSpaces-RealWorldTest",
+    ]
+
+
+def test_smartspaces_synthetic_entry_is_lane_s_with_an_open_restriction() -> None:
+    """The synthetic scenes: lane S, unverified, the Ethical Considerations
+    clause recorded unresolved with its pinned source, and the two real
+    scenes denied at fetch time."""
+    entry = DatasetRegistry.load(SEED_PATH).get("PhysicalAI-SmartSpaces")
+    assert entry.lane == "S"
+    assert entry.license_snapshot is None
+    restriction = entry.deployment_scope_restriction
+    assert restriction is not None and restriction.resolved is False
+    assert "in accordance with our terms of service" in restriction.text
+    assert "2cbe9563cbe9f47f846e5c871ee994572bbbc60e" in restriction.source
+    assert entry.fetch_deny_patterns == [
+        "MTMC_Tracking_2026/test/Warehouse_026/*",
+        "MTMC_Tracking_2026/test/Warehouse_027/*",
+    ]
+
+
+def test_smartspaces_real_world_scenes_are_lane_r_blocked_never_fetchable() -> None:
+    registry = DatasetRegistry.load(SEED_PATH)
+    with pytest.raises(BlockedDataset):
+        registry.require_fetchable("PhysicalAI-SmartSpaces-RealWorldTest")
+    raw = next(
+        e
+        for e in registry.entries()
+        if e.name == "PhysicalAI-SmartSpaces-RealWorldTest"
+    )
+    assert raw.lane == "R"
+    assert raw.consent_posture == "unknown"

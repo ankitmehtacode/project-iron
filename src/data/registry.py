@@ -64,7 +64,7 @@ from types import FrameType
 from typing import Any, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Lane = Literal["S", "R", "C", "C_pending_consent"]
 
@@ -298,6 +298,18 @@ class DeploymentScopeRestriction(BaseModel):
     does so. Never set by inference from how clean the rest of an entry's
     license/consent fields look."""
 
+    @model_validator(mode="after")
+    def _resolved_needs_a_resolution(self) -> "DeploymentScopeRestriction":
+        """``resolved: true`` now unblocks checkpoint promotion
+        (:mod:`src.identity.checkpoint`), so a bare flag flip with no
+        recorded who/how is refused at load time (2026-10-14)."""
+        if self.resolved and not (self.resolution or "").strip():
+            raise ValueError(
+                "deployment_scope_restriction.resolved is true but resolution "
+                "is empty — record who resolved it and how."
+            )
+        return self
+
 
 class ConsentRecord(BaseModel):
     """A recorded consent basis for a lane ``C_pending_consent`` archive,
@@ -384,6 +396,17 @@ class DatasetEntry(BaseModel):
     license: SMPL-derived human assets carry a commercial-use requirement
     that survives being rendered.
     """
+    fetch_deny_patterns: list[str] = Field(default_factory=list)
+    """``fnmatch`` patterns over repo-relative paths that this entry must
+    NEVER fetch, whatever patterns or configs a fetch requests (2026-10-14).
+
+    Exists for a repo whose contents do not all share this entry's lane:
+    PhysicalAI-SmartSpaces is synthetic (lane S) except two real-world test
+    scenes, which are registered separately as lane R and must not arrive
+    under the lane-S entry. :mod:`scripts.fetch_dataset` refuses the whole
+    fetch — before downloading anything — if any file it would install
+    matches one of these; it does not silently skip them, because a
+    request that reached a denied path is itself the error worth seeing."""
 
     @property
     def verified(self) -> bool:

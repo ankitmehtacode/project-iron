@@ -592,18 +592,23 @@ def _patterns_root(patterns: list[str]) -> str | None:
 
 
 def fetch_huggingface(args: argparse.Namespace, entry: DatasetEntry) -> int:
-    """The HuggingFace-native fetch path (Day 39): named configs, resolved
-    per-file hashes from HuggingFace's own API, content-addressed by commit.
+    """The HuggingFace-native fetch path (Day 39): named configs — or, for a
+    repo that declares none, explicit path patterns (2026-10-14) — with
+    resolved per-file hashes from HuggingFace's own API, content-addressed
+    by commit.
 
     Refuses and deletes on any per-file hash mismatch — never installs a
     payload that does not match, exactly like the tarball path's sha256
-    check.
+    check. Both modes install through :func:`_install_hf_files`, so neither
+    can drift into weaker checks than the other.
     """
-    if not args.hf_config:
+    if bool(args.hf_config) == bool(args.hf_path):
         print(
-            "REFUSED: hosting: huggingface entries need at least one "
+            "REFUSED: hosting: huggingface entries need EITHER at least one "
             "--hf-config <name> (repeatable) naming one of the dataset's own "
-            "declared configs — not a raw directory glob.",
+            "declared configs, OR — only for a repo that declares no configs "
+            "— at least one --hf-path <pattern> (repeatable). Not both, not "
+            "neither.",
             file=sys.stderr,
         )
         return 2
@@ -631,15 +636,139 @@ def fetch_huggingface(args: argparse.Namespace, entry: DatasetEntry) -> int:
     iron_config = IronConfig.load()
     dataset_root = iron_config.paths.resolved_data_dir / "raw" / entry.name / commit_sha
 
+    pinned = (
+        entry.license_snapshot.resolved_commit_sha if entry.license_snapshot else None
+    )
+    if entry.fetch_deny_patterns and commit_sha != pinned:
+        print(
+            f"REFUSED: {entry.name!r} has fetch_deny_patterns, which were "
+            f"written against the verified commit {pinned!r}; this request "
+            f"resolved to {commit_sha!r}. A later commit can add paths the "
+            "deny list never saw (e.g. new real-world scenes). Pass "
+            f"--revision {pinned} or re-verify and re-review the deny list.",
+            file=sys.stderr,
+        )
+        return 2
+
     print(f"Fetching {repo_id}@{commit_sha} (main is at {main_head_sha})")
     provenance = {"requested_revision": args.revision, "main_head_sha": main_head_sha}
+    if args.hf_path:
+        return _fetch_hf_paths(
+            repo_id,
+            commit_sha,
+            args.hf_path,
+            card_data,
+            dataset_root,
+            token,
+            provenance,
+            entry.fetch_deny_patterns,
+        )
     exit_code = 0
     for config_name in args.hf_config:
         code = _fetch_hf_config(
-            repo_id, commit_sha, config_name, card_data, dataset_root, token, provenance
+            repo_id,
+            commit_sha,
+            config_name,
+            card_data,
+            dataset_root,
+            token,
+            provenance,
+            entry.fetch_deny_patterns,
         )
         exit_code = code if code != 0 else exit_code
     return exit_code
+
+
+def _refuse_denied_paths(files: list[dict[str, Any]], deny_patterns: list[str]) -> None:
+    """Refuse the whole fetch if any file it would install matches one of
+    the entry's ``fetch_deny_patterns`` — checked before the first byte is
+    downloaded, and never by silently dropping the file: a request that
+    reached a denied path is the error, not something to route around.
+
+    A listing path not already in plain normal form (``./x``, ``a//b``,
+    ``a/../b``, absolute) is refused outright rather than normalised: the
+    deny match runs on the string, the write lands on the resolved path,
+    and the two must never be allowed to disagree.
+
+    Raises:
+        RegistryError: naming every denied or non-normal path the request
+            matched.
+    """
+    abnormal = sorted(
+        meta["path"]
+        for meta in files
+        if meta["path"].startswith("/")
+        or posixpath.normpath(meta["path"]) != meta["path"]
+    )
+    if abnormal:
+        raise RegistryError(
+            f"REFUSED: the listing returned {len(abnormal)} path(s) not in "
+            f"normal form, e.g. {abnormal[:3]!r}. A listing from the network "
+            "is untrusted input; a non-normal path could match a deny "
+            "pattern differently from where it would be written."
+        )
+    denied = sorted(
+        meta["path"]
+        for meta in files
+        if any(fnmatch.fnmatch(meta["path"], pattern) for pattern in deny_patterns)
+    )
+    if denied:
+        raise RegistryError(
+            f"REFUSED: this fetch would install {len(denied)} path(s) the "
+            f"registry entry denies (fetch_deny_patterns={deny_patterns!r}), "
+            f"e.g. {denied[:3]!r}. These are registered under a different "
+            "lane; narrow the request so it cannot reach them."
+        )
+
+
+def _fetch_hf_paths(
+    repo_id: str,
+    commit_sha: str,
+    patterns: list[str],
+    card_data: Any,
+    dataset_root: Path,
+    token: str | None,
+    provenance: dict[str, str],
+    deny_patterns: list[str],
+) -> int:
+    """Fetch every file matching explicit ``patterns`` into
+    ``dataset_root/paths-<digest>/`` — for a repo whose card declares no
+    configs (PhysicalAI-SmartSpaces), so there are no author-declared
+    scenario boundaries to name.
+
+    Refused when the card DOES declare configs: there, the authors' own
+    boundaries are the interface, and a hand-written glob would be exactly
+    the "re-derived by guessing at a directory layout" the config path
+    exists to avoid. The label is a digest of the sorted patterns, so the
+    same request is idempotent and a different request can never land in,
+    or be mistaken for, an earlier one's directory.
+    """
+    if card_data.get("configs") if card_data is not None else None:
+        print(
+            f"REFUSED: {repo_id}@{commit_sha} declares configs in its own "
+            "dataset card — use --hf-config with one of them, not --hf-path.",
+            file=sys.stderr,
+        )
+        return 2
+
+    normalised = sorted(set(patterns))
+    digest = hashlib.sha256("\n".join(normalised).encode()).hexdigest()[:16]
+    label = f"paths-{digest}"
+    try:
+        files = _hf_matching_files(repo_id, commit_sha, normalised, token)
+    except Exception as exc:  # noqa: BLE001 -- CLI boundary, see module note
+        print(f"Could not list files for {normalised!r}: {exc}", file=sys.stderr)
+        return 1
+    _refuse_denied_paths(files, deny_patterns)
+    return _install_hf_files(
+        repo_id,
+        commit_sha,
+        label,
+        files,
+        dataset_root,
+        token,
+        {"patterns": normalised, "method": "huggingface_paths_v1", **provenance},
+    )
 
 
 def _fetch_hf_config(
@@ -650,13 +779,13 @@ def _fetch_hf_config(
     dataset_root: Path,
     token: str | None,
     provenance: dict[str, str],
+    deny_patterns: list[str],
 ) -> int:
     """Fetch one named config into ``dataset_root/<config_name>/``."""
-    dest_dir = dataset_root / config_name
-    if dest_dir.exists():
+    if (dataset_root / config_name).exists():
         print(
-            f"{config_name} already present at {dest_dir} (commit "
-            f"{commit_sha}) — idempotent, not re-fetched."
+            f"{config_name} already present at {dataset_root / config_name} "
+            f"(commit {commit_sha}) — idempotent, not re-fetched."
         )
         return 0
 
@@ -675,23 +804,71 @@ def _fetch_hf_config(
     except Exception as exc:  # noqa: BLE001 -- CLI boundary, see module note
         print(f"Could not list files for {config_name!r}: {exc}", file=sys.stderr)
         return 1
+    _refuse_denied_paths(files, deny_patterns)
+    return _install_hf_files(
+        repo_id,
+        commit_sha,
+        config_name,
+        files,
+        dataset_root,
+        token,
+        {
+            "config": config_name,
+            "method": "huggingface_configs_v1",
+            **provenance,
+            "splits": _hf_config_split_stats(card_data, config_name),
+        },
+    )
+
+
+def _install_hf_files(
+    repo_id: str,
+    commit_sha: str,
+    label: str,
+    files: list[dict[str, Any]],
+    dataset_root: Path,
+    token: str | None,
+    manifest_fields: dict[str, Any],
+) -> int:
+    """Download ``files`` into ``dataset_root/<label>/`` with the checks both
+    HuggingFace modes share: idempotent on an existing label, refuse an
+    empty match, refuse a repo path that would escape the staging directory,
+    download via /resolve/ (LFS content, never the pointer), verify each file
+    against HuggingFace's own reported hash, and install atomically by
+    renaming a fully-verified staging directory into place."""
+    dest_dir = dataset_root / label
+    if dest_dir.exists():
+        print(
+            f"{label} already present at {dest_dir} (commit {commit_sha}) — "
+            "idempotent, not re-fetched."
+        )
+        return 0
 
     if not files:
         print(
-            f"REFUSED: config {config_name!r} matched zero files under "
-            f"{repo_id}@{commit_sha} (patterns={patterns!r}) — refusing to "
-            "record an empty fetch as success.",
+            f"REFUSED: {label!r} matched zero files under {repo_id}@{commit_sha} "
+            "— refusing to record an empty fetch as success.",
             file=sys.stderr,
         )
         return 1
 
-    staging = dataset_root / f"{config_name}.partial"
+    staging = dataset_root / f"{label}.partial"
     if staging.exists():
         shutil.rmtree(staging)
     staging.mkdir(parents=True)
+    staging_root = staging.resolve()
 
     for meta in files:
-        target = staging / meta["path"]
+        target = (staging / meta["path"]).resolve()
+        if not target.is_relative_to(staging_root):
+            shutil.rmtree(staging)
+            print(
+                f"REFUSED: repo path {meta['path']!r} resolves outside the "
+                "staging directory — a listing from the network is untrusted "
+                "input, and this one tried to escape.",
+                file=sys.stderr,
+            )
+            return 1
         target.parent.mkdir(parents=True, exist_ok=True)
         print(f"  downloading {meta['path']} ...")
         try:
@@ -719,13 +896,10 @@ def _fetch_hf_config(
         target.write_bytes(content)
 
     manifest = {
-        "config": config_name,
+        **manifest_fields,
         "commit_sha": commit_sha,
         "repo_id": repo_id,
-        "method": "huggingface_configs_v1",
-        **provenance,
         "fetched_at": datetime.now(timezone.utc).isoformat(),
-        "splits": _hf_config_split_stats(card_data, config_name),
         "files": [{"path": m["path"], "size": m["size"]} for m in files],
     }
     (staging / "_manifest.json").write_text(
@@ -733,7 +907,7 @@ def _fetch_hf_config(
     )
 
     staging.rename(dest_dir)
-    print(f"Stored {config_name} at {dest_dir} ({len(files)} files).")
+    print(f"Stored {label} at {dest_dir} ({len(files)} files).")
     return 0
 
 
@@ -823,6 +997,15 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "named HuggingFace dataset config/scenario to fetch (hosting: "
             "huggingface entries only; repeatable)"
+        ),
+    )
+    parser.add_argument(
+        "--hf-path",
+        action="append",
+        default=[],
+        help=(
+            "fnmatch pattern over repo paths to fetch (hosting: huggingface "
+            "entries whose card declares NO configs; repeatable)"
         ),
     )
     parser.add_argument(

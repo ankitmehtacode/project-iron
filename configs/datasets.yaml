@@ -116,6 +116,60 @@ datasets:
   notes: 7-camera overlapping plaza; global association eval. Real, uncontrolled pedestrian
     traffic on a university square, not staged performers (Day 35 consent_posture
     backfill).
+- name: PhysicalAI-SmartSpaces
+  lane: S
+  subsystem: tracking
+  hosting: huggingface
+  hypothesis_class: 'CC-BY-4.0 per the HuggingFace card''s structured license field
+    (nvidia/PhysicalAI-SmartSpaces README.md at commit 2cbe9563cbe9f47f846e5c871ee994572bbbc60e,
+    read 2026-10-14 by Claude Code — huggingface.co IS reachable from this environment
+    as of that date). No Out-of-Scope-Use section on the card; the Ethical Considerations
+    clause conditioning use on NVIDIA''s unlinked terms of service is recorded below
+    as an unresolved deployment_scope_restriction. UNVERIFIED until a human records
+    a snapshot via scripts/fetch_dataset.py --verify-license.'
+  validity_matrix_cell: 'tracking / twin — synthetic (Omniverse + IsaacSim labels;
+    some scenes Cosmos Transfer 2.5 re-renders) indoor warehouse/hospital/retail/lab
+    scenes, 1080p@30fps, time-synchronized overlapping cameras with full intrinsic/extrinsic
+    calibration, cross-camera-consistent object IDs and 3D boxes. No activity/verb
+    labels and no gait-suitable views. Lane S does NOT admit it to identity-adapter
+    training: src/identity/checkpoint.py accepts lane C only (ADR 0001).'
+  deployment_scope_restriction:
+    text: "NVIDIA believes Trustworthy AI is a shared responsibility and we have established policies and practices to enable development for a wide array of AI applications.  When downloaded or used in accordance with our terms of service, developers should work with their internal model team to ensure this model meets requirements for the relevant industry and use case and addresses unforeseen product misuse."
+    source: 'HuggingFace dataset card, "Ethical Considerations" section, https://huggingface.co/datasets/nvidia/PhysicalAI-SmartSpaces/raw/2cbe9563cbe9f47f846e5c871ee994572bbbc60e/README.md
+      (commit 2cbe9563cbe9f47f846e5c871ee994572bbbc60e, read 2026-10-14). The "terms
+      of service" it conditions use on are NOT linked from the card and have not been
+      identified or read.'
+    resolved: false
+    resolution: null
+  fetch_deny_patterns:
+  - MTMC_Tracking_2026/test/Warehouse_026/*
+  - MTMC_Tracking_2026/test/Warehouse_027/*
+  notes: 'Registered 2026-10-14. 6.0 TB total at the commit above — far beyond local
+    disk; the intended fetch is MTMC_Tracking_2026 train+val RGB videos + ground_truth.json
+    + calibration.json + map.png, EXCLUDING depth_maps/ (~43 GB of ~2.5 TB), via scripts/fetch_dataset.py
+    --hf-path (the card declares no HuggingFace configs, so --hf-config cannot address
+    it). The two real-world test scenes are excluded by fetch_deny_patterns and registered
+    separately as PhysicalAI-SmartSpaces-RealWorldTest (lane R, blocked). Persons are
+    NVIDIA Omniverse character assets; whether any are SMPL-derived is not stated
+    on the card (see the SMPL trap in src/data/registry.py).'
+- name: PhysicalAI-SmartSpaces-RealWorldTest
+  lane: R
+  subsystem: tracking
+  hosting: huggingface
+  consent_posture: unknown
+  hypothesis_class: 'Same repo and card-level CC-BY-4.0 as PhysicalAI-SmartSpaces,
+    but these are REAL-WORLD captures per the card ("Warehouse_026 and Warehouse_027
+    are real-world test captures (4 and 7 cameras); the first 60 s (1800 frames) per
+    camera is provided — videos + calibration only"), GT withheld. The card documents
+    no consent or notice process for whoever appears on camera.'
+  blocked: true
+  blocked_reason: 'Real-world footage inside an otherwise synthetic repo, consent posture
+    unknown. Never fetched: this entry exists so the paths are a recorded, visible fact
+    rather than a silent absence; PhysicalAI-SmartSpaces''s fetch_deny_patterns enforce
+    the same exclusion on the lane-S side. Unblocking needs a human-documented consent
+    basis, not a code edit.'
+  notes: 'Registered 2026-10-14 alongside PhysicalAI-SmartSpaces. Paths: MTMC_Tracking_2026/test/Warehouse_026/
+    and MTMC_Tracking_2026/test/Warehouse_027/ at commit 2cbe9563cbe9f47f846e5c871ee994572bbbc60e.'
 - name: MEVID
   lane: R
   subsystem: reid

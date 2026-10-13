@@ -30,14 +30,15 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from src.data.registry import DatasetEntry
 from src.identity.adapter import Adapter
 from src.identity.selftest import SELF_TEST_LABEL
 from src.provenance import ManifestError
 
-SCHEMA_VERSION = "1.0"
+SCHEMA_VERSION = "1.1"
+"""1.1 (2026-10-14): adds ``unresolved_restrictions``."""
 
 
 class CheckpointManifest(BaseModel):
@@ -59,8 +60,37 @@ class CheckpointManifest(BaseModel):
     every checkpoint produced by write_selftest_checkpoint_manifest — never
     any other value, so a reader can grep for the exact string rather than
     infer self-test status from context."""
+    unresolved_restrictions: dict[str, dict[str, str | None]] = Field(
+        default_factory=dict
+    )
+    """Every contributing dataset's UNRESOLVED
+    :class:`~src.data.registry.DeploymentScopeRestriction`, keyed by dataset
+    name, verbatim ``text`` and ``source`` (2026-10-14). Carried into the
+    checkpoint because a restriction on the data travels with the weights:
+    resolving it later in the registry does not retroactively clear a
+    checkpoint whose manifest recorded it open. Empty means none were open
+    at write time — not that the datasets were audited for one."""
+
+    @model_validator(mode="after")
+    def _not_promoted_with_open_restrictions(self) -> "CheckpointManifest":
+        self._require_promotable()
+        return self
+
+    def _require_promotable(self) -> None:
+        """The invariant lives on the model, not only on its one writer:
+        direct construction and ``model_validate`` hit the validator, and
+        ``write`` re-checks because ``model_copy(update=...)`` skips it."""
+        if self.promoted and self.unresolved_restrictions:
+            raise ManifestError(
+                "checkpoint manifest refuses promoted=True while contributing "
+                "datasets carry unresolved restrictions: "
+                f"{sorted(self.unresolved_restrictions)}. Resolving one is a "
+                "human (counsel) decision recorded in configs/datasets.yaml, "
+                "never inferred here — see DeploymentScopeRestriction."
+            )
 
     def write(self, path: Path) -> Path:
+        self._require_promotable()
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = self.model_dump(mode="json")
         path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
@@ -92,6 +122,20 @@ def _require_lane_c(dataset_entries: dict[str, DatasetEntry]) -> dict[str, str]:
     }
 
 
+def _unresolved_restrictions(
+    dataset_entries: dict[str, DatasetEntry],
+) -> dict[str, dict[str, str | None]]:
+    return {
+        name: {
+            "text": entry.deployment_scope_restriction.text,
+            "source": entry.deployment_scope_restriction.source,
+        }
+        for name, entry in dataset_entries.items()
+        if entry.deployment_scope_restriction is not None
+        and not entry.deployment_scope_restriction.resolved
+    }
+
+
 def write_checkpoint_manifest(
     path: Path,
     *,
@@ -102,15 +146,25 @@ def write_checkpoint_manifest(
     promoted: bool = False,
     promotion_evidence: dict[str, Any] | None = None,
 ) -> CheckpointManifest:
-    """Write a REAL checkpoint's manifest. Refuses on non-lane-C data.
+    """Write a REAL checkpoint's manifest. Refuses on non-lane-C data, and
+    refuses ``promoted=True`` while any contributing dataset carries an
+    unresolved restriction.
+
+    This is the promotion gate's durable half: :func:`src.identity.promotion.
+    evaluate_promotion` decides whether the METRIC clears its baseline, and
+    a checkpoint only becomes promoted when that decision is recorded here
+    — so this is where an open legal question about the training data
+    blocks it, regardless of how good the number is.
 
     Raises:
         ManifestError: via :func:`_require_lane_c`, if ``dataset_entries``
-            contains anything outside lane C.
+            contains anything outside lane C; or if ``promoted`` is True and
+            any entry's ``deployment_scope_restriction`` is unresolved.
     """
     dataset_shas_and_lanes = {
         name: f"C:{sha}" for name, sha in _require_lane_c(dataset_entries).items()
     }
+    unresolved = _unresolved_restrictions(dataset_entries)
     manifest = CheckpointManifest(
         created_at_utc=datetime.now(timezone.utc).isoformat(),
         backbone_sha=backbone_sha,
@@ -121,6 +175,7 @@ def write_checkpoint_manifest(
         promoted=promoted,
         promotion_evidence=promotion_evidence,
         self_test_label=None,
+        unresolved_restrictions=unresolved,
     )
     manifest.write(path)
     return manifest

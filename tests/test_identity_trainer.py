@@ -16,9 +16,15 @@ from pathlib import Path
 import pytest
 import torch
 
-from src.data.registry import ConsentRecord, DatasetEntry, LicenseSnapshot
+from src.data.registry import (
+    ConsentRecord,
+    DatasetEntry,
+    DeploymentScopeRestriction,
+    LicenseSnapshot,
+)
 from src.identity.adapter import Adapter, AdapterConfig
 from src.identity.checkpoint import (
+    CheckpointManifest,
     write_checkpoint_manifest,
     write_selftest_checkpoint_manifest,
 )
@@ -163,6 +169,115 @@ def test_write_checkpoint_manifest_refuses_c_pending_consent_too() -> None:
             dataset_entries={"thinkwill-cctv-archive": pending},
             training_config_sha="cfg-sha",
         )
+
+
+# -- Checkpoint manifest: unresolved restrictions travel with the weights -----
+
+
+_RESTRICTION_TEXT = "Use only in accordance with our terms of service."
+
+
+def _lane_c_entry(*, resolved: bool | None) -> DatasetEntry:
+    """A lane-C entry; ``resolved=None`` means no restriction at all."""
+    restriction = (
+        None
+        if resolved is None
+        else DeploymentScopeRestriction(
+            text=_RESTRICTION_TEXT,
+            source="https://example.org/card@abc123",
+            resolved=resolved,
+            resolution="counsel: narrow reading governs" if resolved else None,
+        )
+    )
+    return DatasetEntry(
+        name="site-zero-adapter-set",
+        lane="C",
+        license_snapshot=_snapshot(),
+        content_sha="deadbeef",
+        deployment_scope_restriction=restriction,
+    )
+
+
+def _write(path: Path, entry: DatasetEntry, *, promoted: bool):
+    return write_checkpoint_manifest(
+        path,
+        adapter=Adapter(AdapterConfig(input_dim=16, output_dim=8)),
+        backbone_sha="backbone-x",
+        dataset_entries={"site-zero-adapter-set": entry},
+        training_config_sha="cfg-sha",
+        promoted=promoted,
+    )
+
+
+def test_checkpoint_manifest_carries_unresolved_restriction_verbatim(
+    tmp_path: Path,
+) -> None:
+    import json
+
+    path = tmp_path / "checkpoint.manifest.json"
+    manifest = _write(path, _lane_c_entry(resolved=False), promoted=False)
+    expected = {
+        "site-zero-adapter-set": {
+            "text": _RESTRICTION_TEXT,
+            "source": "https://example.org/card@abc123",
+        }
+    }
+    assert manifest.unresolved_restrictions == expected
+    assert json.loads(path.read_text())["unresolved_restrictions"] == expected
+
+
+def test_checkpoint_manifest_omits_resolved_and_absent_restrictions(
+    tmp_path: Path,
+) -> None:
+    for resolved in (True, None):
+        manifest = _write(
+            tmp_path / f"{resolved}.json",
+            _lane_c_entry(resolved=resolved),
+            promoted=False,
+        )
+        assert manifest.unresolved_restrictions == {}
+
+
+def test_promotion_refused_while_a_restriction_is_unresolved(tmp_path: Path) -> None:
+    path = tmp_path / "checkpoint.manifest.json"
+    with pytest.raises(ManifestError, match="unresolved restrictions"):
+        _write(path, _lane_c_entry(resolved=False), promoted=True)
+    assert not path.exists(), "a refused promotion must not leave a manifest"
+
+
+def test_promotion_allowed_once_the_restriction_is_resolved(tmp_path: Path) -> None:
+    manifest = _write(
+        tmp_path / "checkpoint.manifest.json",
+        _lane_c_entry(resolved=True),
+        promoted=True,
+    )
+    assert manifest.promoted is True
+
+
+def test_manifest_model_itself_refuses_promoted_with_open_restrictions(
+    tmp_path: Path,
+) -> None:
+    """The invariant is on CheckpointManifest, not only its writer: direct
+    construction raises, and write() re-checks a model_copy that skipped
+    validation."""
+    clean = _write(
+        tmp_path / "clean.json", _lane_c_entry(resolved=False), promoted=False
+    )
+    with pytest.raises(ManifestError, match="unresolved restrictions"):
+        CheckpointManifest(**{**clean.model_dump(), "promoted": True})
+
+    sneaky = clean.model_copy(update={"promoted": True})
+    target = tmp_path / "sneaky.json"
+    with pytest.raises(ManifestError, match="unresolved restrictions"):
+        sneaky.write(target)
+    assert not target.exists()
+
+
+def test_restriction_marked_resolved_without_a_resolution_is_refused() -> None:
+    from pydantic import ValidationError
+
+    with pytest.raises(ValidationError, match="resolution is empty"):
+        DeploymentScopeRestriction(text="x", source="y", resolved=True)
 
 
 # -- SELF_TEST checkpoint: structurally never promotable ---------------------

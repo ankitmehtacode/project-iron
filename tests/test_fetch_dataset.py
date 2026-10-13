@@ -7,6 +7,7 @@ content-addressed store's idempotence, and the sha-mismatch refusal.
 
 from __future__ import annotations
 
+import argparse
 import sys
 from pathlib import Path
 
@@ -17,7 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 import fetch_dataset  # noqa: E402
 
-from src.data.registry import DatasetRegistry  # noqa: E402
+from src.data.registry import DatasetRegistry, RegistryError  # noqa: E402
 
 
 HF_COMMIT_SHA = "a" * 40
@@ -59,6 +60,19 @@ def sandbox(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
                             "verified_by": "test",
                             "resolved_commit_sha": HF_COMMIT_SHA,
                         },
+                    },
+                    {
+                        "name": "hf-mixed-lanes",
+                        "lane": "S",
+                        "hosting": "huggingface",
+                        "license_snapshot": {
+                            "url": HF_RAW_URL,
+                            "verified_date": "2026-10-14",
+                            "text_sha256": "d" * 64,
+                            "verified_by": "test",
+                            "resolved_commit_sha": HF_COMMIT_SHA,
+                        },
+                        "fetch_deny_patterns": ["test/real_*/*"],
                     },
                 ]
             }
@@ -614,3 +628,246 @@ def test_hf_fetch_pins_an_explicit_revision_and_records_main_too(
     assert manifest["commit_sha"] == pinned
     assert manifest["requested_revision"] == pinned
     assert manifest["main_head_sha"] == head
+
+
+# ---------------------------------------------------------------------------
+# 2026-10-14: --hf-path for repos with no declared configs, and
+# fetch_deny_patterns (PhysicalAI-SmartSpaces: synthetic repo, two real scenes)
+# ---------------------------------------------------------------------------
+
+
+def _stub_hf_paths(
+    monkeypatch: pytest.MonkeyPatch,
+    content_by_path: dict[str, bytes],
+    card_data: object = None,
+) -> list[str]:
+    """Like _stub_hf_config, for a config-less card. The listing stub
+    honours the requested patterns (fnmatch), so deny tests exercise the
+    real interaction between what was asked for and what is denied.
+    Returns the list every download-seam call is appended to."""
+    import fnmatch
+    import hashlib
+
+    downloaded: list[str] = []
+    monkeypatch.setattr(
+        fetch_dataset,
+        "_resolve_hf_commit_sha",
+        lambda repo_id, revision, token: HF_COMMIT_SHA,
+    )
+    monkeypatch.setattr(
+        fetch_dataset,
+        "_hf_card_data",
+        lambda repo_id, commit_sha, token: card_data or {"license": "cc-by-4.0"},
+    )
+    monkeypatch.setattr(
+        fetch_dataset,
+        "_hf_matching_files",
+        lambda repo_id, commit_sha, patterns, token: [
+            {
+                "path": path,
+                "size": len(content),
+                "sha256": hashlib.sha256(content).hexdigest(),
+                "git_sha1": None,
+            }
+            for path, content in content_by_path.items()
+            if any(fnmatch.fnmatch(path, p) for p in patterns)
+        ],
+    )
+
+    def fake_fetch(repo_id: str, commit_sha: str, path: str, token: object) -> bytes:
+        downloaded.append(path)
+        return content_by_path[path]
+
+    monkeypatch.setattr(fetch_dataset, "_fetch_hf_file", fake_fetch)
+    return downloaded
+
+
+_MIXED_REPO = {
+    "train/scene_000/videos/cam_0.mp4": b"synthetic video",
+    "train/scene_000/ground_truth.json": b"{}",
+    "test/real_026/videos/cam_0.mp4": b"real people",
+}
+
+
+def _paths_dirs(sandbox: Path, name: str) -> list[Path]:
+    root = sandbox / "data" / "raw" / name / HF_COMMIT_SHA
+    return sorted(root.glob("paths-*")) if root.exists() else []
+
+
+def test_hf_path_fetch_downloads_verifies_and_writes_a_manifest(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import json
+
+    _stub_hf_paths(monkeypatch, _MIXED_REPO)
+    code = fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"])
+    assert code == 0
+
+    (dest,) = _paths_dirs(sandbox, "hf-mixed-lanes")
+    assert not dest.name.endswith(".partial")
+    assert (
+        dest / "train/scene_000/videos/cam_0.mp4"
+    ).read_bytes() == b"synthetic video"
+    manifest = json.loads((dest / "_manifest.json").read_text())
+    assert manifest["method"] == "huggingface_paths_v1"
+    assert manifest["patterns"] == ["train/*"]
+    assert manifest["commit_sha"] == HF_COMMIT_SHA
+    assert sorted(f["path"] for f in manifest["files"]) == [
+        "train/scene_000/ground_truth.json",
+        "train/scene_000/videos/cam_0.mp4",
+    ]
+
+
+def test_hf_path_fetch_is_idempotent(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    downloaded = _stub_hf_paths(monkeypatch, _MIXED_REPO)
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 0
+    first = len(downloaded)
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 0
+    assert len(downloaded) == first, "same patterns must not re-download"
+
+
+def test_hf_path_fetch_hash_mismatch_deletes_and_refuses(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _stub_hf_paths(monkeypatch, _MIXED_REPO)
+    monkeypatch.setattr(
+        fetch_dataset, "_fetch_hf_file", lambda *a, **k: b"corrupted in transit"
+    )
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 1
+    root = sandbox / "data" / "raw" / "hf-mixed-lanes" / HF_COMMIT_SHA
+    assert not list(root.glob("paths-*")), "mismatched payload was kept"
+
+
+def test_hf_path_fetch_refuses_when_the_card_declares_configs(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    downloaded = _stub_hf_paths(
+        monkeypatch,
+        _MIXED_REPO,
+        card_data={"configs": [{"config_name": "a", "data_files": []}]},
+    )
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 2
+    assert downloaded == []
+
+
+@pytest.mark.parametrize(
+    "flags",
+    [[], ["--hf-config", "scenario_a", "--hf-path", "train/*"]],
+    ids=["neither", "both"],
+)
+def test_hf_fetch_requires_exactly_one_of_config_or_path(
+    sandbox: Path, flags: list[str]
+) -> None:
+    assert fetch_dataset.main(["hf-mixed-lanes", *flags]) == 2
+
+
+def test_fetching_a_denied_path_raises_before_any_download(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The structural guarantee: a request that reaches a denied path
+    raises, and nothing — not even the allowed files it also matched — is
+    downloaded or installed."""
+    downloaded = _stub_hf_paths(monkeypatch, _MIXED_REPO)
+    args = argparse.Namespace(
+        name="hf-mixed-lanes",
+        hf_config=[],
+        hf_path=["*"],
+        revision="main",
+        hf_token="",
+    )
+    with pytest.raises(RegistryError, match="denies"):
+        fetch_dataset.fetch(args)
+    assert downloaded == []
+    assert _paths_dirs(sandbox, "hf-mixed-lanes") == []
+
+    # Through the CLI the same refusal is exit code 2, still nothing fetched.
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "test/*"]) == 2
+    assert downloaded == []
+
+
+def test_fetching_a_denied_path_via_a_config_raises_too(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    downloaded = _stub_hf_paths(
+        monkeypatch,
+        _MIXED_REPO,
+        card_data={"configs": [{"config_name": "all", "data_files": [{"path": "*"}]}]},
+    )
+    args = argparse.Namespace(
+        name="hf-mixed-lanes",
+        hf_config=["all"],
+        hf_path=[],
+        revision="main",
+        hf_token="",
+    )
+    with pytest.raises(RegistryError, match="denies"):
+        fetch_dataset.fetch(args)
+    assert downloaded == []
+
+
+def test_hf_path_fetch_refuses_a_listing_that_escapes_staging(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    downloaded = _stub_hf_paths(monkeypatch, {"../../escaped.bin": b"x"})
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "*"]) == 1
+    assert downloaded == []
+    assert not (sandbox / "data" / "raw" / "escaped.bin").exists()
+
+
+def test_smartspaces_deny_patterns_cover_exactly_the_real_world_scenes() -> None:
+    """Against the REAL registry entry: both real-world scenes are denied,
+    the synthetic test scenes beside them are not."""
+    entry = DatasetRegistry.load(fetch_dataset.REGISTRY_PATH).get(
+        "PhysicalAI-SmartSpaces"
+    )
+    files = lambda *paths: [{"path": p} for p in paths]  # noqa: E731
+    for real in (
+        "MTMC_Tracking_2026/test/Warehouse_026/videos/Camera_0000.mp4",
+        "MTMC_Tracking_2026/test/Warehouse_027/calibration.json",
+    ):
+        with pytest.raises(RegistryError):
+            fetch_dataset._refuse_denied_paths(files(real), entry.fetch_deny_patterns)
+    fetch_dataset._refuse_denied_paths(
+        files(
+            "MTMC_Tracking_2026/test/Warehouse_025/videos/Camera_0000.mp4",
+            "MTMC_Tracking_2026/train/Warehouse_000/ground_truth.json",
+        ),
+        entry.fetch_deny_patterns,
+    )
+
+
+@pytest.mark.parametrize(
+    "sneaky",
+    [
+        "./test/real_026/videos/cam_0.mp4",
+        "train//../test/real_026/videos/cam_0.mp4",
+        "train/../test/real_026/videos/cam_0.mp4",
+        "/test/real_026/videos/cam_0.mp4",
+    ],
+)
+def test_non_normal_listing_paths_are_refused_before_any_download(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch, sneaky: str
+) -> None:
+    """Each of these dodges a string match on the deny pattern but would be
+    written into the denied directory; the listing is refused instead."""
+    downloaded = _stub_hf_paths(monkeypatch, {sneaky: b"real people"})
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "*"]) == 2
+    assert downloaded == []
+    assert _paths_dirs(sandbox, "hf-mixed-lanes") == []
+
+
+def test_deny_patterns_refuse_a_commit_other_than_the_verified_one(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The deny list describes the verified commit; a moved main may hold
+    real-world paths it never saw."""
+    downloaded = _stub_hf_paths(monkeypatch, _MIXED_REPO)
+    monkeypatch.setattr(
+        fetch_dataset,
+        "_resolve_hf_commit_sha",
+        lambda repo_id, revision, token: "e" * 40,
+    )
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 2
+    assert downloaded == []
