@@ -819,6 +819,39 @@ def _refuse_denied_paths(files: list[dict[str, Any]], deny_patterns: list[str]) 
         )
 
 
+def _audit_installed_tree(dest_dir: Path, deny_patterns: list[str]) -> None:
+    """Refuse when an already-installed folder holds a denied path (Day 41).
+
+    The "already present — idempotent" return used to skip the deny check
+    entirely in config mode: whatever sat in the folder, put there by an
+    earlier version of the deny list, a different tool, or by hand, was
+    reported as a clean no-op. Now every file on disk is checked against
+    the same patterns a fresh listing would be.
+
+    Raises:
+        RegistryError: naming the denied paths found on disk.
+    """
+    if not deny_patterns:
+        return
+    on_disk = sorted(
+        p.relative_to(dest_dir).as_posix()
+        for p in dest_dir.rglob("*")
+        if p.is_file() and p.name != "_manifest.json"
+    )
+    denied = sorted(
+        path
+        for path in on_disk
+        if any(fnmatch.fnmatch(path, pattern) for pattern in deny_patterns)
+    )
+    if denied:
+        raise RegistryError(
+            f"REFUSED: {dest_dir} is already on disk and holds {len(denied)} "
+            f"path(s) the registry entry denies (fetch_deny_patterns="
+            f"{deny_patterns!r}), e.g. {denied[:3]!r}. Nothing was deleted: "
+            "remove them deliberately, after checking how they got there."
+        )
+
+
 def _fetch_hf_paths(
     repo_id: str,
     commit_sha: str,
@@ -858,6 +891,8 @@ def _fetch_hf_paths(
         print(f"Could not list files for {normalised!r}: {exc}", file=sys.stderr)
         return 1
     _refuse_denied_paths(files, deny_patterns)
+    if (dataset_root / label).exists():
+        _audit_installed_tree(dataset_root / label, deny_patterns)
     return _install_hf_files(
         repo_id,
         commit_sha,
@@ -881,6 +916,7 @@ def _fetch_hf_config(
 ) -> int:
     """Fetch one named config into ``dataset_root/<config_name>/``."""
     if (dataset_root / config_name).exists():
+        _audit_installed_tree(dataset_root / config_name, deny_patterns)
         print(
             f"{config_name} already present at {dataset_root / config_name} "
             f"(commit {commit_sha}) — idempotent, not re-fetched."

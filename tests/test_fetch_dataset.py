@@ -1122,3 +1122,64 @@ def test_a_staged_file_that_fails_its_hash_is_downloaded_again(
     assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 0
     assert len(server.requests) == 1
     assert (installed / _VIDEO).read_bytes() == _BLOB
+
+
+# ---------------------------------------------------------------------------
+# Day 41: the idempotent "already present" return audits what is on disk.
+# Config mode used to return before any deny check when the folder existed.
+# ---------------------------------------------------------------------------
+
+
+def _plant(sandbox: Path, name: str, label: str, rel_paths: list[str]) -> Path:
+    dest = sandbox / "data" / "raw" / name / HF_COMMIT_SHA / label
+    for rel in rel_paths:
+        (dest / rel).parent.mkdir(parents=True, exist_ok=True)
+        (dest / rel).write_bytes(b"x")
+    (dest / "_manifest.json").write_text("{}")
+    return dest
+
+
+def test_an_existing_config_folder_holding_a_denied_path_is_refused(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    downloaded = _stub_hf_paths(
+        monkeypatch,
+        _MIXED_REPO,
+        card_data={"configs": [{"config_name": "all", "data_files": [{"path": "*"}]}]},
+    )
+    _plant(sandbox, "hf-mixed-lanes", "all", ["test/real_026/videos/cam_0.mp4"])
+    args = argparse.Namespace(
+        name="hf-mixed-lanes",
+        hf_config=["all"],
+        hf_path=[],
+        revision="main",
+        hf_token="",
+    )
+    with pytest.raises(RegistryError, match="already on disk"):
+        fetch_dataset.fetch(args)
+    assert downloaded == []
+
+
+def test_an_existing_clean_config_folder_is_still_idempotent(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    downloaded = _stub_hf_paths(
+        monkeypatch,
+        _MIXED_REPO,
+        card_data={"configs": [{"config_name": "all", "data_files": [{"path": "*"}]}]},
+    )
+    _plant(sandbox, "hf-mixed-lanes", "all", ["train/scene_000/ground_truth.json"])
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-config", "all"]) == 0
+    assert downloaded == []
+
+
+def test_an_existing_paths_folder_holding_a_denied_path_is_refused(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    import hashlib
+
+    downloaded = _stub_hf_paths(monkeypatch, _MIXED_REPO)
+    label = "paths-" + hashlib.sha256(b"train/*").hexdigest()[:16]
+    _plant(sandbox, "hf-mixed-lanes", label, ["test/real_026/videos/cam_0.mp4"])
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 2
+    assert downloaded == []
