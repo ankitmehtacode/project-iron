@@ -38,7 +38,9 @@ from src.identity.selftest import SELF_TEST_LABEL
 from src.provenance import ManifestError
 
 SCHEMA_VERSION = "1.1"
-"""1.1 (2026-10-14): adds ``unresolved_restrictions``."""
+"""1.1 (2026-10-14): adds ``unresolved_restrictions``. The on-disk record
+gained an append-only ``.history.jsonl`` sibling on Day 41 without a field
+change, so the version is unchanged."""
 
 
 class CheckpointManifest(BaseModel):
@@ -90,11 +92,44 @@ class CheckpointManifest(BaseModel):
             )
 
     def write(self, path: Path) -> Path:
+        """Write the manifest to ``path`` and append it to ``path``'s history.
+
+        Append-only (Day 41): ``path`` holds the latest state, and
+        :func:`history_path` gains one JSON line per write and is never
+        truncated. Re-writing a manifest — say, after a restriction is
+        resolved in the registry — must not erase the record that the
+        checkpoint was once written with that restriction open; the history
+        is that record. The history line is appended first, so a crash
+        between the two writes leaves history ahead of ``path``, never
+        behind it.
+        """
         self._require_promotable()
         path.parent.mkdir(parents=True, exist_ok=True)
         payload = self.model_dump(mode="json")
-        path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+        with open(history_path(path), "a", encoding="utf-8") as history:
+            history.write(json.dumps(payload, sort_keys=True) + "\n")
+        partial = path.with_name(path.name + ".partial")
+        partial.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n")
+        partial.replace(path)
         return path
+
+
+def history_path(path: Path) -> Path:
+    """Where every write of the manifest at ``path`` is appended."""
+    return path.with_name(path.name + ".history.jsonl")
+
+
+def read_manifest_history(path: Path) -> list[dict[str, Any]]:
+    """Every state the manifest at ``path`` has been written in, oldest
+    first. Empty if it was never written."""
+    history = history_path(path)
+    if not history.exists():
+        return []
+    return [
+        json.loads(line)
+        for line in history.read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
 
 
 def _require_lane_c(dataset_entries: dict[str, DatasetEntry]) -> dict[str, str]:

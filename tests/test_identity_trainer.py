@@ -273,6 +273,38 @@ def test_manifest_model_itself_refuses_promoted_with_open_restrictions(
     assert not target.exists()
 
 
+def test_rewriting_a_manifest_keeps_the_record_that_a_restriction_was_open(
+    tmp_path: Path,
+) -> None:
+    """Day 41: manifests are append-only. Write with the restriction open,
+    resolve it, re-write at the same path — both states stay in history,
+    and the latest file shows the resolved one."""
+    import json
+
+    from src.identity.checkpoint import history_path, read_manifest_history
+
+    path = tmp_path / "checkpoint.manifest.json"
+    _write(path, _lane_c_entry(resolved=False), promoted=False)
+    _write(path, _lane_c_entry(resolved=True), promoted=True)
+
+    history = read_manifest_history(path)
+    assert [h["promoted"] for h in history] == [False, True]
+    assert set(history[0]["unresolved_restrictions"]) == {"site-zero-adapter-set"}
+    assert history[1]["unresolved_restrictions"] == {}
+    assert json.loads(path.read_text()) == history[-1]
+    assert len(history_path(path).read_text().splitlines()) == 2
+
+
+def test_a_refused_write_adds_nothing_to_history(tmp_path: Path) -> None:
+    from src.identity.checkpoint import read_manifest_history
+
+    path = tmp_path / "checkpoint.manifest.json"
+    _write(path, _lane_c_entry(resolved=False), promoted=False)
+    with pytest.raises(ManifestError):
+        _write(path, _lane_c_entry(resolved=False), promoted=True)
+    assert [h["promoted"] for h in read_manifest_history(path)] == [False]
+
+
 def test_restriction_marked_resolved_without_a_resolution_is_refused() -> None:
     from pydantic import ValidationError
 
