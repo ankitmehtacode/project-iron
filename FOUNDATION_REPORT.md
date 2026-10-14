@@ -12170,6 +12170,110 @@ tracked files, all present before today (e.g. `tests/test_eval_baselines.py`
 unused imports, checked against the previous commit) — not fixed here,
 since Objective 3.3 was black-only.
 
+## Follow-ups (after the report)
+
+Script `scripts/smartspaces_gate_followup.py` → counts in
+`artifacts/smartspaces/day41_gate_followup.json`; contact sheets under
+`artifacts/smartspaces/contact_sheets/` (rendered dataset frames, kept out
+of git via `.git/info/exclude`). No gate was re-run: the per-frame
+decisions stored by the parity run were reused and the partition
+recomputed from GT.
+
+**1. Frames where only the full-resolution gate woke (2,407).** By the
+scorecard's own partition:
+
+| partition label | frames | meaning |
+|---|---:|---|
+| `BELOW_ENVELOPE` | 1,581 | visible GT motion, below the measured envelope |
+| `NOT_OBSERVABLE` | 429 | GT motion with no visible box on this camera |
+| `ABOVE_ENVELOPE` | **362** | **GT events the 320x180 gate slept through** |
+| `NO_MOTION` | 35 | nothing resolvable moving |
+| in warmup | 0 | — |
+
+So 362 of them contain a reportable GT event (170 on source scenes, 192
+on re-renders). This reconciles with the scorecard: summed `miss_cost`
+over the 46 cameras is 1,084 at 320x180 and 723 for the full-resolution
+decisions on the same partition, a difference of 361 = 362 recovered
+minus the 1 event among the 16 frames only the 320x180 gate woke on. The
+20-frame contact sheet (seed 41) shows the pattern behind the
+`BELOW_ENVELOPE` bulk: small, distant people, whom area-averaging to
+320x180 dilutes below the foreground threshold.
+
+**2. The 26.6% render-vs-source difference is Warehouse_003 ← Warehouse_002,
+Camera_0006** (train): 479 of 1,800 frames at 320x180. Re-render woke and
+source slept on 177 (NOT_OBSERVABLE 134, BELOW 40, ABOVE 3); source woke
+and re-render slept on 302 (ABOVE 148, BELOW 129, NOT_OBSERVABLE 25), so
+the re-render misses 148 GT events its source catches. The contact sheet
+(20 differing frames, source and re-render side by side) showed the cause.
+
+**3. New finding: every Cosmos re-render changes its whole look every 900
+frames (30 s).** Warehouse_003/Camera_0006 is teal up to frame 899 and
+deep orange from frame 900; the people in the orange segment are dark and
+low-contrast. Measured on every camera of every fetched re-render, mean
+BGR jump across each 900-frame boundary (> 10 grey levels counts as a
+cut):
+
+| scene | cameras | boundaries with a cut | median jump | mid-chunk consecutive frames, median / max |
+|---|---:|---:|---:|---|
+| 001 | 19 | 168 / 171 | 84.3 | 0.07 / 1.5 |
+| 003 | 20 | 178 / 180 | 81.5 | 0.07 / 0.7 |
+| 005 | 19 | 169 / 171 | 80.0 | 0.08 / 1.8 |
+| 007 | 18 | 162 / 162 | 81.8 | 0.07 / 1.8 |
+| 021 | 16 | 142 / 144 | 72.9 | 0.08 / 2.0 |
+| 000 (source, control) | 19 | 0 / 171 | 0.10 | 0.10 / 1.2 |
+
+819 of 828 re-render boundaries cut; the source never does. A re-render
+is ten independently styled 30-second chunks of one trajectory set, not
+one augmented video. Consequences: every 30 s a background-model gate sees
+a global scene change (the parity window, frames 0–1799, held one cut per
+re-render camera); a tracker or re-ID model meets an appearance
+discontinuity on every identity at once; and ADR 0012 condition 4 (keep a
+re-render with its source) matters more, not less. Not yet measured: how
+many of the re-render wake differences sit at the cut.
+
+**4. Component sizes are raw.** The cap is never applied in
+`scripts/measure_smartspaces_components.py`: `CAP` appears only in the
+counters for "how often is a component larger than 6" (lines 215 and 225–226).
+"The person scenes top out at exactly 6" is the uncapped maximum; it
+coincides with the cap's value, it is not produced by it. Raw sizes:
+
+| trajectory set | 1.10 m every component p95 / max | 1.10 m largest-per-frame p95 | 1.5 m every component p95 / max | 1.5 m largest-per-frame p95 |
+|---|---|---:|---|---:|
+| 000 (+001) | 1 / 5 | 2 | 2 / 6 | 3 |
+| 002 (+003) | 1 / 3 | 2 | 2 / 6 | 3 |
+| 004 (+005) | 1 / 3 | 2 | 2 / 6 | 3 |
+| 006 (+007) | 1 / 4 | 2 | 2 / 6 | 3 |
+| 008 | 3 / 9 | 7 | 4 / 10 | 9 |
+| 009 | 2 / 6 | 5 | 3 / 9 | 6 |
+| 010 | 2 / 5 | 4 | 2 / 8 | 5 |
+| 011 | 2 / 5 | 3 | 2 / 6 | 5 |
+| 012 | 2 / 7 | 5 | 3 / 11 | 7 |
+| 013 | 2 / 12 | 5 | 3 / 14 | 7 |
+| 014 | 2 / 8 | 5 | 3 / 13 | 7 |
+| 015 | 2 / 9 | 6 | 4 / 11 | 9 |
+| 016 | 2 / 8 | 6 | 3 / 9 | 7 |
+| 017 | 2 / 2 | 2 | 2 / 2 | 2 |
+| 018 | 1 / 1 | 1 | 2 / 2 | 2 |
+| 019 | 1 / 2 | 1 | 1 / 2 | 2 |
+| 020 (+021) | 1 / 3 | 2 | 2 / 6 | 3 |
+| 022 | 2 / 6 | 3 | 2 / 6 | 4 |
+
+**5. flake8 excludes `./data`.** Anchored with `./` so `src/data` is still
+linted (checked with a probe file that was reported, then deleted). Bare
+`flake8` drops from 120 findings to 39. **`make lint` still fails** on
+those 39, all in tracked files and all older than today:
+`scripts/capture_dry_run.py` 5, `tests/fixtures/minimal_rtsp_server.py` 4,
+`scripts/measure_substream_hypothesis.py` 4, `tests/test_eval_baselines.py`
+3, `scripts/eval_semantics.py` 3, `scripts/discover_cameras.py` 3,
+`tests/test_rtsp_ingest.py` 2, `tests/test_gate_reframe.py` 2,
+`src/provenance.py` 2, `scripts/infinigen_generate.py` 2,
+`scripts/eval_tracking.py` 2, and one each in
+`tests/test_estimator_constraints.py`, `tests/test_discover_cameras.py`,
+`src/ingest/rtcp.py`, `scripts/probe_cycles_throughput.py`,
+`scripts/measure_slip_remedy_smoothing.py`,
+`scripts/measure_acceleration_noise_floor.py`, `scripts/cascade_bench.py`.
+Not fixed here.
+
 ## Day 42, in order
 
 1. **Decide ADR 0012.** Edit its Status line. Everything about generic
@@ -12180,13 +12284,17 @@ since Objective 3.3 was black-only.
    reference. Do not retune `min_foreground_fraction` to force agreement.
 3. **Measure GT position jitter at 30 fps** (Day-29 noise-floor rule),
    then settle what the over-cap components are doing.
-4. **Find a quiet stretch.** The gate's value lies in frames where nothing
+4. **Re-score the re-render stratum knowing about the 30 s style cuts**:
+   how many wake differences sit at a cut, and whether any SmartSpaces use
+   (gate, tracking, re-ID) should treat each 30 s chunk as its own clip.
+5. **Fix the 39 tracked-file flake8 findings** so `make lint` passes.
+6. **Find a quiet stretch.** The gate's value lies in frames where nothing
    happens, and SmartSpaces has almost none (moving_frame_fraction 0.988).
    Gate economics still need real footage.
-5. **`smartspaces-nvidia-terms-of-service` and
+7. **`smartspaces-nvidia-terms-of-service` and
    `smartspaces-smpl-provenance`**, which are counsel and verification
    work, not code.
-6. Carried from Day 40, untouched today: the AP tie convention
+8. Carried from Day 40, untouched today: the AP tie convention
    (`scripts/chirla_reference_check.py` to 24/24); licence-verify a learned
    backbone; the fresh-clone suite; the `huggingface-hub` pin conflict; the
    CHIRLA legal review; the Tier-1 registry re-audit.

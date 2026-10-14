@@ -1,0 +1,609 @@
+{
+  "label": "PhysicalAI-SmartSpaces \u2014 lane S, synthetic. Not evidence about real crowding.",
+  "full_res_only_wakes": {
+    "frames": 2407,
+    "by_partition_label": {
+      "NOT_OBSERVABLE": 429,
+      "ABOVE_ENVELOPE": 362,
+      "BELOW_ENVELOPE": 1581,
+      "IN_WARMUP": 0,
+      "NO_MOTION": 35
+    },
+    "meaning": {
+      "ABOVE_ENVELOPE": "a GT event the 320x180 gate slept through and full res caught (counted in the 320x180 miss_cost)",
+      "BELOW_ENVELOPE": "GT motion visible but below the measured envelope (not a defect either way)",
+      "NOT_OBSERVABLE": "GT motion with no visible box on this camera",
+      "NO_MOTION": "no resolvable GT motion: a full-res wake on nothing",
+      "IN_WARMUP": "first frames, not scored by either gate's scorecard"
+    },
+    "per_camera": [
+      {
+        "scene": "Warehouse_000",
+        "camera": "Camera_0019",
+        "full_only_wakes": 113,
+        "NOT_OBSERVABLE": 38,
+        "ABOVE_ENVELOPE": 8,
+        "BELOW_ENVELOPE": 67,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_000",
+        "camera": "Camera_0003",
+        "full_only_wakes": 85,
+        "ABOVE_ENVELOPE": 2,
+        "BELOW_ENVELOPE": 83,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_002",
+        "camera": "Camera_0006",
+        "full_only_wakes": 155,
+        "NOT_OBSERVABLE": 109,
+        "BELOW_ENVELOPE": 42,
+        "ABOVE_ENVELOPE": 4,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_002",
+        "camera": "Camera_0002",
+        "full_only_wakes": 66,
+        "BELOW_ENVELOPE": 66,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_004",
+        "camera": "Camera_0005",
+        "full_only_wakes": 65,
+        "BELOW_ENVELOPE": 52,
+        "NOT_OBSERVABLE": 12,
+        "ABOVE_ENVELOPE": 1,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_004",
+        "camera": "Camera_0013",
+        "full_only_wakes": 91,
+        "BELOW_ENVELOPE": 78,
+        "ABOVE_ENVELOPE": 13,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_006",
+        "camera": "Camera_0003",
+        "full_only_wakes": 62,
+        "BELOW_ENVELOPE": 55,
+        "ABOVE_ENVELOPE": 4,
+        "NOT_OBSERVABLE": 3,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_006",
+        "camera": "Camera_0017",
+        "full_only_wakes": 81,
+        "BELOW_ENVELOPE": 80,
+        "ABOVE_ENVELOPE": 1,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_008",
+        "camera": "Camera_0002",
+        "full_only_wakes": 69,
+        "NOT_OBSERVABLE": 26,
+        "BELOW_ENVELOPE": 35,
+        "ABOVE_ENVELOPE": 8,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_008",
+        "camera": "Camera_0001",
+        "full_only_wakes": 0,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_009",
+        "camera": "Camera_0011",
+        "full_only_wakes": 1,
+        "ABOVE_ENVELOPE": 1,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_009",
+        "camera": "Camera_0005",
+        "full_only_wakes": 1,
+        "ABOVE_ENVELOPE": 1,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_010",
+        "camera": "Camera_0010",
+        "full_only_wakes": 15,
+        "BELOW_ENVELOPE": 7,
+        "NOT_OBSERVABLE": 6,
+        "ABOVE_ENVELOPE": 2,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_010",
+        "camera": "Camera_0002",
+        "full_only_wakes": 10,
+        "NOT_OBSERVABLE": 4,
+        "BELOW_ENVELOPE": 6,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_011",
+        "camera": "Camera_0004",
+        "full_only_wakes": 8,
+        "NOT_OBSERVABLE": 8,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_011",
+        "camera": "Camera_0000",
+        "full_only_wakes": 65,
+        "NOT_OBSERVABLE": 55,
+        "BELOW_ENVELOPE": 10,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_012",
+        "camera": "Camera_0004",
+        "full_only_wakes": 3,
+        "ABOVE_ENVELOPE": 2,
+        "BELOW_ENVELOPE": 1,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_012",
+        "camera": "Camera_0007",
+        "full_only_wakes": 2,
+        "ABOVE_ENVELOPE": 1,
+        "BELOW_ENVELOPE": 1,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_013",
+        "camera": "Camera_0009",
+        "full_only_wakes": 0,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_013",
+        "camera": "Camera_0004",
+        "full_only_wakes": 36,
+        "NOT_OBSERVABLE": 33,
+        "NO_MOTION": 1,
+        "BELOW_ENVELOPE": 1,
+        "ABOVE_ENVELOPE": 1,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_014",
+        "camera": "Camera_0005",
+        "full_only_wakes": 0,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_014",
+        "camera": "Camera_0003",
+        "full_only_wakes": 0,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_015",
+        "camera": "Camera_0001",
+        "full_only_wakes": 0,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_015",
+        "camera": "Camera_0006",
+        "full_only_wakes": 0,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_016",
+        "camera": "Camera_0008",
+        "full_only_wakes": 29,
+        "BELOW_ENVELOPE": 23,
+        "NOT_OBSERVABLE": 4,
+        "ABOVE_ENVELOPE": 2,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_016",
+        "camera": "Camera_0002",
+        "full_only_wakes": 2,
+        "BELOW_ENVELOPE": 2,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_017",
+        "camera": "Camera_0001",
+        "full_only_wakes": 39,
+        "ABOVE_ENVELOPE": 26,
+        "BELOW_ENVELOPE": 13,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_017",
+        "camera": "Camera_0000",
+        "full_only_wakes": 33,
+        "NOT_OBSERVABLE": 6,
+        "ABOVE_ENVELOPE": 25,
+        "NO_MOTION": 2,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_018",
+        "camera": "Camera_0001",
+        "full_only_wakes": 49,
+        "ABOVE_ENVELOPE": 21,
+        "BELOW_ENVELOPE": 24,
+        "NO_MOTION": 3,
+        "NOT_OBSERVABLE": 1,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_018",
+        "camera": "Camera_0002",
+        "full_only_wakes": 61,
+        "NOT_OBSERVABLE": 16,
+        "ABOVE_ENVELOPE": 26,
+        "BELOW_ENVELOPE": 10,
+        "NO_MOTION": 9,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_019",
+        "camera": "Camera_0000",
+        "full_only_wakes": 22,
+        "ABOVE_ENVELOPE": 6,
+        "BELOW_ENVELOPE": 15,
+        "NO_MOTION": 1,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_019",
+        "camera": "Camera_0001",
+        "full_only_wakes": 68,
+        "ABOVE_ENVELOPE": 11,
+        "NOT_OBSERVABLE": 8,
+        "BELOW_ENVELOPE": 30,
+        "NO_MOTION": 19,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_020",
+        "camera": "Camera_0000",
+        "full_only_wakes": 41,
+        "BELOW_ENVELOPE": 38,
+        "ABOVE_ENVELOPE": 3,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_020",
+        "camera": "Camera_0011",
+        "full_only_wakes": 50,
+        "BELOW_ENVELOPE": 50,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_022",
+        "camera": "Camera_0000",
+        "full_only_wakes": 140,
+        "BELOW_ENVELOPE": 137,
+        "ABOVE_ENVELOPE": 1,
+        "NOT_OBSERVABLE": 2,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_022",
+        "camera": "Camera_0001",
+        "full_only_wakes": 226,
+        "BELOW_ENVELOPE": 226,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_001",
+        "camera": "Camera_0019",
+        "full_only_wakes": 141,
+        "ABOVE_ENVELOPE": 59,
+        "BELOW_ENVELOPE": 82,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_001",
+        "camera": "Camera_0003",
+        "full_only_wakes": 62,
+        "ABOVE_ENVELOPE": 10,
+        "BELOW_ENVELOPE": 52,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_003",
+        "camera": "Camera_0006",
+        "full_only_wakes": 87,
+        "NOT_OBSERVABLE": 47,
+        "BELOW_ENVELOPE": 17,
+        "ABOVE_ENVELOPE": 23,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_003",
+        "camera": "Camera_0002",
+        "full_only_wakes": 25,
+        "BELOW_ENVELOPE": 25,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_005",
+        "camera": "Camera_0005",
+        "full_only_wakes": 11,
+        "ABOVE_ENVELOPE": 10,
+        "BELOW_ENVELOPE": 1,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_005",
+        "camera": "Camera_0013",
+        "full_only_wakes": 31,
+        "ABOVE_ENVELOPE": 28,
+        "BELOW_ENVELOPE": 3,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_007",
+        "camera": "Camera_0003",
+        "full_only_wakes": 140,
+        "BELOW_ENVELOPE": 86,
+        "NOT_OBSERVABLE": 51,
+        "ABOVE_ENVELOPE": 3,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_007",
+        "camera": "Camera_0017",
+        "full_only_wakes": 80,
+        "ABOVE_ENVELOPE": 20,
+        "BELOW_ENVELOPE": 60,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_021",
+        "camera": "Camera_0000",
+        "full_only_wakes": 84,
+        "BELOW_ENVELOPE": 47,
+        "ABOVE_ENVELOPE": 37,
+        "IN_WARMUP": 0
+      },
+      {
+        "scene": "Warehouse_021",
+        "camera": "Camera_0011",
+        "full_only_wakes": 58,
+        "BELOW_ENVELOPE": 56,
+        "ABOVE_ENVELOPE": 2,
+        "IN_WARMUP": 0
+      }
+    ],
+    "contact_sheet": "artifacts/smartspaces/contact_sheets/day41_full_res_only_wakes.png",
+    "contact_sheet_frames": [
+      [
+        "Warehouse_000",
+        "Camera_0003",
+        494
+      ],
+      [
+        "Warehouse_002",
+        "Camera_0006",
+        492
+      ],
+      [
+        "Warehouse_004",
+        "Camera_0005",
+        34
+      ],
+      [
+        "Warehouse_006",
+        "Camera_0003",
+        48
+      ],
+      [
+        "Warehouse_010",
+        "Camera_0010",
+        28
+      ],
+      [
+        "Warehouse_011",
+        "Camera_0004",
+        12
+      ],
+      [
+        "Warehouse_011",
+        "Camera_0000",
+        32
+      ],
+      [
+        "Warehouse_019",
+        "Camera_0001",
+        1069
+      ],
+      [
+        "Warehouse_019",
+        "Camera_0001",
+        1667
+      ],
+      [
+        "Warehouse_022",
+        "Camera_0000",
+        407
+      ],
+      [
+        "Warehouse_022",
+        "Camera_0001",
+        105
+      ],
+      [
+        "Warehouse_022",
+        "Camera_0001",
+        504
+      ],
+      [
+        "Warehouse_001",
+        "Camera_0019",
+        482
+      ],
+      [
+        "Warehouse_001",
+        "Camera_0003",
+        17
+      ],
+      [
+        "Warehouse_003",
+        "Camera_0002",
+        32
+      ],
+      [
+        "Warehouse_005",
+        "Camera_0005",
+        1127
+      ],
+      [
+        "Warehouse_005",
+        "Camera_0013",
+        1713
+      ],
+      [
+        "Warehouse_021",
+        "Camera_0000",
+        640
+      ],
+      [
+        "Warehouse_021",
+        "Camera_0000",
+        1321
+      ],
+      [
+        "Warehouse_021",
+        "Camera_0011",
+        1457
+      ]
+    ]
+  },
+  "largest_rerender_difference": {
+    "rerender": "Warehouse_003",
+    "source": "Warehouse_002",
+    "camera": "Camera_0006",
+    "split_rerender": "train",
+    "split_source": "train",
+    "320x180": {
+      "frames": 1800,
+      "wake_decisions_differ": 479,
+      "wake_fraction_rerender": 0.615,
+      "wake_fraction_source": 0.6844444444444444
+    },
+    "full": {
+      "frames": 1800,
+      "wake_decisions_differ": 473,
+      "wake_fraction_rerender": 0.6633333333333333,
+      "wake_fraction_source": 0.7705555555555555
+    },
+    "fraction_320x180": 0.26611111111111113,
+    "by_partition_label": {
+      "rerender_woke_source_slept": {
+        "NOT_OBSERVABLE": 134,
+        "BELOW_ENVELOPE": 40,
+        "ABOVE_ENVELOPE": 3
+      },
+      "source_woke_rerender_slept": {
+        "BELOW_ENVELOPE": 129,
+        "NOT_OBSERVABLE": 25,
+        "ABOVE_ENVELOPE": 148
+      }
+    },
+    "contact_sheet": "artifacts/smartspaces/contact_sheets/day41_rerender_vs_source_differ.png",
+    "contact_sheet_frames": [
+      389,
+      397,
+      426,
+      429,
+      435,
+      462,
+      482,
+      964,
+      978,
+      1005,
+      1194,
+      1202,
+      1244,
+      1245,
+      1295,
+      1353,
+      1398,
+      1566,
+      1567,
+      1575
+    ]
+  },
+  "style_cuts_every_900_frames": {
+    "threshold_mean_bgr_jump": 10.0,
+    "scenes": {
+      "Warehouse_001": {
+        "cameras": 19,
+        "boundaries": 171,
+        "boundaries_with_cut": 168,
+        "boundary_jump_median": 84.28988877709976,
+        "boundary_jump_max": 237.53344724615167,
+        "mid_chunk_jump_median": 0.07390098960638207,
+        "mid_chunk_jump_max": 1.5369089591153384
+      },
+      "Warehouse_003": {
+        "cameras": 20,
+        "boundaries": 180,
+        "boundaries_with_cut": 178,
+        "boundary_jump_median": 81.49949128680416,
+        "boundary_jump_max": 248.2792890131271,
+        "mid_chunk_jump_median": 0.06861005739723106,
+        "mid_chunk_jump_max": 0.6734422376702754
+      },
+      "Warehouse_005": {
+        "cameras": 19,
+        "boundaries": 171,
+        "boundaries_with_cut": 169,
+        "boundary_jump_median": 80.04366211333912,
+        "boundary_jump_max": 199.54314622283516,
+        "mid_chunk_jump_median": 0.07604548040448322,
+        "mid_chunk_jump_max": 1.7887382611548006
+      },
+      "Warehouse_007": {
+        "cameras": 18,
+        "boundaries": 162,
+        "boundaries_with_cut": 162,
+        "boundary_jump_median": 81.76920291598286,
+        "boundary_jump_max": 216.32679366562223,
+        "mid_chunk_jump_median": 0.07392690414627112,
+        "mid_chunk_jump_max": 1.7511808771893986
+      },
+      "Warehouse_021": {
+        "cameras": 16,
+        "boundaries": 144,
+        "boundaries_with_cut": 142,
+        "boundary_jump_median": 72.94698354899263,
+        "boundary_jump_max": 188.72977909366324,
+        "mid_chunk_jump_median": 0.07883641491127166,
+        "mid_chunk_jump_max": 2.011060577378209
+      },
+      "Warehouse_000": {
+        "cameras": 19,
+        "boundaries": 171,
+        "boundaries_with_cut": 0,
+        "boundary_jump_median": 0.10063670630418584,
+        "boundary_jump_max": 0.28050464276873566,
+        "mid_chunk_jump_median": 0.10421190973957997,
+        "mid_chunk_jump_max": 1.2238515922239628
+      }
+    },
+    "control_scene": "Warehouse_000 (a source scene)"
+  },
+  "seed": 41
+}

@@ -26,4 +26,10 @@ exclude =
     build,
     dist,
     *.egg-info,
-    src/interface/ui
+    src/interface/ui,
+    # Downloaded datasets and third-party code fetched into them (e.g.
+    # CHIRLA's evaluate_reid.py under data/derived/). Not ours to lint, and
+    # ignored by git (.gitignore: /data/). ANCHORED with ./ — a bare "data"
+    # would also match the src/data package (the same trap .gitignore's
+    # anchoring policy documents).
+    ./data
