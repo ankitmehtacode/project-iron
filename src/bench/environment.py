@@ -155,7 +155,11 @@ def _power_state(system: str) -> tuple[bool | None, str, float | None]:
                         pass
         if mains_online is None:
             if battery_pct is None:
-                return True, "no Mains or Battery supply reported -- assuming a desktop", None
+                return (
+                    True,
+                    "no Mains or Battery supply reported -- assuming a desktop",
+                    None,
+                )
             return (
                 None,
                 "a battery is present but no Mains supply entry was found under "
@@ -186,7 +190,10 @@ def _throttle_state(system: str) -> tuple[float | None, str]:
                 "pmset -g therm did not report CPU_Speed_Limit: "
                 f"{completed.stdout.strip()[:200]!r}",
             )
-        return float(match.group(1)), f"CPU_Speed_Limit={match.group(1)} (pmset -g therm)"
+        return (
+            float(match.group(1)),
+            f"CPU_Speed_Limit={match.group(1)} (pmset -g therm)",
+        )
 
     if system == "Linux":
         cur = Path("/sys/devices/system/cpu/cpu0/cpufreq/scaling_cur_freq")
@@ -199,7 +206,10 @@ def _throttle_state(system: str) -> tuple[float | None, str]:
                 return None, f"could not read {cur} / {max_f}"
             if max_hz > 0:
                 pct = min(100.0, 100.0 * cur_hz / max_hz)
-                return pct, f"scaling_cur_freq/cpuinfo_max_freq = {cur_hz:.0f}/{max_hz:.0f}"
+                return (
+                    pct,
+                    f"scaling_cur_freq/cpuinfo_max_freq = {cur_hz:.0f}/{max_hz:.0f}",
+                )
         return (
             None,
             f"no cpufreq scaling info under {cur.parent} -- cannot confirm unthrottled",

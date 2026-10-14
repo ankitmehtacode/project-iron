@@ -260,11 +260,15 @@ def test_max_pedestrian_velocity_does_not_refute_a_jogger() -> None:
     typical_scale_threshold = 1.5
     jogging_mps = 3.0
     assert jogging_mps > typical_scale_threshold
-    assert isinstance(evaluate_constraint(MAX_PEDESTRIAN_VELOCITY, jogging_mps), Satisfied)
+    assert isinstance(
+        evaluate_constraint(MAX_PEDESTRIAN_VELOCITY, jogging_mps), Satisfied
+    )
 
 
 def test_max_pedestrian_velocity_violated_above_the_bound() -> None:
-    outcome = evaluate_constraint(MAX_PEDESTRIAN_VELOCITY, PEDESTRIAN_MAX_SPEED_MPS + 0.1)
+    outcome = evaluate_constraint(
+        MAX_PEDESTRIAN_VELOCITY, PEDESTRIAN_MAX_SPEED_MPS + 0.1
+    )
     assert isinstance(outcome, HardConstraintViolation)
     assert outcome.constraint_name == "max_pedestrian_velocity"
 
@@ -374,7 +378,8 @@ def test_gravity_bounds_downward_acceleration_but_not_upward() -> None:
     free_fall_delta_v = -STANDARD_GRAVITY_MPS2 * dt_s
     # At free fall exactly, and slower: admissible.
     assert isinstance(
-        evaluate_constraint(GRAVITY_FLOOR_TRANSITION, free_fall_delta_v, dt_s), Satisfied
+        evaluate_constraint(GRAVITY_FLOOR_TRANSITION, free_fall_delta_v, dt_s),
+        Satisfied,
     )
     assert isinstance(
         evaluate_constraint(GRAVITY_FLOOR_TRANSITION, -0.1, dt_s), Satisfied

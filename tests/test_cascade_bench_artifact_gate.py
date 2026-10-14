@@ -71,7 +71,18 @@ def test_artifact_run_refused_on_bad_environment(
     target = tmp_path / "artifact.json"
 
     exit_code = cascade_bench.main(
-        ["--seconds", "9", "--static-seconds", "3", "--width", "320", "--height", "240", "--artifact", str(target)]
+        [
+            "--seconds",
+            "9",
+            "--static-seconds",
+            "3",
+            "--width",
+            "320",
+            "--height",
+            "240",
+            "--artifact",
+            str(target),
+        ]
     )
 
     assert exit_code == 1
@@ -94,7 +105,18 @@ def test_artifact_run_invalidated_by_mid_run_drift(
 
     target = tmp_path / "artifact.json"
     exit_code = cascade_bench.main(
-        ["--seconds", "9", "--static-seconds", "3", "--width", "320", "--height", "240", "--artifact", str(target)]
+        [
+            "--seconds",
+            "9",
+            "--static-seconds",
+            "3",
+            "--width",
+            "320",
+            "--height",
+            "240",
+            "--artifact",
+            str(target),
+        ]
     )
 
     assert exit_code == 1
@@ -113,7 +135,18 @@ def test_artifact_run_writes_certified_artifact_when_valid(
 
     target = tmp_path / "artifact.json"
     exit_code = cascade_bench.main(
-        ["--seconds", "9", "--static-seconds", "3", "--width", "320", "--height", "240", "--artifact", str(target)]
+        [
+            "--seconds",
+            "9",
+            "--static-seconds",
+            "3",
+            "--width",
+            "320",
+            "--height",
+            "240",
+            "--artifact",
+            str(target),
+        ]
     )
 
     assert target.exists()
@@ -132,7 +165,18 @@ def test_unguarded_run_is_unaffected_by_the_gate() -> None:
     the invocation CI's regression-ceiling check uses, and it must not
     start refusing runs just because a CI runner has no battery."""
     exit_code = cascade_bench.main(
-        ["--seconds", "9", "--static-seconds", "3", "--width", "320", "--height", "240", "--budget-scale", "3.0"]
+        [
+            "--seconds",
+            "9",
+            "--static-seconds",
+            "3",
+            "--width",
+            "320",
+            "--height",
+            "240",
+            "--budget-scale",
+            "3.0",
+        ]
     )
     assert exit_code in (0, 1)
 

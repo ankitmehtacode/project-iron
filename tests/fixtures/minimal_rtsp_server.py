@@ -79,11 +79,15 @@ class MinimalRtspServer:
             header_blob, _, buffer = buffer.partition(b"\r\n\r\n")
             lines = header_blob.decode("iso-8859-1").split("\r\n")
             method = lines[0].split(" ")[0]
-            cseq_line = next((l for l in lines if l.lower().startswith("cseq")), "CSeq: 1")
+            cseq_line = next(
+                (l for l in lines if l.lower().startswith("cseq")), "CSeq: 1"
+            )
             cseq = cseq_line.split(":", 1)[1].strip()
 
             if method == "OPTIONS":
-                self._respond(conn, cseq, extra="Public: OPTIONS, DESCRIBE, SETUP, PLAY\r\n")
+                self._respond(
+                    conn, cseq, extra="Public: OPTIONS, DESCRIBE, SETUP, PLAY\r\n"
+                )
             elif method == "DESCRIBE":
                 sdp = (
                     "v=0\r\no=- 0 0 IN IP4 127.0.0.1\r\ns=stream\r\nt=0 0\r\n"
@@ -96,7 +100,9 @@ class MinimalRtspServer:
                     body=sdp,
                 )
             elif method == "SETUP":
-                transport_line = next(l for l in lines if l.lower().startswith("transport"))
+                transport_line = next(
+                    l for l in lines if l.lower().startswith("transport")
+                )
                 requested = transport_line.split(":", 1)[1].strip()
                 match = re.search(r"interleaved=(\d+)-(\d+)", requested)
                 channels = match.group(0) if match else "interleaved=0-1"
@@ -106,7 +112,9 @@ class MinimalRtspServer:
                     extra=f"Transport: RTP/AVP/TCP;unicast;{channels}\r\nSession: TESTSESSION\r\n",
                 )
             elif method == "PLAY":
-                self._respond(conn, cseq, extra="Session: TESTSESSION\r\nRange: npt=0.000-\r\n")
+                self._respond(
+                    conn, cseq, extra="Session: TESTSESSION\r\nRange: npt=0.000-\r\n"
+                )
                 played = True
             else:
                 self._respond(conn, cseq, status="551 Option not supported")
@@ -117,25 +125,39 @@ class MinimalRtspServer:
 
     @staticmethod
     def _respond(
-        conn: socket.socket, cseq: str, *, status: str = "200 OK", extra: str = "", body: str = ""
+        conn: socket.socket,
+        cseq: str,
+        *,
+        status: str = "200 OK",
+        extra: str = "",
+        body: str = "",
     ) -> None:
         response = f"RTSP/1.0 {status}\r\nCSeq: {cseq}\r\n{extra}\r\n{body}"
         conn.sendall(response.encode("iso-8859-1"))
 
 
-def build_rtp_packet(*, seq: int, timestamp: int, payload: bytes, ssrc: int = 0x1) -> bytes:
+def build_rtp_packet(
+    *, seq: int, timestamp: int, payload: bytes, ssrc: int = 0x1
+) -> bytes:
     """Minimal RTP header (RFC 3550 §5.1) + payload, no CSRC list."""
-    byte0 = (2 << 6)  # V=2, P=0, X=0, CC=0
+    byte0 = 2 << 6  # V=2, P=0, X=0, CC=0
     byte1 = 96  # M=0, PT=96 (dynamic, matches the fixture SDP)
-    header = bytes([byte0, byte1]) + seq.to_bytes(2, "big") + timestamp.to_bytes(4, "big") + ssrc.to_bytes(4, "big")
+    header = (
+        bytes([byte0, byte1])
+        + seq.to_bytes(2, "big")
+        + timestamp.to_bytes(4, "big")
+        + ssrc.to_bytes(4, "big")
+    )
     return header + payload
 
 
-def build_rtcp_sr(*, ntp_seconds: int, ntp_fraction: int, rtp_timestamp: int, ssrc: int = 0x1) -> bytes:
+def build_rtcp_sr(
+    *, ntp_seconds: int, ntp_fraction: int, rtp_timestamp: int, ssrc: int = 0x1
+) -> bytes:
     """Minimal RTCP SR packet (RFC 3550 §6.4.1), matching tests/test_rtcp.py."""
     import struct
 
-    byte0 = (2 << 6)
+    byte0 = 2 << 6
     header = struct.pack(">BBH", byte0, 200, 6)
     ssrc_bytes = struct.pack(">I", ssrc)
     sender_info = struct.pack(">IIIII", ntp_seconds, ntp_fraction, rtp_timestamp, 1, 1)

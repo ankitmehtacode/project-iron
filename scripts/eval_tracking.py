@@ -57,7 +57,9 @@ def gate_clip(clip_id: str, frames: np.ndarray) -> validity.GateResult:
     return validity.evaluate("point_tracking", clip_id, frames=frames)
 
 
-def observable_mask(uv: np.ndarray, occluded: np.ndarray, height: int, width: int) -> np.ndarray:
+def observable_mask(
+    uv: np.ndarray, occluded: np.ndarray, height: int, width: int
+) -> np.ndarray:
     """True where the GT track point is inside the sensor AND not occluded.
 
     Shape: ``[T, N]``. Off-sensor and occluded are separate concepts and this
@@ -65,7 +67,12 @@ def observable_mask(uv: np.ndarray, occluded: np.ndarray, height: int, width: in
     graded on a frame where the GT point isn't visibly present regardless of
     which of those two makes it invisible.
     """
-    in_frame = (uv[..., 0] >= 0) & (uv[..., 0] < width) & (uv[..., 1] >= 0) & (uv[..., 1] < height)
+    in_frame = (
+        (uv[..., 0] >= 0)
+        & (uv[..., 0] < width)
+        & (uv[..., 1] >= 0)
+        & (uv[..., 1] < height)
+    )
     return in_frame & (~occluded)
 
 
@@ -107,9 +114,13 @@ def score_clip_with_tracker(
             gt_uv[0, valid_queries, 1],  # y
         ],
         axis=1,
-    )[None]  # [1, N', 3] (t, x, y)
+    )[
+        None
+    ]  # [1, N', 3] (t, x, y)
 
-    video = torch.from_numpy(rgb).permute(0, 3, 1, 2).unsqueeze(0).float()  # [1, T, 3, H, W]
+    video = (
+        torch.from_numpy(rgb).permute(0, 3, 1, 2).unsqueeze(0).float()
+    )  # [1, T, 3, H, W]
     queries = torch.from_numpy(queries_np).float()
 
     with torch.no_grad():
@@ -150,7 +161,12 @@ def score_clip_with_tracker(
         # TAP-Vid paper uses for evaluation restriction.
         gt_occ_bucket = np.transpose((~mask)[:, valid_queries], (1, 0))[None]
         if not mask[:, valid_queries].any():
-            return {"pts_within_avg": float("nan"), "occlusion_accuracy": float("nan"), "average_jaccard": float("nan"), "n_frames": 0}
+            return {
+                "pts_within_avg": float("nan"),
+                "occlusion_accuracy": float("nan"),
+                "average_jaccard": float("nan"),
+                "n_frames": 0,
+            }
         m = compute_tapvid_metrics(
             query_points=query_bn3,
             gt_occluded=gt_occ_bucket,
@@ -167,7 +183,12 @@ def score_clip_with_tracker(
         }
 
     observable_mask_full = observable  # [T, N]
-    off_sensor_mask = ~((gt_uv[..., 0] >= 0) & (gt_uv[..., 0] < width) & (gt_uv[..., 1] >= 0) & (gt_uv[..., 1] < height))
+    off_sensor_mask = ~(
+        (gt_uv[..., 0] >= 0)
+        & (gt_uv[..., 0] < width)
+        & (gt_uv[..., 1] >= 0)
+        & (gt_uv[..., 1] < height)
+    )
     occluded_only_mask = gt_occ & ~off_sensor_mask
 
     return {
@@ -191,9 +212,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--weights", type=Path, default=DEFAULT_WEIGHTS)
     parser.add_argument("--set", dest="set_version", default=None)
     parser.add_argument("--limit", type=int, default=0)
-    parser.add_argument(
-        "--out", type=Path, default=Path("outputs/day11/tracking.json")
-    )
+    parser.add_argument("--out", type=Path, default=Path("outputs/day11/tracking.json"))
     args = parser.parse_args(argv)
 
     try:
@@ -238,9 +257,7 @@ def main(argv: list[str] | None = None) -> int:
             continue
         data = load_clip(path)
         gate = gate_clip(clip.clip_id, data["rgb"])
-        verdicts.append(
-            {"clip_id": clip.clip_id, **gate.as_dict()}
-        )
+        verdicts.append({"clip_id": clip.clip_id, **gate.as_dict()})
         state = "PASS" if gate.passed else "REFUSE"
         density = gate.evidence.get("corner_density_per_pixel")
         print(f"{state}  {clip.clip_id}  density={density:.3e}")

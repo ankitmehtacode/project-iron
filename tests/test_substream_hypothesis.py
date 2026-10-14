@@ -38,10 +38,14 @@ def test_refuses_on_frame_count_mismatch(tmp_path: Path) -> None:
 
     result = subprocess.run(
         [
-            sys.executable, str(SCRIPT),
-            "--main-capture", str(main_path),
-            "--sub-capture", str(sub_path),
-            "--out", str(tmp_path / "out.json"),
+            sys.executable,
+            str(SCRIPT),
+            "--main-capture",
+            str(main_path),
+            "--sub-capture",
+            str(sub_path),
+            "--out",
+            str(tmp_path / "out.json"),
         ],
         capture_output=True,
         text=True,
@@ -61,10 +65,14 @@ def test_identical_captures_produce_perfect_parity(tmp_path: Path) -> None:
 
     result = subprocess.run(
         [
-            sys.executable, str(SCRIPT),
-            "--main-capture", str(main_path),
-            "--sub-capture", str(sub_path),
-            "--out", str(out_path),
+            sys.executable,
+            str(SCRIPT),
+            "--main-capture",
+            str(main_path),
+            "--sub-capture",
+            str(sub_path),
+            "--out",
+            str(out_path),
         ],
         capture_output=True,
         text=True,

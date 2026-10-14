@@ -149,7 +149,9 @@ def depth_metrics(
 
 
 def static_point_z_std(
-    depths_m: list[FloatArray], gt_depth: FloatArray, instances: npt.NDArray[np.integer[Any]]
+    depths_m: list[FloatArray],
+    gt_depth: FloatArray,
+    instances: npt.NDArray[np.integer[Any]],
 ) -> dict[str, float]:
     """Temporal flicker on points ground truth proves are static.
 
@@ -294,7 +296,9 @@ def score_clip(clip_path: Path, wrapper: Any, frame_stride: int) -> ClipDepthRes
 def aggregate(results: list[ClipDepthResult]) -> dict[str, Any]:
     """Pool clip results. Means over clips, so one long clip cannot dominate."""
 
-    def pooled(select: Callable[[ClipDepthResult], dict[str, float]]) -> dict[str, float]:
+    def pooled(
+        select: Callable[[ClipDepthResult], dict[str, float]]
+    ) -> dict[str, float]:
         out: dict[str, float] = {}
         for key in ("absrel", "rmse_m", "delta_1_25", "silog"):
             values = [

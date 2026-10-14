@@ -168,7 +168,10 @@ def _tiny_measurement_model(sensor: str) -> MeasurementModel:
     contribution to a_hat's noise floor."""
     curve = EnvelopeCurve(
         independent_variable="range_m",
-        points=((1.0, NEAR_ZERO_MEASUREMENT_SIGMA_M), (25.0, NEAR_ZERO_MEASUREMENT_SIGMA_M)),
+        points=(
+            (1.0, NEAR_ZERO_MEASUREMENT_SIGMA_M),
+            (25.0, NEAR_ZERO_MEASUREMENT_SIGMA_M),
+        ),
     )
     envelope = Envelope(
         capability="state_estimation",
@@ -307,7 +310,9 @@ def _bias_std(values: list[float]) -> dict[str, float]:
     return {"n": len(values), "mean": float(np.mean(arr)), "std": float(np.std(arr))}
 
 
-def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, Any] | None:
+def _score_version(
+    version: str, root: Path, config: IronConfig
+) -> dict[str, Any] | None:
     try:
         golden = load_golden_set(root, version)
     except GoldenSetError as exc:
@@ -339,7 +344,9 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
             return {"version": version, "refused": True}
         print(f"[Day-10 validity gate] {version}: PASS state_estimation")
 
-    measurement_model = ee.measurement_model_for(sensor=version, capability="state_estimation")
+    measurement_model = ee.measurement_model_for(
+        sensor=version, capability="state_estimation"
+    )
     tiny_measurement_model = _tiny_measurement_model(version)
     baseline_motion_model = motion_model_for("person", velocity_covariance_floor=True)
     q_near_zero_motion_model = _tiny_process_noise_motion_model()
@@ -387,8 +394,13 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
 
             rng = np.random.default_rng(EVAL_SEED)
             a_hat = _a_hat_series(
-                track, extrinsics, f"{clip.clip_id}/{agent_index}", fps,
-                baseline_motion_model, measurement_model, rng,
+                track,
+                extrinsics,
+                f"{clip.clip_id}/{agent_index}",
+                fps,
+                baseline_motion_model,
+                measurement_model,
+                rng,
             )
             if a_hat is None:
                 continue
@@ -407,8 +419,13 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
             rng_cf = np.random.default_rng(EVAL_SEED)
             closed_form_stds.append(
                 _closed_form_a_hat_std(
-                    track, extrinsics, f"{clip.clip_id}/{agent_index}", fps,
-                    baseline_motion_model, measurement_model, rng_cf,
+                    track,
+                    extrinsics,
+                    f"{clip.clip_id}/{agent_index}",
+                    fps,
+                    baseline_motion_model,
+                    measurement_model,
+                    rng_cf,
                 )
             )
 
@@ -416,13 +433,23 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
             # noise-floor comparison (see module docstring).
             rng_q = np.random.default_rng(EVAL_SEED)
             a_hat_q = _a_hat_series(
-                track, extrinsics, f"{clip.clip_id}/{agent_index}", fps,
-                q_near_zero_motion_model, measurement_model, rng_q,
+                track,
+                extrinsics,
+                f"{clip.clip_id}/{agent_index}",
+                fps,
+                q_near_zero_motion_model,
+                measurement_model,
+                rng_q,
             )
             rng_r = np.random.default_rng(EVAL_SEED)
             a_hat_r = _a_hat_series(
-                track, extrinsics, f"{clip.clip_id}/{agent_index}", fps,
-                baseline_motion_model, tiny_measurement_model, rng_r,
+                track,
+                extrinsics,
+                f"{clip.clip_id}/{agent_index}",
+                fps,
+                baseline_motion_model,
+                tiny_measurement_model,
+                rng_r,
             )
             for t in range(FIRST_ACCEL_INDEX, track.shape[0]):
                 if regimes[t - 1] not in STEADY_REGIMES:
@@ -442,9 +469,7 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
         a_hat_stats = _bias_std([r["a_hat"] for r in regime_records])
         gt_stats = _bias_std([r["gt_accel"] for r in regime_records])
         bias = (
-            a_hat_stats["mean"] - gt_stats["mean"]
-            if regime_records
-            else float("nan")
+            a_hat_stats["mean"] - gt_stats["mean"] if regime_records else float("nan")
         )
         by_regime[regime] = {
             "n": len(regime_records),
@@ -543,7 +568,9 @@ def _print_report(report: dict[str, Any]) -> None:
         f"{report['noise_floor_std_steady_regimes']:.4f} m/s^2"
     )
     print(f"  PERSON_SIGMA_A_MPS2 = {PERSON_SIGMA_A_MPS2:.4f} m/s^2")
-    print(f"  SNR (PERSON_SIGMA_A_MPS2 / noise floor) = {report['snr_vs_person_sigma_a']:.4f}")
+    print(
+        f"  SNR (PERSON_SIGMA_A_MPS2 / noise floor) = {report['snr_vs_person_sigma_a']:.4f}"
+    )
     print("  per-regime SNR (regime's own mean GT |accel| / noise floor):")
     for regime, value in report["transient_regime_snr"].items():
         print(f"    {regime:<12} SNR = {value:.4f}")
@@ -558,7 +585,9 @@ def _print_report(report: dict[str, Any]) -> None:
     print()
     print("noise attribution ablation (steady-regime a_hat std):")
     for name, block in report["ablation"].items():
-        print(f"  {name:<14} n={block['n']:6}  std={block['noise_floor_std']:.4f} m/s^2")
+        print(
+            f"  {name:<14} n={block['n']:6}  std={block['noise_floor_std']:.4f} m/s^2"
+        )
     print()
 
 

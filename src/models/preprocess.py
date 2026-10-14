@@ -324,9 +324,7 @@ class PreprocessSpec:
             )
 
     def describe(self) -> str:
-        status = (
-            "verified" if self.verified_against_official_config else "UNVERIFIED"
-        )
+        status = "verified" if self.verified_against_official_config else "UNVERIFIED"
         return (
             f"{self.frames}f/stride{self.stride} @ "
             f"{self.resolution[0]}x{self.resolution[1]} {self.channel_order}, "

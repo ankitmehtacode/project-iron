@@ -511,7 +511,9 @@ def main(argv: list[str] | None = None) -> int:
                 "5.10% and 9.28% readings.",
                 file=sys.stderr,
             )
-            failures.append(f"benchmark environment invalidated: {guard_pair.invalid_reason}")
+            failures.append(
+                f"benchmark environment invalidated: {guard_pair.invalid_reason}"
+            )
         else:
             payload = {
                 "worst_cost_share": worst_cost_share,
@@ -529,7 +531,9 @@ def main(argv: list[str] | None = None) -> int:
             }
             try:
                 written = write_benchmark_artifact(args.artifact, payload, guard_pair)
-            except BenchmarkInvalidated as exc:  # pragma: no cover - guard_pair.valid already checked
+            except (
+                BenchmarkInvalidated
+            ) as exc:  # pragma: no cover - guard_pair.valid already checked
                 print(f"\nBENCHMARK INVALIDATED: {exc}", file=sys.stderr)
                 failures.append(str(exc))
             else:

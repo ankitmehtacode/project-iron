@@ -99,7 +99,9 @@ def test_undeterminable_conditions_fail_closed(field: str, value: object) -> Non
     """An unmeasurable condition refuses, it does not pass by default."""
     env = dataclasses.replace(CLEAN, **{field: value})
     reasons = env.violations(GuardThresholds())
-    assert reasons, f"{field}=None produced no violation -- an unmeasured risk is not an absent one"
+    assert (
+        reasons
+    ), f"{field}=None produced no violation -- an unmeasured risk is not an absent one"
 
 
 # ---------------------------------------------------------------------------
@@ -107,17 +109,25 @@ def test_undeterminable_conditions_fail_closed(field: str, value: object) -> Non
 # ---------------------------------------------------------------------------
 
 
-def test_guard_begin_refuses_on_bad_environment(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_guard_begin_refuses_on_bad_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     bad = dataclasses.replace(CLEAN, on_ac_power=False)
-    monkeypatch.setattr(BenchmarkEnvironment, "capture", classmethod(lambda cls, *a, **k: bad))
+    monkeypatch.setattr(
+        BenchmarkEnvironment, "capture", classmethod(lambda cls, *a, **k: bad)
+    )
 
     guard = BenchmarkGuard()
     with pytest.raises(BenchmarkRefused, match="AC power"):
         guard.begin()
 
 
-def test_guard_begin_passes_on_clean_environment(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(BenchmarkEnvironment, "capture", classmethod(lambda cls, *a, **k: CLEAN))
+def test_guard_begin_passes_on_clean_environment(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        BenchmarkEnvironment, "capture", classmethod(lambda cls, *a, **k: CLEAN)
+    )
 
     guard = BenchmarkGuard()
     start = guard.begin()
@@ -128,7 +138,9 @@ def test_guard_begin_message_names_every_failing_condition(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     bad = dataclasses.replace(CLEAN, on_ac_power=False, throttle_pct=46.0)
-    monkeypatch.setattr(BenchmarkEnvironment, "capture", classmethod(lambda cls, *a, **k: bad))
+    monkeypatch.setattr(
+        BenchmarkEnvironment, "capture", classmethod(lambda cls, *a, **k: bad)
+    )
 
     guard = BenchmarkGuard()
     with pytest.raises(BenchmarkRefused) as excinfo:
@@ -144,7 +156,9 @@ def test_guard_begin_message_names_every_failing_condition(
 
 
 def test_end_is_valid_when_nothing_changed(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(BenchmarkEnvironment, "capture", classmethod(lambda cls, *a, **k: CLEAN))
+    monkeypatch.setattr(
+        BenchmarkEnvironment, "capture", classmethod(lambda cls, *a, **k: CLEAN)
+    )
     guard = BenchmarkGuard()
     pair = guard.end(CLEAN)
     assert pair.valid
@@ -181,7 +195,9 @@ def test_end_detects_power_source_change(monkeypatch: pytest.MonkeyPatch) -> Non
     assert "power source changed" in pair.invalid_reason
 
 
-def test_end_detects_battery_drift_beyond_tolerance(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_end_detects_battery_drift_beyond_tolerance(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     drained = dataclasses.replace(CLEAN, battery_percent=CLEAN.battery_percent - 5.0)
     monkeypatch.setattr(
         BenchmarkEnvironment, "capture", classmethod(lambda cls, *a, **k: drained)
@@ -253,7 +269,11 @@ def test_require_comparable_raises_on_different_machine() -> None:
         start=CLEAN, end=CLEAN, valid=True, invalid_reason="", sha="host-a-sha"
     )
     pair_b = EnvironmentPair(
-        start=other_host, end=other_host, valid=True, invalid_reason="", sha="host-b-sha"
+        start=other_host,
+        end=other_host,
+        valid=True,
+        invalid_reason="",
+        sha="host-b-sha",
     )
     with pytest.raises(EnvironmentMismatch, match="different machine"):
         pair_a.require_comparable(pair_b)

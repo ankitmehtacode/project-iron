@@ -70,7 +70,9 @@ def test_wake_fraction_with_recall_retained_but_no_moving_fraction_raises() -> N
         _validate_gate_metric_pairing(missing_moving_fraction)
 
 
-def test_wake_fraction_with_recall_retained_and_moving_fraction_does_not_raise() -> None:
+def test_wake_fraction_with_recall_retained_and_moving_fraction_does_not_raise() -> (
+    None
+):
     paired = [
         Metric(
             name="gate.wake_fraction",
@@ -249,7 +251,9 @@ def test_condition_bucket_defaults_to_occupied() -> None:
     from src.data.golden import Condition
     from src.data.scorecard import _condition_bucket
 
-    assert _condition_bucket((Condition.DAYLIGHT, Condition.SINGLE_PERSON)) == "occupied"
+    assert (
+        _condition_bucket((Condition.DAYLIGHT, Condition.SINGLE_PERSON)) == "occupied"
+    )
     assert _condition_bucket(()) == "occupied"
 
 
@@ -308,9 +312,7 @@ def test_metric_with_baselines_raises_on_a_bare_nan() -> None:
 
 def test_metric_with_baselines_raise_names_the_metric_and_a_likely_cause() -> None:
     with pytest.raises(ScorecardError, match="zero-frame denominator"):
-        _metric_with_baselines(
-            "gate.recall_retained", float("nan"), "fraction", True
-        )
+        _metric_with_baselines("gate.recall_retained", float("nan"), "fraction", True)
 
 
 def test_metric_with_baselines_accepts_undefined() -> None:

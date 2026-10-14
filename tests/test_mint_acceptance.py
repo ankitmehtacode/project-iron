@@ -110,9 +110,7 @@ def test_low_activity_clips_are_excluded_from_the_floor(tmp_path: Path) -> None:
     representable, the same way a blind spot does.
     """
     golden = _set(_clip("good1"), _clip("good2"), _clip("quiet", quiet=True))
-    path = mint_golden_set(
-        tmp_path, golden, {"good1": 0.9, "good2": 0.9, "quiet": 0.5}
-    )
+    path = mint_golden_set(tmp_path, golden, {"good1": 0.9, "good2": 0.9, "quiet": 0.5})
     assert path.exists(), (
         "a set with two strong clips and one tagged low_activity must mint; "
         "the 0.5 belongs on its own line, not in the aggregate"

@@ -431,9 +431,7 @@ def _gravity_floor_transition_satisfied(
     no twin — gravity itself, which holds whether or not the staircase
     is on the map.
     """
-    _require_finite(
-        delta_vertical_velocity_mps=delta_vertical_velocity_mps, dt_s=dt_s
-    )
+    _require_finite(delta_vertical_velocity_mps=delta_vertical_velocity_mps, dt_s=dt_s)
     if dt_s < 0.0:
         raise ConstraintInputError(
             f"dt_s={dt_s} is negative; a constraint cannot be evaluated "

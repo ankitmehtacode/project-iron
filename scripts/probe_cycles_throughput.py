@@ -41,10 +41,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--width", type=int, default=320)
     parser.add_argument("--height", type=int, default=240)
     parser.add_argument(
-        "--samples", type=int, nargs="+", default=[4, 64],
+        "--samples",
+        type=int,
+        nargs="+",
+        default=[4, 64],
         help="Cycles sample counts to probe, each timed across 3 renders.",
     )
-    parser.add_argument("--device-type", default="METAL", choices=["METAL", "CUDA", "OPTIX", "CPU"])
+    parser.add_argument(
+        "--device-type", default="METAL", choices=["METAL", "CUDA", "OPTIX", "CPU"]
+    )
     parser.add_argument("--out-prefix", default="/tmp/cycles_probe_frame_")
     args = parser.parse_args(argv)
 
@@ -81,7 +86,9 @@ def main(argv: list[str] | None = None) -> int:
             bpy.ops.render.render(write_still=True)
             times.append(time.time() - t0)
         steady_state = times[1:]  # exclude the first-render kernel-compile outlier
-        mean_steady = sum(steady_state) / len(steady_state) if steady_state else float("nan")
+        mean_steady = (
+            sum(steady_state) / len(steady_state) if steady_state else float("nan")
+        )
         print(
             f"samples={samples}  per-frame seconds={[round(t, 3) for t in times]}  "
             f"steady_state_mean={mean_steady:.3f} (first render excluded — "

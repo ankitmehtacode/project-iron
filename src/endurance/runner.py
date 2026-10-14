@@ -123,9 +123,7 @@ class DeterminismResult:
     detail: str
 
 
-def check_determinism(
-    extractor: Extractor, clip: VideoArray
-) -> DeterminismResult:
+def check_determinism(extractor: Extractor, clip: VideoArray) -> DeterminismResult:
     """Run one clip through the pipeline twice and compare the embeddings.
 
     Args:

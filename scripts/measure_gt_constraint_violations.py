@@ -318,9 +318,7 @@ def _score_version(
                         displacement_m / dt_s,
                         where,
                     )
-                    delta_vz = float(
-                        vertical_velocity[t] - vertical_velocity[t - 1]
-                    )
+                    delta_vz = float(vertical_velocity[t] - vertical_velocity[t - 1])
                     # Extremum tracked as the most-negative vertical
                     # acceleration -- the direction this bound binds in.
                     gravity.record(

@@ -67,7 +67,9 @@ class StreamResult:
 
     @property
     def wake_rate(self) -> float:
-        return float(np.mean(self.wake_decisions)) if self.wake_decisions else float("nan")
+        return (
+            float(np.mean(self.wake_decisions)) if self.wake_decisions else float("nan")
+        )
 
 
 def run_gate(frames: np.ndarray, config: MotionGateConfig, label: str) -> StreamResult:
@@ -77,13 +79,17 @@ def run_gate(frames: np.ndarray, config: MotionGateConfig, label: str) -> Stream
     times = []
     for index in range(frames.shape[0]):
         t0 = time.perf_counter()
-        output = gate.process(frames[index][np.newaxis, ...], StageContext(index, index))
+        output = gate.process(
+            frames[index][np.newaxis, ...], StageContext(index, index)
+        )
         times.append(time.perf_counter() - t0)
         wakes.append(bool(output.wake_next))
     return StreamResult(label=label, wake_decisions=wakes, per_frame_seconds=times)
 
 
-def mog2_variance_delta(main_frames: np.ndarray, sub_frames: np.ndarray) -> float | None:
+def mog2_variance_delta(
+    main_frames: np.ndarray, sub_frames: np.ndarray
+) -> float | None:
     """Frame-to-frame pixel variance, sub minus main — a compression-artifact proxy.
 
     Not a substitute for actually running MOG2 and comparing its foreground
@@ -117,7 +123,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("--gate-width", type=int, default=320)
     parser.add_argument("--gate-height", type=int, default=180)
-    parser.add_argument("--out", type=Path, default=Path("outputs/day12/substream_hypothesis.json"))
+    parser.add_argument(
+        "--out", type=Path, default=Path("outputs/day12/substream_hypothesis.json")
+    )
     args = parser.parse_args(argv)
 
     if args.main_capture is None or args.sub_capture is None:
@@ -156,7 +164,9 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 1
 
-    downscale_config = MotionGateConfig(gate_width=args.gate_width, gate_height=args.gate_height)
+    downscale_config = MotionGateConfig(
+        gate_width=args.gate_width, gate_height=args.gate_height
+    )
     # The sub-stream path: if the sub-stream is already at or below the gate
     # raster, gate_width/gate_height beyond the source shape is a no-op —
     # MotionGateConfig's own downscale clamps to source_shape (see
@@ -164,7 +174,9 @@ def main(argv: list[str] | None = None) -> int:
     # needed here; feeding sub-resolution frames through the SAME config
     # IS the "no software downscale needed" path when the source is
     # already small enough.
-    subscale_config = MotionGateConfig(gate_width=args.gate_width, gate_height=args.gate_height)
+    subscale_config = MotionGateConfig(
+        gate_width=args.gate_width, gate_height=args.gate_height
+    )
 
     main_result = run_gate(main_frames, downscale_config, "main (software downscale)")
     sub_result = run_gate(sub_frames, subscale_config, "sub-stream (camera-native)")
@@ -179,10 +191,16 @@ def main(argv: list[str] | None = None) -> int:
     )
     variance_delta = mog2_variance_delta(main_frames, sub_frames)
 
-    print(f"main : {main_result.wake_rate:.3f} wake rate, {main_result.total_seconds*1000:.1f} ms total")
-    print(f"sub  : {sub_result.wake_rate:.3f} wake rate, {sub_result.total_seconds*1000:.1f} ms total")
+    print(
+        f"main : {main_result.wake_rate:.3f} wake rate, {main_result.total_seconds*1000:.1f} ms total"
+    )
+    print(
+        f"sub  : {sub_result.wake_rate:.3f} wake rate, {sub_result.total_seconds*1000:.1f} ms total"
+    )
     print(f"wake-decision parity: {agreement:.3%}")
-    print(f"cost ratio (sub/main): {cost_ratio:.3f} ({'cheaper' if cost_ratio < 1 else 'not cheaper'})")
+    print(
+        f"cost ratio (sub/main): {cost_ratio:.3f} ({'cheaper' if cost_ratio < 1 else 'not cheaper'})"
+    )
     if variance_delta is not None:
         print(f"frame-diff variance delta (sub - main): {variance_delta:+.4f}")
 

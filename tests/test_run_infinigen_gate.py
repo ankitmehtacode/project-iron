@@ -23,13 +23,19 @@ from run_infinigen_gate import load_sample
 
 
 def _write_frame(path: Path, rgb: np.ndarray, depth: np.ndarray) -> None:
-    np.savez_compressed(path, rgb=rgb.astype(np.uint8), depth_metres=depth.astype(np.float32))
+    np.savez_compressed(
+        path, rgb=rgb.astype(np.uint8), depth_metres=depth.astype(np.float32)
+    )
 
 
 def test_load_sample_stacks_frames_in_lexical_order(tmp_path: Path) -> None:
     rgb = np.zeros((4, 6, 3), dtype=np.uint8)
     for index, filler in enumerate((10, 20, 30, 5), start=1):
-        _write_frame(tmp_path / f"frame_{index:04d}.npz", np.full_like(rgb, filler), np.ones((4, 6)) * filler)
+        _write_frame(
+            tmp_path / f"frame_{index:04d}.npz",
+            np.full_like(rgb, filler),
+            np.ones((4, 6)) * filler,
+        )
     frames, gt = load_sample(tmp_path)
     assert frames.shape == (4, 4, 6, 3)
     assert gt.shape == (4, 4, 6)

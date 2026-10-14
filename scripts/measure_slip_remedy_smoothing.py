@@ -81,7 +81,10 @@ from src.contracts.ground_truth import (  # noqa: E402
     gt_position_track,
 )
 from src.data.golden import GoldenSetError, load_golden_set  # noqa: E402
-from src.estimator.motion_model import PERSON_SIGMA_A_MPS2, motion_model_for  # noqa: E402
+from src.estimator.motion_model import (
+    PERSON_SIGMA_A_MPS2,
+    motion_model_for,
+)  # noqa: E402
 from src.estimator.motion_model import PEDESTRIAN_STOP_DURATION_S  # noqa: E402
 from src.estimator.regime import classify_track  # noqa: E402
 
@@ -123,7 +126,9 @@ def _smoothed_series(a_hat: FloatArray, window: int) -> FloatArray:
     return out
 
 
-def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, Any] | None:
+def _score_version(
+    version: str, root: Path, config: IronConfig
+) -> dict[str, Any] | None:
     try:
         golden = load_golden_set(root, version)
     except GoldenSetError as exc:
@@ -153,7 +158,9 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
             print(f"\nREFUSED: {version} cannot score state_estimation.")
             return {"version": version, "refused": True}
 
-    measurement_model = ee.measurement_model_for(sensor=version, capability="state_estimation")
+    measurement_model = ee.measurement_model_for(
+        sensor=version, capability="state_estimation"
+    )
     carrier_motion_model = motion_model_for("person", velocity_covariance_floor=True)
 
     # window -> list of (regime, smoothed value) across every track
@@ -190,8 +197,13 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
 
             rng = np.random.default_rng(noise_floor.EVAL_SEED)
             a_hat = noise_floor._a_hat_series(
-                track, extrinsics, f"{clip.clip_id}/{agent_index}", fps,
-                carrier_motion_model, measurement_model, rng,
+                track,
+                extrinsics,
+                f"{clip.clip_id}/{agent_index}",
+                fps,
+                carrier_motion_model,
+                measurement_model,
+                rng,
             )
             if a_hat is None:
                 continue
@@ -228,7 +240,9 @@ def _score_version(version: str, root: Path, config: IronConfig) -> dict[str, An
             "snr": snr,
             "lag_frames": window,
             "lag_s": window / FPS,
-            "lag_vs_pedestrian_stop_duration": window / FPS / PEDESTRIAN_STOP_DURATION_S,
+            "lag_vs_pedestrian_stop_duration": window
+            / FPS
+            / PEDESTRIAN_STOP_DURATION_S,
         }
 
     return {

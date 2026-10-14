@@ -48,9 +48,7 @@ def test_unregistered_metric_raises_baseline_missing() -> None:
 
 def test_metric_construction_raises_when_no_baseline_registered() -> None:
     with pytest.raises(BaselineMissing):
-        _metric_with_baselines(
-            "no_such_registered_metric", 0.5, "fraction", True
-        )
+        _metric_with_baselines("no_such_registered_metric", 0.5, "fraction", True)
 
 
 def test_higher_is_better_margin_uses_strongest_baseline() -> None:

@@ -91,7 +91,9 @@ def _score(version: str, root: Path, config: IronConfig, floor: bool) -> Any:
     )
 
 
-def _audit_version(version: str, root: Path, config: IronConfig) -> dict[str, Any] | None:
+def _audit_version(
+    version: str, root: Path, config: IronConfig
+) -> dict[str, Any] | None:
     reports = {}
     for label, floor in (("A", False), ("B", True)):
         report = _score(version, root, config, floor)
@@ -126,8 +128,12 @@ def _audit_version(version: str, root: Path, config: IronConfig) -> dict[str, An
                 "a_p50_mps": sigma_a.get("p50_mps", float("nan")),
                 "a_rmse_m": block_a.get("filter_rmse_m", float("nan")),
                 "b_rmse_m": block_b.get("filter_rmse_m", float("nan")),
-                "a_coverage": block_a.get("consistency", {}).get("nees_pass_rate_within_95"),
-                "b_coverage": block_b.get("consistency", {}).get("nees_pass_rate_within_95"),
+                "a_coverage": block_a.get("consistency", {}).get(
+                    "nees_pass_rate_within_95"
+                ),
+                "b_coverage": block_b.get("consistency", {}).get(
+                    "nees_pass_rate_within_95"
+                ),
             }
         )
 

@@ -359,7 +359,9 @@ def test_world_position_array_combine_rejects_cross_rev() -> None:
         a.combine(b)
 
 
-def test_world_position_array_combine_rejects_unregistered_even_against_itself() -> None:
+def test_world_position_array_combine_rejects_unregistered_even_against_itself() -> (
+    None
+):
     a = WorldPositionArray(xyz_m=np.zeros((2, 3)), twin_rev=UNREGISTERED)
     b = WorldPositionArray(xyz_m=np.zeros((2, 3)), twin_rev=UNREGISTERED)
     with pytest.raises(TwinRevError):

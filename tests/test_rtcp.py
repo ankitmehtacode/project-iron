@@ -77,7 +77,9 @@ def test_ntp_fraction_converts_to_sub_second_precision() -> None:
 
 
 def test_parse_refuses_truncated_packet() -> None:
-    packet = build_sr_packet(ntp_seconds_since_1900=NTP_UNIX_EPOCH_OFFSET_SECONDS, rtp_timestamp=0)
+    packet = build_sr_packet(
+        ntp_seconds_since_1900=NTP_UNIX_EPOCH_OFFSET_SECONDS, rtp_timestamp=0
+    )
     with pytest.raises(RtcpParseError, match="too short"):
         parse_sender_report(packet[:20])
 
@@ -85,7 +87,9 @@ def test_parse_refuses_truncated_packet() -> None:
 def test_parse_refuses_wrong_packet_type() -> None:
     # PT=201 is Receiver Report, not Sender Report.
     packet = build_sr_packet(
-        ntp_seconds_since_1900=NTP_UNIX_EPOCH_OFFSET_SECONDS, rtp_timestamp=0, packet_type=201
+        ntp_seconds_since_1900=NTP_UNIX_EPOCH_OFFSET_SECONDS,
+        rtp_timestamp=0,
+        packet_type=201,
     )
     with pytest.raises(RtcpParseError, match="not SR"):
         parse_sender_report(packet)
@@ -126,7 +130,13 @@ def test_mapper_interpolates_forward_from_anchor() -> None:
 def test_mapper_interpolates_backward_from_anchor() -> None:
     mapper = RtcpTimeMapper(clock_rate_hz=90_000)
     mapper.observe(
-        SenderReport(ssrc=1, ntp_wallclock_unix_ns=10_000_000_000, rtp_timestamp=90_000, packet_count=1, octet_count=1)
+        SenderReport(
+            ssrc=1,
+            ntp_wallclock_unix_ns=10_000_000_000,
+            rtp_timestamp=90_000,
+            packet_count=1,
+            octet_count=1,
+        )
     )
     # Half a second BEFORE the anchor.
     result = mapper.map_to_wallclock_ns(45_000)
@@ -138,7 +148,13 @@ def test_mapper_handles_rtp_timestamp_wraparound() -> None:
     mapper = RtcpTimeMapper(clock_rate_hz=90_000)
     near_max = 0xFFFFFFFF - 1000
     mapper.observe(
-        SenderReport(ssrc=1, ntp_wallclock_unix_ns=0, rtp_timestamp=near_max, packet_count=1, octet_count=1)
+        SenderReport(
+            ssrc=1,
+            ntp_wallclock_unix_ns=0,
+            rtp_timestamp=near_max,
+            packet_count=1,
+            octet_count=1,
+        )
     )
     # 2000 ticks forward wraps around 32-bit: near_max + 2000 mod 2^32.
     wrapped = (near_max + 2000) & 0xFFFFFFFF
@@ -150,10 +166,22 @@ def test_mapper_handles_rtp_timestamp_wraparound() -> None:
 def test_mapper_uses_latest_observation_only() -> None:
     mapper = RtcpTimeMapper(clock_rate_hz=90_000)
     mapper.observe(
-        SenderReport(ssrc=1, ntp_wallclock_unix_ns=0, rtp_timestamp=0, packet_count=1, octet_count=1)
+        SenderReport(
+            ssrc=1,
+            ntp_wallclock_unix_ns=0,
+            rtp_timestamp=0,
+            packet_count=1,
+            octet_count=1,
+        )
     )
     mapper.observe(
-        SenderReport(ssrc=1, ntp_wallclock_unix_ns=5_000_000_000, rtp_timestamp=90_000, packet_count=2, octet_count=2)
+        SenderReport(
+            ssrc=1,
+            ntp_wallclock_unix_ns=5_000_000_000,
+            rtp_timestamp=90_000,
+            packet_count=2,
+            octet_count=2,
+        )
     )
     # Mapping should be relative to the SECOND (latest) anchor.
     result = mapper.map_to_wallclock_ns(90_000)

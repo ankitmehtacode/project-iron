@@ -122,7 +122,9 @@ def main() -> int:
             session.close()
     finally:
         server.stop()
-    print(f"  PASS: negotiated TCP-interleaved transport, {len(ingest_frames)} frames demuxed")
+    print(
+        f"  PASS: negotiated TCP-interleaved transport, {len(ingest_frames)} frames demuxed"
+    )
 
     print("\n[3/6] decoded frames (cv2.imdecode on each frame's payload)")
     decoded: list[np.ndarray] = []
@@ -133,7 +135,9 @@ def main() -> int:
             continue
         decoded.append(cv2.cvtColor(arr, cv2.COLOR_BGR2RGB))
     if len(decoded) == len(ingest_frames) and decoded:
-        print(f"  PASS: {len(decoded)}/{len(ingest_frames)} frames decoded, shape {decoded[0].shape}")
+        print(
+            f"  PASS: {len(decoded)}/{len(ingest_frames)} frames decoded, shape {decoded[0].shape}"
+        )
     else:
         print(f"  FAIL: {len(decoded)}/{len(ingest_frames)} frames decoded")
 
@@ -152,18 +156,29 @@ def main() -> int:
     clip_path = store_root / f"{clip_id}.npz"
     np.savez_compressed(clip_path, rgb=stacked)
     reloaded_ok = clip_path.exists() and clip_path.stat().st_size > 0
-    print(f"  PASS: {clip_id} -> {clip_path} ({clip_path.stat().st_size} bytes)" if reloaded_ok else "  FAIL: store write")
+    print(
+        f"  PASS: {clip_id} -> {clip_path} ({clip_path.stat().st_size} bytes)"
+        if reloaded_ok
+        else "  FAIL: store write"
+    )
 
     print("\n[5/6] Gap records on the induced drop (seq 3-4)")
     gaps = session.gaps
     coverage_gaps = session.coverage_gaps()
-    if len(gaps) == 1 and gaps[0].expected_seq == 3 and gaps[0].observed_seq == 5 and gaps[0].gap_count == 2:
+    if (
+        len(gaps) == 1
+        and gaps[0].expected_seq == 3
+        and gaps[0].observed_seq == 5
+        and gaps[0].gap_count == 2
+    ):
         print(f"  PASS: FrameGap(expected=3, observed=5, gap_count=2) detected")
     else:
         failures.append(f"expected exactly one FrameGap(3->5); got {gaps}")
         print(f"  FAIL: {gaps}")
     if len(coverage_gaps) == 1 and coverage_gaps[0].reason == "dropped_frame":
-        print(f"  PASS: projects into Coverage.Gap(reason={coverage_gaps[0].reason!r}, camera_id={coverage_gaps[0].camera_id!r})")
+        print(
+            f"  PASS: projects into Coverage.Gap(reason={coverage_gaps[0].reason!r}, camera_id={coverage_gaps[0].camera_id!r})"
+        )
     else:
         failures.append("FrameGap did not project into exactly one Coverage.Gap")
         print(f"  FAIL: {coverage_gaps}")
@@ -172,7 +187,13 @@ def main() -> int:
     conditions = (Condition.DAYLIGHT, Condition.SINGLE_PERSON)
     consent_path = store_root / "dry_run_consent.json"
     consent_path.write_text(
-        json.dumps({"subjects": 1, "captured_on": "2026-08-08", "note": "dry run, synthetic frames, no real person"})
+        json.dumps(
+            {
+                "subjects": 1,
+                "captured_on": "2026-08-08",
+                "note": "dry run, synthetic frames, no real person",
+            }
+        )
     )
     consent = ConsentRecord.load(consent_path)
     manifest = {
@@ -193,13 +214,20 @@ def main() -> int:
                 "frames": int(stacked.shape[0]),
                 "resolution": [int(stacked.shape[2]), int(stacked.shape[1])],
                 "conditions": [c.value for c in conditions],
-                "coverage_gaps": [g.as_dict() if hasattr(g, "as_dict") else str(g) for g in coverage_gaps],
+                "coverage_gaps": [
+                    g.as_dict() if hasattr(g, "as_dict") else str(g)
+                    for g in coverage_gaps
+                ],
             }
         ],
     }
     manifest_path = store_root / "capture_manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True, default=str) + "\n")
-    print(f"  PASS: lane C manifest, conditions={[c.value for c in conditions]} -> {manifest_path}")
+    manifest_path.write_text(
+        json.dumps(manifest, indent=2, sort_keys=True, default=str) + "\n"
+    )
+    print(
+        f"  PASS: lane C manifest, conditions={[c.value for c in conditions]} -> {manifest_path}"
+    )
 
     print("\n" + "=" * 78)
     if failures:

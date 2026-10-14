@@ -151,15 +151,11 @@ class NtuSkeletonConverter:
             # The action is the whole clip, so the event timestamp is the clip
             # midpoint — synthesized from frame count at NTU's fixed 30 fps.
             # +1 so a 1-frame clip still gets a positive, nonzero timestamp.
-            midpoint_ns = int(
-                (frames / 2.0) / NTU_FPS * NANOSECONDS_PER_SECOND
-            ) + 1
+            midpoint_ns = int((frames / 2.0) / NTU_FPS * NANOSECONDS_PER_SECOND) + 1
 
             result.events.append(
                 Event(
-                    event_id=deterministic_event_id(
-                        SITE_ID, clip_id, verb.value
-                    ),
+                    event_id=deterministic_event_id(SITE_ID, clip_id, verb.value),
                     site_id=SITE_ID,
                     ts_ns=midpoint_ns,
                     # Performers are numbered, not identified. A session ref

@@ -161,7 +161,9 @@ def test_unevaluable_is_neither_satisfied_nor_a_violation_of_either_kind() -> No
             name="h", description="y", predicate=lambda: Unevaluable(reason="r")
         ),
         TwinDependentConstraint(
-            name="t", description="y", predicate=lambda: Unevaluable(reason="r"),
+            name="t",
+            description="y",
+            predicate=lambda: Unevaluable(reason="r"),
             twin_rev=1,
         ),
     ):
@@ -191,8 +193,6 @@ def test_a_predicate_returning_a_non_verdict_raises(bad_return: object) -> None:
     """Neither reading of an ambiguous return is safe to guess at: a
     truthy test would turn a half-written predicate's None into a
     violation, and a non-empty error string into a PASS."""
-    constraint = HardConstraint(
-        name="x", description="y", predicate=lambda: bad_return
-    )
+    constraint = HardConstraint(name="x", description="y", predicate=lambda: bad_return)
     with pytest.raises(ConstraintPredicateError):
         evaluate_constraint(constraint)

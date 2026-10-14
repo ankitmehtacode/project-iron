@@ -139,7 +139,9 @@ def ws_discover(timeout_s: float = _WS_DISCOVERY_TIMEOUT_S) -> list[DiscoveredDe
 
     devices: dict[str, DiscoveredDevice] = {}
     try:
-        sock.sendto(message.encode("utf-8"), (WS_DISCOVERY_MULTICAST_ADDR, WS_DISCOVERY_PORT))
+        sock.sendto(
+            message.encode("utf-8"), (WS_DISCOVERY_MULTICAST_ADDR, WS_DISCOVERY_PORT)
+        )
         while True:
             try:
                 data, _addr = sock.recvfrom(65536)
@@ -278,17 +280,29 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--onvif-port", type=int, default=80)
     parser.add_argument("--user", default=None, help="ONVIF device credentials")
     parser.add_argument("--password", default=None)
-    parser.add_argument("--manual", action="store_true", help="skip discovery, prompt for RTSP URL directly")
-    parser.add_argument("--host", default=None, help="with --manual: device host, for the manifest only")
-    parser.add_argument("--rtsp-url", default=None, help="with --manual: skip the interactive prompt")
-    parser.add_argument("--out", type=Path, default=Path("outputs/day12/discovered_cameras.json"))
+    parser.add_argument(
+        "--manual",
+        action="store_true",
+        help="skip discovery, prompt for RTSP URL directly",
+    )
+    parser.add_argument(
+        "--host", default=None, help="with --manual: device host, for the manifest only"
+    )
+    parser.add_argument(
+        "--rtsp-url", default=None, help="with --manual: skip the interactive prompt"
+    )
+    parser.add_argument(
+        "--out", type=Path, default=Path("outputs/day12/discovered_cameras.json")
+    )
     args = parser.parse_args(argv)
 
     if args.subnet:
         try:
             ipaddress.ip_network(args.subnet, strict=False)
         except ValueError as exc:
-            print(f"--subnet {args.subnet!r} is not a valid CIDR: {exc}", file=sys.stderr)
+            print(
+                f"--subnet {args.subnet!r} is not a valid CIDR: {exc}", file=sys.stderr
+            )
             return 1
 
     manifest: dict[str, Any] = {"devices": []}
@@ -314,7 +328,9 @@ def main(argv: list[str] | None = None) -> int:
             }
         )
     else:
-        print(f"WS-Discovery probe (multicast {WS_DISCOVERY_MULTICAST_ADDR}:{WS_DISCOVERY_PORT})...")
+        print(
+            f"WS-Discovery probe (multicast {WS_DISCOVERY_MULTICAST_ADDR}:{WS_DISCOVERY_PORT})..."
+        )
         found = ws_discover()
         print(f"{len(found)} device(s) responded")
         if not found:
@@ -329,7 +345,11 @@ def main(argv: list[str] | None = None) -> int:
             try:
                 url, name = prompt_manual_entry()
                 manifest["devices"].append(
-                    {"host": None, "discovery": "manual-fallback", "profiles": [{"name": name, "rtsp_uri": mask_credentials(url)}]}
+                    {
+                        "host": None,
+                        "discovery": "manual-fallback",
+                        "profiles": [{"name": name, "rtsp_uri": mask_credentials(url)}],
+                    }
                 )
             except ManualEntryUnavailable as exc:
                 # 0 devices found and no terminal to prompt on: still "ran
@@ -340,10 +360,17 @@ def main(argv: list[str] | None = None) -> int:
             print(f"  {device.host}  xaddr={device.xaddr}")
             try:
                 profiles = asyncio.run(
-                    query_stream_profiles(device.host, args.onvif_port, args.user, args.password)
+                    query_stream_profiles(
+                        device.host, args.onvif_port, args.user, args.password
+                    )
                 )
-            except Exception as exc:  # noqa: BLE001 — any ONVIF/network failure falls back
-                print(f"    ONVIF query failed ({exc}); falling back to manual entry", file=sys.stderr)
+            except (
+                Exception
+            ) as exc:  # noqa: BLE001 — any ONVIF/network failure falls back
+                print(
+                    f"    ONVIF query failed ({exc}); falling back to manual entry",
+                    file=sys.stderr,
+                )
                 try:
                     url, name = prompt_manual_entry()
                 except ManualEntryUnavailable as exc2:
@@ -359,8 +386,14 @@ def main(argv: list[str] | None = None) -> int:
                 continue
 
             for profile in profiles:
-                res = f"{profile.resolution[0]}x{profile.resolution[1]}" if profile.resolution else "?"
-                print(f"    {profile.name:20} {res:12} {profile.codec or '?':8} {profile.fps or '?'}fps  {profile.rtsp_uri_masked}")
+                res = (
+                    f"{profile.resolution[0]}x{profile.resolution[1]}"
+                    if profile.resolution
+                    else "?"
+                )
+                print(
+                    f"    {profile.name:20} {res:12} {profile.codec or '?':8} {profile.fps or '?'}fps  {profile.rtsp_uri_masked}"
+                )
             manifest["devices"].append(
                 {
                     "host": device.host,
