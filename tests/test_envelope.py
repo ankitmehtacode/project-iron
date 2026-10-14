@@ -25,6 +25,7 @@ from src.cascade.envelope import (
 )
 from src.cascade.motion import MotionGateConfig
 from src.data.scorecard import Scorecard, ScorecardError
+from src.data.scorecard import OBSERVABILITY_INSTANCE_MASK  # noqa: E402
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
@@ -216,6 +217,7 @@ def _card(set_sha: str, envelope_sha: str) -> Scorecard:
         golden_set_sha=set_sha,
         domain="indoor",
         clips_scored=1,
+        observability_proxy=OBSERVABILITY_INSTANCE_MASK,
         envelope={"envelope_sha": envelope_sha},
     )
 

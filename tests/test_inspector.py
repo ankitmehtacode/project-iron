@@ -227,6 +227,36 @@ def test_comparison_across_different_envelopes_is_refused(
         forged.unlink()
 
 
+def test_comparison_across_observability_proxies_is_refused(
+    store: art.Artifacts,
+) -> None:
+    """Same set, same envelope, box-area observability: still not
+    comparable — the UI refuses what Scorecard.require_comparable refuses
+    (Day 41)."""
+    from src.data.scorecard import OBSERVABILITY_BOX_AREA
+
+    _, payload = call(store, "/api/scorecards")
+    names = [c["name"] for c in payload["scorecards"]]
+    assert names
+
+    source = store.scorecards_dir / f"{names[0]}.json"
+    card = json.loads(source.read_text())
+    card["observability_proxy"] = OBSERVABILITY_BOX_AREA
+
+    forged = store.scorecards_dir / "pytest-proxy-variant.json"
+    forged.write_text(json.dumps(card))
+    try:
+        _, result = call(
+            store,
+            "/api/compare",
+            {"left": [names[0]], "right": ["pytest-proxy-variant"]},
+        )
+        assert result["refused"] is True
+        assert any("observability proxies" in r for r in result["reasons"])
+    finally:
+        forged.unlink()
+
+
 def test_a_missing_artifact_returns_the_path_and_the_command(
     store: art.Artifacts,
 ) -> None:

@@ -25,6 +25,7 @@ from src.data.scorecard import (
     _metric_with_baselines,
     _validate_gate_metric_pairing,
 )
+from src.data.scorecard import OBSERVABILITY_INSTANCE_MASK  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -344,6 +345,7 @@ def test_undefined_metric_renders_as_undefined_never_as_a_number() -> None:
         golden_set_sha="deadbeef",
         domain="indoor",
         clips_scored=1,
+        observability_proxy=OBSERVABILITY_INSTANCE_MASK,
         metrics=[metric],
     )
 

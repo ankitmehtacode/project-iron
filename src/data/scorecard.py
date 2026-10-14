@@ -356,6 +356,16 @@ class Scorecard:
     golden_set_sha: str
     domain: str
     clips_scored: int
+    observability_proxy: str
+    """What the observability partition read to decide what each camera
+    could see: :data:`OBSERVABILITY_INSTANCE_MASK` (the renderer's exact
+    masks, every golden-set scorecard) or :data:`OBSERVABILITY_BOX_AREA`
+    (a 2D box standing in for the silhouette, Day 41 SmartSpaces).
+
+    REQUIRED, no default (Day 31). The partition decides which frames
+    reach the recall denominator and which side of the envelope a miss
+    lands on, so two scorecards under different proxies answer different
+    questions; :meth:`require_comparable` refuses to compare them."""
     metrics: list[Metric] = field(default_factory=list)
     caveats: list[str] = field(default_factory=list)
     per_clip: dict[str, dict[str, float]] = field(default_factory=dict)
@@ -415,6 +425,7 @@ class Scorecard:
             "golden_set_sha": self.golden_set_sha,
             "domain": self.domain,
             "clips_scored": self.clips_scored,
+            "observability_proxy": self.observability_proxy,
             "metrics": [m.as_dict() for m in self.metrics],
             "caveats": self.caveats,
             "per_clip": self.per_clip,
@@ -430,11 +441,21 @@ class Scorecard:
     def require_comparable(self, other: "Scorecard") -> None:
         """Raise unless two scorecards may be compared to each other.
 
-        Guards the two ways a delta becomes meaningless: a different golden set
-        (different instrument) and a different capability envelope (different
-        definition of defect). Both produce a number that looks like a
-        regression or an improvement and is neither.
+        Guards the three ways a delta becomes meaningless: a different
+        observability proxy (a different notion of what a camera could see),
+        a different golden set (different instrument) and a different
+        capability envelope (different definition of defect). Each produces
+        a number that looks like a regression or an improvement and is
+        neither.
         """
+        if self.observability_proxy != other.observability_proxy:
+            raise ScorecardError(
+                "these scorecards partitioned observability differently "
+                f"({self.observability_proxy!r} vs {other.observability_proxy!r}). "
+                "A 2D box overstates a silhouette, so the box proxy puts frames "
+                "above the envelope that a mask would put below it; recall and "
+                "wake_fraction under one are not comparable with the other."
+            )
         if self.golden_set_sha != other.golden_set_sha:
             raise ScorecardError(
                 "these scorecards measured different golden sets "
@@ -458,6 +479,7 @@ class Scorecard:
             "=" * 90,
             f"set_sha     : {self.golden_set_sha}",
             f"clips scored: {self.clips_scored}",
+            f"observability: {self.observability_proxy}",
             "",
             f"{'metric':<40} {'value':>10}  {'baseline':<28} {'margin':>10}",
             "-" * 90,
@@ -555,6 +577,18 @@ def _strongest_baseline(metric: Metric) -> Any:
         if metric.higher_is_better
         else min(finite, key=lambda b: b.value)
     )
+
+
+OBSERVABILITY_INSTANCE_MASK = "instance_mask"
+"""Observability from the renderer's per-agent instance masks: exact."""
+
+OBSERVABILITY_BOX_AREA = (
+    "box_area: 2D visible-box area stands in for silhouette area (proxy)"
+)
+"""Day 41: observability from a dataset's visible 2D boxes. A box encloses
+the silhouette, so its area overstates silhouette area — more frames land
+above the envelope than a mask would put there. Not comparable with
+instance-mask scorecards (v3–v6); see :meth:`Scorecard.require_comparable`."""
 
 
 class Observability(IntEnum):
@@ -784,6 +818,21 @@ def motion_gate_metrics(
         output = gate.process(rgb[index][np.newaxis, ...], StageContext(index, index))
         predicted[index] = output.wake_next
 
+    return gate_counts(partition, predicted)
+
+
+def gate_counts(
+    partition: Partition, predicted: npt.NDArray[np.bool_]
+) -> tuple[dict[str, int], dict[str, float]]:
+    """Confusion counts and rates for one camera's wake decisions against
+    its observability partition. Split out of :func:`motion_gate_metrics`
+    (Day 41) so a partition built from a different observability proxy is
+    scored by exactly the same arithmetic."""
+    if predicted.shape[0] != partition.labels.shape[0]:
+        raise ScorecardError(
+            f"{predicted.shape[0]} wake decisions for a {partition.labels.shape[0]}"
+            "-frame partition"
+        )
     labels = partition.after_warmup()
     guess = predicted[partition.warm :]
 
@@ -1082,6 +1131,7 @@ def compute(
         golden_set_sha=golden.set_sha,
         domain=golden.domain.value,
         clips_scored=0,
+        observability_proxy=OBSERVABILITY_INSTANCE_MASK,
         envelope=envelope.provenance(),
         measurement_environment=current_measurement_environment(),
     )
@@ -1092,18 +1142,7 @@ def compute(
         # for why this is not left to the reader of a paragraph.
         card.caveats.append(f"{DO_NOT_QUOTE_PREFIX} {superseded}")
 
-    totals = {
-        "tp": 0,
-        "fp": 0,
-        "fn": 0,
-        "tn": 0,
-        "scored_frames": 0,
-        "below_envelope_frames": 0,
-        "envelope_limited_misses": 0,
-        "unobservable_frames": 0,
-        "wakes_outside_envelope": 0,
-        "frames_with_world_motion": 0,
-    }
+    totals = empty_gate_totals()
     occlusion_fractions: list[float] = []
 
     # Per-condition-bucket totals (Objective 3, Day 15): the SAME keys as
@@ -1151,6 +1190,52 @@ def compute(
         }
         card.clips_scored += 1
 
+    occlusion_metric = _metric_with_baselines(
+        "gt.occluded_track_fraction",
+        float(np.mean(occlusion_fractions)) if occlusion_fractions else 0.0,
+        "fraction",
+        False,
+        "Difficulty of the set itself, not a model result. A perfect score "
+        "on unoccluded clips says nothing about occlusion handling.",
+    )
+    return assemble_gate_scorecard(
+        card,
+        totals,
+        condition_totals,
+        condition_clip_counts,
+        gate_config,
+        extra_metrics=[occlusion_metric],
+    )
+
+
+def empty_gate_totals() -> dict[str, int]:
+    """The counters :func:`gate_counts` returns, at zero."""
+    return {
+        "tp": 0,
+        "fp": 0,
+        "fn": 0,
+        "tn": 0,
+        "scored_frames": 0,
+        "below_envelope_frames": 0,
+        "envelope_limited_misses": 0,
+        "unobservable_frames": 0,
+        "wakes_outside_envelope": 0,
+        "frames_with_world_motion": 0,
+    }
+
+
+def assemble_gate_scorecard(
+    card: Scorecard,
+    totals: dict[str, int],
+    condition_totals: dict[str, dict[str, int]],
+    condition_clip_counts: dict[str, int],
+    gate_config: Any,
+    extra_metrics: list[Metric] | None = None,
+) -> Scorecard:
+    """Turn accumulated gate counts into the Day-14 gate metrics, their
+    baselines and the per-condition table. Split out of :func:`compute`
+    (Day 41) so a dataset scored outside the golden-set path gets the same
+    metrics, pairing rule and baselines — not a re-implementation."""
     tp, fp, fn = totals["tp"], totals["fp"], totals["fn"]
     # Every frame the set put in front of the gate, scoreable or not. The
     # three buckets must close against this.
@@ -1294,14 +1379,7 @@ def compute(
             "Reported so the excluded buckets cannot hide a wake storm; the "
             "stay-awake latch is the expected cause.",
         ),
-        _metric_with_baselines(
-            "gt.occluded_track_fraction",
-            float(np.mean(occlusion_fractions)) if occlusion_fractions else 0.0,
-            "fraction",
-            False,
-            "Difficulty of the set itself, not a model result. A perfect score "
-            "on unoccluded clips says nothing about occlusion handling.",
-        ),
+        *(extra_metrics or []),
         _metric_with_baselines(
             "coverage.frames_scored",
             float(totals["scored_frames"]),

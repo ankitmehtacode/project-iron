@@ -157,6 +157,15 @@ def comparison(artifacts: Artifacts, left_name: str, right_name: str) -> dict[st
             return {"refused": True, "reason": card.what + " is not on disk"}
 
     reasons = []
+    left_proxy = left.get("observability_proxy")
+    right_proxy = right.get("observability_proxy")
+    if left_proxy != right_proxy:
+        reasons.append(
+            "different observability proxies "
+            f"({left_proxy!r} vs {right_proxy!r}) — a 2D box overstates a "
+            "silhouette, so the two partition frames differently and their "
+            "recall and wake_fraction are not comparable (Day 41)"
+        )
     if left["golden_set_sha"] != right["golden_set_sha"]:
         reasons.append(
             "different golden sets "

@@ -994,13 +994,18 @@ def test_a_current_set_carries_no_retirement_stamp() -> None:
 def test_a_retirement_notice_sorts_above_every_other_caveat() -> None:
     """Insertion order cannot be relied on: `compute` adds the stamp
     first, then callers append more afterwards."""
-    from src.data.scorecard import DO_NOT_QUOTE_PREFIX, Scorecard
+    from src.data.scorecard import (
+        DO_NOT_QUOTE_PREFIX,
+        OBSERVABILITY_INSTANCE_MASK,
+        Scorecard,
+    )
 
     card = Scorecard(
         golden_set_version="vtest",
         golden_set_sha="0" * 12,
         domain="indoor",
         clips_scored=0,
+        observability_proxy=OBSERVABILITY_INSTANCE_MASK,
     )
     card.caveats.append("appended by a caller, later")
     card.caveats.append(f"{DO_NOT_QUOTE_PREFIX} retired")

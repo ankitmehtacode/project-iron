@@ -23,6 +23,7 @@ import numpy as np
 import pytest
 
 from src.data.scorecard import Metric, _metric_with_baselines, _strongest_baseline
+from src.data.scorecard import OBSERVABILITY_INSTANCE_MASK  # noqa: E402
 from src.eval.baselines import (
     Baseline,
     BaselineMissing,
@@ -134,6 +135,7 @@ def test_scorecard_render_shows_baseline_and_margin() -> None:
         golden_set_sha="0" * 64,
         domain="indoor",
         clips_scored=0,
+        observability_proxy=OBSERVABILITY_INSTANCE_MASK,
     )
     card.metrics = [
         _metric_with_baselines(
