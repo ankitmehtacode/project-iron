@@ -335,17 +335,55 @@ def render_markdown(payload: dict[str, Any]) -> str:
         f"frame, container frame count = GT frame count): "
         f"{len(summary['video_problems'])}.",
         "",
-        "Re-renders named by the card, checked byte for byte:",
+        "## Re-render pair map",
         "",
-        "| re-render | source | calibration identical | GT identical |",
-        "|---|---|---|---|",
+        "Each Cosmos Transfer 2.5 re-render renders its source scene's "
+        "trajectories again with augmented RGB: one ground-truth trajectory "
+        "set, two videos per camera. **How the pairs were identified:** "
+        "named by the dataset card (raw README at `2cbe9563`: the scene "
+        "table's footnote, \"Scenes 001 / 003 / 005 / 007 / 021 / 024 are "
+        "Cosmos Transfer 2.5 (CT2.5) augmented re-renderings of 000 / 002 / "
+        '004 / 006 / 020 / 023 respectively", and the 2026-04-29 changelog '
+        "entry), then **checked byte for byte** here: each pair's "
+        "`calibration.json` and `ground_truth.json` have equal sha256. The "
+        "check was made only for the pairs the card names; no other pair of "
+        "fetched scenes shares a ground-truth sha256 (all 23 hashes "
+        "compared). Warehouse_023/024 are test scenes and were not fetched.",
+        "",
+        "| re-render | split | source | split | calibration identical "
+        "| GT identical | straddles train/val |",
+        "|---|---|---|---|---|---|---|",
     ]
+    split_of = {sc["scene"]: sc["split"] for sc in payload["scenes"]}
+    straddling = []
     for copy, r in summary["ct25_rerenders"].items():
+        straddles = split_of[copy] != split_of[r["source"]]
+        if straddles:
+            straddling.append(copy)
         lines.append(
-            f"| {copy} | {r['source']} | {r['calibration_identical']} | "
-            f"{r['ground_truth_identical']} |"
+            f"| {copy} | {split_of[copy]} | {r['source']} | "
+            f"{split_of[r['source']]} | {r['calibration_identical']} | "
+            f"{r['ground_truth_identical']} | {'**YES**' if straddles else 'no'} |"
         )
+    gt_shas: dict[str, list[str]] = {}
+    for sc in payload["scenes"]:
+        gt_shas.setdefault(sc["ground_truth_sha256"], []).append(sc["scene"])
+    unnamed = [
+        v
+        for v in gt_shas.values()
+        if len(v) > 1 and not set(v[1:]) <= set(CT25_RERENDER_OF)
+    ]
     lines += [
+        "",
+        (
+            f"**Pairs straddling train/val: {', '.join(straddling)}.**"
+            if straddling
+            else "**No pair straddles train/val**: the four train pairs are "
+            "train on both sides, and Warehouse_020/021 are val on both sides "
+            "— the card's split already keeps each re-render with its source."
+        ),
+        f"Scenes sharing a GT sha256 that the card does not name as a pair: "
+        f"{unnamed or 'none'}.",
         "",
         "Entities (unique object ids) by class, re-renders excluded so no "
         "scene is counted twice:",
@@ -422,7 +460,16 @@ def render_markdown(payload: dict[str, Any]) -> str:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--scene", action="append", default=[])
+    parser.add_argument(
+        "--render-only",
+        action="store_true",
+        help="re-render the markdown from the existing artifact, no rescan",
+    )
     args = parser.parse_args(argv)
+    if args.render_only:
+        REPORT.write_text(render_markdown(json.loads(ARTIFACT.read_text())))
+        print(f"Written: {REPORT.relative_to(REPO_ROOT)}")
+        return 0
 
     scenes = []
     for scene in scene_dirs():

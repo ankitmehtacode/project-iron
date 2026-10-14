@@ -68,6 +68,17 @@ retrains only the top (site) layer, never the generic one.
    Both carry into any checkpoint manifest through
    `unresolved_restrictions`, and a manifest with any open restriction
    refuses `promoted=True`.
+4. **Any split keeps a re-render with its source** (added Day 41, at the
+   user's direction). Five fetched scenes are Cosmos Transfer re-renders
+   whose ground truth is byte-identical to their source's
+   (`docs/smartspaces_integrity.md`, "Re-render pair map"): the same
+   trajectories, the same identities, different RGB. A re-render and its
+   source are one trajectory set. Train / validation / selection splits,
+   cross-validation folds and any held-out set are cut by trajectory set,
+   never by scene name — otherwise the same people's same paths sit on both
+   sides of the split and selection measures memorisation. The card's own
+   train/val split already satisfies this (no pair straddles it); a split
+   made here must too, and should check it rather than assume it.
 
 ### What a site adapter records
 
@@ -86,7 +97,7 @@ adapter built this way is promoted.
   the erasure drill. None is written by this ADR.
 - Known data caveats that a generic adapter would inherit: five of the 23
   fetched scenes are Cosmos Transfer re-renders with byte-identical ground
-  truth (train/val must split by source scene, not by scene name); the
+  truth (condition 4); the
   card's ground-truth key spelling differs from the files (the strict
   reader handles this); and loaded Transporters' 2D boxes include their
   payload (Day 41 reprojection), which matters for any crop-based training.

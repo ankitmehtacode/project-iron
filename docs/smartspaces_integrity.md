@@ -13,15 +13,20 @@ Source: `nvidia/PhysicalAI-SmartSpaces@2cbe9563cbe9f47f846e5c871ee994572bbbc60e`
 - Homography equals cameraMatrix's columns 0, 1, 3 (the z = 0 plane) on every camera: True.
 - Video problems (open, 1920×1080, 30 fps, decode at first/mid/last frame, container frame count = GT frame count): 0.
 
-Re-renders named by the card, checked byte for byte:
+## Re-render pair map
 
-| re-render | source | calibration identical | GT identical |
-|---|---|---|---|
-| Warehouse_001 | Warehouse_000 | True | True |
-| Warehouse_003 | Warehouse_002 | True | True |
-| Warehouse_005 | Warehouse_004 | True | True |
-| Warehouse_007 | Warehouse_006 | True | True |
-| Warehouse_021 | Warehouse_020 | True | True |
+Each Cosmos Transfer 2.5 re-render renders its source scene's trajectories again with augmented RGB: one ground-truth trajectory set, two videos per camera. **How the pairs were identified:** named by the dataset card (raw README at `2cbe9563`: the scene table's footnote, "Scenes 001 / 003 / 005 / 007 / 021 / 024 are Cosmos Transfer 2.5 (CT2.5) augmented re-renderings of 000 / 002 / 004 / 006 / 020 / 023 respectively", and the 2026-04-29 changelog entry), then **checked byte for byte** here: each pair's `calibration.json` and `ground_truth.json` have equal sha256. The check was made only for the pairs the card names; no other pair of fetched scenes shares a ground-truth sha256 (all 23 hashes compared). Warehouse_023/024 are test scenes and were not fetched.
+
+| re-render | split | source | split | calibration identical | GT identical | straddles train/val |
+|---|---|---|---|---|---|---|
+| Warehouse_001 | train | Warehouse_000 | train | True | True | no |
+| Warehouse_003 | train | Warehouse_002 | train | True | True | no |
+| Warehouse_005 | train | Warehouse_004 | train | True | True | no |
+| Warehouse_007 | train | Warehouse_006 | train | True | True | no |
+| Warehouse_021 | val | Warehouse_020 | val | True | True | no |
+
+**No pair straddles train/val**: the four train pairs are train on both sides, and Warehouse_020/021 are val on both sides — the card's split already keeps each re-render with its source.
+Scenes sharing a GT sha256 that the card does not name as a pair: none.
 
 Entities (unique object ids) by class, re-renders excluded so no scene is counted twice:
 
