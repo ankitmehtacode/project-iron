@@ -426,7 +426,9 @@ def _stub_hf_config(
     monkeypatch.setattr(
         fetch_dataset,
         "_fetch_hf_file",
-        lambda repo_id, commit_sha, path, token: content_by_path[path],
+        lambda repo_id, commit_sha, path, token, destination, on_progress=None: (
+            destination.write_bytes(content_by_path[path])
+        ),
     )
 
 
@@ -460,9 +462,9 @@ def test_hf_fetch_is_idempotent(sandbox: Path, monkeypatch: pytest.MonkeyPatch) 
     _stub_hf_config(monkeypatch, {"scenario_a/train.jsonl": b"row one\n"})
     real_fetch = fetch_dataset._fetch_hf_file
 
-    def counting_fetch(repo_id, commit_sha, path, token):
+    def counting_fetch(repo_id, commit_sha, path, token, destination, on_progress=None):
         calls.append(path)
-        return real_fetch(repo_id, commit_sha, path, token)
+        return real_fetch(repo_id, commit_sha, path, token, destination)
 
     monkeypatch.setattr(fetch_dataset, "_fetch_hf_file", counting_fetch)
 
@@ -484,7 +486,9 @@ def test_hf_fetch_hash_mismatch_deletes_and_refuses(
     monkeypatch.setattr(
         fetch_dataset,
         "_fetch_hf_file",
-        lambda repo_id, commit_sha, path, token: b"corrupted in transit",
+        lambda repo_id, commit_sha, path, token, destination, on_progress=None: (
+            destination.write_bytes(b"corrupted in transit")
+        ),
     )
 
     code = fetch_dataset.main(["hf-verified", "--hf-config", "scenario_a"])
@@ -492,9 +496,11 @@ def test_hf_fetch_hash_mismatch_deletes_and_refuses(
 
     dataset_root = sandbox / "data" / "raw" / "hf-verified" / HF_COMMIT_SHA
     assert not (dataset_root / "scenario_a").exists()
-    assert not list(
-        dataset_root.glob("scenario_a.partial*")
-    ), "mismatched payload was kept"
+    # The staging directory is kept for resume, but holds no file at all:
+    # the mismatched bytes were deleted, not parked.
+    assert not [
+        f for f in dataset_root.rglob("*") if f.is_file()
+    ], "mismatched payload was kept"
 
 
 def test_hf_fetch_unknown_config_name_fails_clearly(
@@ -674,9 +680,16 @@ def _stub_hf_paths(
         ],
     )
 
-    def fake_fetch(repo_id: str, commit_sha: str, path: str, token: object) -> bytes:
+    def fake_fetch(
+        repo_id: str,
+        commit_sha: str,
+        path: str,
+        token: object,
+        destination: Path,
+        on_progress: object = None,
+    ) -> None:
         downloaded.append(path)
-        return content_by_path[path]
+        destination.write_bytes(content_by_path[path])
 
     monkeypatch.setattr(fetch_dataset, "_fetch_hf_file", fake_fetch)
     return downloaded
@@ -733,11 +746,14 @@ def test_hf_path_fetch_hash_mismatch_deletes_and_refuses(
 ) -> None:
     _stub_hf_paths(monkeypatch, _MIXED_REPO)
     monkeypatch.setattr(
-        fetch_dataset, "_fetch_hf_file", lambda *a, **k: b"corrupted in transit"
+        fetch_dataset,
+        "_fetch_hf_file",
+        lambda *a, **k: a[4].write_bytes(b"corrupted in transit"),
     )
     assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 1
     root = sandbox / "data" / "raw" / "hf-mixed-lanes" / HF_COMMIT_SHA
-    assert not list(root.glob("paths-*")), "mismatched payload was kept"
+    assert not [p for p in root.glob("paths-*") if not p.name.endswith(".partial")]
+    assert not [f for f in root.rglob("*") if f.is_file()], "mismatched payload kept"
 
 
 def test_hf_path_fetch_refuses_when_the_card_declares_configs(
@@ -871,3 +887,238 @@ def test_deny_patterns_refuse_a_commit_other_than_the_verified_one(
     )
     assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 2
     assert downloaded == []
+
+
+# ---------------------------------------------------------------------------
+# 2026-10-14: resumable downloads. The first SmartSpaces fetch died on
+# http.client.IncompleteRead 82MB into a 186MB video, after ~11GB had landed.
+# ---------------------------------------------------------------------------
+
+
+class _FakeHttp:
+    """A urlopen stand-in serving ``content_by_path`` (matched by URL suffix),
+    honouring Range with a 206, and failing according to a script of
+    faults consumed one per request: "cut" drops the stream halfway with
+    IncompleteRead, "503"/"404" raise that HTTPError, None serves cleanly."""
+
+    def __init__(
+        self, content_by_path: dict[str, bytes], faults: list[str | None] = ()
+    ) -> None:
+        self.content_by_path = content_by_path
+        self.faults = list(faults)
+        self.requests: list[tuple[str, str | None]] = []
+
+    def __call__(self, request: object, timeout: float = 0) -> "_FakeResponse":
+        import urllib.error
+
+        url = request.full_url
+        rng = request.get_header("Range")
+        self.requests.append((url, rng))
+        fault = self.faults.pop(0) if self.faults else None
+        if fault in ("503", "404"):
+            raise urllib.error.HTTPError(url, int(fault), "fault", {}, None)
+        (content,) = [c for p, c in self.content_by_path.items() if url.endswith(p)]
+        start = int(rng.removeprefix("bytes=").rstrip("-")) if rng else 0
+        body = content[start:]
+        return _FakeResponse(
+            206 if rng else 200, body, len(body) // 2 if fault == "cut" else None
+        )
+
+
+class _FakeResponse:
+    def __init__(self, status: int, body: bytes, cut_at: int | None) -> None:
+        self.status, self._body, self._cut_at, self._pos = status, body, cut_at, 0
+
+    def __enter__(self) -> "_FakeResponse":
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        return None
+
+    def read(self, size: int = -1) -> bytes:
+        import http.client
+
+        end = len(self._body) if size < 0 else self._pos + size
+        if self._cut_at is not None:
+            if self._pos >= self._cut_at:
+                raise http.client.IncompleteRead(b"", len(self._body) - self._pos)
+            end = min(end, self._cut_at)
+        chunk, self._pos = self._body[self._pos : end], min(end, len(self._body))
+        return chunk
+
+
+@pytest.fixture()
+def sleeps(monkeypatch: pytest.MonkeyPatch) -> list[float]:
+    """Record backoff delays instead of sleeping through them."""
+    recorded: list[float] = []
+    monkeypatch.setattr(fetch_dataset, "_sleep", recorded.append)
+    return recorded
+
+
+_BLOB = bytes(range(256)) * 4  # 1024 bytes, every offset distinguishable
+
+
+def test_download_resumes_with_range_after_the_stream_dies(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, sleeps: list[float]
+) -> None:
+    server = _FakeHttp({"blob.bin": _BLOB}, faults=["cut"])
+    monkeypatch.setattr(fetch_dataset.urllib.request, "urlopen", server)
+
+    dest = tmp_path / "blob.bin.partial"
+    fetch_dataset._download("https://example.test/blob.bin", dest)
+
+    assert dest.read_bytes() == _BLOB
+    assert [rng for _, rng in server.requests] == [None, "bytes=512-"]
+    assert sleeps == [1.0]
+
+
+def test_download_retries_a_5xx_then_succeeds(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, sleeps: list[float]
+) -> None:
+    server = _FakeHttp({"blob.bin": _BLOB}, faults=["503", "503"])
+    monkeypatch.setattr(fetch_dataset.urllib.request, "urlopen", server)
+
+    dest = tmp_path / "blob.bin.partial"
+    fetch_dataset._download("https://example.test/blob.bin", dest)
+
+    assert dest.read_bytes() == _BLOB
+    assert len(server.requests) == 3
+    assert sleeps == [1.0, 2.0], "backoff must grow while nothing lands"
+
+
+def test_download_does_not_retry_a_4xx(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, sleeps: list[float]
+) -> None:
+    import urllib.error
+
+    server = _FakeHttp({"blob.bin": _BLOB}, faults=["404"])
+    monkeypatch.setattr(fetch_dataset.urllib.request, "urlopen", server)
+
+    with pytest.raises(urllib.error.HTTPError):
+        fetch_dataset._download("https://example.test/blob.bin", tmp_path / "x")
+    assert len(server.requests) == 1 and sleeps == []
+
+
+def test_download_gives_up_when_nothing_lands_for_the_whole_budget(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, sleeps: list[float]
+) -> None:
+    import urllib.error
+
+    budget = fetch_dataset.RETRY_ATTEMPTS
+    server = _FakeHttp({"blob.bin": _BLOB}, faults=["503"] * (budget + 1))
+    monkeypatch.setattr(fetch_dataset.urllib.request, "urlopen", server)
+
+    with pytest.raises(urllib.error.HTTPError):
+        fetch_dataset._download("https://example.test/blob.bin", tmp_path / "x")
+    assert len(server.requests) == budget + 1
+    assert max(sleeps) <= fetch_dataset.RETRY_BACKOFF_CAP_SECONDS
+
+
+def _real_hf_download(monkeypatch: pytest.MonkeyPatch, server: _FakeHttp) -> None:
+    """Undo _stub_hf_paths' download stub so the real streaming path runs
+    against ``server``."""
+    monkeypatch.setattr(
+        fetch_dataset, "_fetch_hf_file", _REAL_DOWNLOADERS["_fetch_hf_file"]
+    )
+    monkeypatch.setattr(fetch_dataset.urllib.request, "urlopen", server)
+
+
+_VIDEO = "train/scene_000/videos/cam_0.mp4"
+
+
+def test_a_killed_fetch_resumes_from_the_byte_offset_on_rerun(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch, sleeps: list[float]
+) -> None:
+    """Run 1: the stream dies halfway, then the server stays down for the
+    whole retry budget — exit 1, partial kept. Run 2 resumes at that byte
+    with a Range request and installs the verified file."""
+    _stub_hf_paths(monkeypatch, {_VIDEO: _BLOB})
+    budget = fetch_dataset.RETRY_ATTEMPTS
+    server = _FakeHttp({_VIDEO: _BLOB}, faults=["cut"] + ["503"] * budget)
+    _real_hf_download(monkeypatch, server)
+
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 1
+    (staging,) = _paths_dirs(sandbox, "hf-mixed-lanes")
+    assert staging.name.endswith(".partial")
+    partial = staging / (_VIDEO + ".partial")
+    assert partial.stat().st_size == 512
+
+    server.requests.clear()
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 0
+    assert [rng for _, rng in server.requests] == ["bytes=512-"]
+    (installed,) = _paths_dirs(sandbox, "hf-mixed-lanes")
+    assert not installed.name.endswith(".partial")
+    assert (installed / _VIDEO).read_bytes() == _BLOB
+    assert not list(installed.rglob("*.partial"))
+
+
+def test_a_hash_mismatch_after_resume_is_rejected(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch, sleeps: list[float]
+) -> None:
+    """The resumed tail comes from a server now serving different bytes:
+    the stitched file fails HuggingFace's hash, is deleted, and nothing is
+    installed — resume must never launder a corrupt prefix or suffix."""
+    _stub_hf_paths(monkeypatch, {_VIDEO: _BLOB})
+    budget = fetch_dataset.RETRY_ATTEMPTS
+    _real_hf_download(
+        monkeypatch, _FakeHttp({_VIDEO: _BLOB}, faults=["cut"] + ["503"] * budget)
+    )
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 1
+
+    tampered = _BLOB[:512] + bytes(512)
+    _real_hf_download(monkeypatch, _FakeHttp({_VIDEO: tampered}))
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 1
+
+    (staging,) = _paths_dirs(sandbox, "hf-mixed-lanes")
+    assert staging.name.endswith(".partial"), "a mismatched file was installed"
+    assert not [f for f in staging.rglob("*") if f.is_file()]
+
+
+def test_an_already_installed_file_is_skipped_on_rerun(
+    sandbox: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    sleeps: list[float],
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    """Run 1 verifies ground_truth.json, then the video 404s. Run 2 asks
+    the server for the video only, and says the other file was present."""
+    repo = {"train/scene_000/ground_truth.json": b"{}", _VIDEO: _BLOB}
+    _stub_hf_paths(monkeypatch, repo)
+    _real_hf_download(monkeypatch, _FakeHttp(repo, faults=[None, "404"]))
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 1
+    capsys.readouterr()
+
+    server = _FakeHttp(repo)
+    _real_hf_download(monkeypatch, server)
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 0
+
+    assert [url.rsplit("/", 3)[-3:] for url, _ in server.requests] == [
+        ["scene_000", "videos", "cam_0.mp4"]
+    ]
+    out = capsys.readouterr().out
+    assert "[1/2] present     train/scene_000/ground_truth.json" in out
+    assert "[2/2] downloaded  train/scene_000/videos/cam_0.mp4" in out
+    assert "0.00 / 0.00 GB" in out  # running byte count on every result line
+
+
+def test_a_staged_file_that_fails_its_hash_is_downloaded_again(
+    sandbox: Path, monkeypatch: pytest.MonkeyPatch, sleeps: list[float]
+) -> None:
+    _stub_hf_paths(monkeypatch, {_VIDEO: _BLOB})
+    downloaded_once = _FakeHttp({_VIDEO: _BLOB}, faults=[None])
+    _real_hf_download(monkeypatch, downloaded_once)
+    root = sandbox / "data" / "raw" / "hf-mixed-lanes" / HF_COMMIT_SHA
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 0
+    # Turn the install back into a staging dir from an earlier run whose
+    # file has since rotted.
+    (installed,) = _paths_dirs(sandbox, "hf-mixed-lanes")
+    staging = root / (installed.name + ".partial")
+    installed.rename(staging)
+    (staging / "_manifest.json").unlink()
+    (staging / _VIDEO).write_bytes(b"bit rot")
+
+    server = _FakeHttp({_VIDEO: _BLOB})
+    _real_hf_download(monkeypatch, server)
+    assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 0
+    assert len(server.requests) == 1
+    assert (installed / _VIDEO).read_bytes() == _BLOB

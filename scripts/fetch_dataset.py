@@ -18,7 +18,9 @@ Downloads are content-addressed under ``data/raw/<name>/<sha256>/``:
 - **Idempotent**: a payload whose sha directory already exists is not fetched
   again, and re-running after success is a no-op.
 - **Resumable**: partial downloads land in a ``.partial`` file and resume with
-  a Range request where the server supports it.
+  a Range request where the server supports it; dropped connections,
+  timeouts and 5xx are retried with backoff (:func:`_download`, shared by
+  the tarball and HuggingFace paths).
 - **Refuses on mismatch**: a payload whose hash differs from ``--expected-sha``
   is deleted, not installed. A dataset that does not match its published hash
   is not "close enough" — it is a different dataset, possibly a tampered one.
@@ -42,17 +44,19 @@ import argparse
 import fnmatch
 import getpass
 import hashlib
+import http.client
 import json
 import posixpath
 import re
 import shutil
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import date, datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import huggingface_hub
 import yaml
@@ -70,6 +74,25 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 REGISTRY_PATH = REPO_ROOT / "configs" / "datasets.yaml"
 
 CHUNK_BYTES = 1 << 20
+
+# Retry budget for one download. The counter resets whenever an attempt made
+# progress, so a long file on a flaky link keeps going as long as bytes keep
+# landing; only a server that repeatedly fails without delivering anything
+# exhausts it. Found live 2026-10-14: http.client.IncompleteRead 82MB into a
+# 186MB SmartSpaces video, which is not an OSError and crashed the run.
+RETRY_ATTEMPTS = 6
+RETRY_BACKOFF_CAP_SECONDS = 60.0
+_TRANSIENT_ERRORS = (
+    http.client.HTTPException,  # IncompleteRead, RemoteDisconnected, ...
+    urllib.error.URLError,  # includes HTTPError; 4xx is re-raised below
+    TimeoutError,
+    ConnectionError,
+)
+# Everything a download can raise once retries are exhausted. IncompleteRead
+# is an http.client.HTTPException, not an OSError — catching OSError alone is
+# exactly how the 2026-10-14 fetch crashed instead of reporting.
+DOWNLOAD_ERRORS = (OSError, http.client.HTTPException)
+_sleep = time.sleep
 
 # A rendered dataset page (huggingface.co/datasets/<repo>) optionally followed
 # by /raw/<revision>/<path> or /blob/<revision>/<path> — the raw/blob group is
@@ -243,7 +266,7 @@ def _verify_license_direct(args: argparse.Namespace, entry: DatasetEntry) -> int
     try:
         with urllib.request.urlopen(args.license_url, timeout=60) as response:
             text = response.read()
-    except (urllib.error.URLError, OSError) as exc:
+    except DOWNLOAD_ERRORS as exc:
         print(f"Could not fetch the license text: {exc}", file=sys.stderr)
         return 1
 
@@ -316,14 +339,22 @@ def _fetch_hf_raw_file(
 
 
 def _fetch_hf_file(
-    repo_id: str, commit_sha: str, path: str, token: str | None
-) -> bytes:
-    """Bytes of one data file at one pinned commit, via /resolve/ — the
-    endpoint that follows Git-LFS to the real content. Found live on CHIRLA
-    (Day 40): every benchmark parquet is LFS, and /raw/ returned its
-    ~130-byte pointer ("version https://git-lfs.github.com/spec/v1 ...")."""
+    repo_id: str,
+    commit_sha: str,
+    path: str,
+    token: str | None,
+    destination: Path,
+    on_progress: Callable[[int], None] | None = None,
+) -> None:
+    """Stream one data file at one pinned commit to ``destination`` via
+    /resolve/ — the endpoint that follows Git-LFS to the real content. Found
+    live on CHIRLA (Day 40): every benchmark parquet is LFS, and /raw/
+    returned its ~130-byte pointer ("version https://git-lfs.github.com/spec/
+    v1 ..."). Resumes a partial ``destination`` and retries transient
+    failures — see :func:`_download`."""
     url = f"https://huggingface.co/datasets/{repo_id}/resolve/{commit_sha}/{path}"
-    return _hf_get(url, token, timeout=600)
+    headers = {"Authorization": f"Bearer {token}"} if token else {}
+    _download(url, destination, headers=headers, timeout=600, on_progress=on_progress)
 
 
 def _hf_get(url: str, token: str | None, timeout: float) -> bytes:
@@ -396,7 +427,7 @@ def _verify_license_huggingface(args: argparse.Namespace, entry: DatasetEntry) -
     print(f"Fetching {path} from {repo_id}@{resolved_sha} ...")
     try:
         text = _fetch_hf_raw_file(repo_id, resolved_sha, path, token)
-    except (urllib.error.URLError, OSError) as exc:
+    except DOWNLOAD_ERRORS as exc:
         print(f"Could not fetch the raw file: {exc}", file=sys.stderr)
         return 1
 
@@ -446,22 +477,74 @@ def _record_snapshot(entry: DatasetEntry, snapshot: LicenseSnapshot) -> int:
     return 0
 
 
-def _download(url: str, destination: Path) -> None:
-    """Stream a URL to ``destination``, resuming a partial file if present."""
-    existing = destination.stat().st_size if destination.exists() else 0
-    request = urllib.request.Request(url)
+def _download(
+    url: str,
+    destination: Path,
+    headers: dict[str, str] | None = None,
+    timeout: float = 120,
+    on_progress: Callable[[int], None] | None = None,
+) -> None:
+    """Stream ``url`` to ``destination``, resuming a partial file with a
+    Range request and retrying transient failures (dropped connections,
+    timeouts, 5xx) with capped exponential backoff. Each retry resumes from
+    whatever reached disk. A 4xx is not transient and is raised at once.
+    ``on_progress`` receives the destination's size after every chunk.
+
+    No hash is checked here — the caller verifies the finished file, which is
+    also the backstop for a server that mishandles Range."""
+    failures = 0
+    while True:
+        before = _size_or_zero(destination)
+        try:
+            _download_once(url, destination, headers or {}, timeout, on_progress)
+            return
+        except _TRANSIENT_ERRORS as exc:
+            if isinstance(exc, urllib.error.HTTPError) and exc.code < 500:
+                raise
+            if _size_or_zero(destination) > before:
+                failures = 0
+            failures += 1
+            if failures > RETRY_ATTEMPTS:
+                raise
+            delay = min(RETRY_BACKOFF_CAP_SECONDS, 2.0 ** (failures - 1))
+            print(
+                f"  {type(exc).__name__}: {exc} — retry {failures}/"
+                f"{RETRY_ATTEMPTS} in {delay:.0f}s, resuming at byte "
+                f"{_size_or_zero(destination):,}"
+            )
+            _sleep(delay)
+
+
+def _download_once(
+    url: str,
+    destination: Path,
+    headers: dict[str, str],
+    timeout: float,
+    on_progress: Callable[[int], None] | None,
+) -> None:
+    existing = _size_or_zero(destination)
+    request = urllib.request.Request(url, headers=headers)
     if existing:
         request.add_header("Range", f"bytes={existing}-")
         print(f"  resuming at byte {existing:,}")
 
-    with urllib.request.urlopen(request, timeout=120) as response:
+    with urllib.request.urlopen(request, timeout=timeout) as response:
         # 206 means the server honoured the Range; anything else on a resume
         # means it did not, and appending would corrupt the payload.
         mode = "ab" if existing and response.status == 206 else "wb"
         if existing and response.status != 206:
             print("  server ignored the Range request; restarting from zero")
+        written = existing if mode == "ab" else 0
         with open(destination, mode) as handle:
-            shutil.copyfileobj(response, handle, CHUNK_BYTES)
+            while chunk := response.read(CHUNK_BYTES):
+                handle.write(chunk)
+                written += len(chunk)
+                if on_progress:
+                    on_progress(written)
+
+
+def _size_or_zero(path: Path) -> int:
+    return path.stat().st_size if path.exists() else 0
 
 
 def _git_blob_sha1(content: bytes) -> str:
@@ -473,6 +556,18 @@ def _git_blob_sha1(content: bytes) -> str:
     than a silent skip."""
     header = f"blob {len(content)}\0".encode()
     return hashlib.sha1(header + content).hexdigest()
+
+
+def _hf_file_hashes(path: Path, meta: dict[str, Any]) -> tuple[str, str | None]:
+    """(actual, expected) for one downloaded file, streamed from disk:
+    sha256 for an LFS file, git's blob sha1 for a non-LFS one."""
+    if meta["sha256"] is not None:
+        return sha256_file(path), meta["sha256"]
+    digest = hashlib.sha1(f"blob {path.stat().st_size}\0".encode())
+    with open(path, "rb") as handle:
+        while chunk := handle.read(CHUNK_BYTES):
+            digest.update(chunk)
+    return digest.hexdigest(), meta["git_sha1"]
 
 
 def _hf_repo_id(entry: DatasetEntry) -> str:
@@ -835,7 +930,12 @@ def _install_hf_files(
     empty match, refuse a repo path that would escape the staging directory,
     download via /resolve/ (LFS content, never the pointer), verify each file
     against HuggingFace's own reported hash, and install atomically by
-    renaming a fully-verified staging directory into place."""
+    renaming a fully-verified staging directory into place.
+
+    Resumable across runs (2026-10-14): the staging directory survives a
+    failure, every file in it got there only by passing its hash check, and
+    a rerun re-verifies and skips those. The file in flight streams to
+    ``<path>.partial`` and resumes from its byte offset."""
     dest_dir = dataset_root / label
     if dest_dir.exists():
         print(
@@ -853,15 +953,9 @@ def _install_hf_files(
         return 1
 
     staging = dataset_root / f"{label}.partial"
-    if staging.exists():
-        shutil.rmtree(staging)
-    staging.mkdir(parents=True)
     staging_root = staging.resolve()
-
     for meta in files:
-        target = (staging / meta["path"]).resolve()
-        if not target.is_relative_to(staging_root):
-            shutil.rmtree(staging)
+        if not (staging_root / meta["path"]).resolve().is_relative_to(staging_root):
             print(
                 f"REFUSED: repo path {meta['path']!r} resolves outside the "
                 "staging directory — a listing from the network is untrusted "
@@ -869,31 +963,68 @@ def _install_hf_files(
                 file=sys.stderr,
             )
             return 1
+    staging.mkdir(parents=True, exist_ok=True)
+
+    total = sum(m["size"] for m in files)
+    done = 0
+    show_live = sys.stdout.isatty()
+    for index, meta in enumerate(files, start=1):
+        target = staging / meta["path"]
+        tag = f"[{index:>{len(str(len(files)))}}/{len(files)}]"
+
+        if target.exists():
+            actual, expected = _hf_file_hashes(target, meta)
+            if expected is not None and actual == expected:
+                done += meta["size"]
+                print(f"  {tag} present     {meta['path']}  {_progress(done, total)}")
+                continue
+            print(
+                f"  {tag} {meta['path']} is in staging but hashes to {actual}, "
+                f"not {expected} — deleting it and downloading again."
+            )
+            target.unlink()
+
         target.parent.mkdir(parents=True, exist_ok=True)
-        print(f"  downloading {meta['path']} ...")
+        partial = target.with_name(target.name + ".partial")
+        if partial.exists() and partial.stat().st_size > meta["size"]:
+            partial.unlink()  # longer than the file can be: not a prefix of it
+
+        def live(file_bytes: int, base: int = done) -> None:
+            if show_live:
+                print(f"\r  {_progress(base + file_bytes, total)}", end="", flush=True)
+
         try:
-            content = _fetch_hf_file(repo_id, commit_sha, meta["path"], token)
-        except (urllib.error.URLError, OSError) as exc:
-            shutil.rmtree(staging)
-            print(f"Download failed on {meta['path']}: {exc}", file=sys.stderr)
+            if _size_or_zero(partial) < meta["size"] or meta["size"] == 0:
+                _fetch_hf_file(repo_id, commit_sha, meta["path"], token, partial, live)
+        except DOWNLOAD_ERRORS as exc:
+            if show_live:
+                print()
+            print(
+                f"Download failed on {meta['path']} after retries: "
+                f"{type(exc).__name__}: {exc}. Kept {_size_or_zero(partial):,} "
+                f"bytes at {partial} and every verified file in {staging}; "
+                "rerun the same command to resume.",
+                file=sys.stderr,
+            )
             return 1
+        if show_live:
+            print()
 
-        if meta["sha256"] is not None:
-            actual, expected = hashlib.sha256(content).hexdigest(), meta["sha256"]
-        else:
-            actual, expected = _git_blob_sha1(content), meta["git_sha1"]
-
+        actual, expected = _hf_file_hashes(partial, meta)
         if expected is None or actual != expected:
-            shutil.rmtree(staging)
+            partial.unlink()
             print(
                 f"HASH MISMATCH on {meta['path']}: HuggingFace reports "
                 f"{expected}, downloaded content hashes to {actual}. Deleted, "
                 "not installed — a file that does not match HuggingFace's own "
-                "reported hash is not close enough.",
+                "reported hash is not close enough. Files already verified "
+                f"stay in {staging}.",
                 file=sys.stderr,
             )
             return 1
-        target.write_bytes(content)
+        partial.rename(target)
+        done += meta["size"]
+        print(f"  {tag} downloaded  {meta['path']}  {_progress(done, total)}")
 
     manifest = {
         **manifest_fields,
@@ -909,6 +1040,10 @@ def _install_hf_files(
     staging.rename(dest_dir)
     print(f"Stored {label} at {dest_dir} ({len(files)} files).")
     return 0
+
+
+def _progress(done: int, total: int) -> str:
+    return f"{done / 1e9:,.2f} / {total / 1e9:,.2f} GB"
 
 
 def fetch(args: argparse.Namespace) -> int:
@@ -952,7 +1087,7 @@ def _fetch_tarball(args: argparse.Namespace, entry: DatasetEntry) -> int:
     print(f"Downloading {args.url}")
     try:
         _download(args.url, partial)
-    except (urllib.error.URLError, OSError) as exc:
+    except DOWNLOAD_ERRORS as exc:
         print(
             f"Download failed: {exc}. The partial file is kept at {partial} "
             "and the next run will resume it.",

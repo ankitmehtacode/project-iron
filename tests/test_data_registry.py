@@ -76,6 +76,8 @@ def test_seed_registry_loads() -> None:
 # is a deliberate edit here, in the same change that records its snapshot.
 HUMAN_ATTESTED = {
     "CHIRLA",  # Day 40: raw README at f6571836..., attested by Ankit Mehta
+    # 2026-10-14: raw README at 2cbe9563..., attested by Ankit Mehta (2b29aad)
+    "PhysicalAI-SmartSpaces",
 }
 
 
@@ -679,12 +681,17 @@ def test_only_chirla_is_backfilled_today() -> None:
 
 
 def test_smartspaces_synthetic_entry_is_lane_s_with_an_open_restriction() -> None:
-    """The synthetic scenes: lane S, unverified, the Ethical Considerations
-    clause recorded unresolved with its pinned source, and the two real
-    scenes denied at fetch time."""
+    """The synthetic scenes: lane S, the license attested at the same commit
+    the deny list was written against (fetch refuses any other), the Ethical
+    Considerations clause recorded unresolved with its pinned source, and
+    the two real scenes denied at fetch time."""
     entry = DatasetRegistry.load(SEED_PATH).get("PhysicalAI-SmartSpaces")
     assert entry.lane == "S"
-    assert entry.license_snapshot is None
+    assert entry.license_snapshot is not None
+    assert (
+        entry.license_snapshot.resolved_commit_sha
+        == "2cbe9563cbe9f47f846e5c871ee994572bbbc60e"
+    )
     restriction = entry.deployment_scope_restriction
     assert restriction is not None and restriction.resolved is False
     assert "in accordance with our terms of service" in restriction.text
