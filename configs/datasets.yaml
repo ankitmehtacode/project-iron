@@ -152,6 +152,13 @@ datasets:
     separately as PhysicalAI-SmartSpaces-RealWorldTest (lane R, blocked). Persons are
     NVIDIA Omniverse character assets; whether any are SMPL-derived is not stated
     on the card (see the SMPL trap in src/data/registry.py).'
+  license_snapshot:
+    url: https://huggingface.co/datasets/nvidia/PhysicalAI-SmartSpaces/raw/2cbe9563cbe9f47f846e5c871ee994572bbbc60e/README.md
+    verified_date: '2026-10-14'
+    text_sha256: cdba2b672c8ac8deed29f9b26ea1bf2df52f91898d73bc7f59cd6c7b542150ab
+    verified_by: Ankit Mehta
+    verified_class: CC-BY-4.0
+    resolved_commit_sha: 2cbe9563cbe9f47f846e5c871ee994572bbbc60e
 - name: PhysicalAI-SmartSpaces-RealWorldTest
   lane: R
   subsystem: tracking
