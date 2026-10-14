@@ -95,3 +95,25 @@ def test_the_pre_day40_media_list_is_not_stale() -> None:
     standing exemption for a future file at the same path."""
     tracked = set(_tracked())
     assert set(PRE_DAY40_MEDIA) <= tracked
+
+
+def test_rendered_frames_under_artifacts_are_ignored_by_a_versioned_rule() -> None:
+    """Day 42: the Day-41 contact sheets were kept out of git only by a local
+    ``.git/info/exclude``. A fresh clone has no such file, so the next
+    ``git add artifacts`` there would have committed dataset frames. The rule
+    must come from ``.gitignore`` itself."""
+    probes = [
+        "artifacts/smartspaces/contact_sheets/probe.png",
+        "artifacts/smartspaces/contact_sheets/probe.txt",
+        "artifacts/smartspaces/probe.jpg",
+        "artifacts/anything/deeper/probe.webp",
+    ]
+    out = subprocess.run(
+        ["git", "check-ignore", "--no-index", "-v", *probes],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+    ).stdout.splitlines()
+    sources = {line.split("\t")[1]: line.split(":")[0] for line in out}
+    assert set(sources) == set(probes), f"not ignored: {set(probes) - set(sources)}"
+    assert set(sources.values()) == {".gitignore"}, sources

@@ -62,3 +62,15 @@ __pycache__/
 
 # Playwright MCP session state (screenshots, console logs) — machine-local. Root only.
 /.playwright-mcp/
+
+# Rendered dataset frames (Day 42). SmartSpaces contact sheets are frames of
+# NVIDIA's videos, whose terms clause is unresolved, and CHIRLA images are
+# never rendered at all. Until Day 42 this was ignored only by a local
+# .git/info/exclude, which a fresh clone does not have. Anchored to artifacts/.
+/artifacts/smartspaces/contact_sheets/
+/artifacts/**/*.png
+/artifacts/**/*.jpg
+/artifacts/**/*.jpeg
+/artifacts/**/*.gif
+/artifacts/**/*.webp
+/artifacts/**/*.bmp
