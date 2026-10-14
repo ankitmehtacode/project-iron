@@ -1,0 +1,5030 @@
+{
+  "label": "PhysicalAI-SmartSpaces \u2014 lane S, synthetic. Not evidence about real crowding.",
+  "pass_criterion": {
+    "inside_fraction_at_least": 0.9,
+    "median_uv_within": 0.1,
+    "min_box_side_px": 4,
+    "declared": "before the first run"
+  },
+  "box_criterion": {
+    "containment_bar": 0.9,
+    "declared": "after the first run, because the point criterion failed on Warehouse_000 under every convention while its medians were centred; see the module docstring"
+  },
+  "scenes": [
+    {
+      "scene": "Warehouse_000",
+      "boxes_total": 1924956,
+      "boxes_excluded_smaller_than_min_side": 218091,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.7294302712868329,
+          "median_u": 0.5168104089257419,
+          "median_v": 0.5073378457020631,
+          "iqr_v": [
+            0.49604860937960804,
+            0.7669350153119856
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.7632267343931711,
+          "median_u": 0.5231174998154184,
+          "median_v": 0.5137312445216045,
+          "iqr_v": [
+            0.5036019278998233,
+            0.7710281972400839
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.00032984448096363804,
+          "median_u": -27.925913619811446,
+          "median_v": -23.370750140503063,
+          "iqr_v": [
+            -67.32204788485235,
+            -7.31173996120357
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.6730426835162711,
+          "median_u": 0.5174807877332278,
+          "median_v": 0.7047293753493947,
+          "iqr_v": [
+            0.6699609491379575,
+            1.0962925739885154
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.6542321741906947,
+          "median_u": 0.5067344961380882,
+          "median_v": 0.7019458708363084,
+          "iqr_v": [
+            0.6641159915354308,
+            1.0817957798691624
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.6099357594185832,
+          "median_u": 0.5186106853198523,
+          "median_v": 0.8269759746821764,
+          "iqr_v": [
+            0.6810368058126071,
+            1.2503919321132393
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.5928705550819777,
+          "median_u": 0.5036601701987035,
+          "median_v": 0.8242396080299959,
+          "iqr_v": [
+            0.6787486843914735,
+            1.2454993172704518
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.19798226573279082,
+          "median_u": 0.5098759827657514,
+          "median_v": 1.0272999210874427,
+          "iqr_v": [
+            1.0039827139971245,
+            1.6767377366926426
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.25361056674077914,
+          "median_u": 0.49422722473907144,
+          "median_v": 1.0242862987264425,
+          "iqr_v": [
+            0.9981945254886854,
+            1.669328009009164
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1706865,
+          "behind_camera": 365829,
+          "inside_fraction": 0.008227950072208405,
+          "median_u": -0.9460801746489402,
+          "median_v": 0.6922044985563047,
+          "iqr_v": [
+            0.07736130582820899,
+            2.2556486160087563
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1706865,
+          "behind_camera": 161020,
+          "inside_fraction": 0.005941887612670012,
+          "median_u": -3.162882213809368,
+          "median_v": 0.3147308699553702,
+          "iqr_v": [
+            -0.6369511291048878,
+            1.4355248613419436
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1706865,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.627888998115699,
+          "fraction_containment_at_least_bar": 0.9263480122915403,
+          "iou_median": 0.5140622476053966,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 205261,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9624575540409528
+            },
+            "Forklift": {
+              "boxes": 249801,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9104006789404366
+            },
+            "Person": {
+              "boxes": 1251803,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9236093858218906
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1706865,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.9968426979629289,
+          "fraction_containment_at_least_bar": 0.9996607816083873,
+          "iou_median": 0.5331123336015227,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 205261,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 249801,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 1251803,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9995374671573722
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1328954,
+          "not_scored_corner_behind_camera": 377911,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.016266176255912545,
+          "iou_median": 0.0,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 79566,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Forklift": {
+              "boxes": 154953,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.04256129277910076
+            },
+            "Person": {
+              "boxes": 1094435,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.013725803725209812
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_001",
+      "boxes_total": 1924956,
+      "boxes_excluded_smaller_than_min_side": 218091,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.7294302712868329,
+          "median_u": 0.5168104089257419,
+          "median_v": 0.5073378457020631,
+          "iqr_v": [
+            0.49604860937960804,
+            0.7669350153119856
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.7632267343931711,
+          "median_u": 0.5231174998154184,
+          "median_v": 0.5137312445216045,
+          "iqr_v": [
+            0.5036019278998233,
+            0.7710281972400839
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.00032984448096363804,
+          "median_u": -27.925913619811446,
+          "median_v": -23.370750140503063,
+          "iqr_v": [
+            -67.32204788485235,
+            -7.31173996120357
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.6730426835162711,
+          "median_u": 0.5174807877332278,
+          "median_v": 0.7047293753493947,
+          "iqr_v": [
+            0.6699609491379575,
+            1.0962925739885154
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.6542321741906947,
+          "median_u": 0.5067344961380882,
+          "median_v": 0.7019458708363084,
+          "iqr_v": [
+            0.6641159915354308,
+            1.0817957798691624
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.6099357594185832,
+          "median_u": 0.5186106853198523,
+          "median_v": 0.8269759746821764,
+          "iqr_v": [
+            0.6810368058126071,
+            1.2503919321132393
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.5928705550819777,
+          "median_u": 0.5036601701987035,
+          "median_v": 0.8242396080299959,
+          "iqr_v": [
+            0.6787486843914735,
+            1.2454993172704518
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.19798226573279082,
+          "median_u": 0.5098759827657514,
+          "median_v": 1.0272999210874427,
+          "iqr_v": [
+            1.0039827139971245,
+            1.6767377366926426
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1706865,
+          "behind_camera": 0,
+          "inside_fraction": 0.25361056674077914,
+          "median_u": 0.49422722473907144,
+          "median_v": 1.0242862987264425,
+          "iqr_v": [
+            0.9981945254886854,
+            1.669328009009164
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1706865,
+          "behind_camera": 365829,
+          "inside_fraction": 0.008227950072208405,
+          "median_u": -0.9460801746489402,
+          "median_v": 0.6922044985563047,
+          "iqr_v": [
+            0.07736130582820899,
+            2.2556486160087563
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1706865,
+          "behind_camera": 161020,
+          "inside_fraction": 0.005941887612670012,
+          "median_u": -3.162882213809368,
+          "median_v": 0.3147308699553702,
+          "iqr_v": [
+            -0.6369511291048878,
+            1.4355248613419436
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1706865,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.627888998115699,
+          "fraction_containment_at_least_bar": 0.9263480122915403,
+          "iou_median": 0.5140622476053966,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 205261,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9624575540409528
+            },
+            "Forklift": {
+              "boxes": 249801,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9104006789404366
+            },
+            "Person": {
+              "boxes": 1251803,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9236093858218906
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1706865,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.9968426979629289,
+          "fraction_containment_at_least_bar": 0.9996607816083873,
+          "iou_median": 0.5331123336015227,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 205261,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 249801,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 1251803,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9995374671573722
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1328954,
+          "not_scored_corner_behind_camera": 377911,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.016266176255912545,
+          "iou_median": 0.0,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 79566,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Forklift": {
+              "boxes": 154953,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.04256129277910076
+            },
+            "Person": {
+              "boxes": 1094435,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.013725803725209812
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_002",
+      "boxes_total": 1685712,
+      "boxes_excluded_smaller_than_min_side": 147361,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.7674756931285512,
+          "median_u": 0.4892562674607802,
+          "median_v": 0.5077062378695615,
+          "iqr_v": [
+            0.49659475599115244,
+            0.7752360531813681
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.7695545424938782,
+          "median_u": 0.5198427371219769,
+          "median_v": 0.5186632341984573,
+          "iqr_v": [
+            0.505149768012593,
+            0.7978114957708871
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": -39.036782028758395,
+          "median_v": -14.324331750423806,
+          "iqr_v": [
+            -43.90576938833041,
+            -5.727605841937697
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.6874217912557017,
+          "median_u": 0.5204482680519661,
+          "median_v": 0.7079426273662961,
+          "iqr_v": [
+            0.6687983022610381,
+            1.0921499809923403
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.6890326069928124,
+          "median_u": 0.48996623840981357,
+          "median_v": 0.6958775381990132,
+          "iqr_v": [
+            0.6596827629271176,
+            1.0654895574802112
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.6288155303958589,
+          "median_u": 0.5209401446113227,
+          "median_v": 0.8047083279668281,
+          "iqr_v": [
+            0.6617645506835337,
+            1.224805442744897
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.6317894940751493,
+          "median_u": 0.4904508713262885,
+          "median_v": 0.7913875875422433,
+          "iqr_v": [
+            0.6510882865811424,
+            1.2038582234418722
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.1837331012233229,
+          "median_u": 0.5244234182199791,
+          "median_v": 1.0423859902051527,
+          "iqr_v": [
+            1.0057749444589597,
+            1.6782538647995295
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.26913233715842483,
+          "median_u": 0.49405705254467563,
+          "median_v": 1.0266734628109409,
+          "iqr_v": [
+            0.9980746052581084,
+            1.650592573811017
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1538351,
+          "behind_camera": 438153,
+          "inside_fraction": 0.0041011446672443415,
+          "median_u": -12.12170104452368,
+          "median_v": 1.3030622522022384,
+          "iqr_v": [
+            0.4701751337822036,
+            2.97783185635524
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1538351,
+          "behind_camera": 61118,
+          "inside_fraction": 0.00416809947794749,
+          "median_u": -19.35154632511688,
+          "median_v": 0.5037799487830755,
+          "iqr_v": [
+            -1.6949246425696407,
+            1.8548777454931014
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1538339,
+          "not_scored_corner_behind_camera": 12,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9926986184449591,
+          "iou_median": 0.5002196157218614,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 152722,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 171066,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999158219634527
+            },
+            "Person": {
+              "boxes": 1214551,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9908707003658141
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1538343,
+          "not_scored_corner_behind_camera": 8,
+          "containment_median": 1.0,
+          "containment_p5": 0.9966073132843184,
+          "fraction_containment_at_least_bar": 0.9995859180949892,
+          "iou_median": 0.49897699961844505,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 152722,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 171070,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 1214551,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9994755263467734
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1097169,
+          "not_scored_corner_behind_camera": 441182,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.0058897034094109475,
+          "iou_median": 0.0,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 71783,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Forklift": {
+              "boxes": 97366,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.004241727091592548
+            },
+            "Person": {
+              "boxes": 928020,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.006518178487532596
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_003",
+      "boxes_total": 1685712,
+      "boxes_excluded_smaller_than_min_side": 147361,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.7674756931285512,
+          "median_u": 0.4892562674607802,
+          "median_v": 0.5077062378695615,
+          "iqr_v": [
+            0.49659475599115244,
+            0.7752360531813681
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.7695545424938782,
+          "median_u": 0.5198427371219769,
+          "median_v": 0.5186632341984573,
+          "iqr_v": [
+            0.505149768012593,
+            0.7978114957708871
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": -39.036782028758395,
+          "median_v": -14.324331750423806,
+          "iqr_v": [
+            -43.90576938833041,
+            -5.727605841937697
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.6874217912557017,
+          "median_u": 0.5204482680519661,
+          "median_v": 0.7079426273662961,
+          "iqr_v": [
+            0.6687983022610381,
+            1.0921499809923403
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.6890326069928124,
+          "median_u": 0.48996623840981357,
+          "median_v": 0.6958775381990132,
+          "iqr_v": [
+            0.6596827629271176,
+            1.0654895574802112
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.6288155303958589,
+          "median_u": 0.5209401446113227,
+          "median_v": 0.8047083279668281,
+          "iqr_v": [
+            0.6617645506835337,
+            1.224805442744897
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.6317894940751493,
+          "median_u": 0.4904508713262885,
+          "median_v": 0.7913875875422433,
+          "iqr_v": [
+            0.6510882865811424,
+            1.2038582234418722
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.1837331012233229,
+          "median_u": 0.5244234182199791,
+          "median_v": 1.0423859902051527,
+          "iqr_v": [
+            1.0057749444589597,
+            1.6782538647995295
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1538351,
+          "behind_camera": 0,
+          "inside_fraction": 0.26913233715842483,
+          "median_u": 0.49405705254467563,
+          "median_v": 1.0266734628109409,
+          "iqr_v": [
+            0.9980746052581084,
+            1.650592573811017
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1538351,
+          "behind_camera": 438153,
+          "inside_fraction": 0.0041011446672443415,
+          "median_u": -12.12170104452368,
+          "median_v": 1.3030622522022384,
+          "iqr_v": [
+            0.4701751337822036,
+            2.97783185635524
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1538351,
+          "behind_camera": 61118,
+          "inside_fraction": 0.00416809947794749,
+          "median_u": -19.35154632511688,
+          "median_v": 0.5037799487830755,
+          "iqr_v": [
+            -1.6949246425696407,
+            1.8548777454931014
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1538339,
+          "not_scored_corner_behind_camera": 12,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9926986184449591,
+          "iou_median": 0.5002196157218614,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 152722,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 171066,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999158219634527
+            },
+            "Person": {
+              "boxes": 1214551,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9908707003658141
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1538343,
+          "not_scored_corner_behind_camera": 8,
+          "containment_median": 1.0,
+          "containment_p5": 0.9966073132843184,
+          "fraction_containment_at_least_bar": 0.9995859180949892,
+          "iou_median": 0.49897699961844505,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 152722,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 171070,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 1214551,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9994755263467734
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1097169,
+          "not_scored_corner_behind_camera": 441182,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.0058897034094109475,
+          "iou_median": 0.0,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 71783,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Forklift": {
+              "boxes": 97366,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.004241727091592548
+            },
+            "Person": {
+              "boxes": 928020,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.006518178487532596
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_004",
+      "boxes_total": 1454676,
+      "boxes_excluded_smaller_than_min_side": 102709,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.7859444794140685,
+          "median_u": 0.5093378893703052,
+          "median_v": 0.5061903821812863,
+          "iqr_v": [
+            0.49538607162000203,
+            0.7219143644347825
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.7823112546386117,
+          "median_u": 0.5185269585566454,
+          "median_v": 0.513627975421014,
+          "iqr_v": [
+            0.5014230237722208,
+            0.7367839457995586
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": -22.08487681070437,
+          "median_v": -19.76945434173933,
+          "iqr_v": [
+            -52.289372718305,
+            -7.415973515891983
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.712041788002222,
+          "median_u": 0.5207708065604757,
+          "median_v": 0.7077444539904411,
+          "iqr_v": [
+            0.6680599006262947,
+            0.9956363563555961
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.7167253342722123,
+          "median_u": 0.5121079924980058,
+          "median_v": 0.7034925250511551,
+          "iqr_v": [
+            0.662721407803493,
+            0.9837410962437781
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.6173116651515902,
+          "median_u": 0.5219257103716514,
+          "median_v": 0.8161203991112707,
+          "iqr_v": [
+            0.6829039512946882,
+            1.1632834317481326
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.6350968625713498,
+          "median_u": 0.5147408741678419,
+          "median_v": 0.8093736905236403,
+          "iqr_v": [
+            0.6756916154758351,
+            1.1479662155243613
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.24436173368136943,
+          "median_u": 0.5221987954635963,
+          "median_v": 1.0285954837699194,
+          "iqr_v": [
+            1.0001804990001566,
+            1.5281248303581267
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.3034290038144422,
+          "median_u": 0.5118455613948734,
+          "median_v": 1.018739887265927,
+          "iqr_v": [
+            0.9936636178068445,
+            1.5091936332937776
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1351967,
+          "behind_camera": 315499,
+          "inside_fraction": 0.0029801023249827843,
+          "median_u": -12.430490521039829,
+          "median_v": 0.6157232855097536,
+          "iqr_v": [
+            0.1150973255781905,
+            1.6261988440612818
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1351967,
+          "behind_camera": 14901,
+          "inside_fraction": 0.0029860196291773395,
+          "median_u": -10.191881032527903,
+          "median_v": 0.2942282731982655,
+          "iqr_v": [
+            -0.3638604890552818,
+            1.0637626839054808
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1351967,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9994711409376117,
+          "iou_median": 0.5258039495991653,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 185748,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 183989,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9996738935479839
+            },
+            "Person": {
+              "boxes": 982230,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999333150076866
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1351967,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.9986864525532544,
+          "fraction_containment_at_least_bar": 0.9997048744532966,
+          "iou_median": 0.5256235410332722,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 185748,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 183989,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 982230,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9995937814972053
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1024873,
+          "not_scored_corner_behind_camera": 327094,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.004809376381268704,
+          "iou_median": 0.0,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 150169,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Forklift": {
+              "boxes": 96203,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0032223527332827457
+            },
+            "Person": {
+              "boxes": 778501,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.005933197259862222
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_005",
+      "boxes_total": 1454676,
+      "boxes_excluded_smaller_than_min_side": 102709,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.7859444794140685,
+          "median_u": 0.5093378893703052,
+          "median_v": 0.5061903821812863,
+          "iqr_v": [
+            0.49538607162000203,
+            0.7219143644347825
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.7823112546386117,
+          "median_u": 0.5185269585566454,
+          "median_v": 0.513627975421014,
+          "iqr_v": [
+            0.5014230237722208,
+            0.7367839457995586
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": -22.08487681070437,
+          "median_v": -19.76945434173933,
+          "iqr_v": [
+            -52.289372718305,
+            -7.415973515891983
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.712041788002222,
+          "median_u": 0.5207708065604757,
+          "median_v": 0.7077444539904411,
+          "iqr_v": [
+            0.6680599006262947,
+            0.9956363563555961
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.7167253342722123,
+          "median_u": 0.5121079924980058,
+          "median_v": 0.7034925250511551,
+          "iqr_v": [
+            0.662721407803493,
+            0.9837410962437781
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.6173116651515902,
+          "median_u": 0.5219257103716514,
+          "median_v": 0.8161203991112707,
+          "iqr_v": [
+            0.6829039512946882,
+            1.1632834317481326
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.6350968625713498,
+          "median_u": 0.5147408741678419,
+          "median_v": 0.8093736905236403,
+          "iqr_v": [
+            0.6756916154758351,
+            1.1479662155243613
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.24436173368136943,
+          "median_u": 0.5221987954635963,
+          "median_v": 1.0285954837699194,
+          "iqr_v": [
+            1.0001804990001566,
+            1.5281248303581267
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1351967,
+          "behind_camera": 0,
+          "inside_fraction": 0.3034290038144422,
+          "median_u": 0.5118455613948734,
+          "median_v": 1.018739887265927,
+          "iqr_v": [
+            0.9936636178068445,
+            1.5091936332937776
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1351967,
+          "behind_camera": 315499,
+          "inside_fraction": 0.0029801023249827843,
+          "median_u": -12.430490521039829,
+          "median_v": 0.6157232855097536,
+          "iqr_v": [
+            0.1150973255781905,
+            1.6261988440612818
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1351967,
+          "behind_camera": 14901,
+          "inside_fraction": 0.0029860196291773395,
+          "median_u": -10.191881032527903,
+          "median_v": 0.2942282731982655,
+          "iqr_v": [
+            -0.3638604890552818,
+            1.0637626839054808
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1351967,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9994711409376117,
+          "iou_median": 0.5258039495991653,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 185748,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 183989,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9996738935479839
+            },
+            "Person": {
+              "boxes": 982230,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999333150076866
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1351967,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.9986864525532544,
+          "fraction_containment_at_least_bar": 0.9997048744532966,
+          "iou_median": 0.5256235410332722,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 185748,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 183989,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 982230,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9995937814972053
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1024873,
+          "not_scored_corner_behind_camera": 327094,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.004809376381268704,
+          "iou_median": 0.0,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 150169,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Forklift": {
+              "boxes": 96203,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0032223527332827457
+            },
+            "Person": {
+              "boxes": 778501,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.005933197259862222
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_006",
+      "boxes_total": 964502,
+      "boxes_excluded_smaller_than_min_side": 50577,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.7442689498591241,
+          "median_u": 0.49121574016410663,
+          "median_v": 0.5045785118374698,
+          "iqr_v": [
+            0.49254348433311135,
+            0.6346183627184524
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.7415192712749952,
+          "median_u": 0.5083236505385726,
+          "median_v": 0.5107367308685923,
+          "iqr_v": [
+            0.4987880627352908,
+            0.6447718103833848
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": -26.058221849417972,
+          "median_v": -8.071967729190737,
+          "iqr_v": [
+            -16.091158647203468,
+            -1.6092395787991218
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.6894219985228547,
+          "median_u": 0.5021880944618715,
+          "median_v": 0.717046720543663,
+          "iqr_v": [
+            0.6714957031336367,
+            0.9224065547092842
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.6932888366113193,
+          "median_u": 0.4886663238726421,
+          "median_v": 0.710312244731902,
+          "iqr_v": [
+            0.6653594648543003,
+            0.9103048666550897
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.5667314057499248,
+          "median_u": 0.5033401373591866,
+          "median_v": 0.9452909856006296,
+          "iqr_v": [
+            0.7072042646845409,
+            1.1604090424687952
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.5802270427004405,
+          "median_u": 0.48944756357635033,
+          "median_v": 0.9403335652087312,
+          "iqr_v": [
+            0.7003547797780361,
+            1.146274738017396
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.26237710971906886,
+          "median_u": 0.4943803471719331,
+          "median_v": 1.0233815215026714,
+          "iqr_v": [
+            0.996200996833593,
+            1.3839763417161997
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.32352107667478186,
+          "median_u": 0.48357513627588344,
+          "median_v": 1.0144043437245274,
+          "iqr_v": [
+            0.9915985369899913,
+            1.3688284214979736
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 913925,
+          "behind_camera": 569393,
+          "inside_fraction": 0.0005525617528790655,
+          "median_u": 30.109445891279325,
+          "median_v": 0.5220662147759476,
+          "iqr_v": [
+            -0.13741349378154594,
+            2.369841845213693
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 913925,
+          "behind_camera": 12242,
+          "inside_fraction": 0.0006510381048773149,
+          "median_u": 9.055663531875455,
+          "median_v": -0.9092787133391445,
+          "iqr_v": [
+            -1.794928111342136,
+            0.39796697462405156
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 913925,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9984965943594933,
+          "iou_median": 0.5271727279154307,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 224696,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 164510,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999550179320406
+            },
+            "Person": {
+              "boxes": 524719,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9975224834625771
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 913925,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.9971197076985843,
+          "fraction_containment_at_least_bar": 0.9996345433159176,
+          "iou_median": 0.5296399876500713,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 224696,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 164510,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999635280530059
+            },
+            "Person": {
+              "boxes": 524719,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9994778157451893
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 343161,
+          "not_scored_corner_behind_camera": 570764,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.005090904852241368,
+          "iou_median": 0.0,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 107983,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Forklift": {
+              "boxes": 53788,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Person": {
+              "boxes": 181390,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.009631181432273003
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_007",
+      "boxes_total": 964502,
+      "boxes_excluded_smaller_than_min_side": 50577,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.7442689498591241,
+          "median_u": 0.49121574016410663,
+          "median_v": 0.5045785118374698,
+          "iqr_v": [
+            0.49254348433311135,
+            0.6346183627184524
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.7415192712749952,
+          "median_u": 0.5083236505385726,
+          "median_v": 0.5107367308685923,
+          "iqr_v": [
+            0.4987880627352908,
+            0.6447718103833848
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": -26.058221849417972,
+          "median_v": -8.071967729190737,
+          "iqr_v": [
+            -16.091158647203468,
+            -1.6092395787991218
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.6894219985228547,
+          "median_u": 0.5021880944618715,
+          "median_v": 0.717046720543663,
+          "iqr_v": [
+            0.6714957031336367,
+            0.9224065547092842
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.6932888366113193,
+          "median_u": 0.4886663238726421,
+          "median_v": 0.710312244731902,
+          "iqr_v": [
+            0.6653594648543003,
+            0.9103048666550897
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.5667314057499248,
+          "median_u": 0.5033401373591866,
+          "median_v": 0.9452909856006296,
+          "iqr_v": [
+            0.7072042646845409,
+            1.1604090424687952
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.5802270427004405,
+          "median_u": 0.48944756357635033,
+          "median_v": 0.9403335652087312,
+          "iqr_v": [
+            0.7003547797780361,
+            1.146274738017396
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.26237710971906886,
+          "median_u": 0.4943803471719331,
+          "median_v": 1.0233815215026714,
+          "iqr_v": [
+            0.996200996833593,
+            1.3839763417161997
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 913925,
+          "behind_camera": 0,
+          "inside_fraction": 0.32352107667478186,
+          "median_u": 0.48357513627588344,
+          "median_v": 1.0144043437245274,
+          "iqr_v": [
+            0.9915985369899913,
+            1.3688284214979736
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 913925,
+          "behind_camera": 569393,
+          "inside_fraction": 0.0005525617528790655,
+          "median_u": 30.109445891279325,
+          "median_v": 0.5220662147759476,
+          "iqr_v": [
+            -0.13741349378154594,
+            2.369841845213693
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 913925,
+          "behind_camera": 12242,
+          "inside_fraction": 0.0006510381048773149,
+          "median_u": 9.055663531875455,
+          "median_v": -0.9092787133391445,
+          "iqr_v": [
+            -1.794928111342136,
+            0.39796697462405156
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 913925,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9984965943594933,
+          "iou_median": 0.5271727279154307,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 224696,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 164510,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999550179320406
+            },
+            "Person": {
+              "boxes": 524719,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9975224834625771
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 913925,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.9971197076985843,
+          "fraction_containment_at_least_bar": 0.9996345433159176,
+          "iou_median": 0.5296399876500713,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 224696,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 164510,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999635280530059
+            },
+            "Person": {
+              "boxes": 524719,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9994778157451893
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 343161,
+          "not_scored_corner_behind_camera": 570764,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.005090904852241368,
+          "iou_median": 0.0,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 107983,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Forklift": {
+              "boxes": 53788,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Person": {
+              "boxes": 181390,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.009631181432273003
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_008",
+      "boxes_total": 1378719,
+      "boxes_excluded_smaller_than_min_side": 30350,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1348369,
+          "behind_camera": 0,
+          "inside_fraction": 0.7900189043207015,
+          "median_u": 0.5024452004677233,
+          "median_v": 0.5083842335453974,
+          "iqr_v": [
+            0.4714519180367216,
+            0.5718519193981281
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1348369,
+          "behind_camera": 0,
+          "inside_fraction": 0.7900189043207015,
+          "median_u": 0.502445200465468,
+          "median_v": 0.5083842300729482,
+          "iqr_v": [
+            0.4714518861727847,
+            0.5718519194150758
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1348369,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": -6.424746266072346,
+          "median_v": -7.946262458885412,
+          "iqr_v": [
+            -14.858556664018685,
+            -4.073133103175506
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1348369,
+          "behind_camera": 0,
+          "inside_fraction": 0.7375273385846159,
+          "median_u": 0.49231046206092044,
+          "median_v": 0.6814381489917124,
+          "iqr_v": [
+            0.6450134198873335,
+            0.8361050889208038
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1348369,
+          "behind_camera": 0,
+          "inside_fraction": 0.7375273385846159,
+          "median_u": 0.4923104867089931,
+          "median_v": 0.6814382371789778,
+          "iqr_v": [
+            0.6450134426246693,
+            0.8361051838756345
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1348369,
+          "behind_camera": 0,
+          "inside_fraction": 0.6890680518463418,
+          "median_u": 0.4957804826088017,
+          "median_v": 0.711350050565206,
+          "iqr_v": [
+            0.607205011834567,
+            0.9697647639083932
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1348369,
+          "behind_camera": 0,
+          "inside_fraction": 0.6890680518463418,
+          "median_u": 0.49578036893782906,
+          "median_v": 0.7113500176404891,
+          "iqr_v": [
+            0.6072050265312803,
+            0.9697648940233782
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1348369,
+          "behind_camera": 0,
+          "inside_fraction": 0.5337708001296381,
+          "median_u": 0.46383326895723,
+          "median_v": 0.982473217836015,
+          "iqr_v": [
+            0.9405550203793018,
+            1.1788557354918834
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1348369,
+          "behind_camera": 0,
+          "inside_fraction": 0.5337708001296381,
+          "median_u": 0.4638328383690329,
+          "median_v": 0.982473171995254,
+          "iqr_v": [
+            0.9405550203770607,
+            1.178855773284802
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1348369,
+          "behind_camera": 148254,
+          "inside_fraction": 0.03562674609101811,
+          "median_u": -2.661212804260383,
+          "median_v": 0.43420443152618743,
+          "iqr_v": [
+            -0.4532884983246749,
+            6.41695206082345
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1348369,
+          "behind_camera": 122359,
+          "inside_fraction": 0.03562674609101811,
+          "median_u": -2.873790727255893,
+          "median_v": 0.20356026543334127,
+          "iqr_v": [
+            -0.9129538647944349,
+            3.324350532685678
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1348369,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9999859089017917,
+          "iou_median": 0.4375308652469787,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 333212,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999969989076024
+            },
+            "FourierGR1T2": {
+              "boxes": 355047,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999915504144522
+            },
+            "Transporter": {
+              "boxes": 168970,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 491140,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999694588101152
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1348369,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9999859089017917,
+          "iou_median": 0.43753083076074784,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 333212,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999969989076024
+            },
+            "FourierGR1T2": {
+              "boxes": 355047,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999915504144522
+            },
+            "Transporter": {
+              "boxes": 168970,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 491140,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999694588101152
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1158424,
+          "not_scored_corner_behind_camera": 189945,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.04797725185251687,
+          "iou_median": 0.0,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 307277,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.07512765355037962
+            },
+            "FourierGR1T2": {
+              "boxes": 318169,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.04229513246105057
+            },
+            "Transporter": {
+              "boxes": 106707,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Person": {
+              "boxes": 426271,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.04465703742454917
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_009",
+      "boxes_total": 1436451,
+      "boxes_excluded_smaller_than_min_side": 27956,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1408495,
+          "behind_camera": 0,
+          "inside_fraction": 0.7958615401545621,
+          "median_u": 0.507116413876341,
+          "median_v": 0.5091105931052449,
+          "iqr_v": [
+            0.46788927775351397,
+            0.5761049214614815
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1408495,
+          "behind_camera": 0,
+          "inside_fraction": 0.7958615401545621,
+          "median_u": 0.5071161626554948,
+          "median_v": 0.5091105007279226,
+          "iqr_v": [
+            0.4678892698680114,
+            0.5761048458583498
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1408495,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": -5.714683534638491,
+          "median_v": -7.3059289137315,
+          "iqr_v": [
+            -14.255198357270253,
+            -3.7042646617135464
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1408495,
+          "behind_camera": 0,
+          "inside_fraction": 0.7472948075783017,
+          "median_u": 0.49821679031639665,
+          "median_v": 0.6785402991304798,
+          "iqr_v": [
+            0.6344302050267348,
+            0.827528072436504
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1408495,
+          "behind_camera": 0,
+          "inside_fraction": 0.7472948075783017,
+          "median_u": 0.4982167900830833,
+          "median_v": 0.678540315037631,
+          "iqr_v": [
+            0.6344302332115606,
+            0.8275280016515228
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1408495,
+          "behind_camera": 0,
+          "inside_fraction": 0.6971164256884121,
+          "median_u": 0.5013966434875924,
+          "median_v": 0.7160475029780877,
+          "iqr_v": [
+            0.6055847032504006,
+            0.9632591079273255
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1408495,
+          "behind_camera": 0,
+          "inside_fraction": 0.6971164256884121,
+          "median_u": 0.5013966468119433,
+          "median_v": 0.7160475430794273,
+          "iqr_v": [
+            0.6055847245267427,
+            0.963259107928836
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1408495,
+          "behind_camera": 0,
+          "inside_fraction": 0.5280366632469409,
+          "median_u": 0.47112693681410006,
+          "median_v": 0.9839085934548772,
+          "iqr_v": [
+            0.9366208930638509,
+            1.1783460802355896
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1408495,
+          "behind_camera": 0,
+          "inside_fraction": 0.5280352432915985,
+          "median_u": 0.47112704694740176,
+          "median_v": 0.9839085529352114,
+          "iqr_v": [
+            0.936620901146173,
+            1.178346056255346
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1408495,
+          "behind_camera": 153116,
+          "inside_fraction": 0.0284850141463051,
+          "median_u": -2.0913894543519405,
+          "median_v": 0.48678526739626404,
+          "iqr_v": [
+            -0.5556491820081431,
+            6.754999333372661
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1408495,
+          "behind_camera": 116741,
+          "inside_fraction": 0.0284850141463051,
+          "median_u": -2.4561761738071146,
+          "median_v": 0.1921051822982008,
+          "iqr_v": [
+            -0.9958206676870386,
+            3.9195975670179775
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1408495,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9999574013397279,
+          "iou_median": 0.4396224610939677,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 337514,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.99999703715994
+            },
+            "FourierGR1T2": {
+              "boxes": 270251,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999925994723424
+            },
+            "Transporter": {
+              "boxes": 168868,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 631862,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999097904289228
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1408495,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9999574013397279,
+          "iou_median": 0.4396224264226958,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 337514,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.99999703715994
+            },
+            "FourierGR1T2": {
+              "boxes": 270251,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999925994723424
+            },
+            "Transporter": {
+              "boxes": 168868,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 631862,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999097904289228
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1215177,
+          "not_scored_corner_behind_camera": 193318,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.039918464552900525,
+          "iou_median": 0.0,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 305755,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.04288400843812857
+            },
+            "FourierGR1T2": {
+              "boxes": 241436,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.06441458606007389
+            },
+            "Transporter": {
+              "boxes": 106633,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Person": {
+              "boxes": 561353,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.03535030542279101
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_010",
+      "boxes_total": 1370938,
+      "boxes_excluded_smaller_than_min_side": 35297,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1335641,
+          "behind_camera": 0,
+          "inside_fraction": 0.7655380450285668,
+          "median_u": 0.5076709016036021,
+          "median_v": 0.5051195176602437,
+          "iqr_v": [
+            0.4698766800395408,
+            0.6004184175128123
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1335641,
+          "behind_camera": 0,
+          "inside_fraction": 0.7655380450285668,
+          "median_u": 0.507670825374014,
+          "median_v": 0.5051195042164673,
+          "iqr_v": [
+            0.4698766356820081,
+            0.600418249441374
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1335641,
+          "behind_camera": 368852,
+          "inside_fraction": 0.0,
+          "median_u": -4.97270256473967,
+          "median_v": 10.34735426908973,
+          "iqr_v": [
+            -8.311552796785074,
+            56.20477509976657
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1335641,
+          "behind_camera": 0,
+          "inside_fraction": 0.6624377358886108,
+          "median_u": 0.5238748941716564,
+          "median_v": 0.6869138392943109,
+          "iqr_v": [
+            0.6375178449228386,
+            1.0572456182540775
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1335641,
+          "behind_camera": 0,
+          "inside_fraction": 0.6624369871844306,
+          "median_u": 0.5238749547806807,
+          "median_v": 0.6869138745653659,
+          "iqr_v": [
+            0.6375179378879924,
+            1.057245634507682
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1335641,
+          "behind_camera": 0,
+          "inside_fraction": 0.605841689495905,
+          "median_u": 0.5251857180790722,
+          "median_v": 0.7508384133661326,
+          "iqr_v": [
+            0.6107874232609574,
+            1.3237952978792717
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1335641,
+          "behind_camera": 0,
+          "inside_fraction": 0.605841689495905,
+          "median_u": 0.5251863320828124,
+          "median_v": 0.7508384240224659,
+          "iqr_v": [
+            0.610787390188792,
+            1.3237954226480244
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1335641,
+          "behind_camera": 0,
+          "inside_fraction": 0.5219516322125481,
+          "median_u": 0.5366955963532265,
+          "median_v": 0.994674382434658,
+          "iqr_v": [
+            0.9463418330093368,
+            1.0900101712983896
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1335641,
+          "behind_camera": 0,
+          "inside_fraction": 0.5219508835083679,
+          "median_u": 0.5366958178068201,
+          "median_v": 0.9946745169285409,
+          "iqr_v": [
+            0.9463420838531819,
+            1.090010563860644
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1335641,
+          "behind_camera": 185199,
+          "inside_fraction": 0.021132175487275397,
+          "median_u": -0.12314287361211293,
+          "median_v": 0.8728489476988002,
+          "iqr_v": [
+            -0.1112860627323092,
+            3.7843853180577987
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1335641,
+          "behind_camera": 86857,
+          "inside_fraction": 0.021132175487275397,
+          "median_u": -0.9113581373023575,
+          "median_v": 0.5922372865155462,
+          "iqr_v": [
+            -0.7519427103708318,
+            2.939146798071407
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1335641,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.45369099782758715,
+          "fraction_containment_at_least_bar": 0.9081025515089758,
+          "iou_median": 0.47734449015631736,
+          "by_class": {
+            "Forklift": {
+              "boxes": 89997,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "AgilityDigit": {
+              "boxes": 177108,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 579557,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999033744739516
+            },
+            "FourierGR1T2": {
+              "boxes": 171005,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999649133066285
+            },
+            "NovaCarter": {
+              "boxes": 74810,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Transporter": {
+              "boxes": 243164,
+              "containment_median": 0.7450051770678687,
+              "fraction_containment_at_least_bar": 0.49548452895987893
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1335641,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.4536910961911534,
+          "fraction_containment_at_least_bar": 0.9081025515089758,
+          "iou_median": 0.4773444525208139,
+          "by_class": {
+            "Forklift": {
+              "boxes": 89997,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "AgilityDigit": {
+              "boxes": 177108,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 579557,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999033744739516
+            },
+            "FourierGR1T2": {
+              "boxes": 171005,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999649133066285
+            },
+            "NovaCarter": {
+              "boxes": 74810,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Transporter": {
+              "boxes": 243164,
+              "containment_median": 0.7450056661778377,
+              "fraction_containment_at_least_bar": 0.49548452895987893
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1137481,
+          "not_scored_corner_behind_camera": 198160,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.018484704359897002,
+          "iou_median": 0.0,
+          "by_class": {
+            "Forklift": {
+              "boxes": 89997,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "AgilityDigit": {
+              "boxes": 160746,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.017393900936881788
+            },
+            "Person": {
+              "boxes": 456568,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.02865728653782131
+            },
+            "FourierGR1T2": {
+              "boxes": 170988,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.020551149788289237
+            },
+            "NovaCarter": {
+              "boxes": 60614,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.015474972778566009
+            },
+            "Transporter": {
+              "boxes": 198568,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0034950243745215746
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_011",
+      "boxes_total": 1141227,
+      "boxes_excluded_smaller_than_min_side": 22100,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1119127,
+          "behind_camera": 0,
+          "inside_fraction": 0.8199149873070706,
+          "median_u": 0.49634678723780995,
+          "median_v": 0.5000743967616409,
+          "iqr_v": [
+            0.48119527728383893,
+            0.5634122265892936
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1119127,
+          "behind_camera": 0,
+          "inside_fraction": 0.8432429920822212,
+          "median_u": 0.508504572000049,
+          "median_v": 0.5044631005160124,
+          "iqr_v": [
+            0.48157422667984046,
+            0.5414432066252631
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1119127,
+          "behind_camera": 217434,
+          "inside_fraction": 0.0,
+          "median_u": -25.583739333009714,
+          "median_v": -2.470201606955254,
+          "iqr_v": [
+            -11.736055150864598,
+            38.96850603918091
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1119127,
+          "behind_camera": 0,
+          "inside_fraction": 0.7401930254564495,
+          "median_u": 0.5198923756625399,
+          "median_v": 0.6785828038117226,
+          "iqr_v": [
+            0.6435048782253837,
+            0.9048740125145038
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1119127,
+          "behind_camera": 0,
+          "inside_fraction": 0.7084942102192155,
+          "median_u": 0.5077176822739659,
+          "median_v": 0.6778755095464665,
+          "iqr_v": [
+            0.6431908035084679,
+            0.9489968502228154
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1119127,
+          "behind_camera": 0,
+          "inside_fraction": 0.6569906721935937,
+          "median_u": 0.522829721604832,
+          "median_v": 0.730971514197942,
+          "iqr_v": [
+            0.6059452672716936,
+            1.0812117656772018
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1119127,
+          "behind_camera": 0,
+          "inside_fraction": 0.6332328681195253,
+          "median_u": 0.509692043713026,
+          "median_v": 0.7372148424830687,
+          "iqr_v": [
+            0.6041933346657968,
+            1.1111623572515843
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1119127,
+          "behind_camera": 0,
+          "inside_fraction": 0.6062529096340272,
+          "median_u": 0.5234497170633756,
+          "median_v": 0.9880930165628673,
+          "iqr_v": [
+            0.9434177921828193,
+            1.028917955756487
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1119127,
+          "behind_camera": 0,
+          "inside_fraction": 0.6392330807852907,
+          "median_u": 0.5162921993486395,
+          "median_v": 0.9817330950071965,
+          "iqr_v": [
+            0.9359754902685326,
+            1.0396283088405407
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1119127,
+          "behind_camera": 165421,
+          "inside_fraction": 0.02045612338903449,
+          "median_u": -2.0071843522999933,
+          "median_v": 0.6371328504137335,
+          "iqr_v": [
+            -0.8200919334152879,
+            2.259705007031946
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1119127,
+          "behind_camera": 71821,
+          "inside_fraction": 0.015141266362084018,
+          "median_u": -2.5472543825765808,
+          "median_v": 0.4906155444925947,
+          "iqr_v": [
+            -1.5083152243843903,
+            1.738630740248318
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1119127,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.34060258610351735,
+          "fraction_containment_at_least_bar": 0.8322415597157428,
+          "iou_median": 0.5169407075377132,
+          "by_class": {
+            "Forklift": {
+              "boxes": 72000,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.875
+            },
+            "AgilityDigit": {
+              "boxes": 196821,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9128649890001576
+            },
+            "Person": {
+              "boxes": 393592,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9599712392528303
+            },
+            "FourierGR1T2": {
+              "boxes": 210916,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9426548957878966
+            },
+            "NovaCarter": {
+              "boxes": 61609,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.941144962586635
+            },
+            "Transporter": {
+              "boxes": 184189,
+              "containment_median": 0.5140839428459607,
+              "fraction_containment_at_least_bar": 0.29356801980574304
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1119127,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.41925066716411197,
+          "fraction_containment_at_least_bar": 0.8911160216847597,
+          "iou_median": 0.5190372387633075,
+          "by_class": {
+            "Forklift": {
+              "boxes": 72000,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "AgilityDigit": {
+              "boxes": 196821,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 393592,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9998018252403504
+            },
+            "FourierGR1T2": {
+              "boxes": 210916,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999762938800281
+            },
+            "NovaCarter": {
+              "boxes": 61609,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Transporter": {
+              "boxes": 184189,
+              "containment_median": 0.5203266967580127,
+              "fraction_containment_at_least_bar": 0.3388747427913719
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 936402,
+          "not_scored_corner_behind_camera": 182725,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.03851764519939086,
+          "iou_median": 0.0,
+          "by_class": {
+            "Forklift": {
+              "boxes": 54000,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "AgilityDigit": {
+              "boxes": 195105,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.10660926167960842
+            },
+            "Person": {
+              "boxes": 281510,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.025015097154630385
+            },
+            "FourierGR1T2": {
+              "boxes": 172631,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.01797475540314312
+            },
+            "NovaCarter": {
+              "boxes": 57726,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.03002113432422132
+            },
+            "Transporter": {
+              "boxes": 175430,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.019323946873396797
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_012",
+      "boxes_total": 872639,
+      "boxes_excluded_smaller_than_min_side": 9767,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 862872,
+          "behind_camera": 0,
+          "inside_fraction": 0.8101271103941257,
+          "median_u": 0.49254226428574555,
+          "median_v": 0.4942839786272927,
+          "iqr_v": [
+            0.42661026945350305,
+            0.5381457408785993
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 862872,
+          "behind_camera": 0,
+          "inside_fraction": 0.8094051029584921,
+          "median_u": 0.499173835327861,
+          "median_v": 0.49995607500389794,
+          "iqr_v": [
+            0.43825424687988546,
+            0.5440748667912059
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 862872,
+          "behind_camera": 270333,
+          "inside_fraction": 0.0,
+          "median_u": -2.007938278476462,
+          "median_v": -2.9903136591297983,
+          "iqr_v": [
+            -9.177232346556096,
+            50.35226998271901
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 862872,
+          "behind_camera": 0,
+          "inside_fraction": 0.7849333388961515,
+          "median_u": 0.5077484159436545,
+          "median_v": 0.6753046550409634,
+          "iqr_v": [
+            0.6223888916801669,
+            0.8409111421958175
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 862872,
+          "behind_camera": 0,
+          "inside_fraction": 0.7903339081578727,
+          "median_u": 0.4994508247634007,
+          "median_v": 0.6695594817779371,
+          "iqr_v": [
+            0.6149512345281349,
+            0.826588173893058
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 862872,
+          "behind_camera": 0,
+          "inside_fraction": 0.6341960337106778,
+          "median_u": 0.5095682069533247,
+          "median_v": 0.7224366691035693,
+          "iqr_v": [
+            0.5987544583279161,
+            1.052943858407481
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 862872,
+          "behind_camera": 0,
+          "inside_fraction": 0.6427813163481954,
+          "median_u": 0.5010694431099922,
+          "median_v": 0.7166287770085087,
+          "iqr_v": [
+            0.5943535872624234,
+            1.038477324525806
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 862872,
+          "behind_camera": 0,
+          "inside_fraction": 0.7552591809677449,
+          "median_u": 0.5130481498148529,
+          "median_v": 0.9503705281201871,
+          "iqr_v": [
+            0.8269426131850812,
+            0.9906859384396874
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 862872,
+          "behind_camera": 0,
+          "inside_fraction": 0.7745436171297713,
+          "median_u": 0.5056982475854294,
+          "median_v": 0.9428017636008885,
+          "iqr_v": [
+            0.8141514175495087,
+            0.9843851704585787
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 862872,
+          "behind_camera": 76457,
+          "inside_fraction": 0.02579988688936482,
+          "median_u": -1.758804935795159,
+          "median_v": 0.6390772036948553,
+          "iqr_v": [
+            -0.2255527536280464,
+            4.387088069635915
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 862872,
+          "behind_camera": 54942,
+          "inside_fraction": 0.026329513531555087,
+          "median_u": -2.2616833250584563,
+          "median_v": 0.4229057895086913,
+          "iqr_v": [
+            -0.8525162702645196,
+            2.7531270649369297
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 862872,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.5317305684444023,
+          "fraction_containment_at_least_bar": 0.8837857758740578,
+          "iou_median": 0.5068430503506061,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 153997,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 297460,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9997848450211794
+            },
+            "FourierGR1T2": {
+              "boxes": 128811,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999611834393025
+            },
+            "NovaCarter": {
+              "boxes": 88066,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Transporter": {
+              "boxes": 194538,
+              "containment_median": 0.8093096581408208,
+              "fraction_containment_at_least_bar": 0.4848872713814268
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 862872,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.5268768680034636,
+          "fraction_containment_at_least_bar": 0.8834033321280561,
+          "iou_median": 0.5054205737974725,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 153997,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 297460,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9997814832246352
+            },
+            "FourierGR1T2": {
+              "boxes": 128811,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999984473375721
+            },
+            "NovaCarter": {
+              "boxes": 88066,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Transporter": {
+              "boxes": 194538,
+              "containment_median": 0.8011056576251141,
+              "fraction_containment_at_least_bar": 0.48318066393198245
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 770704,
+          "not_scored_corner_behind_camera": 92168,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.023560277356806245,
+          "iou_median": 0.0,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 126719,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.03192102210402544
+            },
+            "Person": {
+              "boxes": 265258,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.022091699402091547
+            },
+            "FourierGR1T2": {
+              "boxes": 119243,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.02286926695906678
+            },
+            "NovaCarter": {
+              "boxes": 82237,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.06173620146649318
+            },
+            "Transporter": {
+              "boxes": 177247,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0025331881498699554
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_013",
+      "boxes_total": 1205784,
+      "boxes_excluded_smaller_than_min_side": 15557,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1190227,
+          "behind_camera": 0,
+          "inside_fraction": 0.782411254323755,
+          "median_u": 0.5106860083592258,
+          "median_v": 0.48616428658399996,
+          "iqr_v": [
+            0.40365295649900507,
+            0.5345758583868172
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1190227,
+          "behind_camera": 0,
+          "inside_fraction": 0.7844839681842203,
+          "median_u": 0.50695947469082,
+          "median_v": 0.4928604259653387,
+          "iqr_v": [
+            0.4201509286327048,
+            0.5400918556234062
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1190227,
+          "behind_camera": 400520,
+          "inside_fraction": 0.0,
+          "median_u": -9.013769867345383,
+          "median_v": -5.86141449867557,
+          "iqr_v": [
+            -22.04076904752066,
+            -0.4273133075238121
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1190227,
+          "behind_camera": 0,
+          "inside_fraction": 0.7816307309446013,
+          "median_u": 0.49101893731532786,
+          "median_v": 0.6763983831849254,
+          "iqr_v": [
+            0.6184147574557222,
+            0.8347802489977205
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1190227,
+          "behind_camera": 0,
+          "inside_fraction": 0.7840117893477463,
+          "median_u": 0.493252191523678,
+          "median_v": 0.6709557966607603,
+          "iqr_v": [
+            0.612163679558194,
+            0.8185983474418396
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1190227,
+          "behind_camera": 0,
+          "inside_fraction": 0.6105448792541255,
+          "median_u": 0.48929910197181464,
+          "median_v": 0.7285229095473561,
+          "iqr_v": [
+            0.5946711571778125,
+            1.0670505379316955
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1190227,
+          "behind_camera": 0,
+          "inside_fraction": 0.6180174034028802,
+          "median_u": 0.49100383777752127,
+          "median_v": 0.7221654134543032,
+          "iqr_v": [
+            0.5901397993144273,
+            1.0545293460242529
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1190227,
+          "behind_camera": 0,
+          "inside_fraction": 0.7873909766792385,
+          "median_u": 0.48624224861720244,
+          "median_v": 0.9303028392590668,
+          "iqr_v": [
+            0.788920040530026,
+            0.9761326224053419
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1190227,
+          "behind_camera": 0,
+          "inside_fraction": 0.8004683140274922,
+          "median_u": 0.4889908695207874,
+          "median_v": 0.9217883226770436,
+          "iqr_v": [
+            0.7776689766351108,
+            0.9695414138571834
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1190227,
+          "behind_camera": 114573,
+          "inside_fraction": 0.025573272997503838,
+          "median_u": 0.7713920981472415,
+          "median_v": -0.09869381136972269,
+          "iqr_v": [
+            -1.662000256960184,
+            0.7022269446941131
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1190227,
+          "behind_camera": 23906,
+          "inside_fraction": 0.02554386684220741,
+          "median_u": 0.9176139149663468,
+          "median_v": -0.33729721693907233,
+          "iqr_v": [
+            -2.1255030827312154,
+            0.6111029304339968
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1190227,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.5245290916401113,
+          "fraction_containment_at_least_bar": 0.8698979270340867,
+          "iou_median": 0.4947716676898464,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 175688,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999772323664678
+            },
+            "Person": {
+              "boxes": 387484,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9992980355317898
+            },
+            "FourierGR1T2": {
+              "boxes": 188622,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9997985388766952
+            },
+            "NovaCarter": {
+              "boxes": 137723,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999491733406911
+            },
+            "Transporter": {
+              "boxes": 300710,
+              "containment_median": 0.8354793455495682,
+              "fraction_containment_at_least_bar": 0.48632569585314755
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1190227,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.521346276091779,
+          "fraction_containment_at_least_bar": 0.8702171938630194,
+          "iou_median": 0.4949529618170029,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 175688,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 387484,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9998374126415542
+            },
+            "FourierGR1T2": {
+              "boxes": 188622,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999994698391492
+            },
+            "NovaCarter": {
+              "boxes": 137723,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Transporter": {
+              "boxes": 300710,
+              "containment_median": 0.8298641459115301,
+              "fraction_containment_at_least_bar": 0.4865252236373915
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1059168,
+          "not_scored_corner_behind_camera": 131059,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.01825489440768603,
+          "iou_median": 0.0,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 140602,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Person": {
+              "boxes": 355843,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.03855632961727504
+            },
+            "FourierGR1T2": {
+              "boxes": 140535,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.02309033336891166
+            },
+            "NovaCarter": {
+              "boxes": 128812,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0019563394714778126
+            },
+            "Transporter": {
+              "boxes": 293376,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.00721940445026178
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_014",
+      "boxes_total": 1970730,
+      "boxes_excluded_smaller_than_min_side": 35297,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1935433,
+          "behind_camera": 0,
+          "inside_fraction": 0.8145076579762771,
+          "median_u": 0.49681021246303203,
+          "median_v": 0.49704320118684747,
+          "iqr_v": [
+            0.4528558348658681,
+            0.5393065662178879
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1935433,
+          "behind_camera": 0,
+          "inside_fraction": 0.8151147572662035,
+          "median_u": 0.5047610168014458,
+          "median_v": 0.5034081830816585,
+          "iqr_v": [
+            0.46425435661255177,
+            0.5468341783919064
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1935433,
+          "behind_camera": 790804,
+          "inside_fraction": 0.0,
+          "median_u": -0.7686712752136209,
+          "median_v": -6.456191651687293,
+          "iqr_v": [
+            -21.516706810686717,
+            -2.577949394826617
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1935433,
+          "behind_camera": 0,
+          "inside_fraction": 0.7408347382730376,
+          "median_u": 0.5060937812854118,
+          "median_v": 0.6795444903245019,
+          "iqr_v": [
+            0.6395284257728011,
+            0.8561964438866221
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1935433,
+          "behind_camera": 0,
+          "inside_fraction": 0.7435674600980763,
+          "median_u": 0.487832655475843,
+          "median_v": 0.6732879495397567,
+          "iqr_v": [
+            0.6318214734047002,
+            0.8463308773111748
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1935433,
+          "behind_camera": 0,
+          "inside_fraction": 0.6631802805883747,
+          "median_u": 0.5071611202316476,
+          "median_v": 0.7138110725669425,
+          "iqr_v": [
+            0.6066896749689975,
+            1.0337519171428151
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1935433,
+          "behind_camera": 0,
+          "inside_fraction": 0.6674676932758716,
+          "median_u": 0.4889635629838915,
+          "median_v": 0.7075881590615307,
+          "iqr_v": [
+            0.6009339222864168,
+            1.0236019729058583
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1935433,
+          "behind_camera": 0,
+          "inside_fraction": 0.6377363618373769,
+          "median_u": 0.5122418523623194,
+          "median_v": 0.9755389913289506,
+          "iqr_v": [
+            0.9238426756897697,
+            1.0321425984436592
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1935433,
+          "behind_camera": 0,
+          "inside_fraction": 0.6665660862453001,
+          "median_u": 0.4941419227508656,
+          "median_v": 0.9687735302517273,
+          "iqr_v": [
+            0.9119558830029872,
+            1.022927392202164
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1935433,
+          "behind_camera": 98129,
+          "inside_fraction": 0.035425147757633564,
+          "median_u": 0.1256758302814643,
+          "median_v": 1.9175227877681564,
+          "iqr_v": [
+            0.09693254905204961,
+            7.17484003392801
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1935433,
+          "behind_camera": 93117,
+          "inside_fraction": 0.035105322684897904,
+          "median_u": 0.0538444384417201,
+          "median_v": 1.9324445594006616,
+          "iqr_v": [
+            0.09317450991357314,
+            7.317154132901679
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1935433,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.5192467118346669,
+          "fraction_containment_at_least_bar": 0.9083564246346941,
+          "iou_median": 0.49195292995158973,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 302083,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9994008269250504
+            },
+            "Person": {
+              "boxes": 807783,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9833915791741099
+            },
+            "FourierGR1T2": {
+              "boxes": 370995,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9814417984069866
+            },
+            "NovaCarter": {
+              "boxes": 154292,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9670300469240142
+            },
+            "Transporter": {
+              "boxes": 300280,
+              "containment_median": 0.8497307942709001,
+              "fraction_containment_at_least_bar": 0.49446849607033433
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1935433,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.5175526932675251,
+          "fraction_containment_at_least_bar": 0.9217069255303594,
+          "iou_median": 0.4919987183859549,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 302083,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 807783,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999046773700363
+            },
+            "FourierGR1T2": {
+              "boxes": 370995,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999978436367067
+            },
+            "NovaCarter": {
+              "boxes": 154292,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Transporter": {
+              "boxes": 300280,
+              "containment_median": 0.8652646742865231,
+              "fraction_containment_at_least_bar": 0.49565072598907683
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1797301,
+          "not_scored_corner_behind_camera": 138132,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.021607399094531188,
+          "iou_median": 0.0,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 290054,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.006812524564391458
+            },
+            "Person": {
+              "boxes": 733522,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.02104095037367659
+            },
+            "FourierGR1T2": {
+              "boxes": 339482,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.032570209908036364
+            },
+            "NovaCarter": {
+              "boxes": 152292,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.04282562445827752
+            },
+            "Transporter": {
+              "boxes": 281951,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.013640668059343644
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_015",
+      "boxes_total": 1910458,
+      "boxes_excluded_smaller_than_min_side": 23206,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1887252,
+          "behind_camera": 0,
+          "inside_fraction": 0.8413767742728581,
+          "median_u": 0.5006220848564071,
+          "median_v": 0.49954160090847854,
+          "iqr_v": [
+            0.465799007231606,
+            0.5481063994862372
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1887252,
+          "behind_camera": 0,
+          "inside_fraction": 0.8417455644503224,
+          "median_u": 0.5094994799419805,
+          "median_v": 0.503118587098341,
+          "iqr_v": [
+            0.4703023121333465,
+            0.5516947909165877
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1887252,
+          "behind_camera": 566663,
+          "inside_fraction": 0.0,
+          "median_u": 1.8367118195609407,
+          "median_v": -6.914964203353722,
+          "iqr_v": [
+            -14.791954131233478,
+            -2.9879811291607297
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1887252,
+          "behind_camera": 0,
+          "inside_fraction": 0.8022542829468454,
+          "median_u": 0.489360159890184,
+          "median_v": 0.6776075832612726,
+          "iqr_v": [
+            0.6344755826987918,
+            0.8420479598450151
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1887252,
+          "behind_camera": 0,
+          "inside_fraction": 0.8044490083995142,
+          "median_u": 0.479832599252842,
+          "median_v": 0.6746028503722726,
+          "iqr_v": [
+            0.6323190360088115,
+            0.8352768345862981
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1887252,
+          "behind_camera": 0,
+          "inside_fraction": 0.6874423765347711,
+          "median_u": 0.4891892999949782,
+          "median_v": 0.7214306738758259,
+          "iqr_v": [
+            0.6053826692038874,
+            1.0306167411373985
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1887252,
+          "behind_camera": 0,
+          "inside_fraction": 0.68973088914464,
+          "median_u": 0.47861805973793226,
+          "median_v": 0.7182070947846072,
+          "iqr_v": [
+            0.6026765778899494,
+            1.0250232482395125
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1887252,
+          "behind_camera": 0,
+          "inside_fraction": 0.6766414871993777,
+          "median_u": 0.4535675265759913,
+          "median_v": 0.9693269461751362,
+          "iqr_v": [
+            0.9147046539962502,
+            1.021538312117463
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1887252,
+          "behind_camera": 0,
+          "inside_fraction": 0.6909464130916274,
+          "median_u": 0.4450185004967714,
+          "median_v": 0.9658483064426613,
+          "iqr_v": [
+            0.9103788900894767,
+            1.0162100368744353
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1887252,
+          "behind_camera": 13084,
+          "inside_fraction": 0.02650043555391649,
+          "median_u": 3.3159084939447103,
+          "median_v": 0.5204122179310975,
+          "iqr_v": [
+            -0.40712544823190094,
+            3.2095224119885324
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1887252,
+          "behind_camera": 13318,
+          "inside_fraction": 0.026404528912937965,
+          "median_u": 3.2960365827772113,
+          "median_v": 0.5146359477124698,
+          "iqr_v": [
+            -0.41429201229033213,
+            3.2017343441571056
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1887252,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.559922573480224,
+          "fraction_containment_at_least_bar": 0.9192858187459862,
+          "iou_median": 0.5119344288816956,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 327113,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 807652,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.99990590006587
+            },
+            "FourierGR1T2": {
+              "boxes": 268336,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999850933158428
+            },
+            "NovaCarter": {
+              "boxes": 217409,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Transporter": {
+              "boxes": 266742,
+              "containment_median": 0.6733060811465197,
+              "fraction_containment_at_least_bar": 0.4292312421740858
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1887252,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.5571588726230815,
+          "fraction_containment_at_least_bar": 0.9193504630012315,
+          "iou_median": 0.5111598821192778,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 327113,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 807652,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999910852693982
+            },
+            "FourierGR1T2": {
+              "boxes": 268336,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999888199868822
+            },
+            "NovaCarter": {
+              "boxes": 217409,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Transporter": {
+              "boxes": 266742,
+              "containment_median": 0.6693359438091261,
+              "fraction_containment_at_least_bar": 0.4296698682622159
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1861986,
+          "not_scored_corner_behind_camera": 25266,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.014029643617084125,
+          "iou_median": 0.0,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 327113,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.032582012943539386
+            },
+            "Person": {
+              "boxes": 788023,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.013749598679226368
+            },
+            "FourierGR1T2": {
+              "boxes": 267165,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.004109819774296783
+            },
+            "NovaCarter": {
+              "boxes": 217409,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.007276607684134511
+            },
+            "Transporter": {
+              "boxes": 262276,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.007434915890131007
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_016",
+      "boxes_total": 1599720,
+      "boxes_excluded_smaller_than_min_side": 11107,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1588613,
+          "behind_camera": 0,
+          "inside_fraction": 0.8754397704160799,
+          "median_u": 0.5050699335780529,
+          "median_v": 0.4970845650337807,
+          "iqr_v": [
+            0.46463621157062973,
+            0.5162370029036826
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1588613,
+          "behind_camera": 0,
+          "inside_fraction": 0.8763109706391676,
+          "median_u": 0.5089337156768524,
+          "median_v": 0.5011736830781722,
+          "iqr_v": [
+            0.46933988818265315,
+            0.5185660764163865
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1588613,
+          "behind_camera": 503426,
+          "inside_fraction": 0.0,
+          "median_u": -1.8746053216753287,
+          "median_v": -5.751552915653574,
+          "iqr_v": [
+            -21.666162657723394,
+            27.1996487481437
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1588613,
+          "behind_camera": 0,
+          "inside_fraction": 0.8282759866625793,
+          "median_u": 0.5098006276033684,
+          "median_v": 0.6675056418281113,
+          "iqr_v": [
+            0.6406858028592985,
+            0.7495999896994001
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1588613,
+          "behind_camera": 0,
+          "inside_fraction": 0.82987297724493,
+          "median_u": 0.5037236269132802,
+          "median_v": 0.6643599944238391,
+          "iqr_v": [
+            0.637175383608045,
+            0.7507341377425991
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1588613,
+          "behind_camera": 0,
+          "inside_fraction": 0.7268050809102028,
+          "median_u": 0.509406621190884,
+          "median_v": 0.7086251873893932,
+          "iqr_v": [
+            0.6048186175501807,
+            0.9330903083704442
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1588613,
+          "behind_camera": 0,
+          "inside_fraction": 0.7250853417415066,
+          "median_u": 0.505219084208748,
+          "median_v": 0.7054262673364627,
+          "iqr_v": [
+            0.601556919350448,
+            0.9372188043213857
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1588613,
+          "behind_camera": 0,
+          "inside_fraction": 0.7008818384339043,
+          "median_u": 0.5003423671169801,
+          "median_v": 0.9739252509569553,
+          "iqr_v": [
+            0.915976646422628,
+            1.0038879889137935
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1588613,
+          "behind_camera": 0,
+          "inside_fraction": 0.725075270062627,
+          "median_u": 0.5001349369769448,
+          "median_v": 0.971673201104081,
+          "iqr_v": [
+            0.9117361892573944,
+            0.9997229461740458
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1588613,
+          "behind_camera": 46341,
+          "inside_fraction": 0.045971548766124914,
+          "median_u": 0.863781086594509,
+          "median_v": 0.5149445309586851,
+          "iqr_v": [
+            0.20606798321734476,
+            1.014161545115567
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1588613,
+          "behind_camera": 49826,
+          "inside_fraction": 0.045789629066361665,
+          "median_u": 0.8352077263539165,
+          "median_v": 0.5095641969525978,
+          "iqr_v": [
+            0.20079865335415759,
+            1.019469033942268
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1588613,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.6346436075806002,
+          "fraction_containment_at_least_bar": 0.9418826359849756,
+          "iou_median": 0.5425882417876896,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 275905,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 698365,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9992682909366878
+            },
+            "Forklift": {
+              "boxes": 88784,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "FourierGR1T2": {
+              "boxes": 205669,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9998687211004089
+            },
+            "NovaCarter": {
+              "boxes": 131711,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999848152394257
+            },
+            "Transporter": {
+              "boxes": 188179,
+              "containment_median": 0.9648055303356567,
+              "fraction_containment_at_least_bar": 0.5122410045754309
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1588613,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.6342805743186646,
+          "fraction_containment_at_least_bar": 0.9424057338067862,
+          "iou_median": 0.5412845026701552,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 275905,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 698365,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999312680331918
+            },
+            "Forklift": {
+              "boxes": 88784,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "FourierGR1T2": {
+              "boxes": 205669,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999805512741347
+            },
+            "NovaCarter": {
+              "boxes": 131711,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Transporter": {
+              "boxes": 188179,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.5140637371864023
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1538182,
+          "not_scored_corner_behind_camera": 50431,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.028995918558402063,
+          "iou_median": 0.0,
+          "by_class": {
+            "AgilityDigit": {
+              "boxes": 274586,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.027011573787447285
+            },
+            "Person": {
+              "boxes": 656263,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.035152065559082256
+            },
+            "Forklift": {
+              "boxes": 88784,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "FourierGR1T2": {
+              "boxes": 200495,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.023382129230155365
+            },
+            "NovaCarter": {
+              "boxes": 131711,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0497756451625149
+            },
+            "Transporter": {
+              "boxes": 186343,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.015407071905035338
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_017",
+      "boxes_total": 119243,
+      "boxes_excluded_smaller_than_min_side": 156,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 119087,
+          "behind_camera": 0,
+          "inside_fraction": 0.8608580281642833,
+          "median_u": 0.49021298751814274,
+          "median_v": 0.48853410942343567,
+          "iqr_v": [
+            0.46383377323546676,
+            0.5185131375008932
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 119087,
+          "behind_camera": 0,
+          "inside_fraction": 0.8606480976093108,
+          "median_u": 0.4972932044630575,
+          "median_v": 0.4928074485740202,
+          "iqr_v": [
+            0.464304939748235,
+            0.5201484779223696
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 119087,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": 4.079472830799187,
+          "median_v": -4.198926233984631,
+          "iqr_v": [
+            -5.540047923151615,
+            -2.573032445539409
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 119087,
+          "behind_camera": 0,
+          "inside_fraction": 0.9006944502758487,
+          "median_u": 0.5213756890490034,
+          "median_v": 0.6684839262582433,
+          "iqr_v": [
+            0.6460212025451985,
+            0.7368841948276474
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 119087,
+          "behind_camera": 0,
+          "inside_fraction": 0.9034319447126891,
+          "median_u": 0.5222909411366137,
+          "median_v": 0.6674706216574731,
+          "iqr_v": [
+            0.6445657357102641,
+            0.7344795902217555
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 119087,
+          "behind_camera": 0,
+          "inside_fraction": 0.8454239337627113,
+          "median_u": 0.6226070194441202,
+          "median_v": 0.8597328635105511,
+          "iqr_v": [
+            0.8059250030093459,
+            0.950908590312321
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 119087,
+          "behind_camera": 0,
+          "inside_fraction": 0.8464316004265788,
+          "median_u": 0.6156369302161893,
+          "median_v": 0.8590961425509297,
+          "iqr_v": [
+            0.8055539097738134,
+            0.9473445893614657
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 119087,
+          "behind_camera": 0,
+          "inside_fraction": 0.8032530838798525,
+          "median_u": 0.5948478116259709,
+          "median_v": 0.8591118065324223,
+          "iqr_v": [
+            0.7714920681082478,
+            0.9604397355741983
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 119087,
+          "behind_camera": 0,
+          "inside_fraction": 0.8042775449881179,
+          "median_u": 0.5929617790314249,
+          "median_v": 0.8573068182262945,
+          "iqr_v": [
+            0.7719285239403967,
+            0.9590902180770224
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 119087,
+          "behind_camera": 101087,
+          "inside_fraction": 0.0,
+          "median_u": -113.98785632254969,
+          "median_v": 9.068000647542059,
+          "iqr_v": [
+            6.742107106641678,
+            10.386452896645409
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 119087,
+          "behind_camera": 18000,
+          "inside_fraction": 0.0,
+          "median_u": 5.826556537975174,
+          "median_v": -2.031962236428933,
+          "iqr_v": [
+            -2.7611539533803398,
+            -1.5754803481919373
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 116906,
+          "not_scored_corner_behind_camera": 2181,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 1.0,
+          "iou_median": 0.5897992292098512,
+          "by_class": {
+            "Forklift": {
+              "boxes": 48608,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "PalletTruck": {
+              "boxes": 27000,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 41298,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 116793,
+          "not_scored_corner_behind_camera": 2294,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 1.0,
+          "iou_median": 0.5893421641650849,
+          "by_class": {
+            "Forklift": {
+              "boxes": 48495,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "PalletTruck": {
+              "boxes": 27000,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 41298,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 9000,
+          "not_scored_corner_behind_camera": 110087,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.0,
+          "iou_median": 0.0,
+          "by_class": {
+            "Forklift": {
+              "boxes": 0,
+              "containment_median": null,
+              "fraction_containment_at_least_bar": null
+            },
+            "PalletTruck": {
+              "boxes": 9000,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Person": {
+              "boxes": 0,
+              "containment_median": null,
+              "fraction_containment_at_least_bar": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_018",
+      "boxes_total": 97455,
+      "boxes_excluded_smaller_than_min_side": 123,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 97332,
+          "behind_camera": 0,
+          "inside_fraction": 0.8606624748284223,
+          "median_u": 0.4629348947531231,
+          "median_v": 0.4799606545264903,
+          "iqr_v": [
+            0.4609339590351055,
+            0.5168193212930282
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 97332,
+          "behind_camera": 0,
+          "inside_fraction": 0.8597172564007726,
+          "median_u": 0.46600474135290837,
+          "median_v": 0.48253843201377,
+          "iqr_v": [
+            0.46416485147803,
+            0.5169067643561259
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 97332,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": 5.734707164754171,
+          "median_v": -4.578773861794038,
+          "iqr_v": [
+            -5.808111415644101,
+            -2.932855452710598
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 97332,
+          "behind_camera": 0,
+          "inside_fraction": 0.9084165536514199,
+          "median_u": 0.5213756890490034,
+          "median_v": 0.6580134904765769,
+          "iqr_v": [
+            0.6460212025451985,
+            0.6940980957372449
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 97332,
+          "behind_camera": 0,
+          "inside_fraction": 0.9090021781120289,
+          "median_u": 0.5222909411366137,
+          "median_v": 0.6560279961852264,
+          "iqr_v": [
+            0.6445657357102641,
+            0.6921006870255064
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 97332,
+          "behind_camera": 0,
+          "inside_fraction": 0.8715530349730818,
+          "median_u": 0.6226070194441202,
+          "median_v": 0.859057137400272,
+          "iqr_v": [
+            0.7430643528184518,
+            0.950908590312321
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 97332,
+          "behind_camera": 0,
+          "inside_fraction": 0.8752003452102084,
+          "median_u": 0.6156369302161893,
+          "median_v": 0.8551574666759202,
+          "iqr_v": [
+            0.7418112360822386,
+            0.9473445893614657
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 97332,
+          "behind_camera": 0,
+          "inside_fraction": 0.9017383799778079,
+          "median_u": 0.5937552980512155,
+          "median_v": 0.8409227538756586,
+          "iqr_v": [
+            0.7714920681082478,
+            0.8854103779068389
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 97332,
+          "behind_camera": 0,
+          "inside_fraction": 0.90176920231784,
+          "median_u": 0.5774522717073531,
+          "median_v": 0.8371244061227265,
+          "iqr_v": [
+            0.7719285239403967,
+            0.884254494099087
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 97332,
+          "behind_camera": 78077,
+          "inside_fraction": 0.0,
+          "median_u": -119.45207158176152,
+          "median_v": 10.386452896645409,
+          "iqr_v": [
+            6.742107106641678,
+            10.386452896645409
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 97332,
+          "behind_camera": 9297,
+          "inside_fraction": 0.0,
+          "median_u": 2.395820341568349,
+          "median_v": -1.6934785243656318,
+          "iqr_v": [
+            -2.266724192921396,
+            -0.9028761114573304
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 96407,
+          "not_scored_corner_behind_camera": 925,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9999896273092203,
+          "iou_median": 0.5897992292098512,
+          "by_class": {
+            "Forklift": {
+              "boxes": 47660,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "PalletTruck": {
+              "boxes": 27000,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 21747,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999540166459742
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 96217,
+          "not_scored_corner_behind_camera": 1115,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 1.0,
+          "iou_median": 0.5893421641650849,
+          "by_class": {
+            "Forklift": {
+              "boxes": 47470,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "PalletTruck": {
+              "boxes": 27000,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 21747,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 9000,
+          "not_scored_corner_behind_camera": 88332,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.0,
+          "iou_median": 0.0,
+          "by_class": {
+            "Forklift": {
+              "boxes": 0,
+              "containment_median": null,
+              "fraction_containment_at_least_bar": null
+            },
+            "PalletTruck": {
+              "boxes": 9000,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Person": {
+              "boxes": 0,
+              "containment_median": null,
+              "fraction_containment_at_least_bar": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_019",
+      "boxes_total": 92600,
+      "boxes_excluded_smaller_than_min_side": 1650,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 90950,
+          "behind_camera": 0,
+          "inside_fraction": 0.8642330951072018,
+          "median_u": 0.4574064988892306,
+          "median_v": 0.48767496880793204,
+          "iqr_v": [
+            0.467404109337587,
+            0.5192336598964902
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 90950,
+          "behind_camera": 0,
+          "inside_fraction": 0.8637932930181418,
+          "median_u": 0.46364589551466456,
+          "median_v": 0.4937507882087735,
+          "iqr_v": [
+            0.4695645283588895,
+            0.5232616572231709
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 90950,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": 5.620418430461675,
+          "median_v": -4.663716605652923,
+          "iqr_v": [
+            -7.30709117761309,
+            -3.312149907917823
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 90950,
+          "behind_camera": 0,
+          "inside_fraction": 0.8695766904892798,
+          "median_u": 0.5097470814756702,
+          "median_v": 0.662709254139163,
+          "iqr_v": [
+            0.6424874293679765,
+            0.6947575106881305
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 90950,
+          "behind_camera": 0,
+          "inside_fraction": 0.8700274876305663,
+          "median_u": 0.5016562376058356,
+          "median_v": 0.659757687923115,
+          "iqr_v": [
+            0.6384997759017081,
+            0.6893769577144949
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 90950,
+          "behind_camera": 0,
+          "inside_fraction": 0.8644859813084113,
+          "median_u": 0.5743217394639957,
+          "median_v": 0.7078680686518939,
+          "iqr_v": [
+            0.644994500050731,
+            0.8893723595243125
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 90950,
+          "behind_camera": 0,
+          "inside_fraction": 0.8651566794942276,
+          "median_u": 0.5662357708394251,
+          "median_v": 0.7034722297836571,
+          "iqr_v": [
+            0.6417090387815791,
+            0.8860831145141979
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 90950,
+          "behind_camera": 0,
+          "inside_fraction": 0.8404947773501924,
+          "median_u": 0.5818013187150556,
+          "median_v": 0.8955096816446222,
+          "iqr_v": [
+            0.8051551265288344,
+            0.9603746414971419
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 90950,
+          "behind_camera": 0,
+          "inside_fraction": 0.8432435404068169,
+          "median_u": 0.5745610937446111,
+          "median_v": 0.8927232220567551,
+          "iqr_v": [
+            0.803415458217146,
+            0.9573326778561271
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 90950,
+          "behind_camera": 78162,
+          "inside_fraction": 0.0,
+          "median_u": -104.87676045298353,
+          "median_v": 8.957543646679282,
+          "iqr_v": [
+            8.957543646679282,
+            15.340892046768936
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 90950,
+          "behind_camera": 12765,
+          "inside_fraction": 0.0,
+          "median_u": 9.48179782653725,
+          "median_v": -2.43029633214219,
+          "iqr_v": [
+            -3.774016173626937,
+            -2.0526470634390885
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 90950,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.8189079358287434,
+          "fraction_containment_at_least_bar": 0.9082572842221001,
+          "iou_median": 0.5512288057144425,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 27000,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 20813,
+              "containment_median": 0.923038382458033,
+              "fraction_containment_at_least_bar": 0.5990967183971556
+            },
+            "Person": {
+              "boxes": 43137,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 90950,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.8234182194860779,
+          "fraction_containment_at_least_bar": 0.908873007146784,
+          "iou_median": 0.5473083704065528,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 27000,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 20813,
+              "containment_median": 0.9252936535443952,
+              "fraction_containment_at_least_bar": 0.6017873444481814
+            },
+            "Person": {
+              "boxes": 43137,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 9343,
+          "not_scored_corner_behind_camera": 81607,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.0,
+          "iou_median": 0.0,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 9000,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Forklift": {
+              "boxes": 343,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Person": {
+              "boxes": 0,
+              "containment_median": null,
+              "fraction_containment_at_least_bar": null
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_020",
+      "boxes_total": 1715322,
+      "boxes_excluded_smaller_than_min_side": 144832,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.8079064495794306,
+          "median_u": 0.49854173447745,
+          "median_v": 0.5050721120100772,
+          "iqr_v": [
+            0.4954281006535672,
+            0.7297688671443646
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.8039261631720036,
+          "median_u": 0.5188157917283498,
+          "median_v": 0.5144488399999638,
+          "iqr_v": [
+            0.5033161483835655,
+            0.7462039688872781
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": -10.299155732965763,
+          "median_v": -16.000262266792348,
+          "iqr_v": [
+            -41.50224602282237,
+            -7.503269445573543
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.7000795929932696,
+          "median_u": 0.5180383434033518,
+          "median_v": 0.7066097159395384,
+          "iqr_v": [
+            0.6701190944653432,
+            1.0251323922377586
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.7149392864647339,
+          "median_u": 0.49814010657398217,
+          "median_v": 0.6981265027421428,
+          "iqr_v": [
+            0.6618437966313873,
+            1.0104433350445414
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.6298308171335061,
+          "median_u": 0.518060596428395,
+          "median_v": 0.8267216313984527,
+          "iqr_v": [
+            0.6876703407357347,
+            1.182384121839633
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.6398162356971391,
+          "median_u": 0.4977247089355846,
+          "median_v": 0.819792557692479,
+          "iqr_v": [
+            0.6790006428797241,
+            1.164668275086552
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.24555775585963616,
+          "median_u": 0.5061715989657912,
+          "median_v": 1.0266268621305787,
+          "iqr_v": [
+            1.0000926543324198,
+            1.5411502239499986
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.33533419506014045,
+          "median_u": 0.48937665332276087,
+          "median_v": 1.0140482279608949,
+          "iqr_v": [
+            0.9932307529195629,
+            1.522081026681275
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1570490,
+          "behind_camera": 487755,
+          "inside_fraction": 0.0030245337442454264,
+          "median_u": 24.370328719001165,
+          "median_v": 0.7500218576277543,
+          "iqr_v": [
+            0.42912318353074774,
+            2.0930628100161197
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1570490,
+          "behind_camera": 199521,
+          "inside_fraction": 0.0030710160523148827,
+          "median_u": 12.287768833051246,
+          "median_v": 0.4421511284572366,
+          "iqr_v": [
+            -0.4698674970900656,
+            1.0445155270999351
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1570490,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9987303325713631,
+          "iou_median": 0.5283232263245524,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 173466,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 307333,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9964989116040256
+            },
+            "Person": {
+              "boxes": 1089691,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9991575593448051
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1570490,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.9966638247408012,
+          "fraction_containment_at_least_bar": 0.9994141955695356,
+          "iou_median": 0.5282306366657991,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 173466,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9969446462130908
+            },
+            "Forklift": {
+              "boxes": 307333,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 1089691,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999642100375244
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1062889,
+          "not_scored_corner_behind_camera": 507601,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.005474701497522319,
+          "iou_median": 0.0,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 106485,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Forklift": {
+              "boxes": 132276,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0017614684447670023
+            },
+            "Person": {
+              "boxes": 824128,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.006778073309000544
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_021",
+      "boxes_total": 1715322,
+      "boxes_excluded_smaller_than_min_side": 144832,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.8079064495794306,
+          "median_u": 0.49854173447745,
+          "median_v": 0.5050721120100772,
+          "iqr_v": [
+            0.4954281006535672,
+            0.7297688671443646
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.8039261631720036,
+          "median_u": 0.5188157917283498,
+          "median_v": 0.5144488399999638,
+          "iqr_v": [
+            0.5033161483835655,
+            0.7462039688872781
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": -10.299155732965763,
+          "median_v": -16.000262266792348,
+          "iqr_v": [
+            -41.50224602282237,
+            -7.503269445573543
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.7000795929932696,
+          "median_u": 0.5180383434033518,
+          "median_v": 0.7066097159395384,
+          "iqr_v": [
+            0.6701190944653432,
+            1.0251323922377586
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.7149392864647339,
+          "median_u": 0.49814010657398217,
+          "median_v": 0.6981265027421428,
+          "iqr_v": [
+            0.6618437966313873,
+            1.0104433350445414
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.6298308171335061,
+          "median_u": 0.518060596428395,
+          "median_v": 0.8267216313984527,
+          "iqr_v": [
+            0.6876703407357347,
+            1.182384121839633
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.6398162356971391,
+          "median_u": 0.4977247089355846,
+          "median_v": 0.819792557692479,
+          "iqr_v": [
+            0.6790006428797241,
+            1.164668275086552
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.24555775585963616,
+          "median_u": 0.5061715989657912,
+          "median_v": 1.0266268621305787,
+          "iqr_v": [
+            1.0000926543324198,
+            1.5411502239499986
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 1570490,
+          "behind_camera": 0,
+          "inside_fraction": 0.33533419506014045,
+          "median_u": 0.48937665332276087,
+          "median_v": 1.0140482279608949,
+          "iqr_v": [
+            0.9932307529195629,
+            1.522081026681275
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 1570490,
+          "behind_camera": 487755,
+          "inside_fraction": 0.0030245337442454264,
+          "median_u": 24.370328719001165,
+          "median_v": 0.7500218576277543,
+          "iqr_v": [
+            0.42912318353074774,
+            2.0930628100161197
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 1570490,
+          "behind_camera": 199521,
+          "inside_fraction": 0.0030710160523148827,
+          "median_u": 12.287768833051246,
+          "median_v": 0.4421511284572366,
+          "iqr_v": [
+            -0.4698674970900656,
+            1.0445155270999351
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 1570490,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.9987303325713631,
+          "iou_median": 0.5283232263245524,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 173466,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 307333,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9964989116040256
+            },
+            "Person": {
+              "boxes": 1089691,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9991575593448051
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 1570490,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.9966638247408012,
+          "fraction_containment_at_least_bar": 0.9994141955695356,
+          "iou_median": 0.5282306366657991,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 173466,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9969446462130908
+            },
+            "Forklift": {
+              "boxes": 307333,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Person": {
+              "boxes": 1089691,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.999642100375244
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 1062889,
+          "not_scored_corner_behind_camera": 507601,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.005474701497522319,
+          "iou_median": 0.0,
+          "by_class": {
+            "PalletTruck": {
+              "boxes": 106485,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Forklift": {
+              "boxes": 132276,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0017614684447670023
+            },
+            "Person": {
+              "boxes": 824128,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.006778073309000544
+            }
+          }
+        }
+      }
+    },
+    {
+      "scene": "Warehouse_022",
+      "boxes_total": 149422,
+      "boxes_excluded_smaller_than_min_side": 2019,
+      "variants": {
+        "CAMERA_MATRIX/location": {
+          "usable_boxes": 147403,
+          "behind_camera": 0,
+          "inside_fraction": 0.9099611269784197,
+          "median_u": 0.48766771565997447,
+          "median_v": 0.49656605772472673,
+          "iqr_v": [
+            0.48548674660857477,
+            0.5096957076062758
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location": {
+          "usable_boxes": 147403,
+          "behind_camera": 0,
+          "inside_fraction": 0.9107548693038812,
+          "median_u": 0.5125369228727317,
+          "median_v": 0.500622545155923,
+          "iqr_v": [
+            0.4898179964172609,
+            0.5115564776535972
+          ]
+        },
+        "INTRINSIC_INVERTED_EXTRINSIC/location": {
+          "usable_boxes": 147403,
+          "behind_camera": 0,
+          "inside_fraction": 0.0,
+          "median_u": -42.30279307772782,
+          "median_v": -11.303016670165745,
+          "iqr_v": [
+            -27.48982003490533,
+            -6.257326237764065
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale0": {
+          "usable_boxes": 147403,
+          "behind_camera": 0,
+          "inside_fraction": 0.8568414482744584,
+          "median_u": 0.5175218055160196,
+          "median_v": 0.6484177440372965,
+          "iqr_v": [
+            0.6294162266335299,
+            0.6726414860052613
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale0": {
+          "usable_boxes": 147403,
+          "behind_camera": 0,
+          "inside_fraction": 0.8559866488470383,
+          "median_u": 0.4884695620190074,
+          "median_v": 0.6450825221909452,
+          "iqr_v": [
+            0.6257641365120302,
+            0.6703536136994042
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale1": {
+          "usable_boxes": 147403,
+          "behind_camera": 0,
+          "inside_fraction": 0.848496977673453,
+          "median_u": 0.5179358389808528,
+          "median_v": 0.6817898919630395,
+          "iqr_v": [
+            0.6208784304874936,
+            0.7569174189447851
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale1": {
+          "usable_boxes": 147403,
+          "behind_camera": 0,
+          "inside_fraction": 0.8501115988141354,
+          "median_u": 0.4891574815408735,
+          "median_v": 0.6784627699495522,
+          "iqr_v": [
+            0.6182782782086138,
+            0.7529811209072417
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-half-scale2": {
+          "usable_boxes": 147403,
+          "behind_camera": 0,
+          "inside_fraction": 0.6649525450635333,
+          "median_u": 0.5271189982368321,
+          "median_v": 0.9874028117848239,
+          "iqr_v": [
+            0.96537497233273,
+            1.0080285827870807
+          ]
+        },
+        "CAMERA_MATRIX/location-half-scale2": {
+          "usable_boxes": 147403,
+          "behind_camera": 0,
+          "inside_fraction": 0.6958270862872533,
+          "median_u": 0.487263652873831,
+          "median_v": 0.9830526937573993,
+          "iqr_v": [
+            0.9607447291895078,
+            1.0056400696440257
+          ]
+        },
+        "INTRINSIC_EXTRINSIC/location-xy-swapped": {
+          "usable_boxes": 147403,
+          "behind_camera": 24053,
+          "inside_fraction": 0.008439448315163193,
+          "median_u": -10.628473779282016,
+          "median_v": -0.014758924601512284,
+          "iqr_v": [
+            -1.219477361194575,
+            2.390253224465726
+          ]
+        },
+        "CAMERA_MATRIX/location-xy-swapped": {
+          "usable_boxes": 147403,
+          "behind_camera": 1007,
+          "inside_fraction": 0.008344470601005407,
+          "median_u": -14.758351756794779,
+          "median_v": -0.4469657178851477,
+          "iqr_v": [
+            -1.9633747973315347,
+            1.0112446627816585
+          ]
+        }
+      },
+      "box_variants": {
+        "CAMERA_MATRIX/box": {
+          "scored_boxes": 147403,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 0.9517170176149242,
+          "fraction_containment_at_least_bar": 0.9835959919404625,
+          "iou_median": 0.6005539878162863,
+          "by_class": {
+            "Person": {
+              "boxes": 139358,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9853614431894832
+            },
+            "NovaCarter": {
+              "boxes": 2204,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Transporter": {
+              "boxes": 4249,
+              "containment_median": 0.9626940228292268,
+              "fraction_containment_at_least_bar": 0.9112732407625324
+            },
+            "Forklift": {
+              "boxes": 1592,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9993718592964824
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box": {
+          "scored_boxes": 147403,
+          "not_scored_corner_behind_camera": 0,
+          "containment_median": 1.0,
+          "containment_p5": 1.0,
+          "fraction_containment_at_least_bar": 0.999952511142921,
+          "iou_median": 0.6115112040776391,
+          "by_class": {
+            "Person": {
+              "boxes": 139358,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 0.9999497696580031
+            },
+            "NovaCarter": {
+              "boxes": 2204,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Transporter": {
+              "boxes": 4249,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            },
+            "Forklift": {
+              "boxes": 1592,
+              "containment_median": 1.0,
+              "fraction_containment_at_least_bar": 1.0
+            }
+          }
+        },
+        "INTRINSIC_EXTRINSIC/box-xy-swapped": {
+          "scored_boxes": 120650,
+          "not_scored_corner_behind_camera": 26753,
+          "containment_median": 0.0,
+          "containment_p5": 0.0,
+          "fraction_containment_at_least_bar": 0.005395772896808952,
+          "iou_median": 0.0,
+          "by_class": {
+            "Person": {
+              "boxes": 114605,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.005488416735744513
+            },
+            "NovaCarter": {
+              "boxes": 204,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            },
+            "Transporter": {
+              "boxes": 4249,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0051776888679689334
+            },
+            "Forklift": {
+              "boxes": 1592,
+              "containment_median": 0.0,
+              "fraction_containment_at_least_bar": 0.0
+            }
+          }
+        }
+      }
+    }
+  ]
+}

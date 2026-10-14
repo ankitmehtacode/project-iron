@@ -34,11 +34,17 @@ import json
 import math
 from collections.abc import Iterator
 from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import numpy.typing as npt
+
+from src.contracts.errors import AxisConventionMismatch
+from src.contracts.frames import FrameGeometry, Intrinsics
+from src.contracts.ground_truth import GroundTruthAxes
+from src.model.world import WorldPositionArray
 
 FloatArray = npt.NDArray[np.float64]
 
@@ -523,3 +529,217 @@ def _sha256_file(path: Path) -> str:
         while chunk := handle.read(1 << 20):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+# ---------------------------------------------------------------------------
+# Projection conventions (Day 41, Objective 2)
+# ---------------------------------------------------------------------------
+
+
+class ProjectionSource(Enum):
+    """Which calibration entries map a world point to pixels.
+
+    The card lists both ``cameraMatrix`` and ``intrinsicMatrix`` /
+    ``extrinsicMatrix`` and implies the first is the product of the other
+    two. On disk it is not: after normalising to ``P[2, 3] == 1`` the two
+    differ by 0.14%–11.7% relative across cameras (integrity report, H3).
+    So the choice is a convention that has to be measured, not assumed.
+    """
+
+    CAMERA_MATRIX = "cameraMatrix @ [x, y, z, 1]"
+    INTRINSIC_EXTRINSIC = "intrinsicMatrix @ extrinsicMatrix @ [x, y, z, 1]"
+    INTRINSIC_INVERTED_EXTRINSIC = (
+        "intrinsicMatrix @ inverse(extrinsicMatrix) @ [x, y, z, 1] — extrinsic "
+        "read as camera-to-world instead of world-to-camera"
+    )
+
+
+class LocationReference(Enum):
+    """Which point of the object ``3d location`` names."""
+
+    BOX_CENTRE = "centre of the 3D box"
+    BOX_BOTTOM = "centre of the 3D box's bottom face"
+
+
+def project(
+    world_xyz: FloatArray, camera: CameraCalibration, source: ProjectionSource
+) -> tuple[FloatArray, FloatArray]:
+    """Project ``[N, 3]`` world points to pixels under ``source``.
+
+    Returns ``(pixels [N, 2], depth [N])``, where depth is the homogeneous
+    scale ``w``. A point is in front of the camera when its depth has the
+    sign the source gives points in front: positive for the
+    intrinsic/extrinsic forms. ``cameraMatrix`` is stored with an arbitrary
+    overall sign (``P[2, 3]`` is normalised to 1), so its depth sign is
+    not meaningful on its own — callers compare against the visible boxes
+    rather than trusting it."""
+    homogeneous = np.concatenate([world_xyz, np.ones((world_xyz.shape[0], 1))], axis=1)
+    if source is ProjectionSource.CAMERA_MATRIX:
+        matrix = camera.camera_matrix
+    elif source is ProjectionSource.INTRINSIC_EXTRINSIC:
+        matrix = camera.intrinsic @ camera.extrinsic
+    else:
+        rigid = np.vstack([camera.extrinsic, [0.0, 0.0, 0.0, 1.0]])
+        matrix = camera.intrinsic @ np.linalg.inv(rigid)[:3]
+    image = homogeneous @ matrix.T
+    depth = image[:, 2]
+    with np.errstate(divide="ignore", invalid="ignore"):
+        pixels = image[:, :2] / depth[:, None]
+    return pixels, depth
+
+
+@dataclass(frozen=True)
+class SmartSpacesGeometry:
+    """The geometric conventions a SmartSpaces consumer is relying on.
+
+    Every field is required (Day 31: a contract must never default a
+    convention). :data:`MEASURED_GEOMETRY` is the one instance whose
+    fields have been shown against the data; anything else is a claim the
+    caller makes on its own authority.
+    """
+
+    projection: ProjectionSource
+    location_reference: LocationReference
+    axes: GroundTruthAxes
+    height_scale_index: int
+    """Which index of ``3d bounding box scale`` is the box's vertical extent."""
+
+    def floor_point(self, location: FloatArray, scale: FloatArray) -> FloatArray:
+        """``[N, 3]`` point on the floor under each object."""
+        if self.location_reference is LocationReference.BOX_BOTTOM:
+            return np.array(location, dtype=np.float64)
+        floor = np.array(location, dtype=np.float64)
+        floor[:, self.axes.vertical_index] -= scale[:, self.height_scale_index] / 2.0
+        return floor
+
+
+MEASURED_GEOMETRY = SmartSpacesGeometry(
+    projection=ProjectionSource.INTRINSIC_EXTRINSIC,
+    location_reference=LocationReference.BOX_CENTRE,
+    axes=GroundTruthAxes.X_Y_Z_UP,
+    height_scale_index=2,
+)
+"""Measured on all 23 fetched scenes, Day 41
+(``scripts/smartspaces_reprojection.py`` →
+``artifacts/smartspaces/day41_reprojection.json``):
+
+- ``INTRINSIC_EXTRINSIC``: projecting each object's 3D box through K·E puts
+  the visible 2D box inside it for >= 99% of boxes of every class in every
+  scene, EXCEPT objects whose 2D box includes a payload the 3D box does not
+  (loaded Transporters in Warehouse_010-016, Warehouse_019's stacker) —
+  see ``tests/test_smartspaces_reprojection.py``'s
+  ``KNOWN_PAYLOAD_DIVERGENCE``. ``cameraMatrix`` does worse on some scenes
+  (Warehouse_000: 92.6% of boxes >= 90% contained, p5 0.63, against 99.97%
+  and p5 0.997 for K·E). Extrinsic read as camera-to-world fails outright.
+- ``BOX_CENTRE``: the projected location lands at median (0.52, 0.51) of
+  the visible box, and ``location − scale[2]/2`` lands on its bottom edge
+  (median v 1.03).
+- ``X_Y_Z_UP`` and ``height_scale_index=2``: the same bottom-edge result,
+  Person ``scale[2]`` median 1.86 m, and swapping x and y collapses
+  containment to ~0.
+"""
+
+
+def camera_intrinsics(camera: CameraCalibration) -> Intrinsics:
+    """The camera's intrinsics, bound to the 1920×1080 raster the
+    calibration states. The calibration lists no distortion terms (a
+    rendered pinhole camera), so ``distortion=()``."""
+    return Intrinsics(
+        fx=float(camera.intrinsic[0, 0]),
+        fy=float(camera.intrinsic[1, 1]),
+        cx=float(camera.intrinsic[0, 2]),
+        cy=float(camera.intrinsic[1, 2]),
+        distortion=(),
+        valid_for=FrameGeometry(camera.frame_width, camera.frame_height),
+        calibrated=True,
+    )
+
+
+def world_positions(
+    location: FloatArray, calibration: SceneCalibration, geometry: SmartSpacesGeometry
+) -> WorldPositionArray:
+    """GT locations as world positions at the scene's ``twin_rev``.
+
+    ``WorldPositionArray`` is in the site frame's ``X_Y_Z_UP`` convention,
+    so a geometry declaring anything else is refused rather than
+    relabelled."""
+    if geometry.axes is not GroundTruthAxes.X_Y_Z_UP:
+        raise AxisConventionMismatch(
+            f"WorldPositionArray is X_Y_Z_UP; this geometry declares {geometry.axes}"
+        )
+    return WorldPositionArray(
+        xyz_m=np.array(location, dtype=np.float64), twin_rev=calibration.twin_rev
+    )
+
+
+_CORNER_SIGNS = np.array(
+    [[sx, sy, sz] for sx in (-1, 1) for sy in (-1, 1) for sz in (-1, 1)],
+    dtype=np.float64,
+)
+
+
+def box_containment(
+    gt: SceneGroundTruth,
+    calibration: SceneCalibration,
+    source: ProjectionSource,
+    box_index: npt.NDArray[np.int64],
+    location: FloatArray | None = None,
+) -> tuple[FloatArray, FloatArray]:
+    """For each selected visible box: the fraction of its area inside the
+    image rectangle of the object's projected 3D box, and the IoU of the
+    two. NaN where a box corner falls behind the camera.
+
+    Occlusion only removes pixels from a visible box, so under the right
+    geometry containment is near 1 for occluded and unoccluded objects
+    alike. The 3D box is ``location ± scale/2`` rotated by yaw
+    (``rotation[2]``) about the vertical; pitch and roll are below 2e-5
+    rad in every fetched scene and are ignored. ``location`` overrides the
+    GT locations (one row per selected box) — how a test feeds in a
+    deliberately wrong convention."""
+    rows = gt.box_row[box_index]
+    loc = gt.location[rows] if location is None else location
+    scale = gt.scale[rows]
+    yaw = gt.rotation[rows, 2]
+    vis = gt.box_xyxy[box_index].astype(np.float64)
+    containment = np.full(box_index.size, np.nan)
+    iou = np.full(box_index.size, np.nan)
+    cameras = gt.box_camera[box_index]
+    for cam_index in np.unique(cameras):
+        sel = np.flatnonzero(cameras == cam_index)
+        camera = calibration.cameras[gt.camera_names[cam_index]]
+        local = _CORNER_SIGNS[None, :, :] * (scale[sel, None, :] / 2.0)
+        cos, sin = np.cos(yaw[sel])[:, None], np.sin(yaw[sel])[:, None]
+        world = np.empty_like(local)
+        world[..., 0] = cos * local[..., 0] - sin * local[..., 1]
+        world[..., 1] = sin * local[..., 0] + cos * local[..., 1]
+        world[..., 2] = local[..., 2]
+        world += loc[sel, None, :]
+        pixels, depth = project(world.reshape(-1, 3), camera, source)
+        pixels = pixels.reshape(sel.size, 8, 2)
+        depth = depth.reshape(sel.size, 8)
+        if source is ProjectionSource.CAMERA_MATRIX:
+            depth = depth * np.sign(np.median(depth))
+        in_front = (depth > 0).all(axis=1)
+        rect = np.concatenate([pixels.min(axis=1), pixels.max(axis=1)], axis=1)
+        box = vis[sel]
+        ix = np.clip(
+            np.minimum(box[:, 2], rect[:, 2]) - np.maximum(box[:, 0], rect[:, 0]),
+            0,
+            None,
+        )
+        iy = np.clip(
+            np.minimum(box[:, 3], rect[:, 3]) - np.maximum(box[:, 1], rect[:, 1]),
+            0,
+            None,
+        )
+        inter = ix * iy
+        area_box = (box[:, 2] - box[:, 0]) * (box[:, 3] - box[:, 1])
+        area_rect = (rect[:, 2] - rect[:, 0]) * (rect[:, 3] - rect[:, 1])
+        with np.errstate(divide="ignore", invalid="ignore"):
+            c = inter / area_box
+            j = inter / (area_box + area_rect - inter)
+        c[~in_front] = np.nan
+        j[~in_front] = np.nan
+        containment[sel] = c
+        iou[sel] = j
+    return containment, iou

@@ -151,7 +151,30 @@ datasets:
     it). The two real-world test scenes are excluded by fetch_deny_patterns and registered
     separately as PhysicalAI-SmartSpaces-RealWorldTest (lane R, blocked). Persons are
     NVIDIA Omniverse character assets; whether any are SMPL-derived is not stated
-    on the card (see the SMPL trap in src/data/registry.py).'
+    on the card (see the SMPL trap in src/data/registry.py).
+
+    Day 41 (2026-10-14), VERIFIED on the fetched subset (paths-0deaa0fe541fbaf1,
+    23 scenes, 292 videos) by scripts/smartspaces_integrity.py ->
+    docs/smartspaces_integrity.md and artifacts/smartspaces/day41_integrity.json:
+    calibration, ground-truth camera keys and videos/ name the same camera set
+    in every scene (numbering gaps such as Warehouse_000 Camera_0018 are absent
+    from all three); every video opens at 1920x1080, 30 fps, decodes at its
+    first/middle/last frame under opencv 4.8.1.78, and its container frame count
+    equals the GT frame count (9000; Warehouse_022 9270); GT frames are contiguous
+    from 0. Warehouse_001/003/005/007/021 are Cosmos Transfer re-renders whose
+    calibration.json and ground_truth.json are byte-identical to 000/002/004/006/020
+    (sha256), so counting both double-counts one scene. Classes present: Person,
+    Forklift, PalletTruck, Transporter, AgilityDigit, FourierGR1T2, NovaCarter.
+    The GT keys on disk use spaces ("object type"), NOT the underscores the card
+    documents; src/data/smartspaces.py reads only the on-disk spelling and raises
+    on any other. cameraMatrix is NOT intrinsicMatrix @ extrinsicMatrix: after
+    normalising to P[2,3] = 1 they differ by 4.5e-12 to 0.51 relative depending
+    on the camera. Geometry (scripts/smartspaces_reprojection.py,
+    tests/test_smartspaces_reprojection.py): K @ E, 3d location = box centre,
+    z up, scale[2] = height; the projected 3D box contains >= 99% of visible 2D
+    boxes for every class in every scene except objects whose 2D box includes a
+    payload the 3D box does not (loaded Transporters, Warehouse_010-016; the
+    Warehouse_019 stacker).'
   license_snapshot:
     url: https://huggingface.co/datasets/nvidia/PhysicalAI-SmartSpaces/raw/2cbe9563cbe9f47f846e5c871ee994572bbbc60e/README.md
     verified_date: '2026-10-14'
