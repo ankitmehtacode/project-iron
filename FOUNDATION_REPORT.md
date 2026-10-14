@@ -11885,7 +11885,7 @@ Each GT object's 3D box (centre ± scale/2, yaw about z; pitch and roll are
    the tree on disk and raise naming any denied path, deleting nothing.
    Red first for both modes. The real SmartSpaces install passes the audit.
 3. **Formatting-only commit for the 28 files failing black** —
-   PENDING: run after this report is committed, so the formatting commit sits on a tree with no work in progress (two of the 28 files carried uncommitted Objective-5 edits until then). The result replaces this line.
+   `a35fc42`, run last so the formatting commit sits on a tree with no work in progress (two of the 28 files carried uncommitted Objective-5 edits until then). Exactly the 28 files `black --check .` listed changed; `black --check .` is now clean repo-wide; every file's `ast.dump` is identical before and after. The full suite before and after gave identical results — same 1571 test ids, 0 outcomes changed (numbers and artifacts under Full suite below).
 
 ### Re-render pairs (Day-41 addendum)
 
@@ -12148,12 +12148,27 @@ than editing another day's blocker text.
 
 `1372788` Obj 0 · `00b216c` Obj 1 · `06b7976` Obj 2 · `7e1b219` Obj 3.1 ·
 `9e9e345` Obj 3.2 · `6534323` ADR 0012 · `755d692` addendum 1/4/5 ·
-`61de2b1` Obj 4 · `73fe22e` Obj 5 · this report + ledger ·
-(pending) Obj 3.3 (formatting only).
+`61de2b1` Obj 4 · `73fe22e` Obj 5 · `2e89648` this report + ledger ·
+`a35fc42` Obj 3.3 (formatting only).
 
 ## Full suite, mypy, lint
 
-PENDING: the full suite runs twice for Objective 3.3 (before and after formatting); its artifact-backed counts replace this line.
+Full suite, no marker exclusions, run twice for Objective 3.3 on a clean
+tree: before formatting (`artifacts/pytest/day41_preformat_full.xml`, log
+`artifacts/pytest/day41_preformat_full.log`) 1564 passed, 7 skipped, 0
+failures; after formatting (`artifacts/pytest/day41_postformat_full.xml`)
+1564 passed, 7 skipped, 0 failures — the same 1571 test ids with 0 outcomes
+changed. Up from Day 40's quick-loop 1419 because this is the full suite
+plus today's new tests; the two counts are not the same measurement.
+
+`mypy` (scoped per `mypy.ini`): 0 errors, 80 source files
+(`src/data/smartspaces.py` is in scope). `black --check .`: clean
+repo-wide after `a35fc42`. `flake8`: clean on every file created or edited
+today; repo-wide it reports 120 findings, 81 of them in CHIRLA's own
+downloaded evaluation code under the ignored `data/derived/` and 39 in
+tracked files, all present before today (e.g. `tests/test_eval_baselines.py`
+unused imports, checked against the previous commit) — not fixed here,
+since Objective 3.3 was black-only.
 
 ## Day 42, in order
 
