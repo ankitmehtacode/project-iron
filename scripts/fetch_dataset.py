@@ -354,7 +354,10 @@ def _fetch_hf_file(
     failures — see :func:`_download`."""
     url = f"https://huggingface.co/datasets/{repo_id}/resolve/{commit_sha}/{path}"
     headers = {"Authorization": f"Bearer {token}"} if token else {}
-    _download(url, destination, headers=headers, timeout=600, on_progress=on_progress)
+    # The timeout bounds each socket read, not the whole file, so it is the
+    # stall detector: 2026-10-14 a SmartSpaces stream went silent at exactly
+    # 128 MiB, and 600s meant ten idle minutes before the Range retry fired.
+    _download(url, destination, headers=headers, timeout=60, on_progress=on_progress)
 
 
 def _hf_get(url: str, token: str | None, timeout: float) -> bytes:
