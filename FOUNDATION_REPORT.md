@@ -11774,3 +11774,407 @@ clean on all nine Python files touched today.
 5. **`chirla-deployment-scope-legal-review`** — counsel, not code.
 6. **`registry-deployment-scope-reaudit`'s Tier 1** — carried forward.
 7. Everything else on Day 39's list not touched today, carried forward.
+
+# Day 41
+
+**Lead finding (rule 3 of the Day-41 prompt's lead order fired): the 2026
+ground-truth schema differs from the dataset card in a way that changes
+parsing.** Every `ground_truth.json` on disk keys its objects with spaces
+— `"object type"`, `"object id"`, `"3d location"`, `"3d bounding box
+scale"`, `"3d bounding box rotation"`, `"2d bounding box visible"` — where
+the card's README (raw, at `2cbe9563`) documents underscores
+(`object_type`, `3d_location`, ...). A reader written from the card
+KeyErrors on the first object; a tolerant one returns nothing. Found by the
+strict reader on its first file, before any metric. `src/data/smartspaces.py`
+accepts only the on-disk spelling and raises `SchemaDrift` on anything
+else, including the card's spelling (`tests/test_smartspaces.py`). Rules 1
+and 2 did not fire: the camera sets agree everywhere, and the ground truth
+agrees with the calibration under one convention (below).
+
+**Rule 4 also fired, and is the day's most consequential measurement:
+motion-gate wake decisions are NOT identical between full resolution and
+320x180 on 1080p H.264 video.** Across 46 cameras (one quiet and one busy per source scene, each Cosmos re-render on its source's cameras, seed 41) and the first 1,800 frames of each, 2,423 of 82,800 frames (2.9%) get a different `wake_next` from the 320x180 product gate than from the same gate at full resolution; 40 of 46 cameras differ at least once; per trajectory set 0–10.2%. The direction is lopsided: 2,407 frames where only the full-resolution gate wakes, 16 where only the 320x180 gate does. Day 7/8's blocked item is closed with a negative answer: on real-codec 1080p video, downscaling to 320x180 changes wake decisions. Thresholds were not retuned to force agreement.
+
+**Rule 6, on synthetic data:** the component cap of 6 triggers on 5.3% of all frames at the 1.5 m default and 1.1% at the 1.10 m knee, all of it in the mixed robot-and-person scenes (up to 29.7% of Warehouse_008's frames). The person, forklift and pallet-truck scenes, at 70+ entities per frame, top out at exactly 6 and never trigger it. These are rendered agents on authored paths, not real crowding.
+
+**No timing, throughput, CPU-percentage, memory-rate or latency claim is
+made anywhere in this section** — unchanged hard scope rule. The one
+memory figure below (a JSON parser's peak RSS) chose a tooling approach;
+it says nothing about the product. Suite durations are process
+measurements, not product figures.
+
+## Verdicts
+
+### H1–H9 (Objective 1)
+
+| | hypothesis | verdict | how it was settled |
+|---|---|---|---|
+| H1 | 2026 GT follows the 2025 README format | **FALSIFIED (key spelling)**; structure VERIFIED | strict reader over all 23 files (`scripts/smartspaces_integrity.py`): per-frame lists, the six fields with the documented shapes and types — but spelled with spaces, not underscores. `head -c 1500 .../Warehouse_000/ground_truth.json` shows it directly |
+| H2 | calibration follows the 2025 format | **VERIFIED**, one type difference | strict reader: every sensor has exactly the ten documented keys and the five documented attributes in all 23 scenes; attribute `value`s are JSON strings (`"30"`, `"1920"`), not the numbers the card shows |
+| H3 | `cameraMatrix = intrinsicMatrix @ extrinsicMatrix` | **FALSIFIED** | `cameraMatrix` is stored normalised to `P[2,3] = 1`; after scaling K·E the same way the relative difference is 4.5e-12 to 0.51 by camera — exact (< 1e-6) on 35 of 292 camera entries (re-render duplicates included), up to 51% off elsewhere. The homography equals `cameraMatrix`'s columns 0, 1, 3 (the z = 0 plane) on every camera. `artifacts/smartspaces/day41_integrity.json` |
+| H4 | camera ids agree across calibration, GT keys and `videos/` | **VERIFIED** | per-scene set comparison, all 23 scenes. The numbering gaps the fetch log showed (Camera_0018 in Warehouse_000/001, Camera_0006 in Warehouse_004) are absent from all three places alike; GT never names a camera the calibration lacks |
+| H5 | every video decodes at 1080p, 30 fps under opencv 4.8.1.78 | **VERIFIED at three seek points**; full decode for the gate sample only | all 292 videos: `cv2.VideoCapture` opens, 1920x1080, 30.0 fps, `h264`, frames 0 / middle / last decode to `[1080, 1920, 3]`, container frame count equals the GT frame count (9000; Warehouse_022 9270). Sequential decode of the first 1800 frames for the 46 gate-sample cameras (Objective 5). A full sequential decode of all 292 was not run |
+| H6 | `3d location` is the box centre | **VERIFIED** | projected location lands at median u 0.46–0.52, v 0.48–0.52 of the visible box in every scene; `location − scale[2]/2` lands on the box's bottom edge (median v 0.93–1.04, and 0.84–0.90 in the three 4–5-entity scenes 017–019) (`artifacts/smartspaces/day41_reprojection.json`) |
+| H7 | world frame is Z-up, floor near z = 0 | **VERIFIED, measured** | `z − scale[2]/2`, per class, median of per-scene medians: PalletTruck −0.003, Transporter +0.000, FourierGR1T2 −0.007, Person −0.019, Forklift +0.029, NovaCarter −0.044, AgilityDigit −0.054 m. Reading scale[0] or scale[1] as height puts the floor 0.4–0.85 m off. Person p99 reaches +0.70 m (people standing on raised surfaces) |
+| H8 | non-person entities present | **VERIFIED** | unique ids, re-renders excluded: Person 481, Transporter 66, FourierGR1T2 67, AgilityDigit 65, Forklift 58, PalletTruck 50, NovaCarter 30 |
+| H9 | the card gives no per-scene indicator of re-renders | **FALSIFIED** | the card's scene table footnote and its 2026-04-29 changelog name them: Warehouse_001/003/005/007/021 (and 024, not fetched) are Cosmos Transfer 2.5 re-renders of 000/002/004/006/020. Checked: each pair's `calibration.json` and `ground_truth.json` are byte-identical (sha256) |
+
+### Data integrity (Objective 1) — `docs/smartspaces_integrity.md`
+
+23 scenes, 292 videos, every one consistent: camera sets agree, GT frames
+contiguous from 0, no object id under two classes, every video opens and
+decodes as above. One memory measurement chose the parser: a whole-file
+`json.load` of the largest scene (282 MB) peaked at 1.54 GB resident
+(`/usr/bin/time -l`); the stdlib `raw_decode` frame-at-a-time reader peaks
+at 0.61 GB on the same file, so no streaming-JSON dependency was added.
+The registry entry's `notes` gained a dated Day-41 paragraph with these
+facts and the commands behind them; the signed `license_snapshot` is
+untouched (parsed-YAML diff: one field, `notes`).
+
+### Coordinate conventions (Objective 2) — they agree
+
+Each GT object's 3D box (centre ± scale/2, yaw about z; pitch and roll are
+< 2e-5 rad everywhere) was projected into every camera listing it visible.
+
+- **The pre-declared point criterion failed** — ≥ 90% of visible boxes
+  containing the projected centre — on Warehouse_000 under every
+  convention (best 76%), while the medians sat at (0.52, 0.51). Visible
+  boxes are the *unoccluded part* of an object, so a centre can fall
+  outside one with the geometry correct. The criterion was not loosened;
+  an occlusion-robust one was added, labelled in the artifact as declared
+  after run 1: **containment** = |visible ∩ projected 3D box| / |visible|,
+  which occlusion cannot lower.
+- **Under containment the answer is unambiguous: K·E, box centre, z up,
+  scale[2] = height.** Warehouse_000: 99.97% of visible boxes ≥ 90%
+  contained (p5 0.997). `cameraMatrix` scores 92.6% (p5 0.63) on the same
+  scene; extrinsic read as camera-to-world scores 0.03% on the point test;
+  x and y swapped collapses to 0–5% everywhere.
+- **Per (scene, class), every class agrees on ≥ 99% of boxes in every
+  scene, except objects whose 2D box includes a payload the 3D box does
+  not.** Loaded Transporters in Warehouse_010–016 (34–51% per class;
+  per object id it is all-or-nothing — Warehouse_010: 6 of 12 ids agree on
+  100%, 6 on 0–8%; the failing boxes' bottoms align like everyone else's
+  but they extend 3.6 projected box-heights above the 0.23 m robot base)
+  and Warehouse_019's one "Forklift", a stacker whose 2D box takes in mast,
+  forks and load around a 0.72 x 0.78 m body box. Both confirmed by eye on
+  video crops. This is a labelling difference between the two box types,
+  not a calibration disagreement.
+- **Declared on typed objects:** `SmartSpacesGeometry` (every field
+  required) and `MEASURED_GEOMETRY`; `camera_intrinsics()` →
+  `Intrinsics(valid_for=1920x1080, calibrated=True, distortion=())`;
+  `world_positions()` → `WorldPositionArray` with `twin_rev` = the first 60
+  bits of the scene's `calibration.json` sha256 (a geometry declaring any
+  axes other than `X_Y_Z_UP` is refused, not relabelled).
+- **Test** (`tests/test_smartspaces_reprojection.py`, marker
+  `requires_dataset`, skips with a reason when `data/` is absent): per
+  scene and class, ≥ 99% agreement under the declared convention; the
+  payload cases asserted to *stay* divergent, so a data revision is
+  noticed; x/y swapped must fail in every scene.
+
+### Three tool gaps closed (Objective 3)
+
+1. **Checkpoint manifests are append-only** (`7e1b219`). Every write
+   appends the full state to `<manifest>.history.jsonl` before atomically
+   replacing the latest-state file; `read_manifest_history` returns every
+   state. Write with a restriction open → resolve → re-write: both states
+   in history. A refused promotion appends nothing. Red first: both tests
+   failed against the previous `checkpoint.py`.
+2. **An already-installed fetch folder is audited against the deny list**
+   (`9e9e345`). Config mode returned "already present — idempotent" before
+   any deny check; path mode checked only the fresh listing. Both now scan
+   the tree on disk and raise naming any denied path, deleting nothing.
+   Red first for both modes. The real SmartSpaces install passes the audit.
+3. **Formatting-only commit for the 28 files failing black** —
+   PENDING: run after this report is committed, so the formatting commit sits on a tree with no work in progress (two of the 28 files carried uncommitted Objective-5 edits until then). The result replaces this line.
+
+### Re-render pairs (Day-41 addendum)
+
+`docs/smartspaces_integrity.md` now carries the pair map. Each Cosmos
+Transfer re-render, its source, both splits: 001←000, 003←002, 005←004,
+007←006 (train/train), 021←020 (val/val). Identified from the card (scene
+table footnote and the 2026-04-29 changelog), then checked: each pair's
+`calibration.json` and `ground_truth.json` have equal sha256, and no other
+two fetched scenes share a ground-truth sha256. **No pair straddles
+train/val.** Objectives 4 and 5 below are reported per distinct
+ground-truth trajectory set: 23 fetched scenes, 18 trajectory sets.
+
+### Component sizes on SmartSpaces crowding (Objective 4)
+
+*PhysicalAI-SmartSpaces — lane S, synthetic. Not evidence about real
+crowding.* `artifacts/smartspaces/day41_component_sizes.json`.
+
+Day 26's coupling (3D distance between `3d location`s strictly below a
+threshold), its sweep (1.10 m knee included) and its declared default
+(1.5 m), unchanged, against `DEFAULT_COMPONENT_CAP_CONFIG`
+(`max_component_size=6`). The kernel is one minimum spanning tree per
+frame plus a union-find sweep; it is equal to Day 26's own
+`_pairwise_adjacency` + `_connected_components` at every threshold
+(`tests/test_smartspaces_components.py`, including coincident entities
+and a distance exactly at the knee).
+
+**Entity counts first** (per frame, all classes; p50 / p95 / max):
+
+| trajectory set | entities / frame | per-class p95 / frame |
+|---|---|---|
+| 000 (+001) | 74 / 76 / 77 | Person 58, PalletTruck 10, Forklift 9 |
+| 002 (+003) | 69 / 73 / 76 | Person 55, PalletTruck 9, Forklift 9 |
+| 004 (+005) | 72 / 74 / 77 | Person 56, PalletTruck 10, Forklift 9 |
+| 006 (+007) | 47 / 52 / 55 | Person 37, PalletTruck 8, Forklift 7 |
+| 008 | 27 / 27 / 27 | Person 10, FourierGR1T2 8, AgilityDigit 6, Transporter 3 |
+| 009 | 28 / 28 / 28 | Person 13, AgilityDigit 6, FourierGR1T2 6, Transporter 3 |
+| 010 | 60 / 60 / 60 | Person 25, Transporter 12, AgilityDigit 8, FourierGR1T2 8, NovaCarter 4, Forklift 3 |
+| 011 | 55 / 55 / 55 | Person 20, AgilityDigit 10, FourierGR1T2 10, Transporter 9, NovaCarter 3, Forklift 3 |
+| 012 | 42 / 42 / 42 | Person 15, Transporter 9, AgilityDigit 8, FourierGR1T2 6, NovaCarter 4 |
+| 013 | 44 / 44 / 44 | Person 16, Transporter 10, FourierGR1T2 8, AgilityDigit 5, NovaCarter 5 |
+| 014 | 47 / 47 / 47 | Person 20, FourierGR1T2 9, AgilityDigit 7, Transporter 7, NovaCarter 4 |
+| 015 | 49 / 49 / 49 | Person 22, AgilityDigit 8, FourierGR1T2 7, Transporter 7, NovaCarter 5 |
+| 016 | 39 / 39 / 39 | Person 18, AgilityDigit 7, FourierGR1T2 5, Transporter 4, NovaCarter 3, Forklift 2 |
+| 017 | 5 / 5 / 5 | Forklift 2, Person 2, PalletTruck 1 |
+| 018 | 4 / 4 / 4 | Forklift 2, PalletTruck 1, Person 1 |
+| 019 | 4 / 5 / 5 | Person 3, PalletTruck 1, Forklift 1 |
+| 020 (+021) | 68 / 72 / 75 | Person 53, PalletTruck 10, Forklift 9 |
+| 022 | 11 / 15 / 17 | Person 14, Forklift 1, NovaCarter 1, Transporter 1 |
+
+**Dense enough for 14 of 18 sets.** p95 entities per frame is 27–76 in
+fourteen sets, far above a cap of 6. In 017, 018 and 019 (4–5 entities)
+the measurement cannot stress the cap and is not interpreted. 022 (15) is
+marginal.
+
+**Components** (every component in every frame; "cap" = fraction of
+frames with any component > 6):
+
+| trajectory set | 1.10 m p50 / p95 / max | cap @ 1.10 | 1.5 m p50 / p95 / max | cap @ 1.5 | entity-frames in an over-cap component @ 1.5 | people-only graph, max @ 1.5 | merged-component lifetime p50 / p95 (frames) @ 1.5 |
+|---|---|---:|---|---:|---:|---:|---|
+| 000 (+001) | 1 / 1 / 5 | 0 | 1 / 2 / 6 | 0 | 0 | 5 | 35 / 148 |
+| 002 (+003) | 1 / 1 / 3 | 0 | 1 / 2 / 6 | 0 | 0 | 4 | 37 / 144 |
+| 004 (+005) | 1 / 1 / 3 | 0 | 1 / 2 / 6 | 0 | 0 | 4 | 36 / 154 |
+| 006 (+007) | 1 / 1 / 4 | 0 | 1 / 2 / 6 | 0 | 0 | 4 | 38 / 169 |
+| 008 | 1 / 3 / 9 | 0.1213 | 1 / 4 / 10 | **0.2974** | 0.0883 | 4 | 38 / 273 |
+| 009 | 1 / 2 / 6 | 0 | 1 / 3 / 9 | 0.0366 | 0.0094 | 8 | 28 / 187 |
+| 010 | 1 / 2 / 5 | 0 | 1 / 2 / 8 | 0.0032 | 0.0004 | 3 | 44 / 210 |
+| 011 | 1 / 2 / 5 | 0 | 1 / 2 / 6 | 0 | 0 | 3 | 35 / 179 |
+| 012 | 1 / 2 / 7 | 0.0017 | 1 / 3 / 11 | 0.0837 | 0.0162 | 6 | 24 / 138 |
+| 013 | 1 / 2 / 12 | 0.0031 | 1 / 3 / 14 | 0.0876 | 0.0165 | 4 | 23 / 144 |
+| 014 | 1 / 2 / 8 | 0.0064 | 1 / 3 / 13 | 0.1369 | 0.0233 | 7 | 23 / 141 |
+| 015 | 1 / 2 / 9 | 0.0366 | 1 / 4 / 11 | **0.2290** | 0.0395 | 4 | 22 / 144 |
+| 016 | 1 / 2 / 8 | 0.0297 | 1 / 3 / 9 | 0.0862 | 0.0167 | 5 | 30 / 173 |
+| 017 | 1 / 2 / 2 | 0 | 2 / 2 / 2 | 0 | 0 | 1 | (not interpreted) |
+| 018 | 1 / 1 / 1 | 0 | 1 / 2 / 2 | 0 | 0 | 1 | (not interpreted) |
+| 019 | 1 / 1 / 2 | 0 | 1 / 1 / 2 | 0 | 0 | 2 | (not interpreted) |
+| 020 (+021) | 1 / 1 / 3 | 0 | 1 / 2 / 6 | 0 | 0 | 4 | 34 / 148 |
+| 022 | 1 / 2 / 6 | 0 | 1 / 2 / 6 | 0 | 0 | 6 | 44 / 153 |
+
+Over all 162,270 frames of the 18 sets: the cap triggers on **5.3%** of
+frames at 1.5 m and **1.1%** at the 1.10 m knee.
+
+- **Person / forklift / pallet-truck scenes never trigger the cap**: 70+
+  entities per frame, and the largest component is exactly 6 at 1.5 m. The
+  people-only graph never exceeds 5 in those scenes.
+- **Mixed robot-and-person scenes do.** The over-cap components mix the
+  humanoid robots (AgilityDigit, FourierGR1T2) with people and the mobile
+  robots. Forklifts sit in components of at most 4 everywhere. People-only
+  graphs exceed 6 in two sets only (009: 8; 014: 7).
+- **What the over-cap components are doing is not settled.** Their share of
+  "stationary" members (frame-to-frame speed < 0.05 m/s at 30 fps) is
+  13–39% in the artifact, while an inline check with a 1/3-second
+  difference gave 66–83%. The number depends on the differencing interval,
+  which is the Day-29 noise-floor shape (GT position jitter at the
+  per-frame scale). It is recorded and not interpreted until the jitter is
+  measured.
+- **Still unmeasured:** real people in unscripted crowds. These are
+  rendered agents on authored paths, and the cap's behaviour on them is
+  evidence about the scenes NVIDIA scripted, not about any real room.
+
+### Gate decision parity on 1080p video (Objective 5)
+
+*PhysicalAI-SmartSpaces — lane S, synthetic. Rendered video carries H.264
+compression but no sensor-noise model, so quiet-scene results are
+optimistic by an unknown margin (Day 17). Not the Tier-1 economic claim.*
+`artifacts/smartspaces/day41_gate_parity.json`,
+`artifacts/smartspaces/day41_gate_scorecard.json`.
+
+**Sampling, fixed before the run (seed 41).** For each of the 18 source
+scenes, cameras are ranked by GT busyness (mean visible boxes per frame)
+and split into a quiet half and a busy half, and one camera is drawn from
+each. Each re-render takes exactly its source's two cameras. That gives
+46 cameras, with the first 1,800 frames (60 s) of each. A first run that
+sampled re-renders independently was stopped when the addendum arrived and
+discarded unread. The same decoded frames go through `MotionGateConfig()`
+(320x180, the product default) and `MotionGateConfig(gate_width=0,
+gate_height=0)` (full 1080p). Thresholds are untouched.
+
+**Wake-decision parity: NOT exact.** 2,423 of 82,800 frames (2.9%) get a
+different `wake_next`. 40 of 46 cameras differ on at least one frame.
+
+| trajectory set | cameras | frames | wake decisions differ |
+|---|---:|---:|---:|
+| 000 (+001) | 4 | 7,200 | 401 (5.6%) |
+| 002 (+003) | 4 | 7,200 | 333 (4.6%) |
+| 004 (+005) | 4 | 7,200 | 201 (2.8%) |
+| 006 (+007) | 4 | 7,200 | 363 (5.0%) |
+| 008 | 2 | 3,600 | 69 (1.9%) |
+| 009 | 2 | 3,600 | 2 (0.06%) |
+| 010 | 2 | 3,600 | 25 (0.7%) |
+| 011 | 2 | 3,600 | 73 (2.0%) |
+| 012 | 2 | 3,600 | 5 (0.1%) |
+| 013 | 2 | 3,600 | 36 (1.0%) |
+| 014 | 2 | 3,600 | 0 |
+| 015 | 2 | 3,600 | 0 |
+| 016 | 2 | 3,600 | 31 (0.9%) |
+| 017 | 2 | 3,600 | 74 (2.1%) |
+| 018 | 2 | 3,600 | 121 (3.4%) |
+| 019 | 2 | 3,600 | 90 (2.5%) |
+| 020 (+021) | 4 | 7,200 | 233 (3.2%) |
+| 022 | 2 | 3,600 | 366 (10.2%) |
+
+- **Direction: the full-resolution gate wakes more.** On 2,407 of the
+  2,423 differing frames only the full-resolution gate wakes; on 16 only
+  the 320x180 gate does. Every differing camera wakes at least as often at
+  full resolution (022/Camera_0001: 0.557 against 0.432).
+- **Diagnostic only, labelled as such in the artifact.** I scored the
+  full-resolution decisions against the same 320x180 partition. Its extra
+  wakes recover some of the 320x180 misses (Warehouse_004/Camera_0013:
+  13 missed moving frames at 320x180, 0 at full resolution), and the rest
+  land on frames the partition did not need. That makes full resolution
+  more sensitive, not a full-resolution scorecard: the envelope it is
+  scored against was measured at 320x180.
+- **Intermediate values, kept separate (Day 7).** The foreground fractions
+  the two gates compute differ on almost every frame: per-camera p50
+  |difference| 2e-4 to 3e-3, max 0.035. Most differences change no
+  decision. 2.9% do.
+- **Why Day 2's "EXACT" did not hold here.** Day 2's real clip was below
+  gate resolution, so no downscale ran. On v3–v6 the renderer's frames were
+  noiseless. These videos carry H.264 compression texture, which area
+  averaging to 320x180 smooths and full-resolution MOG2 partly reacts to.
+  That is a hypothesis about the mechanism and has not been tested here.
+
+**Re-render vs source, same camera, same frames.** Same trajectories,
+different RGB:
+
+| pair | camera | differ @ 320x180 | wake, re-render / source | differ @ full |
+|---|---|---:|---|---:|
+| 001 ← 000 | Camera_0019 | 304 / 1800 | 0.542 / 0.692 | 346 |
+| 001 ← 000 | Camera_0003 | 114 / 1800 | 0.956 / 0.913 | 61 |
+| 003 ← 002 | Camera_0006 | 479 / 1800 | 0.615 / 0.684 | 473 |
+| 003 ← 002 | Camera_0002 | 51 / 1800 | 0.955 / 0.948 | 40 |
+| 005 ← 004 | Camera_0005 | 317 / 1800 | 0.884 / 0.891 | 264 |
+| 005 ← 004 | Camera_0013 | 173 / 1800 | 0.939 / 0.943 | 71 |
+| 007 ← 006 | Camera_0003 | 403 / 1800 | 0.679 / 0.469 | 459 |
+| 007 ← 006 | Camera_0017 | 269 / 1800 | 0.853 / 0.934 | 168 |
+| 021 ← 020 | Camera_0000 | 312 / 1800 | 0.761 / 0.792 | 271 |
+| 021 ← 020 | Camera_0011 | 32 / 1800 | 0.949 / 0.967 | 24 |
+
+The augmentation alone moves 1.8–26.6% of wake decisions, in both
+directions, on identical motion. The re-renders also score lower recall
+(below). So **a Cosmos re-render is not a free extra camera for the
+gate.** It is a different input, and it must not be pooled with its source
+as if it were the same scene, nor treated as independent of it.
+
+**Scorecard** (320x180 gate, Day-14/15 frame, `value (baseline, margin)`;
+observability by the box-area proxy, see below):
+
+| stratum | cameras | `gate.wake_fraction` (lower is better) | `gate.recall_retained` | `gate.miss_cost` (frames) | `dataset.moving_frame_fraction` | `coverage.observable_fraction` | `envelope.limited_misses` |
+|---|---:|---|---|---|---:|---:|---:|
+| source scenes | 36 | 0.901 (never-wake 0.0; always-wake 1.0, margin +0.099) | 0.990 (always-wake 1.0, boundary) | 491 (always-wake 0, boundary; never-wake 48,852) | 0.988 | 0.770 | 3,451 |
+| Cosmos re-renders | 10 | 0.818 (always-wake 1.0, margin +0.182) | 0.942 | 593 (never-wake 10,292) | 1.000 | 0.575 | 1,755 |
+
+- **The gate's value here is almost untestable.** 98.8% of presented
+  frames have world motion somewhere in the scene, so a wake fraction of
+  0.901 is close to what any correct gate must do. There is no quiet
+  stretch for the gate to save compute on, and every sampled camera falls
+  in the `occupied` condition bucket. `empty`, `night` and `degenerate`
+  are empty, and say so.
+- **The observability proxy is the visible-box area.** SmartSpaces ships
+  2D boxes, not instance masks, so Day 6's mask partition cannot be
+  reproduced. A box encloses the silhouette and overstates it, so more
+  frames land above the envelope than a mask would put there. The
+  scorecard records `observability_proxy` as a required field, and
+  `Scorecard.require_comparable` and the inspector's comparison both refuse
+  to compare it with v3–v6. That refusal is tested
+  (`tests/test_scorecard_observability_proxy.py`,
+  `tests/test_inspector.py`). Loaded Transporters' boxes also include their
+  payload (Objective 2).
+- Motion is the existing derivation (`world_motion`: displacement above
+  what one pixel resolves at the entity's depth from that camera). The
+  envelope is the measured 320x180 one, unchanged. The code is shared, not
+  re-implemented: `gate_counts` and `assemble_gate_scorecard` were split out
+  of the golden-set path, which now calls them too.
+
+### ADR 0012 — Proposed, four conditions (Objective 6 + addendum)
+
+`docs/adr/0012-generic-adapters-on-lane-s.md`, **status Proposed**, not
+changed by Claude Code. Generic re-ID adapters with no enrolled people may
+train on lane S, and person-specific adaptation stays lane C and records
+its generic parent. The four conditions:
+
+1. Generic adapters only.
+2. Selection on SmartSpaces validation scenes only, never CHIRLA.
+3. Promotion blocked while the NVIDIA terms clause and SMPL provenance are
+   unresolved.
+4. Any split keeps a re-render with its source, cut by trajectory set.
+
+Three ledger entries were added at age 0 and git-verified:
+`smartspaces-nvidia-terms-of-service`, `smartspaces-smpl-provenance` and
+`adr-0012-acceptance`. No SmartSpaces → CHIRLA experiment was run.
+
+## Blockers
+
+Computed fresh against `docs/blocker_ledger.yaml` via
+`python scripts/blocker_report.py --as-of 2026-10-14 --verify-git`:
+
+| age (days) | id | category | first recorded | estimated human effort |
+|---:|---|---|---|---|
+| 75 | `consent-template-counsel-review` | human_verification | 2026-07-31 (`3eed2eb`) | A yes/no plus redlines from counsel — realistically an afternoon of legal review, not an engineering estimate. |
+| 75 | `dataset-license-and-consent-verification` | human_verification | 2026-07-31 (`bf85e75`) | CHIRLA: five minutes (docs/chirla_verification_checklist.md, four checkboxes). MEVA and the remaining ~61 entries: unknown per-entry, plausibly minutes-to-hours each depending on how each license is published; nobody has attempted even one, so no real estimate exists yet — reported as unknown rather than guessed. |
+| 67 | `site-zero-capture` | human_capture | 2026-08-08 (`e8162cd`) | Hardware on hand (see reference-hardware-procurement) plus one overnight capture window, per capture_runbook.md's own sequencing — realistically a day, once consent-template-counsel-review and reference-hardware-procurement both clear. |
+| 65 | `git-history-divergence` | human_decision | 2026-08-10 (`d36a835`) | A yes/no on the relationship between the two repositories, then ~5 minutes to execute ADR 0009's Option B once answered. |
+| 65 | `reference-hardware-procurement` | human_procurement | 2026-08-10 (`72db508`) | A purchase decision — reference_hardware.md names the SKUs; someone has to approve the spend. |
+| 37 | `component-cap-carrier-identity-type-change` | human_decision | 2026-09-07 (`4b1c557`) | A design decision, not a coding task — small in code-change size once decided, but it is a schema call this repository has twice declined to make for itself. |
+| 36 | `chirla-deployment-scope-legal-review` | human_decision | 2026-09-08 (`8d6aec6`) | Requires counsel, not a fixed duration -- a legal interpretation question, not an engineering estimate. |
+| 36 | `registry-deployment-scope-reaudit` | human_verification | 2026-09-08 (`b6326c5`) | Proportional to the Objective-2 priority list -- 21 Tier-1 re-reads before the 4 Tier-2 and 25 Tier-3 entries; no single fixed estimate, since each is a different host's page. |
+| 0 | `adr-0012-acceptance` | human_decision | 2026-10-14 (`6534323`) | A yes/no from the user, plus redlines to the conditions if any. |
+| 0 | `smartspaces-nvidia-terms-of-service` | human_decision | 2026-10-14 (`1a2aff1`) | Counsel: find the terms NVIDIA means, read them, and record a resolution in configs/datasets.yaml. Not an engineering estimate. |
+| 0 | `smartspaces-smpl-provenance` | human_verification | 2026-10-14 (`1a2aff1`) | Unknown: an email or forum question to NVIDIA, or a read of the Omniverse character-asset licence, if one exists that names its sources. No estimate until someone tries. |
+
+**Added today:** `smartspaces-nvidia-terms-of-service` (counsel),
+`smartspaces-smpl-provenance` (verification) and `adr-0012-acceptance`
+(the user's decision). Nothing was resolved today. The
+`dataset-license-and-consent-verification` description still says no
+entry has a snapshot, which has been stale since CHIRLA (Day 40) and
+SmartSpaces (today). I left it for the human who owns that entry rather
+than editing another day's blocker text.
+
+## Commits
+
+`1372788` Obj 0 · `00b216c` Obj 1 · `06b7976` Obj 2 · `7e1b219` Obj 3.1 ·
+`9e9e345` Obj 3.2 · `6534323` ADR 0012 · `755d692` addendum 1/4/5 ·
+`61de2b1` Obj 4 · `73fe22e` Obj 5 · this report + ledger ·
+(pending) Obj 3.3 (formatting only).
+
+## Full suite, mypy, lint
+
+PENDING: the full suite runs twice for Objective 3.3 (before and after formatting); its artifact-backed counts replace this line.
+
+## Day 42, in order
+
+1. **Decide ADR 0012.** Edit its Status line. Everything about generic
+   adapters waits on it.
+2. **Measure the gate's parity gap before anyone tunes on it.** Find out
+   which frames differ and why (the compression-texture hypothesis), on more
+   than 60 s per camera, and decide which raster is the product's
+   reference. Do not retune `min_foreground_fraction` to force agreement.
+3. **Measure GT position jitter at 30 fps** (Day-29 noise-floor rule),
+   then settle what the over-cap components are doing.
+4. **Find a quiet stretch.** The gate's value lies in frames where nothing
+   happens, and SmartSpaces has almost none (moving_frame_fraction 0.988).
+   Gate economics still need real footage.
+5. **`smartspaces-nvidia-terms-of-service` and
+   `smartspaces-smpl-provenance`**, which are counsel and verification
+   work, not code.
+6. Carried from Day 40, untouched today: the AP tie convention
+   (`scripts/chirla_reference_check.py` to 24/24); licence-verify a learned
+   backbone; the fresh-clone suite; the `huggingface-hub` pin conflict; the
+   CHIRLA legal review; the Tier-1 registry re-audit.
+
+**No timing, throughput, CPU-percentage, memory-rate or latency claim is
+made anywhere in this section.**

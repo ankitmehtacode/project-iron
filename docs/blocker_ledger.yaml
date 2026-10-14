@@ -262,3 +262,66 @@
        pipeline runs resolve_data_association against real observations
        at all (see Objective 3 of this same day)."
   estimated_human_effort: "A design decision, not a coding task — small in code-change size once decided, but it is a schema call this repository has twice declined to make for itself."
+
+- id: smartspaces-nvidia-terms-of-service
+  description: >-
+    configs/datasets.yaml's PhysicalAI-SmartSpaces entry records, verbatim
+    from the card's "Ethical Considerations" section, that use is
+    conditioned on NVIDIA's terms of service ("When downloaded or used in
+    accordance with our terms of service, ..."). The terms are not linked
+    from the card and have not been identified or read; the restriction is
+    recorded resolved: false. The license itself (CC-BY-4.0) was attested
+    by a human on 2026-10-14 (2b29aad); this clause is a separate axis, and
+    whether it narrows CC-BY-4.0 for this project's use is a legal reading.
+    Every checkpoint trained on SmartSpaces carries it in
+    unresolved_restrictions and refuses promoted=True until it is resolved.
+  category: human_decision
+  first_recorded:
+    sha: 1a2aff12120b88edff99b5ec07ab9f258dca298e
+    date: 2026-10-14
+  unblocks:
+    - "Promotion of any checkpoint trained on PhysicalAI-SmartSpaces
+       (ADR 0012 condition 3)."
+    - "Any product-facing claim that rests on SmartSpaces data."
+  estimated_human_effort: >-
+    Counsel: find the terms NVIDIA means, read them, and record a
+    resolution in configs/datasets.yaml. Not an engineering estimate.
+
+- id: smartspaces-smpl-provenance
+  description: >-
+    SmartSpaces' people are NVIDIA Omniverse character assets. The card
+    does not say whether any is derived from SMPL, whose licence is
+    non-commercial (the SMPL trap in src/data/registry.py). If any is, a
+    model trained on those renders inherits the question even though the
+    dataset's own licence is CC-BY-4.0. Recorded in the entry's notes since
+    registration; no one has asked NVIDIA or read the asset provenance.
+  category: human_verification
+  first_recorded:
+    sha: 1a2aff12120b88edff99b5ec07ab9f258dca298e
+    date: 2026-10-14
+  unblocks:
+    - "Promotion of any checkpoint trained on SmartSpaces person renders
+       (ADR 0012 condition 3)."
+  estimated_human_effort: >-
+    Unknown: an email or forum question to NVIDIA, or a read of the
+    Omniverse character-asset licence, if one exists that names its
+    sources. No estimate until someone tries.
+
+- id: adr-0012-acceptance
+  description: >-
+    docs/adr/0012-generic-adapters-on-lane-s.md is Proposed: generic re-ID
+    adapters with no enrolled people may train on lane-S data, person-
+    specific adaptation stays lane C with a recorded generic parent, under
+    four conditions (generic only; selection on SmartSpaces validation
+    data only, never CHIRLA; promotion blocked on the NVIDIA terms and SMPL
+    provenance; any split keeps a re-render with its source). Claude Code must not change its status; the user accepts
+    or rejects it by editing the Status line.
+  category: human_decision
+  first_recorded:
+    sha: 65343233cb24d5923ed75b27a255019227673d9c
+    date: 2026-10-14
+  unblocks:
+    - "Building the generic-adapter artifact type and writer, the
+       site-manifest parent link, and the two-layer erasure drill."
+    - "The SmartSpaces -> CHIRLA experiment (not run on Day 41)."
+  estimated_human_effort: "A yes/no from the user, plus redlines to the conditions if any."
