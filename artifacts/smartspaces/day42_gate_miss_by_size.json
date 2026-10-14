@@ -1,0 +1,5293 @@
+{
+  "label": "PhysicalAI-SmartSpaces \u2014 lane S, synthetic. Not evidence about real crowding.",
+  "caveats": [
+    "PhysicalAI-SmartSpaces \u2014 lane S, synthetic. Not evidence about real crowding.",
+    "Decisions are Day 41's stored wake bits (46 cameras, first 1800 frames).",
+    "Target height is the tallest moving visible GT box; boxes of loaded Transporters and the Warehouse_019 stacker include their payload.",
+    "The Kubric-measured envelope is NOT used to classify any frame here.",
+    "No timing, CPU or latency figure is measured or reported (Day 19)."
+  ],
+  "definitions": {
+    "event_frame": "post-warmup frame where >=1 entity moves in the world and has a visible box on this camera",
+    "target_height": "tallest visible box among moving entities, native px",
+    "miss": "wake_next False on an event frame",
+    "height_edges_native_px": [
+      0,
+      20,
+      30,
+      40,
+      50,
+      60,
+      80,
+      100,
+      130,
+      160,
+      200,
+      260,
+      340,
+      1081
+    ],
+    "min_events_per_bin": 30
+  },
+  "rasters": {
+    "320x180": {
+      "gate_px_per_native_px": 0.16666666666666666,
+      "strata": {
+        "all": {
+          "events": 77358,
+          "misses": 6295,
+          "curve": [
+            {
+              "height_lo": 0,
+              "height_hi": 20,
+              "events": 324,
+              "misses": 223,
+              "miss_rate": 0.6882716049382716,
+              "miss_rate_wilson95": [
+                0.6358770460218457,
+                0.7362540457529907
+              ],
+              "recall": 0.31172839506172845,
+              "too_thin": false,
+              "height_lo_gate_px": 0.0,
+              "height_hi_gate_px": 3.333333333333333
+            },
+            {
+              "height_lo": 20,
+              "height_hi": 30,
+              "events": 125,
+              "misses": 80,
+              "miss_rate": 0.64,
+              "miss_rate_wilson95": [
+                0.5528385550024603,
+                0.7188131347592083
+              ],
+              "recall": 0.36,
+              "too_thin": false,
+              "height_lo_gate_px": 3.333333333333333,
+              "height_hi_gate_px": 5.0
+            },
+            {
+              "height_lo": 30,
+              "height_hi": 40,
+              "events": 195,
+              "misses": 98,
+              "miss_rate": 0.5025641025641026,
+              "miss_rate_wilson95": [
+                0.4330186915823957,
+                0.5720104407018416
+              ],
+              "recall": 0.49743589743589745,
+              "too_thin": false,
+              "height_lo_gate_px": 5.0,
+              "height_hi_gate_px": 6.666666666666666
+            },
+            {
+              "height_lo": 40,
+              "height_hi": 50,
+              "events": 233,
+              "misses": 62,
+              "miss_rate": 0.26609442060085836,
+              "miss_rate_wilson95": [
+                0.21348013111047587,
+                0.32629639052241616
+              ],
+              "recall": 0.7339055793991416,
+              "too_thin": false,
+              "height_lo_gate_px": 6.666666666666666,
+              "height_hi_gate_px": 8.333333333333332
+            },
+            {
+              "height_lo": 50,
+              "height_hi": 60,
+              "events": 430,
+              "misses": 106,
+              "miss_rate": 0.24651162790697675,
+              "miss_rate_wilson95": [
+                0.20813953531403384,
+                0.2893727573271842
+              ],
+              "recall": 0.7534883720930232,
+              "too_thin": false,
+              "height_lo_gate_px": 8.333333333333332,
+              "height_hi_gate_px": 10.0
+            },
+            {
+              "height_lo": 60,
+              "height_hi": 80,
+              "events": 911,
+              "misses": 381,
+              "miss_rate": 0.41822173435784854,
+              "miss_rate_wilson95": [
+                0.38659956768369375,
+                0.45053068197500323
+              ],
+              "recall": 0.5817782656421515,
+              "too_thin": false,
+              "height_lo_gate_px": 10.0,
+              "height_hi_gate_px": 13.333333333333332
+            },
+            {
+              "height_lo": 80,
+              "height_hi": 100,
+              "events": 1876,
+              "misses": 742,
+              "miss_rate": 0.39552238805970147,
+              "miss_rate_wilson95": [
+                0.37363125141147735,
+                0.4178405250191166
+              ],
+              "recall": 0.6044776119402986,
+              "too_thin": false,
+              "height_lo_gate_px": 13.333333333333332,
+              "height_hi_gate_px": 16.666666666666664
+            },
+            {
+              "height_lo": 100,
+              "height_hi": 130,
+              "events": 2688,
+              "misses": 1195,
+              "miss_rate": 0.4445684523809524,
+              "miss_rate_wilson95": [
+                0.42587550310205635,
+                0.4634196115773368
+              ],
+              "recall": 0.5554315476190477,
+              "too_thin": false,
+              "height_lo_gate_px": 16.666666666666664,
+              "height_hi_gate_px": 21.666666666666664
+            },
+            {
+              "height_lo": 130,
+              "height_hi": 160,
+              "events": 4709,
+              "misses": 1010,
+              "miss_rate": 0.21448290507538756,
+              "miss_rate_wilson95": [
+                0.20299458289058514,
+                0.22643667986339788
+              ],
+              "recall": 0.7855170949246124,
+              "too_thin": false,
+              "height_lo_gate_px": 21.666666666666664,
+              "height_hi_gate_px": 26.666666666666664
+            },
+            {
+              "height_lo": 160,
+              "height_hi": 200,
+              "events": 7731,
+              "misses": 1036,
+              "miss_rate": 0.13400595007114216,
+              "miss_rate_wilson95": [
+                0.12659379327175724,
+                0.14178164401059795
+              ],
+              "recall": 0.8659940499288579,
+              "too_thin": false,
+              "height_lo_gate_px": 26.666666666666664,
+              "height_hi_gate_px": 33.33333333333333
+            },
+            {
+              "height_lo": 200,
+              "height_hi": 260,
+              "events": 13176,
+              "misses": 1015,
+              "miss_rate": 0.07703400121432909,
+              "miss_rate_wilson95": [
+                0.07260335172576848,
+                0.08171121003700088
+              ],
+              "recall": 0.9229659987856709,
+              "too_thin": false,
+              "height_lo_gate_px": 33.33333333333333,
+              "height_hi_gate_px": 43.33333333333333
+            },
+            {
+              "height_lo": 260,
+              "height_hi": 340,
+              "events": 25538,
+              "misses": 289,
+              "miss_rate": 0.011316469574751352,
+              "miss_rate_wilson95": [
+                0.010090688919554832,
+                0.012689244929723655
+              ],
+              "recall": 0.9886835304252487,
+              "too_thin": false,
+              "height_lo_gate_px": 43.33333333333333,
+              "height_hi_gate_px": 56.666666666666664
+            },
+            {
+              "height_lo": 340,
+              "height_hi": 1081,
+              "events": 19422,
+              "misses": 58,
+              "miss_rate": 0.002986304191123468,
+              "miss_rate_wilson95": [
+                0.002311001037169339,
+                0.003858176193826629
+              ],
+              "recall": 0.9970136958088766,
+              "too_thin": false,
+              "height_lo_gate_px": 56.666666666666664,
+              "height_hi_gate_px": 180.16666666666666
+            }
+          ],
+          "recall_crossings": {
+            "recall_below_0.9": {
+              "bin_native_px": [
+                160,
+                200
+              ],
+              "recall": 0.8659940499288579,
+              "events": 7731
+            },
+            "recall_below_0.8": {
+              "bin_native_px": [
+                130,
+                160
+              ],
+              "recall": 0.7855170949246124,
+              "events": 4709
+            },
+            "recall_below_0.5": {
+              "bin_native_px": [
+                30,
+                40
+              ],
+              "recall": 0.49743589743589745,
+              "events": 195
+            }
+          }
+        },
+        "source": {
+          "events": 60960,
+          "misses": 3946,
+          "curve": [
+            {
+              "height_lo": 0,
+              "height_hi": 20,
+              "events": 261,
+              "misses": 171,
+              "miss_rate": 0.6551724137931034,
+              "miss_rate_wilson95": [
+                0.5956329281794361,
+                0.710210425654525
+              ],
+              "recall": 0.3448275862068966,
+              "too_thin": false,
+              "height_lo_gate_px": 0.0,
+              "height_hi_gate_px": 3.333333333333333
+            },
+            {
+              "height_lo": 20,
+              "height_hi": 30,
+              "events": 86,
+              "misses": 49,
+              "miss_rate": 0.5697674418604651,
+              "miss_rate_wilson95": [
+                0.46436203379906343,
+                0.6692065898354842
+              ],
+              "recall": 0.43023255813953487,
+              "too_thin": false,
+              "height_lo_gate_px": 3.333333333333333,
+              "height_hi_gate_px": 5.0
+            },
+            {
+              "height_lo": 30,
+              "height_hi": 40,
+              "events": 146,
+              "misses": 67,
+              "miss_rate": 0.4589041095890411,
+              "miss_rate_wilson95": [
+                0.38016408006706465,
+                0.5397512751727717
+              ],
+              "recall": 0.5410958904109588,
+              "too_thin": false,
+              "height_lo_gate_px": 5.0,
+              "height_hi_gate_px": 6.666666666666666
+            },
+            {
+              "height_lo": 40,
+              "height_hi": 50,
+              "events": 182,
+              "misses": 52,
+              "miss_rate": 0.2857142857142857,
+              "miss_rate_wilson95": [
+                0.22504290364046972,
+                0.35524450641878436
+              ],
+              "recall": 0.7142857142857143,
+              "too_thin": false,
+              "height_lo_gate_px": 6.666666666666666,
+              "height_hi_gate_px": 8.333333333333332
+            },
+            {
+              "height_lo": 50,
+              "height_hi": 60,
+              "events": 282,
+              "misses": 77,
+              "miss_rate": 0.2730496453900709,
+              "miss_rate_wilson95": [
+                0.22436106792020297,
+                0.3278382507927158
+              ],
+              "recall": 0.7269503546099291,
+              "too_thin": false,
+              "height_lo_gate_px": 8.333333333333332,
+              "height_hi_gate_px": 10.0
+            },
+            {
+              "height_lo": 60,
+              "height_hi": 80,
+              "events": 674,
+              "misses": 287,
+              "miss_rate": 0.4258160237388724,
+              "miss_rate_wilson95": [
+                0.38901027704721447,
+                0.46346260035102016
+              ],
+              "recall": 0.5741839762611276,
+              "too_thin": false,
+              "height_lo_gate_px": 10.0,
+              "height_hi_gate_px": 13.333333333333332
+            },
+            {
+              "height_lo": 80,
+              "height_hi": 100,
+              "events": 1251,
+              "misses": 536,
+              "miss_rate": 0.4284572342126299,
+              "miss_rate_wilson95": [
+                0.4012954785330266,
+                0.4560570190739418
+              ],
+              "recall": 0.5715427657873702,
+              "too_thin": false,
+              "height_lo_gate_px": 13.333333333333332,
+              "height_hi_gate_px": 16.666666666666664
+            },
+            {
+              "height_lo": 100,
+              "height_hi": 130,
+              "events": 1826,
+              "misses": 836,
+              "miss_rate": 0.4578313253012048,
+              "miss_rate_wilson95": [
+                0.4350920238690252,
+                0.48074767947923597
+              ],
+              "recall": 0.5421686746987953,
+              "too_thin": false,
+              "height_lo_gate_px": 16.666666666666664,
+              "height_hi_gate_px": 21.666666666666664
+            },
+            {
+              "height_lo": 130,
+              "height_hi": 160,
+              "events": 3422,
+              "misses": 663,
+              "miss_rate": 0.19374634716540035,
+              "miss_rate_wilson95": [
+                0.18085051002232325,
+                0.20732899997709056
+              ],
+              "recall": 0.8062536528345996,
+              "too_thin": false,
+              "height_lo_gate_px": 21.666666666666664,
+              "height_hi_gate_px": 26.666666666666664
+            },
+            {
+              "height_lo": 160,
+              "height_hi": 200,
+              "events": 5325,
+              "misses": 653,
+              "miss_rate": 0.12262910798122066,
+              "miss_rate_wilson95": [
+                0.11409010717191034,
+                0.1317121875562519
+              ],
+              "recall": 0.8773708920187794,
+              "too_thin": false,
+              "height_lo_gate_px": 26.666666666666664,
+              "height_hi_gate_px": 33.33333333333333
+            },
+            {
+              "height_lo": 200,
+              "height_hi": 260,
+              "events": 9851,
+              "misses": 406,
+              "miss_rate": 0.041214089940107605,
+              "miss_rate_wilson95": [
+                0.037464149849739066,
+                0.045321703401148654
+              ],
+              "recall": 0.9587859100598924,
+              "too_thin": false,
+              "height_lo_gate_px": 33.33333333333333,
+              "height_hi_gate_px": 43.33333333333333
+            },
+            {
+              "height_lo": 260,
+              "height_hi": 340,
+              "events": 22470,
+              "misses": 132,
+              "miss_rate": 0.005874499332443258,
+              "miss_rate_wilson95": [
+                0.004956281702022699,
+                0.006961638930792382
+              ],
+              "recall": 0.9941255006675568,
+              "too_thin": false,
+              "height_lo_gate_px": 43.33333333333333,
+              "height_hi_gate_px": 56.666666666666664
+            },
+            {
+              "height_lo": 340,
+              "height_hi": 1081,
+              "events": 15184,
+              "misses": 17,
+              "miss_rate": 0.001119599578503688,
+              "miss_rate_wilson95": [
+                0.000699169071101934,
+                0.0017923935991626286
+              ],
+              "recall": 0.9988804004214963,
+              "too_thin": false,
+              "height_lo_gate_px": 56.666666666666664,
+              "height_hi_gate_px": 180.16666666666666
+            }
+          ],
+          "recall_crossings": {
+            "recall_below_0.9": {
+              "bin_native_px": [
+                160,
+                200
+              ],
+              "recall": 0.8773708920187794,
+              "events": 5325
+            },
+            "recall_below_0.8": {
+              "bin_native_px": [
+                100,
+                130
+              ],
+              "recall": 0.5421686746987953,
+              "events": 1826
+            },
+            "recall_below_0.5": {
+              "bin_native_px": [
+                20,
+                30
+              ],
+              "recall": 0.43023255813953487,
+              "events": 86
+            }
+          }
+        },
+        "ct25_rerender": {
+          "events": 16398,
+          "misses": 2349,
+          "curve": [
+            {
+              "height_lo": 0,
+              "height_hi": 20,
+              "events": 63,
+              "misses": 52,
+              "miss_rate": 0.8253968253968254,
+              "miss_rate_wilson95": [
+                0.7137857247924102,
+                0.8996060342053211
+              ],
+              "recall": 0.17460317460317465,
+              "too_thin": false,
+              "height_lo_gate_px": 0.0,
+              "height_hi_gate_px": 3.333333333333333
+            },
+            {
+              "height_lo": 20,
+              "height_hi": 30,
+              "events": 39,
+              "misses": 31,
+              "miss_rate": 0.7948717948717948,
+              "miss_rate_wilson95": [
+                0.644660319864177,
+                0.8922028176928961
+              ],
+              "recall": 0.20512820512820518,
+              "too_thin": false,
+              "height_lo_gate_px": 3.333333333333333,
+              "height_hi_gate_px": 5.0
+            },
+            {
+              "height_lo": 30,
+              "height_hi": 40,
+              "events": 49,
+              "misses": 31,
+              "miss_rate": 0.6326530612244898,
+              "miss_rate_wilson95": [
+                0.4926706756079243,
+                0.7533482703131685
+              ],
+              "recall": 0.36734693877551017,
+              "too_thin": false,
+              "height_lo_gate_px": 5.0,
+              "height_hi_gate_px": 6.666666666666666
+            },
+            {
+              "height_lo": 40,
+              "height_hi": 50,
+              "events": 51,
+              "misses": 10,
+              "miss_rate": 0.19607843137254902,
+              "miss_rate_wilson95": [
+                0.11015342512466689,
+                0.3245807948136561
+              ],
+              "recall": 0.803921568627451,
+              "too_thin": false,
+              "height_lo_gate_px": 6.666666666666666,
+              "height_hi_gate_px": 8.333333333333332
+            },
+            {
+              "height_lo": 50,
+              "height_hi": 60,
+              "events": 148,
+              "misses": 29,
+              "miss_rate": 0.19594594594594594,
+              "miss_rate_wilson95": [
+                0.1400373076345806,
+                0.26723919840663957
+              ],
+              "recall": 0.8040540540540541,
+              "too_thin": false,
+              "height_lo_gate_px": 8.333333333333332,
+              "height_hi_gate_px": 10.0
+            },
+            {
+              "height_lo": 60,
+              "height_hi": 80,
+              "events": 237,
+              "misses": 94,
+              "miss_rate": 0.39662447257383965,
+              "miss_rate_wilson95": [
+                0.33646874624392836,
+                0.4600779104657023
+              ],
+              "recall": 0.6033755274261603,
+              "too_thin": false,
+              "height_lo_gate_px": 10.0,
+              "height_hi_gate_px": 13.333333333333332
+            },
+            {
+              "height_lo": 80,
+              "height_hi": 100,
+              "events": 625,
+              "misses": 206,
+              "miss_rate": 0.3296,
+              "miss_rate_wilson95": [
+                0.2938862820801481,
+                0.3673955926876953
+              ],
+              "recall": 0.6704,
+              "too_thin": false,
+              "height_lo_gate_px": 13.333333333333332,
+              "height_hi_gate_px": 16.666666666666664
+            },
+            {
+              "height_lo": 100,
+              "height_hi": 130,
+              "events": 862,
+              "misses": 359,
+              "miss_rate": 0.41647331786542924,
+              "miss_rate_wilson95": [
+                0.38400561062746624,
+                0.44968218690981837
+              ],
+              "recall": 0.5835266821345708,
+              "too_thin": false,
+              "height_lo_gate_px": 16.666666666666664,
+              "height_hi_gate_px": 21.666666666666664
+            },
+            {
+              "height_lo": 130,
+              "height_hi": 160,
+              "events": 1287,
+              "misses": 347,
+              "miss_rate": 0.26961926961926963,
+              "miss_rate_wilson95": [
+                0.24608700241917772,
+                0.29452273245735644
+              ],
+              "recall": 0.7303807303807304,
+              "too_thin": false,
+              "height_lo_gate_px": 21.666666666666664,
+              "height_hi_gate_px": 26.666666666666664
+            },
+            {
+              "height_lo": 160,
+              "height_hi": 200,
+              "events": 2406,
+              "misses": 383,
+              "miss_rate": 0.15918536990856194,
+              "miss_rate_wilson95": [
+                0.14511173674198627,
+                0.17434556863503722
+              ],
+              "recall": 0.8408146300914381,
+              "too_thin": false,
+              "height_lo_gate_px": 26.666666666666664,
+              "height_hi_gate_px": 33.33333333333333
+            },
+            {
+              "height_lo": 200,
+              "height_hi": 260,
+              "events": 3325,
+              "misses": 609,
+              "miss_rate": 0.1831578947368421,
+              "miss_rate_wilson95": [
+                0.17037880357998614,
+                0.19666825286155282
+              ],
+              "recall": 0.8168421052631579,
+              "too_thin": false,
+              "height_lo_gate_px": 33.33333333333333,
+              "height_hi_gate_px": 43.33333333333333
+            },
+            {
+              "height_lo": 260,
+              "height_hi": 340,
+              "events": 3068,
+              "misses": 157,
+              "miss_rate": 0.051173402868318126,
+              "miss_rate_wilson95": [
+                0.04392221520896093,
+                0.05954714122804612
+              ],
+              "recall": 0.9488265971316818,
+              "too_thin": false,
+              "height_lo_gate_px": 43.33333333333333,
+              "height_hi_gate_px": 56.666666666666664
+            },
+            {
+              "height_lo": 340,
+              "height_hi": 1081,
+              "events": 4238,
+              "misses": 41,
+              "miss_rate": 0.009674374705049551,
+              "miss_rate_wilson95": [
+                0.007139553925471907,
+                0.013097284168085588
+              ],
+              "recall": 0.9903256252949505,
+              "too_thin": false,
+              "height_lo_gate_px": 56.666666666666664,
+              "height_hi_gate_px": 180.16666666666666
+            }
+          ],
+          "recall_crossings": {
+            "recall_below_0.9": {
+              "bin_native_px": [
+                200,
+                260
+              ],
+              "recall": 0.8168421052631579,
+              "events": 3325
+            },
+            "recall_below_0.8": {
+              "bin_native_px": [
+                130,
+                160
+              ],
+              "recall": 0.7303807303807304,
+              "events": 1287
+            },
+            "recall_below_0.5": {
+              "bin_native_px": [
+                30,
+                40
+              ],
+              "recall": 0.36734693877551017,
+              "events": 49
+            }
+          }
+        }
+      },
+      "by_class": {
+        "AgilityDigit": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 5,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.43448246478317476
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 1,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.7934506856227626
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 1,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.7934506856227626
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 14,
+            "misses": 1,
+            "miss_rate": 0.07142857142857142,
+            "miss_rate_wilson95": [
+              0.012722215247890939,
+              0.31468704424151117
+            ],
+            "recall": 0.9285714285714286,
+            "too_thin": true
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 11,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.2588329669680317
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 6,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.39033428790216534
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 24,
+            "misses": 1,
+            "miss_rate": 0.041666666666666664,
+            "miss_rate_wilson95": [
+              0.007393456165505782,
+              0.20241806478655938
+            ],
+            "recall": 0.9583333333333334,
+            "too_thin": true
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 69,
+            "misses": 11,
+            "miss_rate": 0.15942028985507245,
+            "miss_rate_wilson95": [
+              0.09141824277768033,
+              0.2633448171481954
+            ],
+            "recall": 0.8405797101449275,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 168,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.022354668349868052
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 244,
+            "misses": 6,
+            "miss_rate": 0.02459016393442623,
+            "miss_rate_wilson95": [
+              0.011317524090025559,
+              0.0526001872407286
+            ],
+            "recall": 0.9754098360655737,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 822,
+            "misses": 9,
+            "miss_rate": 0.010948905109489052,
+            "miss_rate_wilson95": [
+              0.005770778653372587,
+              0.02067674173617512
+            ],
+            "recall": 0.9890510948905109,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 4045,
+            "misses": 2,
+            "miss_rate": 0.0004944375772558715,
+            "miss_rate_wilson95": [
+              0.00013560309100903525,
+              0.0018011135970724254
+            ],
+            "recall": 0.9995055624227441,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 1794,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.00213670610489423
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          }
+        ],
+        "Forklift": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 89,
+            "misses": 63,
+            "miss_rate": 0.7078651685393258,
+            "miss_rate_wilson95": [
+              0.6063649411588934,
+              0.7921639108215408
+            ],
+            "recall": 0.2921348314606742,
+            "too_thin": false
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 16,
+            "misses": 14,
+            "miss_rate": 0.875,
+            "miss_rate_wilson95": [
+              0.639771727342413,
+              0.9650225122567595
+            ],
+            "recall": 0.125,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 83,
+            "misses": 74,
+            "miss_rate": 0.891566265060241,
+            "miss_rate_wilson95": [
+              0.8065953353528812,
+              0.9418950848070189
+            ],
+            "recall": 0.10843373493975905,
+            "too_thin": false
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 42,
+            "misses": 39,
+            "miss_rate": 0.9285714285714286,
+            "miss_rate_wilson95": [
+              0.8099057319884169,
+              0.9754095901266941
+            ],
+            "recall": 0.0714285714285714,
+            "too_thin": false
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 82,
+            "misses": 44,
+            "miss_rate": 0.5365853658536586,
+            "miss_rate_wilson95": [
+              0.4294472560322624,
+              0.6404490397952913
+            ],
+            "recall": 0.46341463414634143,
+            "too_thin": false
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 30,
+            "misses": 19,
+            "miss_rate": 0.6333333333333333,
+            "miss_rate_wilson95": [
+              0.4551356365479487,
+              0.7812607919389929
+            ],
+            "recall": 0.3666666666666667,
+            "too_thin": false
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 272,
+            "misses": 82,
+            "miss_rate": 0.3014705882352941,
+            "miss_rate_wilson95": [
+              0.25001051902617366,
+              0.35846022912846287
+            ],
+            "recall": 0.6985294117647058,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 335,
+            "misses": 174,
+            "miss_rate": 0.5194029850746269,
+            "miss_rate_wilson95": [
+              0.46598489234087564,
+              0.572381133012826
+            ],
+            "recall": 0.4805970149253731,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 1301,
+            "misses": 372,
+            "miss_rate": 0.2859338970023059,
+            "miss_rate_wilson95": [
+              0.2620387887747889,
+              0.3110894282705121
+            ],
+            "recall": 0.714066102997694,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 1936,
+            "misses": 213,
+            "miss_rate": 0.11002066115702479,
+            "miss_rate_wilson95": [
+              0.09684663748633221,
+              0.12473923328993816
+            ],
+            "recall": 0.8899793388429752,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 652,
+            "misses": 23,
+            "miss_rate": 0.0352760736196319,
+            "miss_rate_wilson95": [
+              0.02361953718972101,
+              0.05237666303573725
+            ],
+            "recall": 0.9647239263803681,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 1833,
+            "misses": 27,
+            "miss_rate": 0.014729950900163666,
+            "miss_rate_wilson95": [
+              0.010142894628634706,
+              0.021346735868833504
+            ],
+            "recall": 0.9852700490998363,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 5291,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.0007255096966679949
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          }
+        ],
+        "FourierGR1T2": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 7,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              2.7755575615628914e-17,
+              0.3543304350666875
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 2,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.6576197724933469
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 21,
+            "misses": 15,
+            "miss_rate": 0.7142857142857143,
+            "miss_rate_wilson95": [
+              0.5004361928391441,
+              0.8618613704787788
+            ],
+            "recall": 0.2857142857142857,
+            "too_thin": true
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 9,
+            "misses": 1,
+            "miss_rate": 0.1111111111111111,
+            "miss_rate_wilson95": [
+              0.019890887638544935,
+              0.434999705576656
+            ],
+            "recall": 0.8888888888888888,
+            "too_thin": true
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 10,
+            "misses": 2,
+            "miss_rate": 0.2,
+            "miss_rate_wilson95": [
+              0.05668215145437519,
+              0.5098375284633583
+            ],
+            "recall": 0.8,
+            "too_thin": true
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 18,
+            "misses": 4,
+            "miss_rate": 0.2222222222222222,
+            "miss_rate_wilson95": [
+              0.09000928108601697,
+              0.4521458431621262
+            ],
+            "recall": 0.7777777777777778,
+            "too_thin": true
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 29,
+            "misses": 8,
+            "miss_rate": 0.27586206896551724,
+            "miss_rate_wilson95": [
+              0.14698755102087954,
+              0.45717132416865935
+            ],
+            "recall": 0.7241379310344828,
+            "too_thin": true
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 100,
+            "misses": 20,
+            "miss_rate": 0.2,
+            "miss_rate_wilson95": [
+              0.13336693333103253,
+              0.28882916559315885
+            ],
+            "recall": 0.8,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 289,
+            "misses": 8,
+            "miss_rate": 0.02768166089965398,
+            "miss_rate_wilson95": [
+              0.014092104732009125,
+              0.053662846703480704
+            ],
+            "recall": 0.972318339100346,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 163,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.023024605801502687
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 485,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.00785829178638296
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 3054,
+            "misses": 5,
+            "miss_rate": 0.0016371971185330713,
+            "miss_rate_wilson95": [
+              0.000699509174230586,
+              0.0038270364322353255
+            ],
+            "recall": 0.998362802881467,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 255,
+            "misses": 1,
+            "miss_rate": 0.00392156862745098,
+            "miss_rate_wilson95": [
+              0.0006925889000102634,
+              0.02187512048977744
+            ],
+            "recall": 0.996078431372549,
+            "too_thin": false
+          }
+        ],
+        "NovaCarter": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 19,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.16817922405261626
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 56,
+            "misses": 5,
+            "miss_rate": 0.08928571428571429,
+            "miss_rate_wilson95": [
+              0.03874214844958693,
+              0.19256001385511162
+            ],
+            "recall": 0.9107142857142857,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 58,
+            "misses": 37,
+            "miss_rate": 0.6379310344827587,
+            "miss_rate_wilson95": [
+              0.5092752370481168,
+              0.749450871700241
+            ],
+            "recall": 0.3620689655172413,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 26,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.1287289218592153
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 17,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.1843181350088518
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          }
+        ],
+        "Person": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 199,
+            "misses": 138,
+            "miss_rate": 0.6934673366834171,
+            "miss_rate_wilson95": [
+              0.6262492416178769,
+              0.7533575727270432
+            ],
+            "recall": 0.3065326633165829,
+            "too_thin": false
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 106,
+            "misses": 66,
+            "miss_rate": 0.6226415094339622,
+            "miss_rate_wilson95": [
+              0.5276023949623552,
+              0.709102400104529
+            ],
+            "recall": 0.37735849056603776,
+            "too_thin": false
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 65,
+            "misses": 9,
+            "miss_rate": 0.13846153846153847,
+            "miss_rate_wilson95": [
+              0.0745909040315372,
+              0.24268097246345163
+            ],
+            "recall": 0.8615384615384616,
+            "too_thin": false
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 108,
+            "misses": 21,
+            "miss_rate": 0.19444444444444445,
+            "miss_rate_wilson95": [
+              0.13084377723364826,
+              0.2790351648336921
+            ],
+            "recall": 0.8055555555555556,
+            "too_thin": false
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 259,
+            "misses": 59,
+            "miss_rate": 0.2277992277992278,
+            "miss_rate_wilson95": [
+              0.18091762624026558,
+              0.28263732193026736
+            ],
+            "recall": 0.7722007722007722,
+            "too_thin": false
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 706,
+            "misses": 357,
+            "miss_rate": 0.5056657223796034,
+            "miss_rate_wilson95": [
+              0.4688552341319944,
+              0.5424148880912002
+            ],
+            "recall": 0.4943342776203966,
+            "too_thin": false
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 1269,
+            "misses": 646,
+            "miss_rate": 0.5090622537431048,
+            "miss_rate_wilson95": [
+              0.48157115539098144,
+              0.5364986519998852
+            ],
+            "recall": 0.49093774625689524,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 1978,
+            "misses": 953,
+            "miss_rate": 0.48179979777553084,
+            "miss_rate_wilson95": [
+              0.45983641254580504,
+              0.5038337389289531
+            ],
+            "recall": 0.5182002022244692,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 2725,
+            "misses": 630,
+            "miss_rate": 0.23119266055045873,
+            "miss_rate_wilson95": [
+              0.2157484271573981,
+              0.2473937076615593
+            ],
+            "recall": 0.7688073394495413,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 5181,
+            "misses": 817,
+            "miss_rate": 0.15769156533487744,
+            "miss_rate_wilson95": [
+              0.14802174706011306,
+              0.1678686175400083
+            ],
+            "recall": 0.8423084346651226,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 10763,
+            "misses": 983,
+            "miss_rate": 0.0913314131747654,
+            "miss_rate_wilson95": [
+              0.0860337905331111,
+              0.09692065031703341
+            ],
+            "recall": 0.9086685868252347,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 15596,
+            "misses": 255,
+            "miss_rate": 0.016350346242626313,
+            "miss_rate_wilson95": [
+              0.014475798973418693,
+              0.018463090833704964
+            ],
+            "recall": 0.9836496537573737,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 11253,
+            "misses": 57,
+            "miss_rate": 0.005065315915755798,
+            "miss_rate_wilson95": [
+              0.00391196775851211,
+              0.006556462418085546
+            ],
+            "recall": 0.9949346840842442,
+            "too_thin": false
+          }
+        ],
+        "Transporter": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 24,
+            "misses": 22,
+            "miss_rate": 0.9166666666666666,
+            "miss_rate_wilson95": [
+              0.7415119780678932,
+              0.9768411847029566
+            ],
+            "recall": 0.08333333333333337,
+            "too_thin": true
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 25,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              1.3877787807814457e-17,
+              0.13319225093904846
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 60,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.06017185214208986
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 68,
+            "misses": 1,
+            "miss_rate": 0.014705882352941176,
+            "miss_rate_wilson95": [
+              0.0026006835761068076,
+              0.07870973128160871
+            ],
+            "recall": 0.9852941176470589,
+            "too_thin": false
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 132,
+            "misses": 1,
+            "miss_rate": 0.007575757575757576,
+            "miss_rate_wilson95": [
+              0.0013385613550180309,
+              0.041663471098156976
+            ],
+            "recall": 0.9924242424242424,
+            "too_thin": false
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 226,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.016713515657290345
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 148,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.025299143267784395
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 200,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.018845326377266575
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 190,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.01981752945971958
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 454,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.008390369082321502
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 1010,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.0037890133484603508
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 829,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.004612473094379381
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          }
+        ]
+      },
+      "speed_terciles_native_px_per_frame": [
+        2.0,
+        4.301162633521313
+      ],
+      "by_speed_tercile": {
+        "slow": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 199,
+            "misses": 143,
+            "miss_rate": 0.7185929648241206,
+            "miss_rate_wilson95": [
+              0.6524308453424082,
+              0.776475555281073
+            ],
+            "recall": 0.2814070351758794,
+            "too_thin": false
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 60,
+            "misses": 36,
+            "miss_rate": 0.6,
+            "miss_rate_wilson95": [
+              0.4736605349204075,
+              0.7143050946511744
+            ],
+            "recall": 0.4,
+            "too_thin": false
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 134,
+            "misses": 81,
+            "miss_rate": 0.6044776119402985,
+            "miss_rate_wilson95": [
+              0.5198870516142258,
+              0.6832448670374967
+            ],
+            "recall": 0.3955223880597015,
+            "too_thin": false
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 156,
+            "misses": 38,
+            "miss_rate": 0.24358974358974358,
+            "miss_rate_wilson95": [
+              0.18292290613728768,
+              0.3165811612665148
+            ],
+            "recall": 0.7564102564102564,
+            "too_thin": false
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 300,
+            "misses": 84,
+            "miss_rate": 0.28,
+            "miss_rate_wilson95": [
+              0.23221902212795326,
+              0.33334388521084696
+            ],
+            "recall": 0.72,
+            "too_thin": false
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 557,
+            "misses": 302,
+            "miss_rate": 0.5421903052064632,
+            "miss_rate_wilson95": [
+              0.5006671725205148,
+              0.5831354766253399
+            ],
+            "recall": 0.45780969479353684,
+            "too_thin": false
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 1320,
+            "misses": 596,
+            "miss_rate": 0.45151515151515154,
+            "miss_rate_wilson95": [
+              0.4248484504915003,
+              0.4784632344937811
+            ],
+            "recall": 0.5484848484848485,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 1829,
+            "misses": 985,
+            "miss_rate": 0.5385456533624932,
+            "miss_rate_wilson95": [
+              0.5156423244396783,
+              0.5612874063460515
+            ],
+            "recall": 0.46145434663750684,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 2475,
+            "misses": 599,
+            "miss_rate": 0.24202020202020202,
+            "miss_rate_wilson95": [
+              0.22555444766828867,
+              0.2592855385858015
+            ],
+            "recall": 0.757979797979798,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 4037,
+            "misses": 614,
+            "miss_rate": 0.15209313846916026,
+            "miss_rate_wilson95": [
+              0.14134655805911336,
+              0.16350119985817022
+            ],
+            "recall": 0.8479068615308397,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 4263,
+            "misses": 462,
+            "miss_rate": 0.10837438423645321,
+            "miss_rate_wilson95": [
+              0.09939314499547133,
+              0.11806078849966697
+            ],
+            "recall": 0.8916256157635468,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 6638,
+            "misses": 103,
+            "miss_rate": 0.015516721904188008,
+            "miss_rate_wilson95": [
+              0.01281134990809134,
+              0.01878251756401074
+            ],
+            "recall": 0.984483278095812,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 3048,
+            "misses": 31,
+            "miss_rate": 0.010170603674540682,
+            "miss_rate_wilson95": [
+              0.007174408262249556,
+              0.014399929628204581
+            ],
+            "recall": 0.9898293963254593,
+            "too_thin": false
+          }
+        ],
+        "medium": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 26,
+            "misses": 12,
+            "miss_rate": 0.46153846153846156,
+            "miss_rate_wilson95": [
+              0.2875585353039122,
+              0.6454206125314121
+            ],
+            "recall": 0.5384615384615384,
+            "too_thin": true
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 27,
+            "misses": 19,
+            "miss_rate": 0.7037037037037037,
+            "miss_rate_wilson95": [
+              0.5151931703585185,
+              0.8414695953022023
+            ],
+            "recall": 0.2962962962962963,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 24,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              1.3877787807814457e-17,
+              0.13797620467498017
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 38,
+            "misses": 8,
+            "miss_rate": 0.21052631578947367,
+            "miss_rate_wilson95": [
+              0.11074791842995879,
+              0.363457794753274
+            ],
+            "recall": 0.7894736842105263,
+            "too_thin": false
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 80,
+            "misses": 9,
+            "miss_rate": 0.1125,
+            "miss_rate_wilson95": [
+              0.06032686946630475,
+              0.20018218092372878
+            ],
+            "recall": 0.8875,
+            "too_thin": false
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 243,
+            "misses": 58,
+            "miss_rate": 0.23868312757201646,
+            "miss_rate_wilson95": [
+              0.18941651002274648,
+              0.29608320867623866
+            ],
+            "recall": 0.7613168724279835,
+            "too_thin": false
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 450,
+            "misses": 121,
+            "miss_rate": 0.2688888888888889,
+            "miss_rate_wilson95": [
+              0.23000629049819482,
+              0.3116838835540227
+            ],
+            "recall": 0.731111111111111,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 589,
+            "misses": 151,
+            "miss_rate": 0.2563667232597623,
+            "miss_rate_wilson95": [
+              0.22276290406563598,
+              0.293127903282904
+            ],
+            "recall": 0.7436332767402377,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 1668,
+            "misses": 311,
+            "miss_rate": 0.18645083932853718,
+            "miss_rate_wilson95": [
+              0.1684882447628319,
+              0.20585434347646123
+            ],
+            "recall": 0.8135491606714629,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 2609,
+            "misses": 315,
+            "miss_rate": 0.12073591414334994,
+            "miss_rate_wilson95": [
+              0.10878800085545542,
+              0.13379903276685187
+            ],
+            "recall": 0.8792640858566501,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 4802,
+            "misses": 334,
+            "miss_rate": 0.06955435235318617,
+            "miss_rate_wilson95": [
+              0.06269784226971324,
+              0.07709899967304142
+            ],
+            "recall": 0.9304456476468138,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 9282,
+            "misses": 106,
+            "miss_rate": 0.011419952596423184,
+            "miss_rate_wilson95": [
+              0.009451538663345964,
+              0.013792607791003046
+            ],
+            "recall": 0.9885800474035769,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 6458,
+            "misses": 16,
+            "miss_rate": 0.0024775472282440383,
+            "miss_rate_wilson95": [
+              0.001525641774973645,
+              0.004020990566457291
+            ],
+            "recall": 0.997522452771756,
+            "too_thin": false
+          }
+        ],
+        "fast": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 80,
+            "misses": 55,
+            "miss_rate": 0.6875,
+            "miss_rate_wilson95": [
+              0.5793222425531256,
+              0.7784959588710517
+            ],
+            "recall": 0.3125,
+            "too_thin": false
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 35,
+            "misses": 23,
+            "miss_rate": 0.6571428571428571,
+            "miss_rate_wilson95": [
+              0.4915194951399626,
+              0.7916830501295105
+            ],
+            "recall": 0.34285714285714286,
+            "too_thin": false
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 37,
+            "misses": 17,
+            "miss_rate": 0.4594594594594595,
+            "miss_rate_wilson95": [
+              0.3103856980437303,
+              0.6161595310782052
+            ],
+            "recall": 0.5405405405405406,
+            "too_thin": false
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 39,
+            "misses": 16,
+            "miss_rate": 0.41025641025641024,
+            "miss_rate_wilson95": [
+              0.27079310000725176,
+              0.5658137711710304
+            ],
+            "recall": 0.5897435897435898,
+            "too_thin": false
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 46,
+            "misses": 12,
+            "miss_rate": 0.2608695652173913,
+            "miss_rate_wilson95": [
+              0.156008864456426,
+              0.4025915352801559
+            ],
+            "recall": 0.7391304347826086,
+            "too_thin": false
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 109,
+            "misses": 20,
+            "miss_rate": 0.1834862385321101,
+            "miss_rate_wilson95": [
+              0.12203674360446605,
+              0.2664858728069233
+            ],
+            "recall": 0.8165137614678899,
+            "too_thin": false
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 106,
+            "misses": 25,
+            "miss_rate": 0.2358490566037736,
+            "miss_rate_wilson95": [
+              0.16516041197111508,
+              0.3250138755771343
+            ],
+            "recall": 0.7641509433962264,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 270,
+            "misses": 59,
+            "miss_rate": 0.21851851851851853,
+            "miss_rate_wilson95": [
+              0.17336384822198447,
+              0.2715704555368684
+            ],
+            "recall": 0.7814814814814814,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 566,
+            "misses": 100,
+            "miss_rate": 0.17667844522968199,
+            "miss_rate_wilson95": [
+              0.14746763080862288,
+              0.21024845963265673
+            ],
+            "recall": 0.823321554770318,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 1083,
+            "misses": 107,
+            "miss_rate": 0.09879963065558633,
+            "miss_rate_wilson95": [
+              0.08242110563343459,
+              0.1180142541448616
+            ],
+            "recall": 0.9012003693444137,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 4111,
+            "misses": 219,
+            "miss_rate": 0.05327171004621747,
+            "miss_rate_wilson95": [
+              0.04681438353018369,
+              0.0605631334999196
+            ],
+            "recall": 0.9467282899537826,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 9618,
+            "misses": 80,
+            "miss_rate": 0.008317737575379496,
+            "miss_rate_wilson95": [
+              0.006688739654040348,
+              0.010339337509972226
+            ],
+            "recall": 0.9916822624246205,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 9916,
+            "misses": 11,
+            "miss_rate": 0.001109318273497378,
+            "miss_rate_wilson95": [
+              0.0006195558296468816,
+              0.0019854715720477264
+            ],
+            "recall": 0.9988906817265026,
+            "too_thin": false
+          }
+        ],
+        "speed_unknown": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 19,
+            "misses": 13,
+            "miss_rate": 0.6842105263157895,
+            "miss_rate_wilson95": [
+              0.46010407675327475,
+              0.8463562091220773
+            ],
+            "recall": 0.3157894736842105,
+            "too_thin": true
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 3,
+            "misses": 2,
+            "miss_rate": 0.6666666666666666,
+            "miss_rate_wilson95": [
+              0.20765960080204765,
+              0.9385080552796037
+            ],
+            "recall": 0.33333333333333337,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 4,
+            "misses": 1,
+            "miss_rate": 0.25,
+            "miss_rate_wilson95": [
+              0.04558726080970055,
+              0.6993581574175981
+            ],
+            "recall": 0.75,
+            "too_thin": true
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 2,
+            "misses": 1,
+            "miss_rate": 0.5,
+            "miss_rate_wilson95": [
+              0.09453120573423074,
+              0.9054687942657693
+            ],
+            "recall": 0.5,
+            "too_thin": true
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 2,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.6576197724933469
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          }
+        ]
+      },
+      "cameras_in_60_130_bin": [
+        {
+          "camera": "Warehouse_022/Camera_0001",
+          "events": 564,
+          "misses": 463
+        },
+        {
+          "camera": "Warehouse_000/Camera_0019",
+          "events": 308,
+          "misses": 272
+        },
+        {
+          "camera": "Warehouse_001/Camera_0019",
+          "events": 308,
+          "misses": 265
+        },
+        {
+          "camera": "Warehouse_020/Camera_0000",
+          "events": 275,
+          "misses": 235
+        },
+        {
+          "camera": "Warehouse_021/Camera_0000",
+          "events": 275,
+          "misses": 183
+        },
+        {
+          "camera": "Warehouse_000/Camera_0003",
+          "events": 227,
+          "misses": 130
+        },
+        {
+          "camera": "Warehouse_022/Camera_0000",
+          "events": 133,
+          "misses": 95
+        },
+        {
+          "camera": "Warehouse_004/Camera_0005",
+          "events": 100,
+          "misses": 83
+        },
+        {
+          "camera": "Warehouse_006/Camera_0017",
+          "events": 231,
+          "misses": 63
+        },
+        {
+          "camera": "Warehouse_021/Camera_0011",
+          "events": 144,
+          "misses": 57
+        },
+        {
+          "camera": "Warehouse_001/Camera_0003",
+          "events": 227,
+          "misses": 52
+        },
+        {
+          "camera": "Warehouse_020/Camera_0011",
+          "events": 144,
+          "misses": 50
+        }
+      ]
+    },
+    "full": {
+      "gate_px_per_native_px": 1.0,
+      "strata": {
+        "all": {
+          "events": 77358,
+          "misses": 4368,
+          "curve": [
+            {
+              "height_lo": 0,
+              "height_hi": 20,
+              "events": 324,
+              "misses": 175,
+              "miss_rate": 0.5401234567901234,
+              "miss_rate_wilson95": [
+                0.4857022765181605,
+                0.5936043495977883
+              ],
+              "recall": 0.4598765432098766,
+              "too_thin": false,
+              "height_lo_gate_px": 0.0,
+              "height_hi_gate_px": 20.0
+            },
+            {
+              "height_lo": 20,
+              "height_hi": 30,
+              "events": 125,
+              "misses": 50,
+              "miss_rate": 0.4,
+              "miss_rate_wilson95": [
+                0.31833767327872786,
+                0.48762540546293753
+              ],
+              "recall": 0.6,
+              "too_thin": false,
+              "height_lo_gate_px": 20.0,
+              "height_hi_gate_px": 30.0
+            },
+            {
+              "height_lo": 30,
+              "height_hi": 40,
+              "events": 195,
+              "misses": 66,
+              "miss_rate": 0.3384615384615385,
+              "miss_rate_wilson95": [
+                0.27573848636184306,
+                0.4074261797312053
+              ],
+              "recall": 0.6615384615384615,
+              "too_thin": false,
+              "height_lo_gate_px": 30.0,
+              "height_hi_gate_px": 40.0
+            },
+            {
+              "height_lo": 40,
+              "height_hi": 50,
+              "events": 233,
+              "misses": 49,
+              "miss_rate": 0.21030042918454936,
+              "miss_rate_wilson95": [
+                0.16288660725131798,
+                0.2671118369729062
+              ],
+              "recall": 0.7896995708154506,
+              "too_thin": false,
+              "height_lo_gate_px": 40.0,
+              "height_hi_gate_px": 50.0
+            },
+            {
+              "height_lo": 50,
+              "height_hi": 60,
+              "events": 430,
+              "misses": 65,
+              "miss_rate": 0.1511627906976744,
+              "miss_rate_wilson95": [
+                0.12040357343793458,
+                0.1880995815729159
+              ],
+              "recall": 0.8488372093023255,
+              "too_thin": false,
+              "height_lo_gate_px": 50.0,
+              "height_hi_gate_px": 60.0
+            },
+            {
+              "height_lo": 60,
+              "height_hi": 80,
+              "events": 911,
+              "misses": 279,
+              "miss_rate": 0.3062568605927552,
+              "miss_rate_wilson95": [
+                0.27719054263452025,
+                0.3369502501810502
+              ],
+              "recall": 0.6937431394072449,
+              "too_thin": false,
+              "height_lo_gate_px": 60.0,
+              "height_hi_gate_px": 80.0
+            },
+            {
+              "height_lo": 80,
+              "height_hi": 100,
+              "events": 1876,
+              "misses": 552,
+              "miss_rate": 0.2942430703624733,
+              "miss_rate_wilson95": [
+                0.2740591990203852,
+                0.3152678708888458
+              ],
+              "recall": 0.7057569296375267,
+              "too_thin": false,
+              "height_lo_gate_px": 80.0,
+              "height_hi_gate_px": 100.0
+            },
+            {
+              "height_lo": 100,
+              "height_hi": 130,
+              "events": 2688,
+              "misses": 868,
+              "miss_rate": 0.3229166666666667,
+              "miss_rate_wilson95": [
+                0.3055035462621775,
+                0.3408352093578973
+              ],
+              "recall": 0.6770833333333333,
+              "too_thin": false,
+              "height_lo_gate_px": 100.0,
+              "height_hi_gate_px": 130.0
+            },
+            {
+              "height_lo": 130,
+              "height_hi": 160,
+              "events": 4709,
+              "misses": 635,
+              "miss_rate": 0.13484816309195158,
+              "miss_rate_wilson95": [
+                0.12538967051159733,
+                0.144901929566851
+              ],
+              "recall": 0.8651518369080484,
+              "too_thin": false,
+              "height_lo_gate_px": 130.0,
+              "height_hi_gate_px": 160.0
+            },
+            {
+              "height_lo": 160,
+              "height_hi": 200,
+              "events": 7731,
+              "misses": 720,
+              "miss_rate": 0.09313154831199069,
+              "miss_rate_wilson95": [
+                0.08685392702875734,
+                0.09981330674811077
+              ],
+              "recall": 0.9068684516880093,
+              "too_thin": false,
+              "height_lo_gate_px": 160.0,
+              "height_hi_gate_px": 200.0
+            },
+            {
+              "height_lo": 200,
+              "height_hi": 260,
+              "events": 13176,
+              "misses": 758,
+              "miss_rate": 0.05752884031572556,
+              "miss_rate_wilson95": [
+                0.05368041430073925,
+                0.061635195797402745
+              ],
+              "recall": 0.9424711596842744,
+              "too_thin": false,
+              "height_lo_gate_px": 200.0,
+              "height_hi_gate_px": 260.0
+            },
+            {
+              "height_lo": 260,
+              "height_hi": 340,
+              "events": 25538,
+              "misses": 121,
+              "miss_rate": 0.004738037434411466,
+              "miss_rate_wilson95": [
+                0.0039670855442802185,
+                0.005657962799123171
+              ],
+              "recall": 0.9952619625655885,
+              "too_thin": false,
+              "height_lo_gate_px": 260.0,
+              "height_hi_gate_px": 340.0
+            },
+            {
+              "height_lo": 340,
+              "height_hi": 1081,
+              "events": 19422,
+              "misses": 30,
+              "miss_rate": 0.0015446400988569664,
+              "miss_rate_wilson95": [
+                0.0010822313516722299,
+                0.0022041878727421453
+              ],
+              "recall": 0.998455359901143,
+              "too_thin": false,
+              "height_lo_gate_px": 340.0,
+              "height_hi_gate_px": 1081.0
+            }
+          ],
+          "recall_crossings": {
+            "recall_below_0.9": {
+              "bin_native_px": [
+                130,
+                160
+              ],
+              "recall": 0.8651518369080484,
+              "events": 4709
+            },
+            "recall_below_0.8": {
+              "bin_native_px": [
+                100,
+                130
+              ],
+              "recall": 0.6770833333333333,
+              "events": 2688
+            },
+            "recall_below_0.5": {
+              "bin_native_px": [
+                0,
+                20
+              ],
+              "recall": 0.4598765432098766,
+              "events": 324
+            }
+          }
+        },
+        "source": {
+          "events": 60960,
+          "misses": 2638,
+          "curve": [
+            {
+              "height_lo": 0,
+              "height_hi": 20,
+              "events": 261,
+              "misses": 142,
+              "miss_rate": 0.5440613026819924,
+              "miss_rate_wilson95": [
+                0.4834352381407953,
+                0.6034091709725519
+              ],
+              "recall": 0.4559386973180076,
+              "too_thin": false,
+              "height_lo_gate_px": 0.0,
+              "height_hi_gate_px": 20.0
+            },
+            {
+              "height_lo": 20,
+              "height_hi": 30,
+              "events": 86,
+              "misses": 38,
+              "miss_rate": 0.4418604651162791,
+              "miss_rate_wilson95": [
+                0.3416273835893346,
+                0.5470654300485425
+              ],
+              "recall": 0.5581395348837209,
+              "too_thin": false,
+              "height_lo_gate_px": 20.0,
+              "height_hi_gate_px": 30.0
+            },
+            {
+              "height_lo": 30,
+              "height_hi": 40,
+              "events": 146,
+              "misses": 42,
+              "miss_rate": 0.2876712328767123,
+              "miss_rate_wilson95": [
+                0.22043015285749784,
+                0.3657991825483226
+              ],
+              "recall": 0.7123287671232876,
+              "too_thin": false,
+              "height_lo_gate_px": 30.0,
+              "height_hi_gate_px": 40.0
+            },
+            {
+              "height_lo": 40,
+              "height_hi": 50,
+              "events": 182,
+              "misses": 39,
+              "miss_rate": 0.21428571428571427,
+              "miss_rate_wilson95": [
+                0.16090301084858072,
+                0.27948020256375816
+              ],
+              "recall": 0.7857142857142857,
+              "too_thin": false,
+              "height_lo_gate_px": 40.0,
+              "height_hi_gate_px": 50.0
+            },
+            {
+              "height_lo": 50,
+              "height_hi": 60,
+              "events": 282,
+              "misses": 41,
+              "miss_rate": 0.1453900709219858,
+              "miss_rate_wilson95": [
+                0.10901514509707708,
+                0.19129629039185844
+              ],
+              "recall": 0.8546099290780143,
+              "too_thin": false,
+              "height_lo_gate_px": 50.0,
+              "height_hi_gate_px": 60.0
+            },
+            {
+              "height_lo": 60,
+              "height_hi": 80,
+              "events": 674,
+              "misses": 235,
+              "miss_rate": 0.3486646884272997,
+              "miss_rate_wilson95": [
+                0.3136372158796574,
+                0.38540745401274135
+              ],
+              "recall": 0.6513353115727003,
+              "too_thin": false,
+              "height_lo_gate_px": 60.0,
+              "height_hi_gate_px": 80.0
+            },
+            {
+              "height_lo": 80,
+              "height_hi": 100,
+              "events": 1251,
+              "misses": 403,
+              "miss_rate": 0.32214228617106316,
+              "miss_rate_wilson95": [
+                0.29682589692073985,
+                0.3485476306496568
+              ],
+              "recall": 0.6778577138289368,
+              "too_thin": false,
+              "height_lo_gate_px": 80.0,
+              "height_hi_gate_px": 100.0
+            },
+            {
+              "height_lo": 100,
+              "height_hi": 130,
+              "events": 1826,
+              "misses": 602,
+              "miss_rate": 0.32968236582694416,
+              "miss_rate_wilson95": [
+                0.30849775426224485,
+                0.3515820865339791
+              ],
+              "recall": 0.6703176341730559,
+              "too_thin": false,
+              "height_lo_gate_px": 100.0,
+              "height_hi_gate_px": 130.0
+            },
+            {
+              "height_lo": 130,
+              "height_hi": 160,
+              "events": 3422,
+              "misses": 368,
+              "miss_rate": 0.10753945061367622,
+              "miss_rate_wilson95": [
+                0.09759627414028006,
+                0.11836277350209855
+              ],
+              "recall": 0.8924605493863238,
+              "too_thin": false,
+              "height_lo_gate_px": 130.0,
+              "height_hi_gate_px": 160.0
+            },
+            {
+              "height_lo": 160,
+              "height_hi": 200,
+              "events": 5325,
+              "misses": 401,
+              "miss_rate": 0.07530516431924883,
+              "miss_rate_wilson95": [
+                0.06851965103891021,
+                0.08270298619808351
+              ],
+              "recall": 0.9246948356807512,
+              "too_thin": false,
+              "height_lo_gate_px": 160.0,
+              "height_hi_gate_px": 200.0
+            },
+            {
+              "height_lo": 200,
+              "height_hi": 260,
+              "events": 9851,
+              "misses": 271,
+              "miss_rate": 0.027509897472337834,
+              "miss_rate_wilson95": [
+                0.02445951364914054,
+                0.0309286385704096
+              ],
+              "recall": 0.9724901025276622,
+              "too_thin": false,
+              "height_lo_gate_px": 200.0,
+              "height_hi_gate_px": 260.0
+            },
+            {
+              "height_lo": 260,
+              "height_hi": 340,
+              "events": 22470,
+              "misses": 46,
+              "miss_rate": 0.0020471740097908323,
+              "miss_rate_wilson95": [
+                0.0015352530543598741,
+                0.002729325344322279
+              ],
+              "recall": 0.9979528259902092,
+              "too_thin": false,
+              "height_lo_gate_px": 260.0,
+              "height_hi_gate_px": 340.0
+            },
+            {
+              "height_lo": 340,
+              "height_hi": 1081,
+              "events": 15184,
+              "misses": 10,
+              "miss_rate": 0.0006585879873551106,
+              "miss_rate_wilson95": [
+                0.0003577819729051927,
+                0.0012119907222691857
+              ],
+              "recall": 0.9993414120126449,
+              "too_thin": false,
+              "height_lo_gate_px": 340.0,
+              "height_hi_gate_px": 1081.0
+            }
+          ],
+          "recall_crossings": {
+            "recall_below_0.9": {
+              "bin_native_px": [
+                130,
+                160
+              ],
+              "recall": 0.8924605493863238,
+              "events": 3422
+            },
+            "recall_below_0.8": {
+              "bin_native_px": [
+                100,
+                130
+              ],
+              "recall": 0.6703176341730559,
+              "events": 1826
+            },
+            "recall_below_0.5": {
+              "bin_native_px": [
+                0,
+                20
+              ],
+              "recall": 0.4559386973180076,
+              "events": 261
+            }
+          }
+        },
+        "ct25_rerender": {
+          "events": 16398,
+          "misses": 1730,
+          "curve": [
+            {
+              "height_lo": 0,
+              "height_hi": 20,
+              "events": 63,
+              "misses": 33,
+              "miss_rate": 0.5238095238095238,
+              "miss_rate_wilson95": [
+                0.4027035643673724,
+                0.6421787594617299
+              ],
+              "recall": 0.47619047619047616,
+              "too_thin": false,
+              "height_lo_gate_px": 0.0,
+              "height_hi_gate_px": 20.0
+            },
+            {
+              "height_lo": 20,
+              "height_hi": 30,
+              "events": 39,
+              "misses": 12,
+              "miss_rate": 0.3076923076923077,
+              "miss_rate_wilson95": [
+                0.1856593230691114,
+                0.4642125437414931
+              ],
+              "recall": 0.6923076923076923,
+              "too_thin": false,
+              "height_lo_gate_px": 20.0,
+              "height_hi_gate_px": 30.0
+            },
+            {
+              "height_lo": 30,
+              "height_hi": 40,
+              "events": 49,
+              "misses": 24,
+              "miss_rate": 0.4897959183673469,
+              "miss_rate_wilson95": [
+                0.3557511031030578,
+                0.6253243625953194
+              ],
+              "recall": 0.5102040816326531,
+              "too_thin": false,
+              "height_lo_gate_px": 30.0,
+              "height_hi_gate_px": 40.0
+            },
+            {
+              "height_lo": 40,
+              "height_hi": 50,
+              "events": 51,
+              "misses": 10,
+              "miss_rate": 0.19607843137254902,
+              "miss_rate_wilson95": [
+                0.11015342512466689,
+                0.3245807948136561
+              ],
+              "recall": 0.803921568627451,
+              "too_thin": false,
+              "height_lo_gate_px": 40.0,
+              "height_hi_gate_px": 50.0
+            },
+            {
+              "height_lo": 50,
+              "height_hi": 60,
+              "events": 148,
+              "misses": 24,
+              "miss_rate": 0.16216216216216217,
+              "miss_rate_wilson95": [
+                0.1114610940654237,
+                0.22995724598037653
+              ],
+              "recall": 0.8378378378378378,
+              "too_thin": false,
+              "height_lo_gate_px": 50.0,
+              "height_hi_gate_px": 60.0
+            },
+            {
+              "height_lo": 60,
+              "height_hi": 80,
+              "events": 237,
+              "misses": 44,
+              "miss_rate": 0.18565400843881857,
+              "miss_rate_wilson95": [
+                0.1413060621026911,
+                0.24002968993271684
+              ],
+              "recall": 0.8143459915611815,
+              "too_thin": false,
+              "height_lo_gate_px": 60.0,
+              "height_hi_gate_px": 80.0
+            },
+            {
+              "height_lo": 80,
+              "height_hi": 100,
+              "events": 625,
+              "misses": 149,
+              "miss_rate": 0.2384,
+              "miss_rate_wilson95": [
+                0.2066559161616936,
+                0.2733402014396433
+              ],
+              "recall": 0.7616,
+              "too_thin": false,
+              "height_lo_gate_px": 80.0,
+              "height_hi_gate_px": 100.0
+            },
+            {
+              "height_lo": 100,
+              "height_hi": 130,
+              "events": 862,
+              "misses": 266,
+              "miss_rate": 0.308584686774942,
+              "miss_rate_wilson95": [
+                0.278655185519834,
+                0.3402126838364436
+              ],
+              "recall": 0.691415313225058,
+              "too_thin": false,
+              "height_lo_gate_px": 100.0,
+              "height_hi_gate_px": 130.0
+            },
+            {
+              "height_lo": 130,
+              "height_hi": 160,
+              "events": 1287,
+              "misses": 267,
+              "miss_rate": 0.20745920745920746,
+              "miss_rate_wilson95": [
+                0.18619247673038872,
+                0.2304671022949574
+              ],
+              "recall": 0.7925407925407926,
+              "too_thin": false,
+              "height_lo_gate_px": 130.0,
+              "height_hi_gate_px": 160.0
+            },
+            {
+              "height_lo": 160,
+              "height_hi": 200,
+              "events": 2406,
+              "misses": 319,
+              "miss_rate": 0.13258520365752285,
+              "miss_rate_wilson95": [
+                0.1196183481535205,
+                0.146723429838295
+              ],
+              "recall": 0.8674147963424772,
+              "too_thin": false,
+              "height_lo_gate_px": 160.0,
+              "height_hi_gate_px": 200.0
+            },
+            {
+              "height_lo": 200,
+              "height_hi": 260,
+              "events": 3325,
+              "misses": 487,
+              "miss_rate": 0.14646616541353383,
+              "miss_rate_wilson95": [
+                0.134856175517975,
+                0.15889210625424047
+              ],
+              "recall": 0.8535338345864661,
+              "too_thin": false,
+              "height_lo_gate_px": 200.0,
+              "height_hi_gate_px": 260.0
+            },
+            {
+              "height_lo": 260,
+              "height_hi": 340,
+              "events": 3068,
+              "misses": 75,
+              "miss_rate": 0.024445893089960886,
+              "miss_rate_wilson95": [
+                0.019547242131917324,
+                0.030533942357257177
+              ],
+              "recall": 0.9755541069100391,
+              "too_thin": false,
+              "height_lo_gate_px": 260.0,
+              "height_hi_gate_px": 340.0
+            },
+            {
+              "height_lo": 340,
+              "height_hi": 1081,
+              "events": 4238,
+              "misses": 20,
+              "miss_rate": 0.004719207173194903,
+              "miss_rate_wilson95": [
+                0.0030571043481938463,
+                0.007278373591352442
+              ],
+              "recall": 0.9952807928268051,
+              "too_thin": false,
+              "height_lo_gate_px": 340.0,
+              "height_hi_gate_px": 1081.0
+            }
+          ],
+          "recall_crossings": {
+            "recall_below_0.9": {
+              "bin_native_px": [
+                200,
+                260
+              ],
+              "recall": 0.8535338345864661,
+              "events": 3325
+            },
+            "recall_below_0.8": {
+              "bin_native_px": [
+                130,
+                160
+              ],
+              "recall": 0.7925407925407926,
+              "events": 1287
+            },
+            "recall_below_0.5": {
+              "bin_native_px": [
+                0,
+                20
+              ],
+              "recall": 0.47619047619047616,
+              "events": 63
+            }
+          }
+        }
+      },
+      "by_class": {
+        "AgilityDigit": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 5,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.43448246478317476
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 1,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.7934506856227626
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 1,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.7934506856227626
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 14,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              1.3877787807814457e-17,
+              0.2153108027376358
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 11,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.2588329669680317
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 6,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.39033428790216534
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 24,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              1.3877787807814457e-17,
+              0.13797620467498017
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 69,
+            "misses": 3,
+            "miss_rate": 0.043478260869565216,
+            "miss_rate_wilson95": [
+              0.014895903896212308,
+              0.12021202749379145
+            ],
+            "recall": 0.9565217391304348,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 168,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.022354668349868052
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 244,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.015499661916827667
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 822,
+            "misses": 2,
+            "miss_rate": 0.0024330900243309003,
+            "miss_rate_wilson95": [
+              0.0006674948225482468,
+              0.00882761920562342
+            ],
+            "recall": 0.9975669099756691,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 4045,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.0009487797582998043
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 1794,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.00213670610489423
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          }
+        ],
+        "Forklift": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 89,
+            "misses": 34,
+            "miss_rate": 0.38202247191011235,
+            "miss_rate_wilson95": [
+              0.28794914749968026,
+              0.48585880137628945
+            ],
+            "recall": 0.6179775280898876,
+            "too_thin": false
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 16,
+            "misses": 4,
+            "miss_rate": 0.25,
+            "miss_rate_wilson95": [
+              0.10182067491213048,
+              0.49498316535508774
+            ],
+            "recall": 0.75,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 83,
+            "misses": 43,
+            "miss_rate": 0.5180722891566265,
+            "miss_rate_wilson95": [
+              0.4121775709212428,
+              0.6223681407784449
+            ],
+            "recall": 0.4819277108433735,
+            "too_thin": false
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 42,
+            "misses": 38,
+            "miss_rate": 0.9047619047619048,
+            "miss_rate_wilson95": [
+              0.7793489419142897,
+              0.9623377511944261
+            ],
+            "recall": 0.09523809523809523,
+            "too_thin": false
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 82,
+            "misses": 24,
+            "miss_rate": 0.2926829268292683,
+            "miss_rate_wilson95": [
+              0.20526338617530843,
+              0.39865760413522106
+            ],
+            "recall": 0.7073170731707317,
+            "too_thin": false
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 30,
+            "misses": 19,
+            "miss_rate": 0.6333333333333333,
+            "miss_rate_wilson95": [
+              0.4551356365479487,
+              0.7812607919389929
+            ],
+            "recall": 0.3666666666666667,
+            "too_thin": false
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 272,
+            "misses": 19,
+            "miss_rate": 0.06985294117647059,
+            "miss_rate_wilson95": [
+              0.04517203811236253,
+              0.10651458288935
+            ],
+            "recall": 0.9301470588235294,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 335,
+            "misses": 153,
+            "miss_rate": 0.45671641791044776,
+            "miss_rate_wilson95": [
+              0.40416694316307045,
+              0.5102473079709797
+            ],
+            "recall": 0.5432835820895523,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 1301,
+            "misses": 245,
+            "miss_rate": 0.18831667947732514,
+            "miss_rate_wilson95": [
+              0.168001204115166,
+              0.21046734888975172
+            ],
+            "recall": 0.8116833205226749,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 1936,
+            "misses": 167,
+            "miss_rate": 0.0862603305785124,
+            "miss_rate_wilson95": [
+              0.07455938772837148,
+              0.09959992683029417
+            ],
+            "recall": 0.9137396694214877,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 652,
+            "misses": 16,
+            "miss_rate": 0.024539877300613498,
+            "miss_rate_wilson95": [
+              0.015160669210876318,
+              0.03948890857754635
+            ],
+            "recall": 0.9754601226993865,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 1833,
+            "misses": 11,
+            "miss_rate": 0.006001091107474086,
+            "miss_rate_wilson95": [
+              0.0033542188915621604,
+              0.010714202036439486
+            ],
+            "recall": 0.993998908892526,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 5291,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.0007255096966679949
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          }
+        ],
+        "FourierGR1T2": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 7,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              2.7755575615628914e-17,
+              0.3543304350666875
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 2,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.6576197724933469
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 21,
+            "misses": 14,
+            "miss_rate": 0.6666666666666666,
+            "miss_rate_wilson95": [
+              0.4537345197425524,
+              0.8280524739491653
+            ],
+            "recall": 0.33333333333333337,
+            "too_thin": true
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 9,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              2.7755575615628914e-17,
+              0.29914504841954404
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 10,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.2775327998628892
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 18,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              1.3877787807814457e-17,
+              0.17587922364665765
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 29,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.11696979849974075
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 100,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              3.469446951953614e-18,
+              0.03699349820698568
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 289,
+            "misses": 3,
+            "miss_rate": 0.010380622837370242,
+            "miss_rate_wilson95": [
+              0.003536508802108306,
+              0.03007027235629324
+            ],
+            "recall": 0.9896193771626297,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 163,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.023024605801502687
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 485,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.00785829178638296
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 3054,
+            "misses": 2,
+            "miss_rate": 0.0006548788474132286,
+            "miss_rate_wilson95": [
+              0.00017960977509552493,
+              0.0023847673930125664
+            ],
+            "recall": 0.9993451211525868,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 255,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              8.673617379884035e-19,
+              0.014840971914608158
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          }
+        ],
+        "NovaCarter": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 19,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.16817922405261626
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 56,
+            "misses": 2,
+            "miss_rate": 0.03571428571428571,
+            "miss_rate_wilson95": [
+              0.00984942514823639,
+              0.12118780180490107
+            ],
+            "recall": 0.9642857142857143,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 58,
+            "misses": 16,
+            "miss_rate": 0.27586206896551724,
+            "miss_rate_wilson95": [
+              0.17752352138912525,
+              0.40204655189479327
+            ],
+            "recall": 0.7241379310344828,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 26,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.1287289218592153
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 17,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.1843181350088518
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          }
+        ],
+        "Person": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 199,
+            "misses": 119,
+            "miss_rate": 0.5979899497487438,
+            "miss_rate_wilson95": [
+              0.5286348850271693,
+              0.6636335014592188
+            ],
+            "recall": 0.40201005025125625,
+            "too_thin": false
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 106,
+            "misses": 46,
+            "miss_rate": 0.4339622641509434,
+            "miss_rate_wilson95": [
+              0.3435571272093163,
+              0.5289864446777461
+            ],
+            "recall": 0.5660377358490566,
+            "too_thin": false
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 65,
+            "misses": 9,
+            "miss_rate": 0.13846153846153847,
+            "miss_rate_wilson95": [
+              0.0745909040315372,
+              0.24268097246345163
+            ],
+            "recall": 0.8615384615384616,
+            "too_thin": false
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 108,
+            "misses": 11,
+            "miss_rate": 0.10185185185185185,
+            "miss_rate_wilson95": [
+              0.057829317593360796,
+              0.17322506146408273
+            ],
+            "recall": 0.8981481481481481,
+            "too_thin": false
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 259,
+            "misses": 41,
+            "miss_rate": 0.1583011583011583,
+            "miss_rate_wilson95": [
+              0.11888470282177893,
+              0.20770555126463475
+            ],
+            "recall": 0.8416988416988417,
+            "too_thin": false
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 706,
+            "misses": 259,
+            "miss_rate": 0.3668555240793201,
+            "miss_rate_wilson95": [
+              0.3321146519686648,
+              0.4030374757862614
+            ],
+            "recall": 0.6331444759206799,
+            "too_thin": false
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 1269,
+            "misses": 531,
+            "miss_rate": 0.41843971631205673,
+            "miss_rate_wilson95": [
+              0.39158440797615063,
+              0.4457873255060471
+            ],
+            "recall": 0.5815602836879432,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 1978,
+            "misses": 696,
+            "miss_rate": 0.3518705763397371,
+            "miss_rate_wilson95": [
+              0.33113074043539065,
+              0.3731846590675027
+            ],
+            "recall": 0.6481294236602628,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 2725,
+            "misses": 387,
+            "miss_rate": 0.1420183486238532,
+            "miss_rate_wilson95": [
+              0.1294156468298015,
+              0.15562892998370415
+            ],
+            "recall": 0.8579816513761468,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 5181,
+            "misses": 553,
+            "miss_rate": 0.10673615132213858,
+            "miss_rate_wilson95": [
+              0.0986176990709253,
+              0.11543734342850928
+            ],
+            "recall": 0.8932638486778615,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 10763,
+            "misses": 740,
+            "miss_rate": 0.06875406485180711,
+            "miss_rate_wilson95": [
+              0.06412592008374338,
+              0.07368993468627952
+            ],
+            "recall": 0.9312459351481929,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 15596,
+            "misses": 108,
+            "miss_rate": 0.006924852526288792,
+            "miss_rate_wilson95": [
+              0.005739299313246892,
+              0.008353245114272791
+            ],
+            "recall": 0.9930751474737112,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 11253,
+            "misses": 30,
+            "miss_rate": 0.002665955745134631,
+            "miss_rate_wilson95": [
+              0.0018681248607214395,
+              0.003803222564241085
+            ],
+            "recall": 0.9973340442548654,
+            "too_thin": false
+          }
+        ],
+        "Transporter": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 24,
+            "misses": 22,
+            "miss_rate": 0.9166666666666666,
+            "miss_rate_wilson95": [
+              0.7415119780678932,
+              0.9768411847029566
+            ],
+            "recall": 0.08333333333333337,
+            "too_thin": true
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 25,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              1.3877787807814457e-17,
+              0.13319225093904846
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 60,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.06017185214208986
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 68,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.053471336520070537
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 132,
+            "misses": 1,
+            "miss_rate": 0.007575757575757576,
+            "miss_rate_wilson95": [
+              0.0013385613550180309,
+              0.041663471098156976
+            ],
+            "recall": 0.9924242424242424,
+            "too_thin": false
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 226,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.016713515657290345
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 148,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.025299143267784395
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 200,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.018845326377266575
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 190,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.01981752945971958
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 454,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.008390369082321502
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 1010,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.0037890133484603508
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 829,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.004612473094379381
+            ],
+            "recall": 1.0,
+            "too_thin": false
+          }
+        ]
+      },
+      "speed_terciles_native_px_per_frame": [
+        2.0,
+        4.301162633521313
+      ],
+      "by_speed_tercile": {
+        "slow": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 199,
+            "misses": 130,
+            "miss_rate": 0.6532663316582915,
+            "miss_rate_wilson95": [
+              0.5848037392641263,
+              0.7159237370350962
+            ],
+            "recall": 0.3467336683417085,
+            "too_thin": false
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 60,
+            "misses": 25,
+            "miss_rate": 0.4166666666666667,
+            "miss_rate_wilson95": [
+              0.30064278558341617,
+              0.5427191897735989
+            ],
+            "recall": 0.5833333333333333,
+            "too_thin": false
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 134,
+            "misses": 58,
+            "miss_rate": 0.43283582089552236,
+            "miss_rate_wilson95": [
+              0.35197334856356194,
+              0.5174418465889022
+            ],
+            "recall": 0.5671641791044777,
+            "too_thin": false
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 156,
+            "misses": 28,
+            "miss_rate": 0.1794871794871795,
+            "miss_rate_wilson95": [
+              0.12720087042635142,
+              0.2471792138284017
+            ],
+            "recall": 0.8205128205128205,
+            "too_thin": false
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 300,
+            "misses": 48,
+            "miss_rate": 0.16,
+            "miss_rate_wilson95": [
+              0.1228535455840995,
+              0.20574367484859174
+            ],
+            "recall": 0.84,
+            "too_thin": false
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 557,
+            "misses": 227,
+            "miss_rate": 0.40754039497307004,
+            "miss_rate_wilson95": [
+              0.36750170564821855,
+              0.44884568026618493
+            ],
+            "recall": 0.59245960502693,
+            "too_thin": false
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 1320,
+            "misses": 456,
+            "miss_rate": 0.34545454545454546,
+            "miss_rate_wilson95": [
+              0.32028400756139175,
+              0.3715219883291925
+            ],
+            "recall": 0.6545454545454545,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 1829,
+            "misses": 726,
+            "miss_rate": 0.3969382176052488,
+            "miss_rate_wilson95": [
+              0.37475421600156655,
+              0.41955423430892946
+            ],
+            "recall": 0.6030617823947513,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 2475,
+            "misses": 424,
+            "miss_rate": 0.1713131313131313,
+            "miss_rate_wilson95": [
+              0.15698125652532807,
+              0.18666373770756517
+            ],
+            "recall": 0.8286868686868687,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 4037,
+            "misses": 447,
+            "miss_rate": 0.11072578647510528,
+            "miss_rate_wilson95": [
+              0.10141370151575488,
+              0.1207780048331317
+            ],
+            "recall": 0.8892742135248948,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 4263,
+            "misses": 348,
+            "miss_rate": 0.08163265306122448,
+            "miss_rate_wilson95": [
+              0.07378516235063519,
+              0.09023346022413518
+            ],
+            "recall": 0.9183673469387755,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 6638,
+            "misses": 31,
+            "miss_rate": 0.004670081349804158,
+            "miss_rate_wilson95": [
+              0.0032920827072269038,
+              0.0066210504545491
+            ],
+            "recall": 0.9953299186501958,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 3048,
+            "misses": 17,
+            "miss_rate": 0.00557742782152231,
+            "miss_rate_wilson95": [
+              0.0034852468505043557,
+              0.008914302513805344
+            ],
+            "recall": 0.9944225721784777,
+            "too_thin": false
+          }
+        ],
+        "medium": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 26,
+            "misses": 8,
+            "miss_rate": 0.3076923076923077,
+            "miss_rate_wilson95": [
+              0.16501315595463767,
+              0.4998825832219837
+            ],
+            "recall": 0.6923076923076923,
+            "too_thin": true
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 27,
+            "misses": 13,
+            "miss_rate": 0.48148148148148145,
+            "miss_rate_wilson95": [
+              0.3074322697621846,
+              0.6601438424504771
+            ],
+            "recall": 0.5185185185185186,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 24,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              1.3877787807814457e-17,
+              0.13797620467498017
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 38,
+            "misses": 6,
+            "miss_rate": 0.15789473684210525,
+            "miss_rate_wilson95": [
+              0.07443863415158927,
+              0.3041681177922313
+            ],
+            "recall": 0.8421052631578947,
+            "too_thin": false
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 80,
+            "misses": 5,
+            "miss_rate": 0.0625,
+            "miss_rate_wilson95": [
+              0.02698937567084199,
+              0.13810148767274422
+            ],
+            "recall": 0.9375,
+            "too_thin": false
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 243,
+            "misses": 38,
+            "miss_rate": 0.15637860082304528,
+            "miss_rate_wilson95": [
+              0.11610094662312556,
+              0.20735143938262654
+            ],
+            "recall": 0.8436213991769548,
+            "too_thin": false
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 450,
+            "misses": 79,
+            "miss_rate": 0.17555555555555555,
+            "miss_rate_wilson95": [
+              0.1431929031427585,
+              0.21341061043054688
+            ],
+            "recall": 0.8244444444444444,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 589,
+            "misses": 98,
+            "miss_rate": 0.166383701188455,
+            "miss_rate_wilson95": [
+              0.13848859826542162,
+              0.1986022982083631
+            ],
+            "recall": 0.833616298811545,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 1668,
+            "misses": 151,
+            "miss_rate": 0.09052757793764989,
+            "miss_rate_wilson95": [
+              0.0776820835655019,
+              0.1052547955309363
+            ],
+            "recall": 0.9094724220623501,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 2609,
+            "misses": 205,
+            "miss_rate": 0.07857416634725949,
+            "miss_rate_wilson95": [
+              0.06885797332540415,
+              0.08952953902197013
+            ],
+            "recall": 0.9214258336527406,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 4802,
+            "misses": 243,
+            "miss_rate": 0.05060391503540192,
+            "miss_rate_wilson95": [
+              0.04475576230943662,
+              0.05717050034777896
+            ],
+            "recall": 0.949396084964598,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 9282,
+            "misses": 44,
+            "miss_rate": 0.004740357681534152,
+            "miss_rate_wilson95": [
+              0.0035332502729459358,
+              0.006357232913524277
+            ],
+            "recall": 0.9952596423184659,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 6458,
+            "misses": 9,
+            "miss_rate": 0.0013936203158872716,
+            "miss_rate_wilson95": [
+              0.0007333776385627981,
+              0.002646689631716572
+            ],
+            "recall": 0.9986063796841127,
+            "too_thin": false
+          }
+        ],
+        "fast": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 80,
+            "misses": 29,
+            "miss_rate": 0.3625,
+            "miss_rate_wilson95": [
+              0.2657079306444915,
+              0.4718920549777783
+            ],
+            "recall": 0.6375,
+            "too_thin": false
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 35,
+            "misses": 10,
+            "miss_rate": 0.2857142857142857,
+            "miss_rate_wilson95": [
+              0.16326536236434688,
+              0.45054934863182616
+            ],
+            "recall": 0.7142857142857143,
+            "too_thin": false
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 37,
+            "misses": 8,
+            "miss_rate": 0.21621621621621623,
+            "miss_rate_wilson95": [
+              0.11386511993385592,
+              0.3719514839196916
+            ],
+            "recall": 0.7837837837837838,
+            "too_thin": false
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 39,
+            "misses": 15,
+            "miss_rate": 0.38461538461538464,
+            "miss_rate_wilson95": [
+              0.24891373465561348,
+              0.5410093854307493
+            ],
+            "recall": 0.6153846153846154,
+            "too_thin": false
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 46,
+            "misses": 11,
+            "miss_rate": 0.2391304347826087,
+            "miss_rate_wilson95": [
+              0.1391217777727783,
+              0.3793513855762202
+            ],
+            "recall": 0.7608695652173914,
+            "too_thin": false
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 109,
+            "misses": 14,
+            "miss_rate": 0.12844036697247707,
+            "miss_rate_wilson95": [
+              0.07807440620579806,
+              0.20410431740757204
+            ],
+            "recall": 0.8715596330275229,
+            "too_thin": false
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 106,
+            "misses": 17,
+            "miss_rate": 0.16037735849056603,
+            "miss_rate_wilson95": [
+              0.10261020166712782,
+              0.2418995966091929
+            ],
+            "recall": 0.839622641509434,
+            "too_thin": false
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 270,
+            "misses": 44,
+            "miss_rate": 0.16296296296296298,
+            "miss_rate_wilson95": [
+              0.12369248920166447,
+              0.21168937450959363
+            ],
+            "recall": 0.837037037037037,
+            "too_thin": false
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 566,
+            "misses": 60,
+            "miss_rate": 0.10600706713780919,
+            "miss_rate_wilson95": [
+              0.08324808130080268,
+              0.1340780835538714
+            ],
+            "recall": 0.8939929328621908,
+            "too_thin": false
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 1083,
+            "misses": 68,
+            "miss_rate": 0.06278855032317636,
+            "miss_rate_wilson95": [
+              0.04982937454357339,
+              0.07883838806867802
+            ],
+            "recall": 0.9372114496768237,
+            "too_thin": false
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 4111,
+            "misses": 167,
+            "miss_rate": 0.04062271953296035,
+            "miss_rate_wilson95": [
+              0.0350044972301274,
+              0.04709865600229844
+            ],
+            "recall": 0.9593772804670396,
+            "too_thin": false
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 9618,
+            "misses": 46,
+            "miss_rate": 0.0047826991058432106,
+            "miss_rate_wilson95": [
+              0.0035877808866883526,
+              0.006373042021366608
+            ],
+            "recall": 0.9952173008941568,
+            "too_thin": false
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 9916,
+            "misses": 4,
+            "miss_rate": 0.0004033884630899556,
+            "miss_rate_wilson95": [
+              0.00015688072492906087,
+              0.0010368337986195724
+            ],
+            "recall": 0.99959661153691,
+            "too_thin": false
+          }
+        ],
+        "speed_unknown": [
+          {
+            "height_lo": 0,
+            "height_hi": 20,
+            "events": 19,
+            "misses": 8,
+            "miss_rate": 0.42105263157894735,
+            "miss_rate_wilson95": [
+              0.23141891282454238,
+              0.6372409646574496
+            ],
+            "recall": 0.5789473684210527,
+            "too_thin": true
+          },
+          {
+            "height_lo": 20,
+            "height_hi": 30,
+            "events": 3,
+            "misses": 2,
+            "miss_rate": 0.6666666666666666,
+            "miss_rate_wilson95": [
+              0.20765960080204765,
+              0.9385080552796037
+            ],
+            "recall": 0.33333333333333337,
+            "too_thin": true
+          },
+          {
+            "height_lo": 30,
+            "height_hi": 40,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 40,
+            "height_hi": 50,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 50,
+            "height_hi": 60,
+            "events": 4,
+            "misses": 1,
+            "miss_rate": 0.25,
+            "miss_rate_wilson95": [
+              0.04558726080970055,
+              0.6993581574175981
+            ],
+            "recall": 0.75,
+            "too_thin": true
+          },
+          {
+            "height_lo": 60,
+            "height_hi": 80,
+            "events": 2,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.6576197724933469
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 80,
+            "height_hi": 100,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 100,
+            "height_hi": 130,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 130,
+            "height_hi": 160,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 160,
+            "height_hi": 200,
+            "events": 2,
+            "misses": 0,
+            "miss_rate": 0.0,
+            "miss_rate_wilson95": [
+              0.0,
+              0.6576197724933469
+            ],
+            "recall": 1.0,
+            "too_thin": true
+          },
+          {
+            "height_lo": 200,
+            "height_hi": 260,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 260,
+            "height_hi": 340,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          },
+          {
+            "height_lo": 340,
+            "height_hi": 1081,
+            "events": 0,
+            "misses": 0,
+            "miss_rate": null,
+            "too_thin": true
+          }
+        ]
+      },
+      "cameras_in_60_130_bin": [
+        {
+          "camera": "Warehouse_022/Camera_0001",
+          "events": 564,
+          "misses": 400
+        },
+        {
+          "camera": "Warehouse_000/Camera_0019",
+          "events": 308,
+          "misses": 267
+        },
+        {
+          "camera": "Warehouse_020/Camera_0000",
+          "events": 275,
+          "misses": 231
+        },
+        {
+          "camera": "Warehouse_001/Camera_0019",
+          "events": 308,
+          "misses": 226
+        },
+        {
+          "camera": "Warehouse_021/Camera_0000",
+          "events": 275,
+          "misses": 146
+        },
+        {
+          "camera": "Warehouse_022/Camera_0000",
+          "events": 133,
+          "misses": 92
+        },
+        {
+          "camera": "Warehouse_000/Camera_0003",
+          "events": 227,
+          "misses": 57
+        },
+        {
+          "camera": "Warehouse_004/Camera_0005",
+          "events": 100,
+          "misses": 55
+        },
+        {
+          "camera": "Warehouse_007/Camera_0017",
+          "events": 231,
+          "misses": 40
+        },
+        {
+          "camera": "Warehouse_002/Camera_0006",
+          "events": 99,
+          "misses": 25
+        },
+        {
+          "camera": "Warehouse_006/Camera_0003",
+          "events": 71,
+          "misses": 25
+        },
+        {
+          "camera": "Warehouse_021/Camera_0011",
+          "events": 144,
+          "misses": 24
+        }
+      ]
+    }
+  },
+  "day41_below_envelope_question": {
+    "below_envelope_frames_all_46_cameras": 18205,
+    "woken_by_320x180": 12999,
+    "woken_by_full_res": 14565,
+    "day41_only_full_res_woke_and_below": 1581,
+    "note": "The 1,581 are by construction frames the full-resolution gate woke on and the 320x180 gate did not; the question that matters is the whole below-envelope population, reported above.",
+    "day41_followup_partition_counts": {
+      "frames": 2407,
+      "by_partition_label": {
+        "NOT_OBSERVABLE": 429,
+        "ABOVE_ENVELOPE": 362,
+        "BELOW_ENVELOPE": 1581,
+        "IN_WARMUP": 0,
+        "NO_MOTION": 35
+      },
+      "meaning": {
+        "ABOVE_ENVELOPE": "a GT event the 320x180 gate slept through and full res caught (counted in the 320x180 miss_cost)",
+        "BELOW_ENVELOPE": "GT motion visible but below the measured envelope (not a defect either way)",
+        "NOT_OBSERVABLE": "GT motion with no visible box on this camera",
+        "NO_MOTION": "no resolvable GT motion: a full-res wake on nothing",
+        "IN_WARMUP": "first frames, not scored by either gate's scorecard"
+      },
+      "per_camera": [
+        {
+          "scene": "Warehouse_000",
+          "camera": "Camera_0019",
+          "full_only_wakes": 113,
+          "NOT_OBSERVABLE": 38,
+          "ABOVE_ENVELOPE": 8,
+          "BELOW_ENVELOPE": 67,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_000",
+          "camera": "Camera_0003",
+          "full_only_wakes": 85,
+          "ABOVE_ENVELOPE": 2,
+          "BELOW_ENVELOPE": 83,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_002",
+          "camera": "Camera_0006",
+          "full_only_wakes": 155,
+          "NOT_OBSERVABLE": 109,
+          "BELOW_ENVELOPE": 42,
+          "ABOVE_ENVELOPE": 4,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_002",
+          "camera": "Camera_0002",
+          "full_only_wakes": 66,
+          "BELOW_ENVELOPE": 66,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_004",
+          "camera": "Camera_0005",
+          "full_only_wakes": 65,
+          "BELOW_ENVELOPE": 52,
+          "NOT_OBSERVABLE": 12,
+          "ABOVE_ENVELOPE": 1,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_004",
+          "camera": "Camera_0013",
+          "full_only_wakes": 91,
+          "BELOW_ENVELOPE": 78,
+          "ABOVE_ENVELOPE": 13,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_006",
+          "camera": "Camera_0003",
+          "full_only_wakes": 62,
+          "BELOW_ENVELOPE": 55,
+          "ABOVE_ENVELOPE": 4,
+          "NOT_OBSERVABLE": 3,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_006",
+          "camera": "Camera_0017",
+          "full_only_wakes": 81,
+          "BELOW_ENVELOPE": 80,
+          "ABOVE_ENVELOPE": 1,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_008",
+          "camera": "Camera_0002",
+          "full_only_wakes": 69,
+          "NOT_OBSERVABLE": 26,
+          "BELOW_ENVELOPE": 35,
+          "ABOVE_ENVELOPE": 8,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_008",
+          "camera": "Camera_0001",
+          "full_only_wakes": 0,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_009",
+          "camera": "Camera_0011",
+          "full_only_wakes": 1,
+          "ABOVE_ENVELOPE": 1,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_009",
+          "camera": "Camera_0005",
+          "full_only_wakes": 1,
+          "ABOVE_ENVELOPE": 1,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_010",
+          "camera": "Camera_0010",
+          "full_only_wakes": 15,
+          "BELOW_ENVELOPE": 7,
+          "NOT_OBSERVABLE": 6,
+          "ABOVE_ENVELOPE": 2,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_010",
+          "camera": "Camera_0002",
+          "full_only_wakes": 10,
+          "NOT_OBSERVABLE": 4,
+          "BELOW_ENVELOPE": 6,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_011",
+          "camera": "Camera_0004",
+          "full_only_wakes": 8,
+          "NOT_OBSERVABLE": 8,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_011",
+          "camera": "Camera_0000",
+          "full_only_wakes": 65,
+          "NOT_OBSERVABLE": 55,
+          "BELOW_ENVELOPE": 10,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_012",
+          "camera": "Camera_0004",
+          "full_only_wakes": 3,
+          "ABOVE_ENVELOPE": 2,
+          "BELOW_ENVELOPE": 1,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_012",
+          "camera": "Camera_0007",
+          "full_only_wakes": 2,
+          "ABOVE_ENVELOPE": 1,
+          "BELOW_ENVELOPE": 1,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_013",
+          "camera": "Camera_0009",
+          "full_only_wakes": 0,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_013",
+          "camera": "Camera_0004",
+          "full_only_wakes": 36,
+          "NOT_OBSERVABLE": 33,
+          "NO_MOTION": 1,
+          "BELOW_ENVELOPE": 1,
+          "ABOVE_ENVELOPE": 1,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_014",
+          "camera": "Camera_0005",
+          "full_only_wakes": 0,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_014",
+          "camera": "Camera_0003",
+          "full_only_wakes": 0,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_015",
+          "camera": "Camera_0001",
+          "full_only_wakes": 0,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_015",
+          "camera": "Camera_0006",
+          "full_only_wakes": 0,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_016",
+          "camera": "Camera_0008",
+          "full_only_wakes": 29,
+          "BELOW_ENVELOPE": 23,
+          "NOT_OBSERVABLE": 4,
+          "ABOVE_ENVELOPE": 2,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_016",
+          "camera": "Camera_0002",
+          "full_only_wakes": 2,
+          "BELOW_ENVELOPE": 2,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_017",
+          "camera": "Camera_0001",
+          "full_only_wakes": 39,
+          "ABOVE_ENVELOPE": 26,
+          "BELOW_ENVELOPE": 13,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_017",
+          "camera": "Camera_0000",
+          "full_only_wakes": 33,
+          "NOT_OBSERVABLE": 6,
+          "ABOVE_ENVELOPE": 25,
+          "NO_MOTION": 2,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_018",
+          "camera": "Camera_0001",
+          "full_only_wakes": 49,
+          "ABOVE_ENVELOPE": 21,
+          "BELOW_ENVELOPE": 24,
+          "NO_MOTION": 3,
+          "NOT_OBSERVABLE": 1,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_018",
+          "camera": "Camera_0002",
+          "full_only_wakes": 61,
+          "NOT_OBSERVABLE": 16,
+          "ABOVE_ENVELOPE": 26,
+          "BELOW_ENVELOPE": 10,
+          "NO_MOTION": 9,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_019",
+          "camera": "Camera_0000",
+          "full_only_wakes": 22,
+          "ABOVE_ENVELOPE": 6,
+          "BELOW_ENVELOPE": 15,
+          "NO_MOTION": 1,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_019",
+          "camera": "Camera_0001",
+          "full_only_wakes": 68,
+          "ABOVE_ENVELOPE": 11,
+          "NOT_OBSERVABLE": 8,
+          "BELOW_ENVELOPE": 30,
+          "NO_MOTION": 19,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_020",
+          "camera": "Camera_0000",
+          "full_only_wakes": 41,
+          "BELOW_ENVELOPE": 38,
+          "ABOVE_ENVELOPE": 3,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_020",
+          "camera": "Camera_0011",
+          "full_only_wakes": 50,
+          "BELOW_ENVELOPE": 50,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_022",
+          "camera": "Camera_0000",
+          "full_only_wakes": 140,
+          "BELOW_ENVELOPE": 137,
+          "ABOVE_ENVELOPE": 1,
+          "NOT_OBSERVABLE": 2,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_022",
+          "camera": "Camera_0001",
+          "full_only_wakes": 226,
+          "BELOW_ENVELOPE": 226,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_001",
+          "camera": "Camera_0019",
+          "full_only_wakes": 141,
+          "ABOVE_ENVELOPE": 59,
+          "BELOW_ENVELOPE": 82,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_001",
+          "camera": "Camera_0003",
+          "full_only_wakes": 62,
+          "ABOVE_ENVELOPE": 10,
+          "BELOW_ENVELOPE": 52,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_003",
+          "camera": "Camera_0006",
+          "full_only_wakes": 87,
+          "NOT_OBSERVABLE": 47,
+          "BELOW_ENVELOPE": 17,
+          "ABOVE_ENVELOPE": 23,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_003",
+          "camera": "Camera_0002",
+          "full_only_wakes": 25,
+          "BELOW_ENVELOPE": 25,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_005",
+          "camera": "Camera_0005",
+          "full_only_wakes": 11,
+          "ABOVE_ENVELOPE": 10,
+          "BELOW_ENVELOPE": 1,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_005",
+          "camera": "Camera_0013",
+          "full_only_wakes": 31,
+          "ABOVE_ENVELOPE": 28,
+          "BELOW_ENVELOPE": 3,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_007",
+          "camera": "Camera_0003",
+          "full_only_wakes": 140,
+          "BELOW_ENVELOPE": 86,
+          "NOT_OBSERVABLE": 51,
+          "ABOVE_ENVELOPE": 3,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_007",
+          "camera": "Camera_0017",
+          "full_only_wakes": 80,
+          "ABOVE_ENVELOPE": 20,
+          "BELOW_ENVELOPE": 60,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_021",
+          "camera": "Camera_0000",
+          "full_only_wakes": 84,
+          "BELOW_ENVELOPE": 47,
+          "ABOVE_ENVELOPE": 37,
+          "IN_WARMUP": 0
+        },
+        {
+          "scene": "Warehouse_021",
+          "camera": "Camera_0011",
+          "full_only_wakes": 58,
+          "BELOW_ENVELOPE": 56,
+          "ABOVE_ENVELOPE": 2,
+          "IN_WARMUP": 0
+        }
+      ],
+      "contact_sheet": "artifacts/smartspaces/contact_sheets/day41_full_res_only_wakes.png",
+      "contact_sheet_frames": [
+        [
+          "Warehouse_000",
+          "Camera_0003",
+          494
+        ],
+        [
+          "Warehouse_002",
+          "Camera_0006",
+          492
+        ],
+        [
+          "Warehouse_004",
+          "Camera_0005",
+          34
+        ],
+        [
+          "Warehouse_006",
+          "Camera_0003",
+          48
+        ],
+        [
+          "Warehouse_010",
+          "Camera_0010",
+          28
+        ],
+        [
+          "Warehouse_011",
+          "Camera_0004",
+          12
+        ],
+        [
+          "Warehouse_011",
+          "Camera_0000",
+          32
+        ],
+        [
+          "Warehouse_019",
+          "Camera_0001",
+          1069
+        ],
+        [
+          "Warehouse_019",
+          "Camera_0001",
+          1667
+        ],
+        [
+          "Warehouse_022",
+          "Camera_0000",
+          407
+        ],
+        [
+          "Warehouse_022",
+          "Camera_0001",
+          105
+        ],
+        [
+          "Warehouse_022",
+          "Camera_0001",
+          504
+        ],
+        [
+          "Warehouse_001",
+          "Camera_0019",
+          482
+        ],
+        [
+          "Warehouse_001",
+          "Camera_0003",
+          17
+        ],
+        [
+          "Warehouse_003",
+          "Camera_0002",
+          32
+        ],
+        [
+          "Warehouse_005",
+          "Camera_0005",
+          1127
+        ],
+        [
+          "Warehouse_005",
+          "Camera_0013",
+          1713
+        ],
+        [
+          "Warehouse_021",
+          "Camera_0000",
+          640
+        ],
+        [
+          "Warehouse_021",
+          "Camera_0000",
+          1321
+        ],
+        [
+          "Warehouse_021",
+          "Camera_0011",
+          1457
+        ]
+      ]
+    }
+  }
+}
