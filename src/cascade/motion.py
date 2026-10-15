@@ -273,9 +273,16 @@ class Mog2Backend:
     def name(self) -> str:
         return "mog2"
 
-    def foreground_fraction(self, gray: GrayFrame) -> float:
+    def foreground_mask(self, gray: GrayFrame) -> MaskFrame:
+        """Update the model with ``gray`` and return its foreground (shadows
+        excluded). Shared with :class:`~src.detect.backends.MotionBlobDetector`
+        (Day 42) so the blob baseline sees exactly the gate's background model."""
         mask = self._subtractor.apply(gray)
-        return float(np.count_nonzero(mask >= 255) / mask.size)
+        return np.asarray(mask >= 255)
+
+    def foreground_fraction(self, gray: GrayFrame) -> float:
+        mask = self.foreground_mask(gray)
+        return float(np.count_nonzero(mask) / mask.size)
 
 
 def _downscale(gray: GrayFrame, target_height: int, target_width: int) -> GrayFrame:

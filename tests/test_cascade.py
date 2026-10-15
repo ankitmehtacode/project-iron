@@ -333,6 +333,7 @@ def test_gate_in_a_runner_prevents_the_stub_from_raising() -> None:
 
 
 def test_stubs_declare_themselves_unimplemented() -> None:
+    # DetectorStage() with no backend bound is still a stub (Day 42).
     for stage in (DetectorStage(), TrackerStage(), SemanticsStage()):
         with pytest.raises(NotImplementedError, match="stub"):
             stage.process(gray_frame(), ctx(0))

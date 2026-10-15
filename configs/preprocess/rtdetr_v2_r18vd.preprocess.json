@@ -1,0 +1,21 @@
+{
+  "_comment": [
+    "Detector preprocessing for RT-DETRv2-S (COCO). Generated from the model's",
+    "own preprocessor_config.json at the signed commit; PretrainedDetector refuses to",
+    "load if that file ever declares something different. Stretch to 640x640, PIL",
+    "bilinear, x 1/255, no standardisation (do_normalize: false)."
+  ],
+  "input_hw": [
+    640,
+    640
+  ],
+  "channel_order": "RGB",
+  "resize_policy": "stretch",
+  "pad_value": 0.0,
+  "rescale_factor": 0.00392156862745098,
+  "mean": null,
+  "std": null,
+  "interpolation": "pil_bilinear",
+  "source": "PekingU/rtdetr_v2_r18vd@5650961749fa93567c0d46fc7f43ea4f9e914107 preprocessor_config.json, read 2026-10-15 with the weights in hand",
+  "verified_against_official_config": true
+}

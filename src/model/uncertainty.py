@@ -20,6 +20,7 @@ UncertaintyKind = Literal[
     "categorical_error_rate",
     "interval",
     "exact",
+    "unmeasured",
 ]
 """The shape an observation's error takes.
 
@@ -30,6 +31,10 @@ UncertaintyKind = Literal[
 - ``interval``: a bounded range with no distributional assumption.
 - ``exact``: the sensor's own spec guarantees zero error (a monotonic
   counter, a wall-clock read). Rare — most sensors are not this.
+- ``unmeasured`` (Day 42): the error has not been measured yet, stated as
+  such. Never a stand-in for zero: a detector box before its capability
+  envelope exists is ``unmeasured``, and a consumer that needs a sigma (a
+  filter's R) checks ``kind`` and refuses rather than reading one.
 """
 
 ALL_UNCERTAINTY_KINDS: tuple[UncertaintyKind, ...] = get_args(UncertaintyKind)
@@ -40,6 +45,7 @@ _REQUIRED_PARAMS: dict[UncertaintyKind, tuple[str, ...]] = {
     "categorical_error_rate": ("false_accept_rate", "false_reject_rate"),
     "interval": ("low", "high"),
     "exact": (),
+    "unmeasured": (),
 }
 
 
@@ -101,6 +107,11 @@ class Uncertainty:
     def exact(cls) -> "Uncertainty":
         """The uncertainty of a sensor whose spec guarantees zero error."""
         return cls(kind="exact", params=())
+
+    @classmethod
+    def unmeasured(cls) -> "Uncertainty":
+        """The error of a reading whose envelope has not been measured yet."""
+        return cls(kind="unmeasured", params=())
 
     @classmethod
     def gaussian_px(cls, sigma_x: float, sigma_y: float) -> "Uncertainty":

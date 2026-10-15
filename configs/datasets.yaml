@@ -1222,6 +1222,7 @@ datasets:
     verified_by: Ankit Mehta
     verified_class: Apache-2.0
     resolved_commit_sha: 5650961749fa93567c0d46fc7f43ea4f9e914107
+  content_sha: 4130c2847260b4e877709d9212147476d202549fec8085eafc6a661b1ebe3707
 - name: YOLOX-S-COCO
   kind: model
   lane: R

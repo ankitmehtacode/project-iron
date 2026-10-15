@@ -1,6 +1,8 @@
 """Stages 1-3: detector, tracker, semantics.
 
-Deliberately unimplemented. Each raises ``NotImplementedError`` from
+Day 42: the detector stage calls the :mod:`src.detect` contract when a
+backend is bound, and raises when none is. Tracker and semantics remain
+deliberately unimplemented. Each raises ``NotImplementedError`` from
 :meth:`process` with a docstring naming exactly what will plug in and what it
 must satisfy. They exist now so that :class:`~src.cascade.runner.CascadeRunner`
 can be built and benchmarked against the real shape of the pipeline — the wake
@@ -15,40 +17,97 @@ anyone remembered it was invented.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+import numpy as np
+
 from src.cascade.stage import FrameBatch, StageContext, StageOutput
+
+if TYPE_CHECKING:
+    from src.detect.contract import Detector
+
+
+@dataclass(frozen=True)
+class DetectionWakePolicy:
+    """When a detection wakes the tracker: classes and a score floor.
+
+    The floor applies to an UNCALIBRATED score (Day 42): it is a ranking
+    cut, not a probability, until a CalibrationRecord exists for the
+    producer. Compiled from customer config, never a module constant.
+    """
+
+    classes: frozenset[str]
+    min_score: float
+
+    def __post_init__(self) -> None:
+        if not self.classes:
+            raise ValueError("a wake policy names at least one class")
+        if not 0.0 <= self.min_score <= 1.0:
+            raise ValueError("min_score is a score in [0, 1]")
 
 
 class DetectorStage:
-    """Stage 1: INT8 person and object detection. Wakes on motion.
+    """Stage 1: detection. Wakes on motion; a thin caller of the Day-42
+    :class:`~src.detect.contract.Detector` protocol.
 
-    To plug in:
-        An INT8 OpenVINO person/object detector, compiled once at startup and
-        held for the process lifetime. Per-clip load/unload would let model
-        loading dominate wall time — see iron-cascade-runtime on why the
-        concurrency model is stage-parallel processes over bounded queues
-        rather than sequential load per clip.
+    It owns no model. A backend (oracle, motion blob, signed pretrained) is
+    bound at construction and reports canonical-frame boxes in a
+    :class:`~src.detect.contract.DetectionSet`, which this stage puts in
+    ``ctx.payload["detections"]``. With no backend bound it still raises
+    ``NotImplementedError``: a cascade benchmarked against an invented
+    detector reports a cost that has nothing to do with the real one.
 
-    Must satisfy:
-        - Compiled with ``INFERENCE_NUM_THREADS`` from
-          :class:`~src.config.RuntimeConfig`, never left at the OpenVINO
-          default. Torch and OpenVINO each grab every core by default and
-          together oversubscribe, roughly halving throughput.
-        - Detections reported in the frame's own pixel space, or carrying an
-          :class:`~src.contracts.AffineTransform` back to it if the stage
-          resizes. It will resize — detectors have fixed input sizes — so the
-          transform is mandatory, not optional.
-        - ``should_wake_next`` gated on detection confidence and class policy
-          compiled from customer config, not on hardcoded thresholds.
+    Still owed by the product path (see iron-cascade-runtime): an INT8
+    OpenVINO export compiled once with ``INFERENCE_NUM_THREADS``.
     """
+
+    def __init__(
+        self,
+        detector: "Detector | None" = None,
+        policy: DetectionWakePolicy | None = None,
+    ) -> None:
+        if (detector is None) != (policy is None):
+            raise ValueError("bind a detector and its wake policy together")
+        self._detector = detector
+        self._policy = policy
 
     @property
     def name(self) -> str:
         return "detector"
 
     def process(self, frame_batch: FrameBatch, ctx: StageContext) -> StageOutput:
-        raise NotImplementedError(
-            "DetectorStage is a stub. Plug in the INT8 person/object detector; "
-            "see this class's docstring for the constraints it must satisfy."
+        if self._detector is None or self._policy is None:
+            raise NotImplementedError(
+                "DetectorStage is a stub until a Detector backend is bound; "
+                "see src/detect/ for the contract and its backends."
+            )
+        from src.contracts.frames import FrameGeometry
+        from src.detect.contract import FrameInput
+
+        image = frame_batch[-1]
+        detections = self._detector.detect(
+            FrameInput(
+                image_bgr=image,
+                ts_ns=ctx.ts_ns,
+                frame_index=ctx.frame_index,
+                geometry=FrameGeometry(width=image.shape[1], height=image.shape[0]),
+            )
+        )
+        ctx.payload["detections"] = detections
+        scores = detections.score_array()
+        wanted = np.array(
+            [label in self._policy.classes for label in detections.labels()], bool
+        )
+        hits = int(np.sum(wanted & (scores >= self._policy.min_score)))
+        return StageOutput(
+            woke=True,
+            wake_next=hits > 0,
+            detail={
+                "backend": self._detector.name,
+                "detections": len(detections),
+                "policy_hits": hits,
+            },
         )
 
     def should_wake_next(self, output: StageOutput) -> bool:
