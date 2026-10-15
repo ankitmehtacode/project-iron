@@ -2,8 +2,10 @@
 
 - :class:`OracleDetector`: ground-truth visible boxes. Score 1.0, never a
   product: it is the upper bound the other two are measured against.
-- :class:`MotionBlobDetector`: the gate's own MOG2 foreground, connected
-  components as boxes. Licence-free and appearance-blind: the trivial
+- :class:`MotionBlobDetector`: MOG2 foreground with the gate's parameters
+  (``Mog2Backend``), connected components as boxes. Grey-then-downscale, where
+  the gate downscales colour first: equal to the gate's raster only up to
+  uint8 rounding. Licence-free and appearance-blind: the trivial
   baseline a learned detector must clearly beat.
 - :class:`PretrainedDetector`: a registry-signed RT-DETR(v2) checkpoint on
   the pinned torch/transformers. Refuses to load unless its licence is

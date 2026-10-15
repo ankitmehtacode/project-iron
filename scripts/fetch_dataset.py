@@ -1195,8 +1195,27 @@ def fetch_model_huggingface(args: argparse.Namespace, entry: DatasetEntry) -> in
                 )
                 return 1
             partial.replace(target)
+        else:
+            # Already on disk: verified exactly like a fresh download, never
+            # trusted because it is there (Day-42 review).
+            actual, expected = _hf_file_hashes(target, meta)
+            if expected is None or actual != expected:
+                print(
+                    f"HASH MISMATCH on existing {target}: expected {expected}, got "
+                    f"{actual}. Not deleted (it may be evidence); not recorded.",
+                    file=sys.stderr,
+                )
+                return 1
         hashes[name] = sha256_file(target)
     combined = hashlib.sha256(json.dumps(hashes, sort_keys=True).encode()).hexdigest()
+    if entry.content_sha and entry.content_sha != combined:
+        print(
+            f"REFUSED: {entry.name} already records content_sha "
+            f"{entry.content_sha[:16]}..., these files hash to {combined[:16]}...; "
+            "the registry is not rewritten to match whatever is on disk.",
+            file=sys.stderr,
+        )
+        return 1
     _update_registry_yaml(entry.name, {"content_sha": combined})
     print(f"Stored at {dest}; content_sha {combined[:16]}... over {sorted(hashes)}")
     return 0

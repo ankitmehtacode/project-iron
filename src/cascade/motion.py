@@ -276,7 +276,10 @@ class Mog2Backend:
     def foreground_mask(self, gray: GrayFrame) -> MaskFrame:
         """Update the model with ``gray`` and return its foreground (shadows
         excluded). Shared with :class:`~src.detect.backends.MotionBlobDetector`
-        (Day 42) so the blob baseline sees exactly the gate's background model."""
+        (Day 42): the same MOG2 parameters and shadow rule. Its input is not
+        bit-identical to the gate's — the blob detector converts to grey and
+        then area-downscales, the gate downscales colour first — so the two
+        agree only up to uint8 rounding."""
         mask = self._subtractor.apply(gray)
         return np.asarray(mask >= 255)
 

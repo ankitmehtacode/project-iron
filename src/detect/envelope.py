@@ -26,6 +26,8 @@ from dataclasses import dataclass
 from src.model.envelope import Envelope, EnvelopeCurve
 from src.model.uncertainty import Uncertainty
 
+RESOLUTION_HEIGHTS = {"1080p": 1080, "720p": 720, "360p": 360}
+
 SYNTHETIC_DERIVED = (
     "synthetic-derived: not valid for a real camera until validated on real " "footage"
 )
@@ -86,7 +88,31 @@ class DetectEnvelope:
                 f"{sorted(self.curves)}"
             ) from None
 
-    def source(self, resolution: str) -> "EnvelopeUncertainty":
+    def source(
+        self,
+        resolution: str,
+        producer_model_sha: str,
+        producer_preprocess_sha: str,
+        frame_height: int,
+    ) -> "EnvelopeUncertainty":
+        """The uncertainty source for detections from ONE producer at ONE
+        resolution. Refuses a detection set from a different model or
+        preprocessing, or a frame of a different height than the resolution
+        the curves were measured at: an envelope describes what made it."""
+        if (producer_model_sha, producer_preprocess_sha) != (
+            self.producer_model_sha,
+            self.producer_preprocess_sha,
+        ):
+            raise DetectEnvelopeError(
+                "these detections come from a different producer than the one "
+                "this envelope measured"
+            )
+        expected = RESOLUTION_HEIGHTS.get(resolution)
+        if expected != frame_height:
+            raise DetectEnvelopeError(
+                f"curves at {resolution!r} describe {expected}-px-high frames, "
+                f"not {frame_height}"
+            )
         return EnvelopeUncertainty(self.at(resolution))
 
 
@@ -97,8 +123,16 @@ class EnvelopeUncertainty:
     curves: ResolutionCurves
 
     def uncertainty(self, x0: float, y0: float, x1: float, y1: float) -> Uncertainty:
+        """Clamped at the measured range's ends (never extrapolated); see
+        :meth:`status` for whether the box was inside that range at all."""
         sigma = self.curves.centre_sigma_px.value_at(y1 - y0)
         return Uncertainty.gaussian_px(sigma, sigma)
+
+    def status(self, x0: float, y0: float, x1: float, y1: float) -> str:
+        """``within_envelope`` only between the smallest and largest measured
+        heights; a box outside them gets a clamped sigma AND says so."""
+        xs = [x for x, _ in self.curves.centre_sigma_px.points]
+        return "within_envelope" if xs[0] <= y1 - y0 <= xs[-1] else "outside_envelope"
 
 
 def position_envelope_for(
@@ -165,7 +199,7 @@ def from_artifact(payload: dict[str, object]) -> DetectEnvelope:
         )
     return DetectEnvelope(
         producer_model_sha=str(payload["producer_model_sha"]),
-        producer_preprocess_sha="see the run_shas in the artifact",
+        producer_preprocess_sha=str(payload["producer_preprocess_sha"]),
         object_class=str(payload["class"]),
         curves=curves,
         fit_on=str(payload["fit_on"]),

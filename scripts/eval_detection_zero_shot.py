@@ -66,6 +66,9 @@ HEIGHT_EDGES = (0.0, 32.0, 64.0, 128.0, 256.0, 1e5)
 height AT THE EVALUATED RESOLUTION (native x scale), so a 360p row's [0,32)
 bucket holds objects that are under 32 px in the 360p image."""
 SCORE_FLOOR = 0.05
+HALF_OPEN = 1e-6
+"""Subtracted from each bucket's upper area edge (height**2) so pycocotools'
+closed ranges behave as the half-open buckets the counts use."""
 IOU_RECALL = 0.5
 BACKENDS = ("rtdetr_v2_s", "motion_blob")
 
@@ -83,10 +86,77 @@ def run_path(backend: str, resolution: str) -> Path:
     return export_dir() / "runs" / f"{backend}__{resolution}.jsonl"
 
 
-def _done(path: Path) -> set[int]:
+def _rows(path: Path) -> list[dict[str, Any]]:
+    """Every complete row. A crash mid-write can leave a truncated LAST line;
+    that one is dropped (and re-run). A bad line anywhere else raises."""
     if not path.exists():
-        return set()
-    return {json.loads(line)["image_id"] for line in path.read_text().splitlines()}
+        return []
+    lines = path.read_text().splitlines()
+    rows = []
+    for n, line in enumerate(lines):
+        try:
+            rows.append(json.loads(line))
+        except json.JSONDecodeError:
+            if n != len(lines) - 1:
+                raise
+    return rows
+
+
+def _done(path: Path) -> set[int]:
+    return {r["image_id"] for r in _rows(path)}
+
+
+def producer_identity(backend: str, resolution: str) -> dict[str, Any]:
+    """What a run file's rows were produced by. Recorded beside the file and
+    checked on every resume and every score, so changed weights, settings or
+    resolution can never resume onto, or be scored with, someone else's rows."""
+    if backend == "rtdetr_v2_s":
+        from src.data.registry import DatasetRegistry
+        from src.detect.preprocess import CANONICAL_SPEC_DIR, DetectorPreprocessSpec
+
+        entry = DatasetRegistry.load(REPO_ROOT / "configs" / "datasets.yaml").get(
+            "RT-DETRv2-S-COCO"
+        )
+        spec = DetectorPreprocessSpec.load(
+            CANONICAL_SPEC_DIR / "rtdetr_v2_r18vd.preprocess.json"
+        )
+        detail: dict[str, Any] = {
+            "model_sha": entry.content_sha,
+            "preprocess_sha": spec.preprocess_sha(),
+            "score_floor": SCORE_FLOOR,
+        }
+    else:
+        from src.detect.backends import MotionBlobConfig
+
+        detail = {"config": MotionBlobConfig().__dict__, "mog2": "history=250"}
+    return {"backend": backend, "resolution": resolution, **detail}
+
+
+def _producer_path(path: Path) -> Path:
+    return path.with_name(path.stem + ".producer.json")
+
+
+def check_producer(backend: str, resolution: str, adopt_legacy: bool = False) -> None:
+    """Refuse a run file whose recorded producer differs from the current one,
+    or that has rows and no record at all (unless explicitly adopted)."""
+    path = run_path(backend, resolution)
+    sidecar = _producer_path(path)
+    current = producer_identity(backend, resolution)
+    if sidecar.exists():
+        recorded = json.loads(sidecar.read_text())
+        if recorded != current:
+            raise SystemExit(
+                f"{path.name} was produced by {recorded}, not {current}: refusing "
+                "to resume or score it. Move it aside and re-run."
+            )
+        return
+    if _rows(path) and not adopt_legacy:
+        raise SystemExit(
+            f"{path.name} has rows but no producer record; re-run it, or pass "
+            "--adopt-legacy if you know it was produced by the current settings"
+        )
+    sidecar.parent.mkdir(parents=True, exist_ok=True)
+    sidecar.write_text(json.dumps(current, indent=2) + "\n")
 
 
 def _resize(image: np.ndarray, resolution: str) -> np.ndarray:
@@ -110,6 +180,7 @@ def run(backend: str, resolution: str) -> None:
     images = [i for s in ("train", "val") for i in load_coco(s)["images"]]
     out = run_path(backend, resolution)
     out.parent.mkdir(parents=True, exist_ok=True)
+    check_producer(backend, resolution)
     done = _done(out)
     todo = [i for i in images if i["id"] not in done]
     print(f"{backend} @ {resolution}: {len(done)} done, {len(todo)} to go", flush=True)
@@ -143,6 +214,8 @@ def run_motion_blob(resolutions: list[str]) -> None:
     from src.detect.backends import MotionBlobDetector
 
     images = [i for s in ("train", "val") for i in load_coco(s)["images"]]
+    for r in resolutions:
+        check_producer("motion_blob", r)
     done = {r: _done(run_path("motion_blob", r)) for r in resolutions}
     by_camera: dict[tuple[str, str], list[dict[str, Any]]] = {}
     for meta in images:
@@ -192,11 +265,8 @@ def run_motion_blob(resolutions: list[str]) -> None:
 
 
 def _load_run(backend: str, resolution: str) -> dict[int, dict[str, Any]]:
-    path = run_path(backend, resolution)
-    return {
-        r["image_id"]: r
-        for r in (json.loads(line) for line in path.read_text().splitlines())
-    }
+    check_producer(backend, resolution)
+    return {r["image_id"]: r for r in _rows(run_path(backend, resolution))}
 
 
 def _gate_bits() -> dict[tuple[str, str], dict[str, np.ndarray]]:
@@ -235,8 +305,11 @@ def _cocoeval(
     dt.createIndex()
     ev = COCOeval(gt, dt, "bbox")
     ev.params.useCats = int(use_cats)
+    # pycocotools' ranges are CLOSED ([lo, hi] by `<` / `>`); the buckets are
+    # half-open [lo, hi). Integer GT heights sit exactly on the edges, so the
+    # upper edge is pulled in by HALF_OPEN to count each box once.
     ev.params.areaRng = [[0, 1e10]] + [
-        [(lo * 1.0) ** 2, (hi * 1.0) ** 2]
+        [(lo * 1.0) ** 2, (hi * 1.0) ** 2 - HALF_OPEN]
         for lo, hi in zip(HEIGHT_EDGES[:-1], HEIGHT_EDGES[1:])
     ]
     ev.params.areaRngLbl = ["all"] + [
@@ -349,6 +422,33 @@ def _with_baselines(
     return out
 
 
+def _blob_coverage(
+    c: dict[str, Any], ids: set[int], run_rows: dict[int, dict[str, Any]]
+) -> dict[str, Any]:
+    """DIAGNOSTIC, not a metric: is the motion-blob baseline weak because it
+    finds nothing, or because its boxes do not fit people? Blobs per frame,
+    and the share of Person GT >= 64 px whose box centre lies inside a blob."""
+    person = {x["id"] for x in c["categories"] if x["name"] == "Person"}
+    per_frame = [len(run_rows[i]["scores"]) for i in ids if i in run_rows]
+    hit = n = 0
+    for a in c["annotations"]:
+        if a["image_id"] not in ids or a["category_id"] not in person:
+            continue
+        x, y, w, h = a["bbox"]
+        if h < 64:
+            continue
+        n += 1
+        cx, cy = x + w / 2, y + h / 2
+        boxes = run_rows.get(a["image_id"], {}).get("boxes_xyxy_1080p", [])
+        hit += any(b[0] <= cx <= b[2] and b[1] <= cy <= b[3] for b in boxes)
+    return {
+        "blobs_per_frame_median": float(np.median(per_frame)) if per_frame else None,
+        "blobs_per_frame_max": max(per_frame) if per_frame else None,
+        "person_ge_64px": n,
+        "person_centre_inside_a_blob": hit / n if n else None,
+    }
+
+
 HUMANOIDS = ("FourierGR1T2", "AgilityDigit")
 CONFIDENT = 0.6
 
@@ -424,6 +524,9 @@ def score() -> dict[str, Any]:
             "No timing, throughput, CPU or latency figure is measured or reported.",
         ],
         "score_floor": SCORE_FLOOR,
+        "producers": {
+            f"{b}__{r}": producer_identity(b, r) for b in BACKENDS for r in RESOLUTIONS
+        },
         "height_edges_px_at_evaluated_resolution": list(HEIGHT_EDGES[:-1]) + ["inf"],
         "splits": {},
     }
@@ -485,6 +588,9 @@ def score() -> dict[str, Any]:
                     )
                 block["person_by_native_height"] = _with_baselines(
                     native["rtdetr_v2_s"], native["motion_blob"]
+                )
+                block["motion_blob_coverage_diagnostic"] = _blob_coverage(
+                    c, ids, runs["motion_blob"]
                 )
                 block["person_label_on_humanoid_robots"] = _humanoid_confusion(
                     c, ids, runs["rtdetr_v2_s"], person_id, scale
@@ -553,7 +659,18 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("phase", choices=("run", "score"))
     parser.add_argument("--backend", choices=BACKENDS, action="append")
     parser.add_argument("--resolution", choices=tuple(RESOLUTIONS), action="append")
+    parser.add_argument(
+        "--adopt-legacy",
+        action="store_true",
+        help="record the CURRENT producer for run files written before producer "
+        "records existed; only when you know they were produced by it",
+    )
     args = parser.parse_args(argv)
+    if args.adopt_legacy:
+        for backend in BACKENDS:
+            for resolution in RESOLUTIONS:
+                check_producer(backend, resolution, adopt_legacy=True)
+        return 0
     if args.phase == "run":
         resolutions = args.resolution or list(RESOLUTIONS)
         for backend in args.backend or BACKENDS:

@@ -134,21 +134,30 @@ SOURCES = [FrameGeometry(1920, 1080), FrameGeometry(1280, 720), FrameGeometry(64
 def test_a_known_box_through_resize_and_back_returns_within_0_01_px(
     policy: str, source: FrameGeometry, x0: float, y0: float, w: float, h: float
 ) -> None:
+    """The forward map (canonical -> model input) is computed here from each
+    policy's definition, independently of ``to_canonical``; mapping the result
+    home must return the box. (Composing ``to_canonical`` with its own inverse
+    would be the identity for ANY transform — Day-42 review.)"""
     spec = _spec(policy)
-    box = np.array(
-        [
-            [
-                x0 * source.width,
-                y0 * source.height,
-                (x0 + w) * source.width,
-                (y0 + h) * source.height,
-            ]
-        ]
+    in_h, in_w = spec.input_hw
+    W, H = source.width, source.height
+    if policy == "stretch":
+        sx, sy, ox, oy = in_w / W, in_h / H, 0.0, 0.0
+    else:
+        r = min(in_h / H, in_w / W)
+        rw, rh = round(W * r), round(H * r)
+        sx, sy = rw / W, rh / H
+        ox, oy = (
+            ((in_w - rw) // 2, (in_h - rh) // 2)
+            if policy == "letterbox_center"
+            else (0, 0)
+        )
+    box = np.array([x0 * W, y0 * H, (x0 + w) * W, (y0 + h) * H])
+    in_model = np.array(
+        [[box[0] * sx + ox, box[1] * sy + oy, box[2] * sx + ox, box[3] * sy + oy]]
     )
-    to_input = spec.to_canonical(source).inverse()
-    in_model = to_input.apply(box.reshape(-1, 2)).reshape(-1, 4)
     back = spec.boxes_to_canonical(in_model, source)
-    assert np.abs(back - box).max() < 0.01
+    assert np.abs(back[0] - box).max() < 0.01
 
 
 def test_transform_agrees_with_direct_computation() -> None:
@@ -165,17 +174,24 @@ def test_transform_agrees_with_direct_computation() -> None:
 
 
 @pytest.mark.parametrize("policy", RESIZE_POLICIES)
-def test_apply_puts_content_where_the_transform_says(policy: str) -> None:
-    """A white square drawn at a known canonical box lands, after apply(), at
-    the model-input box the inverse transform predicts."""
-    src = FrameGeometry(1920, 1080)
-    image = np.zeros((1080, 1920, 3), np.uint8)
-    image[300:600, 600:1200] = 255
+@pytest.mark.parametrize("src", SOURCES, ids=str)
+def test_apply_puts_content_where_the_transform_says(
+    policy: str, src: FrameGeometry
+) -> None:
+    """A white block drawn at a known canonical box lands, after apply(), at
+    the model-input box the inverse transform predicts: the pixels and the
+    mapping cannot disagree, on every source raster."""
+    image = np.zeros((src.height, src.width, 3), np.uint8)
+    y0, y1 = src.height * 5 // 18, src.height * 10 // 18
+    x0, x1 = src.width * 5 // 16, src.width * 10 // 16
+    image[y0:y1, x0:x1] = 255
     spec = _spec(policy)
     tensor = spec.apply(image)[0, 0]
     ys, xs = np.nonzero(tensor > 200)
     to_input = spec.to_canonical(src).inverse()
-    (ex0, ey0), (ex1, ey1) = to_input.apply(np.array([[600.0, 300.0], [1200.0, 600.0]]))
+    (ex0, ey0), (ex1, ey1) = to_input.apply(
+        np.array([[float(x0), float(y0)], [float(x1), float(y1)]])
+    )
     assert abs(xs.min() - ex0) <= 1 and abs(xs.max() + 1 - ex1) <= 1
     assert abs(ys.min() - ey0) <= 1 and abs(ys.max() + 1 - ey1) <= 1
 

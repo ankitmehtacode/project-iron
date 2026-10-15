@@ -149,11 +149,20 @@ def test_signed_model_is_promotable_only_once_training_data_is_resolved() -> Non
         unresolved.consumption_manifest(["Test-Detector"], promotable=True)
     resolved = _registry(
         _model(
+            lane="S",
             license_snapshot=_snapshot(),
             base_training_data_resolution="counsel, 2026-11-01: memo ref",
         )
     )
-    assert resolved.consumption_manifest(["Test-Detector"], promotable=True).promotable
+    assert resolved.require_shippable("Test-Detector")
+    lane_r = _registry(
+        _model(
+            license_snapshot=_snapshot(),
+            base_training_data_resolution="counsel, 2026-11-01: memo ref",
+        )
+    )
+    with pytest.raises(ShipBlocked, match="lane R"):
+        lane_r.require_shippable("Test-Detector")
 
 
 def test_a_model_must_state_its_training_data() -> None:
@@ -248,3 +257,75 @@ def test_verify_license_records_a_pinned_snapshot_for_a_model_entry(
     assert snap.resolved_commit_sha == SHA and snap.verified_by == "Test Signer"
     assert snap.text_sha256 == hashlib.sha256(text).hexdigest()
     assert entry.kind == "model" and entry.hf_files == ["config.json"]
+
+
+@pytest.mark.parametrize(
+    "licence", ["CC BY-NC 4.0", "Research use only", "GNU GPL v3", "cc_by_nc_sa"]
+)
+def test_human_written_licence_spellings_also_force_the_flag(licence: str) -> None:
+    """Review finding (Day 42): the markers matched only SPDX-like spellings."""
+    with pytest.raises(ValueError, match="ship_blocked"):
+        _model(hypothesis_class=licence)
+
+
+def test_direct_construction_cannot_claim_a_clean_slate() -> None:
+    """Review finding (Day 42): the validator trusted the self-reported
+    ship_blockers field; it now re-derives them from the registry on disk."""
+    from src.data.registry import ConsumptionManifest
+
+    with pytest.raises(ShipBlocked, match="Ultralytics-YOLO"):
+        ConsumptionManifest(consumes=["Ultralytics-YOLO"], promotable=True)
+    with pytest.raises(ShipBlocked, match="RT-DETRv2-S-COCO"):
+        ConsumptionManifest(consumes=["RT-DETRv2-S-COCO"], promotable=True)
+
+
+def test_a_tampered_local_weight_is_refused_and_not_rebaselined(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """Review finding (Day 42): a re-fetch trusted files already on disk and
+    rewrote content_sha to whatever they hashed to."""
+    import hashlib
+    from types import SimpleNamespace
+
+    import yaml
+
+    good, bad = b"real weights", b"tampered weights"
+    recorded = "f" * 64
+    registry_path = tmp_path / "datasets.yaml"
+    registry_path.write_text(
+        yaml.safe_dump(
+            {
+                "datasets": [
+                    {
+                        "name": "Test-Detector",
+                        "kind": "model",
+                        "lane": "R",
+                        "hosting": "huggingface",
+                        "hypothesis_class": "Apache-2.0",
+                        "hf_files": ["model.safetensors"],
+                        "base_training_data": "COCO 2017 train",
+                        "content_sha": recorded,
+                        "license_snapshot": _snapshot().model_dump(mode="json"),
+                    }
+                ]
+            }
+        )
+    )
+    monkeypatch.setattr(fetch_dataset, "REGISTRY_PATH", registry_path)
+    monkeypatch.setenv("IRON_PATHS__MODELS_DIR", str(tmp_path / "models"))
+    weights = tmp_path / "models" / "weights" / "Test-Detector" / SHA
+    weights.mkdir(parents=True)
+    (weights / "model.safetensors").write_bytes(bad)
+    item = SimpleNamespace(
+        path="model.safetensors",
+        lfs=SimpleNamespace(sha256=hashlib.sha256(good).hexdigest()),
+        blob_id=None,
+    )
+    monkeypatch.setattr(
+        fetch_dataset.huggingface_hub.HfApi,
+        "list_repo_tree",
+        lambda self, *a, **k: [item],
+    )
+    assert fetch_dataset.main(["Test-Detector"]) == 1
+    after = DatasetRegistry.load(registry_path).get("Test-Detector")
+    assert after.content_sha == recorded

@@ -124,3 +124,36 @@ def test_the_detection_harness_agrees_with_the_hand_fixture() -> None:
         assert rows[bucket]["AP50"] == pytest.approx(hand, abs=1e-9)
         assert rows[bucket]["recall_iou50"] == pytest.approx(2 / 3, abs=1e-9)
     assert rows["[0,32)"] == {"gt": 0}
+
+
+def test_a_box_exactly_on_a_bucket_edge_is_counted_once() -> None:
+    """Review finding (Day 42): pycocotools' area ranges are closed, the
+    buckets half-open. A GT 64 px tall belongs to [64,128) only."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import eval_detection_zero_shot as harness
+
+    box = [100, 100, 30, 64]
+    payload = {
+        "images": [{"id": 1, "width": 1920, "height": 1080}],
+        "categories": [{"id": 1, "name": "Person"}],
+        "annotations": [
+            {
+                "id": 1,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": box,
+                "area": 1920.0,
+                "iscrowd": 0,
+            }
+        ],
+    }
+    dets = [{"image_id": 1, "category_id": 1, "bbox": box, "score": 0.9}]
+    ev = harness._cocoeval(payload, dets, 1.0, use_cats=True)
+    rows = harness._ap_recall(ev, harness._gt_counts(payload, 1.0))
+    assert rows["[64,128)"]["recall_iou50"] == pytest.approx(1.0)
+    recall = ev.eval["recall"]
+    lower = ev.params.areaRngLbl.index("[32,64)")
+    assert (recall[:, :, lower, -1] == -1).all(), "64 px box leaked into [32,64)"

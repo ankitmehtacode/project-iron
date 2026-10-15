@@ -204,7 +204,9 @@ class DetectionSet:
                     frame_of_reference=frame_of_reference,
                     producer_shas=self.producer.as_tuple(),
                     envelope_status=(
-                        "unknown" if uncertainty_for is None else "within_envelope"
+                        "unknown"
+                        if uncertainty_for is None
+                        else uncertainty_for.status(x0, y0, x1, y1)
                     ),
                 )
             )
@@ -215,6 +217,10 @@ class UncertaintySource(Protocol):
     """Anything that can state a box's measurement uncertainty (B6)."""
 
     def uncertainty(self, x0: float, y0: float, x1: float, y1: float) -> Uncertainty:
+        ...
+
+    def status(self, x0: float, y0: float, x1: float, y1: float) -> str:
+        """``within_envelope`` / ``outside_envelope`` for this box."""
         ...
 
 

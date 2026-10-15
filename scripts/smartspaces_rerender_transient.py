@@ -261,6 +261,14 @@ def transient_curve(
         "bins": bins,
         "late_chunk_difference": late_ci,
         "returns_to_source_k": first_stable(0.0),
+        # Every bin whose simultaneous interval lies wholly above or below 0,
+        # so a later excess or deficit is visible whatever the rules return.
+        "significant_bins": [
+            {"k_start": b["k_start"], "difference": b["difference"][0]}
+            for b in bins
+            if b["difference_simultaneous"][1] > 0.0
+            or b["difference_simultaneous"][2] < 0.0
+        ],
         "reaches_steady_state_k": first_stable(late_ci[0]),
         "searched_k": CHUNK,
     }
@@ -269,8 +277,11 @@ def transient_curve(
 def excess_ends_k(curve: dict[str, Any]) -> int | None:
     """POST HOC (Day 42, after viewing the curve): the first bin whose
     simultaneous interval of the paired difference reaches zero — where the
-    post-cut EXCESS ends. Kept separate from the pre-registered rule, which
-    is also reported: the two answer different questions."""
+    IMMEDIATE post-cut excess ends. A first crossing only: later bins can be
+    significant again (the curve's ``significant_bins`` lists them), so this
+    is not a claim that the difference is gone after it. Kept separate from
+    the pre-registered rule, which is also reported: the two answer different
+    questions."""
     for b in curve["bins"]:
         if b["difference_simultaneous"][1] <= 0.0:
             return int(b["k_start"])
@@ -613,6 +624,11 @@ def analyse() -> dict[str, Any]:
         "cuts": cut_rows,
         "curves": curves,
         "exclusion_window_frames": window,
+        "window_used_downstream": {
+            "name": "post_hoc_excess_end",
+            "by": "scripts/smartspaces_to_coco.py (in_transient flag) and every "
+            "B5/B6 metric",
+        },
         "exclusion_window_bound_used": window_bound,
         "windows": {
             w: {"frames_after_cut": f, "rule": window_source[w]}

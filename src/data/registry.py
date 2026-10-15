@@ -57,6 +57,7 @@ rather than a silent absence.
 
 from __future__ import annotations
 
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -145,16 +146,20 @@ SHIP_BLOCKING_LICENCE_MARKERS: tuple[str, ...] = (
     "agpl",
     "gpl-3",
     "gplv3",
+    "gpl-v3",
     "non-commercial",
     "noncommercial",
     "cc-by-nc",
-    "research only",
     "research-only",
+    "research-use",
 )
 """Substrings of a licence class that make a model unshippable in an
 on-prem appliance (Day 42): AGPL's network clause and the copyleft GPLs
 conflict with shipping closed firmware; NC and research-only terms forbid
-commercial use outright. Matching is case-insensitive. A match forces
+commercial use outright. Matching is on :func:`normalise_licence` text (lower
+case; runs of spaces, underscores and hyphens collapsed to one hyphen), so
+"CC BY-NC 4.0", "Research use only" and "GNU GPL v3" match as well as the
+SPDX forms. A match forces
 ``ship_blocked: true`` at load time — the flag cannot be left false by
 omission."""
 
@@ -249,6 +254,11 @@ class UnknownDataset(RegistryError):
     Deliberately an error rather than a permissive default: an unregistered
     dataset has no lane, and data with no lane has no permitted uses.
     """
+
+
+def normalise_licence(text: str) -> str:
+    """Licence text for marker matching: lower case, separators unified."""
+    return re.sub(r"[\s_\-]+", "-", text.lower())
 
 
 def normalise(name: str) -> str:
@@ -470,7 +480,7 @@ class DatasetEntry(BaseModel):
         classes = [self.hypothesis_class]
         if self.license_snapshot is not None:
             classes.append(self.license_snapshot.verified_class)
-        text = " ".join(classes).lower()
+        text = normalise_licence(" ".join(classes))
         hit = [m for m in SHIP_BLOCKING_LICENCE_MARKERS if m in text]
         # Datasets are governed by their lane (lane R never trains or ships);
         # the forced flag is for model weights, which have no lane of their own.
@@ -741,6 +751,10 @@ class DatasetRegistry:
         """
         entry = self.get(name)
         reasons = []
+        if entry.lane in ("R", "C_pending_consent"):
+            reasons.append(
+                f"lane {entry.lane} ({LANE_DESCRIPTIONS[entry.lane]}) never ships"
+            )
         if entry.ship_blocked:
             reasons.append("ship_blocked is true")
         if entry.license_snapshot is None:
@@ -776,6 +790,11 @@ class DatasetRegistry:
         )
 
 
+DEFAULT_REGISTRY_PATH = (
+    Path(__file__).resolve().parent.parent.parent / "configs" / "datasets.yaml"
+)
+
+
 class ConsumptionManifest(BaseModel):
     """What a run consumed from the registry, and whether its output may be
     promoted (Day 42). The invariant lives on the model, so direct
@@ -790,6 +809,18 @@ class ConsumptionManifest(BaseModel):
 
     @model_validator(mode="after")
     def _not_promotable_with_blockers(self) -> "ConsumptionManifest":
+        if self.promotable:
+            # Never trust the self-reported field alone: re-derive from the
+            # registry on disk, so direct construction cannot claim a clean
+            # slate for an entry that cannot ship (Day-42 review).
+            registry = DatasetRegistry.load(DEFAULT_REGISTRY_PATH)
+            derived = dict(self.ship_blockers)
+            for name in self.consumes:
+                try:
+                    registry.require_shippable(name)
+                except RegistryError as exc:  # ShipBlocked, unknown, blocked
+                    derived.setdefault(name, str(exc))
+            object.__setattr__(self, "ship_blockers", derived)
         if self.promotable and self.ship_blockers:
             raise ShipBlocked(
                 "refusing promotable=True: consumed entries cannot ship — "

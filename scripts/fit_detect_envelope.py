@@ -62,7 +62,9 @@ IOU = 0.5
 
 
 def _robust_sigma(values: list[float]) -> float | None:
-    if len(values) < MIN_PER_BIN:
+    """``values`` holds two residuals per matched pair (x and y, or w and
+    h); the point needs MIN_PER_BIN PAIRS, not pooled values."""
+    if len(values) // 2 < MIN_PER_BIN:
         return None
     x = np.asarray(values, dtype=np.float64)
     return float(1.4826 * np.median(np.abs(x - np.median(x))))
@@ -80,14 +82,57 @@ def _bucket_label(i: int) -> str:
     return f"[{lo:g},{hi:g})" if hi < 1e5 else f"[{lo:g},inf)"
 
 
-def measure(split: str, resolution: str) -> dict[str, Any]:
+HUMANOIDS = ("FourierGR1T2", "AgilityDigit")
+
+
+def _humanoid_matched(
+    coco: dict[str, Any], ids: set[int], dets: list[dict[str, Any]], scale: float
+) -> set[int]:
+    """Indices into ``dets`` that pycocotools matches (IoU 0.5) to a humanoid
+    robot box relabelled as the detections' category."""
+    cats = {c["id"] for c in coco["categories"] if c["name"] in HUMANOIDS}
+    if not dets:
+        return set()
+    cat = dets[0]["category_id"]
+    gt = {
+        "images": [i for i in coco["images"] if i["id"] in ids],
+        "annotations": [
+            {**a, "category_id": cat}
+            for a in coco["annotations"]
+            if a["image_id"] in ids and a["category_id"] in cats
+        ],
+        "categories": [c for c in coco["categories"] if c["id"] == cat],
+    }
+    if not gt["annotations"]:
+        return set()
+    ev = _cocoeval(gt, dets, scale, use_cats=True)
+    t = int(np.argmin(np.abs(ev.params.iouThrs - IOU)))
+    matched: set[int] = set()
+    for e in ev.evalImgs:
+        if e is None or e["aRng"] != ev.params.areaRng[0]:
+            continue
+        for k, dt_id in enumerate(e["dtIds"]):
+            if e["dtMatches"][t][k]:
+                matched.add(int(dt_id) - 1)  # loadRes numbers dets 1..N in order
+    return matched
+
+
+def measure(
+    split: str, resolution: str, drop_humanoid_matches: bool = False
+) -> dict[str, Any]:
     coco = load_coco(split)
     scale = RESOLUTIONS[resolution][1] / 1080
     ids = {i["id"] for i in coco["images"] if not i["in_transient"]}
     person = next(c["id"] for c in coco["categories"] if c["name"] == "Person")
     gt = _subset(coco, ids, "Person")
     run = _load_run("rtdetr_v2_s", resolution)
-    ev = _cocoeval(gt, _dets(run, ids, person, {"person"}), scale, use_cats=True)
+    dets = _dets(run, ids, person, {"person"})
+    dropped = 0
+    if drop_humanoid_matches:
+        drop = _humanoid_matched(coco, ids, dets, scale)
+        dropped = len(drop)
+        dets = [d for k, d in enumerate(dets) if k not in drop]
+    ev = _cocoeval(gt, dets, scale, use_cats=True)
     recall = _ap_recall(ev, _gt_counts(gt, scale))
     t = int(np.argmin(np.abs(ev.params.iouThrs - IOU)))
     all_rng = ev.params.areaRng[0]
@@ -150,7 +195,7 @@ def measure(split: str, resolution: str) -> dict[str, Any]:
                 "too_thin": n < MIN_PER_BIN,
             }
         )
-    return {"bins": bins, "reliability": table}
+    return {"bins": bins, "reliability": table, "humanoid_matched_dropped": dropped}
 
 
 def _transfer(fit: list[dict[str, Any]], check: list[dict[str, Any]]) -> dict[str, Any]:
@@ -217,18 +262,26 @@ def main() -> int:
         "manifest_sha": manifest_sha,
         "run_shas": run_shas,
         "producer_model_sha": registry_model_sha,
+        "producer_preprocess_sha": _preprocess_sha(),
         "resolutions": {},
         "calibration_records": {},
     }
     for res in RESOLUTIONS:
         fit = measure("val", res)
         check = measure("train", res)
+        check_clean = measure("train", res, drop_humanoid_matches=True)
         curves = {
             f: _curve(fit["bins"], f)
             for f in ("recall_iou50", "centre_sigma_px", "size_sigma_px")
         }
         out["resolutions"][res] = {
             "calibration_transfer": _transfer(fit["reliability"], check["reliability"]),
+            "calibration_transfer_without_humanoid_matches": _transfer(
+                fit["reliability"], check_clean["reliability"]
+            ),
+            "humanoid_matched_person_dets_dropped": check_clean[
+                "humanoid_matched_dropped"
+            ],
             "fit_val": fit,
             "check_train": check,
             "envelope_curves": curves,
@@ -243,26 +296,47 @@ def main() -> int:
             valid_for=f"RT-DETRv2-S-COCO@{registry_model_sha[:12]} person @ {res}",
             manifest_sha=manifest_sha,
         )
-        transfer = out["resolutions"][res]["calibration_transfer"]
+        block = out["resolutions"][res]
+        transfer = block["calibration_transfer"]
+        clean = block["calibration_transfer_without_humanoid_matches"]
+        consistent = transfer["verdict"] == "consistent on comparable bins"
         out["calibration_records"][res] = {
             **record.__dict__,
             # The record exists; whether a score may be SHOWN as a probability
             # is a separate verdict, from the held-out check.
-            "show_as_probability": transfer["verdict"]
-            == "consistent on comparable bins",
-            "why_not": (
-                None
-                if transfer["verdict"] == "consistent on comparable bins"
-                else f"{transfer['verdict']}: "
+            "show_as_probability": consistent,
+            "why_not": None
+            if consistent
+            else (
+                f"{transfer['verdict']} to train: "
                 f"{transfer['bins_where_intervals_disjoint']} of "
-                f"{transfer['comparable_bins']} comparable bins disjoint on train "
-                "(val has no humanoid robots; train does, and COCO 'person' "
-                "fires on them)"
+                f"{transfer['comparable_bins']} comparable bins disjoint; with the "
+                f"{block['humanoid_matched_person_dets_dropped']} person detections "
+                "that match a humanoid-robot box removed, "
+                f"{clean['bins_where_intervals_disjoint']} of "
+                f"{clean['comparable_bins']} remain disjoint, in buckets "
+                + ", ".join(
+                    sorted(
+                        {
+                            r["height_bucket"]
+                            for r in clean["rows"]
+                            if not r["intervals_overlap"]
+                        }
+                    )
+                )
             ),
         }
     ARTIFACT.write_text(json.dumps(out, indent=2) + "\n")
     print(f"Written: {ARTIFACT.relative_to(REPO_ROOT)}")
     return 0
+
+
+def _preprocess_sha() -> str:
+    from src.detect.preprocess import CANONICAL_SPEC_DIR, DetectorPreprocessSpec
+
+    return DetectorPreprocessSpec.load(
+        CANONICAL_SPEC_DIR / "rtdetr_v2_r18vd.preprocess.json"
+    ).preprocess_sha()
 
 
 def _model_sha() -> str:

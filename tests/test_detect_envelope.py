@@ -55,7 +55,7 @@ def test_r_grows_as_object_height_shrinks() -> None:
 
 def test_box_uncertainty_is_read_from_the_measured_curve() -> None:
     env = _envelope(((16.0, 2.0), (200.0, 6.0)))
-    u = env.source("1080p").uncertainty(0, 0, 10, 108)  # 108 px tall
+    u = env.source("1080p", "m", "p", 1080).uncertainty(0, 0, 10, 108)  # 108 tall
     assert u.kind == "gaussian_px"
     assert u.get("sigma_x") == pytest.approx(2.0 + (108 - 16) / (200 - 16) * 4.0)
 
@@ -112,3 +112,41 @@ def test_r_from_the_measured_smartspaces_envelope_grows_as_height_shrinks() -> N
         heights = [h for h, _ in curves.centre_sigma_px.points][::-1]
         r = [float(np.trace(model.R(1000.0 * 1.7 / h))) for h in heights]
         assert all(b > a for a, b in zip(r, r[1:])), (res, r)
+
+
+def test_a_box_outside_the_measured_heights_says_so() -> None:
+    """Review finding (Day 42): clamped boxes were labelled within_envelope."""
+    src = _envelope(((16.0, 2.0), (200.0, 6.0))).source("1080p", "m", "p", 1080)
+    assert src.status(0, 0, 5, 100) == "within_envelope"
+    assert src.status(0, 0, 5, 10) == "outside_envelope"
+    assert src.status(0, 0, 5, 400) == "outside_envelope"
+
+
+def test_observations_carry_the_envelope_status_per_box() -> None:
+    from src.contracts.frames import FrameGeometry
+    from src.detect.contract import ClassVocabulary, DetectionSet, ProducerShas
+    from src.model.evidence import UncalibratedScore
+
+    detections = DetectionSet(
+        frame=FrameGeometry(1920, 1080),
+        boxes_xyxy=np.array([[0.0, 0.0, 20.0, 100.0], [0.0, 0.0, 5.0, 10.0]]),
+        scores=(UncalibratedScore(0.9), UncalibratedScore(0.9)),
+        class_ids=np.array([0, 0]),
+        vocabulary=ClassVocabulary("t", "1", ("person",)),
+        ts_ns=1,
+        producer=ProducerShas("m", "p", "c"),
+    )
+    src = _envelope(((16.0, 2.0), (200.0, 6.0))).source("1080p", "m", "p", 1080)
+    obs = detections.to_observations("cam", "f", uncertainty_for=src)
+    assert [o.envelope_status for o in obs] == ["within_envelope", "outside_envelope"]
+    assert all(o.uncertainty.kind == "gaussian_px" for o in obs)
+
+
+def test_an_envelope_refuses_another_producer_or_resolution() -> None:
+    env = _envelope(((16.0, 2.0), (200.0, 6.0)))
+    with pytest.raises(DetectEnvelopeError, match="different producer"):
+        env.source("1080p", "other-model", "p", 1080)
+    with pytest.raises(DetectEnvelopeError, match="different producer"):
+        env.source("1080p", "m", "other-preprocess", 1080)
+    with pytest.raises(DetectEnvelopeError, match="720"):
+        env.source("1080p", "m", "p", 720)
