@@ -419,6 +419,44 @@ class Scorecard:
     investigation.
     """
 
+    includes_rerender_frames: bool = False
+    """True when any scored frame comes from a Cosmos Transfer re-render
+    (Day 42). Those videos are ten independently styled 30 s chunks; a
+    background-model gate re-adapts after every cut, so a re-render number
+    means nothing without the post-cut exclusion window it was scored under."""
+
+    rerender_exclusion: dict[str, Any] | None = None
+    """The post-cut exclusion window, REQUIRED when
+    :attr:`includes_rerender_frames` is True (Day 42): at least
+    ``frames_after_cut`` (``0`` = explicitly none excluded) and ``source``
+    (the measurement the window came from). ``None`` only for a scorecard
+    with no re-render frames. :meth:`require_comparable` refuses to compare
+    two scorecards under different windows."""
+
+    def __post_init__(self) -> None:
+        if self.includes_rerender_frames:
+            window = self.rerender_exclusion
+            if window is None or "frames_after_cut" not in window:
+                raise ScorecardError(
+                    "this scorecard includes Cosmos re-render frames but records "
+                    "no post-cut exclusion window. Every re-render is ten styled "
+                    "30 s chunks and the gate re-adapts after each cut; record "
+                    "rerender_exclusion={'frames_after_cut': N, 'source': ...} "
+                    "(N = 0 states that nothing was excluded)."
+                )
+            if int(window["frames_after_cut"]) < 0:
+                raise ScorecardError("frames_after_cut must not be negative")
+            if not window.get("source"):
+                raise ScorecardError(
+                    "rerender_exclusion.source must name the measurement the "
+                    "window came from"
+                )
+        elif self.rerender_exclusion is not None:
+            raise ScorecardError(
+                "rerender_exclusion is set on a scorecard that declares no "
+                "re-render frames; set includes_rerender_frames=True or drop it"
+            )
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "golden_set_version": self.golden_set_version,
@@ -436,6 +474,8 @@ class Scorecard:
                 for bucket, row in self.per_condition.items()
             },
             "measurement_environment": self.measurement_environment,
+            "includes_rerender_frames": self.includes_rerender_frames,
+            "rerender_exclusion": self.rerender_exclusion,
         }
 
     def require_comparable(self, other: "Scorecard") -> None:
@@ -461,6 +501,17 @@ class Scorecard:
                 "these scorecards measured different golden sets "
                 f"({self.golden_set_sha[:12]} vs {other.golden_set_sha[:12]}); "
                 "a delta across them is not a delta"
+            )
+        if (self.includes_rerender_frames, self.rerender_exclusion) != (
+            other.includes_rerender_frames,
+            other.rerender_exclusion,
+        ):
+            raise ScorecardError(
+                "these scorecards treat Cosmos re-render frames differently "
+                f"({self.rerender_exclusion!r} vs {other.rerender_exclusion!r}). "
+                "Frames just after a style cut are where the gate re-adapts, so "
+                "two exclusion windows score different frames; a delta across "
+                "them measures the window, not the gate."
             )
         mine = self.envelope.get("envelope_sha")
         theirs = other.envelope.get("envelope_sha")

@@ -391,6 +391,16 @@ def build_scorecard(results: list[dict[str, Any]], label: str) -> Scorecard:
         envelope=envelope.provenance(),
         measurement_environment=current_measurement_environment(),
         caveats=list(CAVEATS),
+        includes_rerender_frames=label == "ct25",
+        rerender_exclusion=(
+            {
+                "frames_after_cut": 0,
+                "source": "Day 41 parity run: nothing excluded; the post-cut "
+                "transient was first measured on Day 42",
+            }
+            if label == "ct25"
+            else None
+        ),
     )
     totals = empty_gate_totals()
     condition_totals = {
