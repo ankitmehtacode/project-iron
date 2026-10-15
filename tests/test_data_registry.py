@@ -670,13 +670,20 @@ def test_only_chirla_is_backfilled_today() -> None:
 
     2026-10-14: PhysicalAI-SmartSpaces and its real-world-test split are
     NEW registrations whose hosting was read from their HuggingFace card at
-    registration time — not backfills of the 62, which remain unclassified."""
+    registration time — not backfills of the 62, which remain unclassified.
+
+    2026-10-15 (Day 42): the two detector-weight candidates are new
+    ``kind: model`` registrations, hosting read at registration the same way.
+    Ultralytics-YOLO is registered only to record its exclusion and stays
+    ``unknown``."""
     registry = DatasetRegistry.load(SEED_PATH)
     classified = [e.name for e in registry.entries() if e.hosting != "unknown"]
     assert classified == [
         "CHIRLA",
         "PhysicalAI-SmartSpaces",
         "PhysicalAI-SmartSpaces-RealWorldTest",
+        "RT-DETRv2-S-COCO",
+        "YOLOX-S-COCO",
     ]
 
 

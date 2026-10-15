@@ -1187,3 +1187,59 @@ datasets:
     underlying ethics problem (real, non-consenting subjects) is the same. blocked_reason
     already states the actual violation; this field is not doing double duty as a
     euphemism for it.'
+# --- Model weights (Day 42) -------------------------------------------------
+# kind: model entries reuse this registry's snapshot/signature machinery: no
+# weights download until a human signs the licence with --i-have-read-it.
+# Lane R here means "evaluation only" until ADR 0013 (Proposed) is decided:
+# fine-tuning these weights is a training path, and open_for_training refuses
+# lane R. Moving one is a human decision recorded in this file.
+- name: RT-DETRv2-S-COCO
+  kind: model
+  lane: R
+  consent_posture: unknown
+  subsystem: detection
+  hosting: huggingface
+  hypothesis_class: 'Apache-2.0 per the HuggingFace card''s structured license field
+    (PekingU/rtdetr_v2_r18vd, commit 5650961749fa93567c0d46fc7f43ea4f9e914107, read
+    via the Hub API 2026-10-15 by Claude Code). UNVERIFIED until a human reads the
+    raw README at that commit and records a snapshot.'
+  base_training_data: 'COCO 2017 train (publisher''s statement, unverified); backbone
+    ResNet-18-vd ImageNet-pretrained. COCO annotations are CC-BY-4.0; the images are
+    Flickr photos under their uploaders'' own licences, some non-commercial. Whether
+    that reaches weights trained on them is a counsel question (ledger: detector-base-training-data-licence).'
+  hf_files:
+  - config.json
+  - preprocessor_config.json
+  - model.safetensors
+  validity_matrix_cell: 'detection x indoor warehouse (SmartSpaces lane S, zero-shot):
+    COCO person class only; no forklift/AMR class (H8).'
+  notes: 'Day-42 shortlist candidate 1 of 2. Runs on the pinned stack (torch 2.2.0
+    CPU, transformers 4.50.3, RTDetrV2ForObjectDetection).'
+- name: YOLOX-S-COCO
+  kind: model
+  lane: R
+  consent_posture: unknown
+  subsystem: detection
+  hosting: direct_url
+  hypothesis_class: 'Apache-2.0 per GitHub''s licence API for Megvii-BaseDetection/YOLOX
+    (LICENSE at commit 6ddff4824372906469a7fae2dc3206c7aa4bbaee, read 2026-10-15 by
+    Claude Code). UNVERIFIED until a human reads that file and records a snapshot.'
+  base_training_data: 'COCO 2017 train (publisher''s statement, unverified). Same COCO
+    image-licence question as RT-DETRv2-S-COCO.'
+  validity_matrix_cell: 'detection x indoor warehouse (SmartSpaces lane S, zero-shot):
+    COCO person class only; no forklift/AMR class.'
+  notes: 'Day-42 shortlist candidate 2 of 2: the PyTorch-free route (ONNX release asset
+    yolox_s.onnx, release 0.1.1rc0, run through the pinned openvino 2024.6.0). The
+    release publishes NO checksum for the asset (GitHub API digest: null), so the
+    first fetch can only be trust-on-first-use; the signer decides whether that is
+    acceptable.'
+- name: Ultralytics-YOLO
+  kind: model
+  lane: R
+  consent_posture: unknown
+  subsystem: detection
+  hypothesis_class: AGPL-3.0 (from memory; never read here)
+  ship_blocked: true
+  notes: 'Excluded from the detector shortlist BY RULE (Day 42): AGPL conflicts with
+    shipping an on-prem appliance unless counsel clears it. Registered so the exclusion
+    is a recorded fact the registry enforces, not a sentence in a prompt.'

@@ -276,7 +276,7 @@ def test_verify_license_refuses_a_rendered_hf_page(
     monkeypatch.setattr(
         fetch_dataset,
         "_resolve_hf_commit_sha",
-        lambda repo_id, revision, token: (_ for _ in ()).throw(
+        lambda repo_id, revision, token, kind="dataset": (_ for _ in ()).throw(
             RuntimeError("no network in sandbox")
         ),
     )
@@ -308,7 +308,9 @@ def test_verify_license_pins_main_to_a_resolved_commit_and_is_stable(
     stable_text = b'"license": "CC-BY-4.0", "outOfScopeUse": "surveillance..."'
     resolve_calls = []
 
-    def fake_resolve(repo_id: str, revision: str, token: str | None) -> str:
+    def fake_resolve(
+        repo_id: str, revision: str, token: str | None, kind: str = "dataset"
+    ) -> str:
         resolve_calls.append(revision)
         return HF_COMMIT_SHA
 
@@ -316,7 +318,7 @@ def test_verify_license_pins_main_to_a_resolved_commit_and_is_stable(
     monkeypatch.setattr(
         fetch_dataset,
         "_fetch_hf_raw_file",
-        lambda repo_id, commit_sha, path, token: stable_text,
+        lambda repo_id, commit_sha, path, token, kind="dataset": stable_text,
     )
 
     url = "https://huggingface.co/datasets/org/repo/raw/main/README.md"
@@ -390,7 +392,7 @@ def _stub_hf_config(
     monkeypatch.setattr(
         fetch_dataset,
         "_resolve_hf_commit_sha",
-        lambda repo_id, revision, token: HF_COMMIT_SHA,
+        lambda repo_id, revision, token, kind="dataset": HF_COMMIT_SHA,
     )
     monkeypatch.setattr(
         fetch_dataset,
@@ -426,7 +428,7 @@ def _stub_hf_config(
     monkeypatch.setattr(
         fetch_dataset,
         "_fetch_hf_file",
-        lambda repo_id, commit_sha, path, token, destination, on_progress=None: (
+        lambda repo_id, commit_sha, path, token, destination, on_progress=None, kind="dataset": (
             destination.write_bytes(content_by_path[path])
         ),
     )
@@ -486,7 +488,7 @@ def test_hf_fetch_hash_mismatch_deletes_and_refuses(
     monkeypatch.setattr(
         fetch_dataset,
         "_fetch_hf_file",
-        lambda repo_id, commit_sha, path, token, destination, on_progress=None: (
+        lambda repo_id, commit_sha, path, token, destination, on_progress=None, kind="dataset": (
             destination.write_bytes(b"corrupted in transit")
         ),
     )
@@ -619,7 +621,9 @@ def test_hf_fetch_pins_an_explicit_revision_and_records_main_too(
     monkeypatch.setattr(
         fetch_dataset,
         "_resolve_hf_commit_sha",
-        lambda repo_id, revision, token: pinned if revision == pinned else head,
+        lambda repo_id, revision, token, kind="dataset": pinned
+        if revision == pinned
+        else head,
     )
 
     code = fetch_dataset.main(
@@ -658,7 +662,7 @@ def _stub_hf_paths(
     monkeypatch.setattr(
         fetch_dataset,
         "_resolve_hf_commit_sha",
-        lambda repo_id, revision, token: HF_COMMIT_SHA,
+        lambda repo_id, revision, token, kind="dataset": HF_COMMIT_SHA,
     )
     monkeypatch.setattr(
         fetch_dataset,
@@ -883,7 +887,7 @@ def test_deny_patterns_refuse_a_commit_other_than_the_verified_one(
     monkeypatch.setattr(
         fetch_dataset,
         "_resolve_hf_commit_sha",
-        lambda repo_id, revision, token: "e" * 40,
+        lambda repo_id, revision, token, kind="dataset": "e" * 40,
     )
     assert fetch_dataset.main(["hf-mixed-lanes", "--hf-path", "train/*"]) == 2
     assert downloaded == []

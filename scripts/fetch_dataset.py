@@ -101,7 +101,18 @@ _HF_DATASET_URL_RE = re.compile(
     r"^https://huggingface\.co/datasets/(?P<repo_id>[^/]+/[^/]+?)"
     r"(?:/(?:raw|blob)/(?P<revision>[^/]+)/(?P<path>.+))?/?$"
 )
+# A model repo (Day 42): huggingface.co/<owner>/<repo> with no /datasets/
+# segment, same optional /raw|blob/<revision>/<path> tail.
+_HF_MODEL_URL_RE = re.compile(
+    r"^https://huggingface\.co/(?!datasets/)(?P<repo_id>[^/]+/[^/]+?)"
+    r"(?:/(?:raw|blob)/(?P<revision>[^/]+)/(?P<path>.+))?/?$"
+)
 _FULL_COMMIT_SHA_RE = re.compile(r"^[0-9a-f]{40}$")
+
+
+def _hf_base(kind: str) -> str:
+    """URL prefix for a repo of this registry ``kind`` (Day 42)."""
+    return "https://huggingface.co" + ("/datasets" if kind == "dataset" else "")
 
 
 def sha256_file(path: Path) -> str:
@@ -291,7 +302,9 @@ def _hf_token(explicit: str) -> str | None:
     return explicit or huggingface_hub.get_token()
 
 
-def _parse_hf_dataset_url(url: str) -> tuple[str, str | None, str | None]:
+def _parse_hf_dataset_url(
+    url: str, kind: str = "dataset"
+) -> tuple[str, str | None, str | None]:
     """``(repo_id, revision, path_in_repo)`` from a huggingface.co dataset URL.
 
     ``revision``/``path`` are ``None`` for a rendered dataset-card URL (no
@@ -302,23 +315,30 @@ def _parse_hf_dataset_url(url: str) -> tuple[str, str | None, str | None]:
         ValueError: if ``url`` is not a recognisable huggingface.co dataset
             URL at all.
     """
-    match = _HF_DATASET_URL_RE.match(url)
+    regex = _HF_DATASET_URL_RE if kind == "dataset" else _HF_MODEL_URL_RE
+    match = regex.match(url)
     if match is None:
         raise ValueError(
-            f"{url!r} does not look like a huggingface.co dataset URL "
-            "(expected https://huggingface.co/datasets/<owner>/<name>"
+            f"{url!r} does not look like a huggingface.co {kind} URL "
+            f"(expected {_hf_base(kind)}/<owner>/<name>"
             "[/raw/<revision>/<path>])"
         )
     return match.group("repo_id"), match.group("revision"), match.group("path")
 
 
-def _resolve_hf_commit_sha(repo_id: str, revision: str, token: str | None) -> str:
+def _resolve_hf_commit_sha(
+    repo_id: str, revision: str, token: str | None, kind: str = "dataset"
+) -> str:
     """The exact commit ``revision`` (typically ``"main"``) resolves to right
     now — the pinning half of Day 39's fix: hashing ``/raw/main/<path>``
     trusts whatever ``main`` happens to point at when someone re-reads it
     later, which is exactly the kind of drift a pinned commit is supposed to
     make detectable instead of silent."""
-    info = huggingface_hub.HfApi().dataset_info(repo_id, revision=revision, token=token)
+    api = huggingface_hub.HfApi()
+    if kind == "dataset":
+        info = api.dataset_info(repo_id, revision=revision, token=token)
+    else:
+        info = api.model_info(repo_id, revision=revision, token=token)
     sha = info.sha
     if not sha:
         raise RegistryError(
@@ -328,13 +348,13 @@ def _resolve_hf_commit_sha(repo_id: str, revision: str, token: str | None) -> st
 
 
 def _fetch_hf_raw_file(
-    repo_id: str, commit_sha: str, path: str, token: str | None
+    repo_id: str, commit_sha: str, path: str, token: str | None, kind: str = "dataset"
 ) -> bytes:
     """Bytes of one file at one pinned commit, via the raw (non-rendered)
     endpoint — the stable content the volatile dataset-card page wraps in
     per-request state. For license text only: on a Git-LFS file /raw/
     returns the LFS pointer, not the content — see :func:`_fetch_hf_file`."""
-    url = f"https://huggingface.co/datasets/{repo_id}/raw/{commit_sha}/{path}"
+    url = f"{_hf_base(kind)}/{repo_id}/raw/{commit_sha}/{path}"
     return _hf_get(url, token, timeout=60)
 
 
@@ -345,6 +365,7 @@ def _fetch_hf_file(
     token: str | None,
     destination: Path,
     on_progress: Callable[[int], None] | None = None,
+    kind: str = "dataset",
 ) -> None:
     """Stream one data file at one pinned commit to ``destination`` via
     /resolve/ — the endpoint that follows Git-LFS to the real content. Found
@@ -352,7 +373,7 @@ def _fetch_hf_file(
     returned its ~130-byte pointer ("version https://git-lfs.github.com/spec/
     v1 ..."). Resumes a partial ``destination`` and retries transient
     failures — see :func:`_download`."""
-    url = f"https://huggingface.co/datasets/{repo_id}/resolve/{commit_sha}/{path}"
+    url = f"{_hf_base(kind)}/{repo_id}/resolve/{commit_sha}/{path}"
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     # The timeout bounds each socket read, not the whole file, so it is the
     # stall detector: 2026-10-14 a SmartSpaces stream went silent at exactly
@@ -382,12 +403,13 @@ def _verify_license_huggingface(args: argparse.Namespace, entry: DatasetEntry) -
     hashed.
     """
     try:
-        repo_id, revision, path = _parse_hf_dataset_url(args.license_url)
+        repo_id, revision, path = _parse_hf_dataset_url(args.license_url, entry.kind)
     except ValueError as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
 
     token = _hf_token(args.hf_token)
+    base = _hf_base(entry.kind)
 
     if revision is None or path is None:
         message = (
@@ -399,10 +421,10 @@ def _verify_license_huggingface(args: argparse.Namespace, entry: DatasetEntry) -
             "itself is unchanged — confirmed live on CHIRLA, 2026-09-08: two "
             "fetches minutes apart, two different hashes, identical license "
             "text underneath. Point --license-url at the raw file instead: "
-            f"https://huggingface.co/datasets/{repo_id}/raw/<commit_sha>/README.md"
+            f"{base}/{repo_id}/raw/<commit_sha>/README.md"
         )
         try:
-            resolved = _resolve_hf_commit_sha(repo_id, "main", token)
+            resolved = _resolve_hf_commit_sha(repo_id, "main", token, entry.kind)
         except Exception as exc:  # noqa: BLE001 -- CLI boundary, see module note
             message += (
                 f"\n(Could not resolve <commit_sha> automatically here: {exc}. "
@@ -411,8 +433,7 @@ def _verify_license_huggingface(args: argparse.Namespace, entry: DatasetEntry) -
             )
         else:
             message += (
-                "\nResolved just now: "
-                f"https://huggingface.co/datasets/{repo_id}/raw/{resolved}/README.md"
+                "\nResolved just now: " f"{base}/{repo_id}/raw/{resolved}/README.md"
             )
         print(message, file=sys.stderr)
         return 2
@@ -422,20 +443,20 @@ def _verify_license_huggingface(args: argparse.Namespace, entry: DatasetEntry) -
     else:
         print(f"Resolving {repo_id}@{revision} to a commit sha ...")
         try:
-            resolved_sha = _resolve_hf_commit_sha(repo_id, revision, token)
+            resolved_sha = _resolve_hf_commit_sha(repo_id, revision, token, entry.kind)
         except Exception as exc:  # noqa: BLE001 -- CLI boundary, see module note
             print(f"Could not resolve {revision!r} to a commit: {exc}", file=sys.stderr)
             return 1
 
     print(f"Fetching {path} from {repo_id}@{resolved_sha} ...")
     try:
-        text = _fetch_hf_raw_file(repo_id, resolved_sha, path, token)
+        text = _fetch_hf_raw_file(repo_id, resolved_sha, path, token, entry.kind)
     except DOWNLOAD_ERRORS as exc:
         print(f"Could not fetch the raw file: {exc}", file=sys.stderr)
         return 1
 
     snapshot = LicenseSnapshot(
-        url=f"https://huggingface.co/datasets/{repo_id}/raw/{resolved_sha}/{path}",
+        url=f"{base}/{repo_id}/raw/{resolved_sha}/{path}",
         verified_date=date.today(),
         text_sha256=hashlib.sha256(text).hexdigest(),
         verified_by=args.verified_by or getpass.getuser(),
@@ -583,7 +604,7 @@ def _hf_repo_id(entry: DatasetEntry) -> str:
             f"{entry.name!r} has no license_snapshot to derive a "
             "HuggingFace repo id from."
         )
-    repo_id, _, _ = _parse_hf_dataset_url(entry.license_snapshot.url)
+    repo_id, _, _ = _parse_hf_dataset_url(entry.license_snapshot.url, entry.kind)
     return repo_id
 
 
@@ -1094,6 +1115,8 @@ def fetch(args: argparse.Namespace) -> int:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
 
+    if entry.kind == "model" and entry.hosting == "huggingface":
+        return fetch_model_huggingface(args, entry)
     if entry.hosting == "huggingface":
         return fetch_huggingface(args, entry)
 
@@ -1105,6 +1128,78 @@ def fetch(args: argparse.Namespace) -> int:
         )
         return 2
     return _fetch_tarball(args, entry)
+
+
+def fetch_model_huggingface(args: argparse.Namespace, entry: DatasetEntry) -> int:
+    """Model weights from HuggingFace (Day 42): exactly ``entry.hf_files``, at
+    exactly the commit the licence was signed at, each refused and deleted on
+    a hash mismatch against HuggingFace's own per-file hash.
+
+    Reached only through :meth:`DatasetRegistry.require_fetchable`, so weights
+    with no licence snapshot never download. The signed commit is used even
+    when ``--revision`` says otherwise: weights at another commit are weights
+    nobody read the terms for.
+    """
+    snapshot = entry.license_snapshot
+    if snapshot is None or not snapshot.resolved_commit_sha:
+        print(
+            f"REFUSED: {entry.name!r} has no pinned-commit licence snapshot.",
+            file=sys.stderr,
+        )
+        return 2
+    if not entry.hf_files:
+        print(f"REFUSED: {entry.name!r} lists no hf_files to fetch.", file=sys.stderr)
+        return 2
+    commit_sha = snapshot.resolved_commit_sha
+    if args.revision not in ("main", commit_sha):
+        print(
+            f"REFUSED: --revision {args.revision!r} is not the signed commit "
+            f"{commit_sha}.",
+            file=sys.stderr,
+        )
+        return 2
+    token = _hf_token(args.hf_token)
+    repo_id = _hf_repo_id(entry)
+    tree = {
+        item.path: item
+        for item in huggingface_hub.HfApi().list_repo_tree(
+            repo_id, revision=commit_sha, repo_type="model", token=token
+        )
+    }
+    dest = IronConfig.load().paths.resolved_models_dir / "weights" / entry.name
+    dest = dest / commit_sha
+    hashes: dict[str, str] = {}
+    for name in entry.hf_files:
+        item = tree.get(name)
+        if item is None:
+            print(f"REFUSED: {name} is not in {repo_id}@{commit_sha}", file=sys.stderr)
+            return 2
+        lfs = getattr(item, "lfs", None)
+        meta = {
+            "sha256": getattr(lfs, "sha256", None) if lfs else None,
+            "git_sha1": getattr(item, "blob_id", None),
+        }
+        target = dest / name
+        if not target.exists():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            partial = target.with_name(target.name + ".partial")
+            print(f"Downloading {repo_id}/{name}@{commit_sha[:12]} ...")
+            _fetch_hf_file(repo_id, commit_sha, name, token, partial, kind="model")
+            actual, expected = _hf_file_hashes(partial, meta)
+            if expected is None or actual != expected:
+                partial.unlink()
+                print(
+                    f"HASH MISMATCH on {name}: expected {expected}, got {actual}. "
+                    "Deleted, not installed.",
+                    file=sys.stderr,
+                )
+                return 1
+            partial.replace(target)
+        hashes[name] = sha256_file(target)
+    combined = hashlib.sha256(json.dumps(hashes, sort_keys=True).encode()).hexdigest()
+    _update_registry_yaml(entry.name, {"content_sha": combined})
+    print(f"Stored at {dest}; content_sha {combined[:16]}... over {sorted(hashes)}")
+    return 0
 
 
 def _fetch_tarball(args: argparse.Namespace, entry: DatasetEntry) -> int:
