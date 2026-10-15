@@ -148,3 +148,64 @@ def test_model_urls_parse_and_dataset_urls_do_not_pass_as_models() -> None:
         fetch_dataset._parse_hf_dataset_url(
             "https://huggingface.co/datasets/a/b/raw/main/README.md", "model"
         )
+
+
+def test_verify_license_records_a_pinned_snapshot_for_a_model_entry(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The exact command printed at the B2 checkpoint, run against a sandbox
+    registry with the network faked: a model URL (no /datasets/) resolves,
+    the raw README at the pinned commit is hashed, and the snapshot written
+    back loads with the commit and the signer's name."""
+    import hashlib
+
+    import yaml
+
+    registry_path = tmp_path / "datasets.yaml"
+    registry_path.write_text(
+        yaml.safe_dump(
+            {
+                "datasets": [
+                    {
+                        "name": "RT-DETRv2-S-COCO",
+                        "kind": "model",
+                        "lane": "R",
+                        "hosting": "huggingface",
+                        "hypothesis_class": "Apache-2.0",
+                        "hf_files": ["config.json"],
+                    }
+                ]
+            }
+        )
+    )
+    monkeypatch.setattr(fetch_dataset, "REGISTRY_PATH", registry_path)
+    text = b"---\nlicense: apache-2.0\n---\n"
+    kinds: list[str] = []
+
+    def fake_raw(repo_id: str, sha: str, path: str, token: Any, kind: str) -> bytes:
+        kinds.append(kind)
+        assert (repo_id, sha, path) == ("PekingU/rtdetr_v2_r18vd", SHA, "README.md")
+        return text
+
+    monkeypatch.setattr(fetch_dataset, "_fetch_hf_raw_file", fake_raw)
+    url = f"https://huggingface.co/PekingU/rtdetr_v2_r18vd/raw/{SHA}/README.md"
+    code = fetch_dataset.main(
+        [
+            "RT-DETRv2-S-COCO",
+            "--verify-license",
+            "--license-url",
+            url,
+            "--verified-class",
+            "Apache-2.0",
+            "--verified-by",
+            "Test Signer",
+            "--i-have-read-it",
+        ]
+    )
+    assert code == 0 and kinds == ["model"]
+    entry = DatasetRegistry.load(registry_path).get("RT-DETRv2-S-COCO")
+    snap = entry.license_snapshot
+    assert snap is not None and snap.url == url
+    assert snap.resolved_commit_sha == SHA and snap.verified_by == "Test Signer"
+    assert snap.text_sha256 == hashlib.sha256(text).hexdigest()
+    assert entry.kind == "model" and entry.hf_files == ["config.json"]

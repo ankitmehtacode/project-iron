@@ -1,0 +1,33 @@
+........................................................................ [  4%]
+........................................................................ [  9%]
+........................................................................ [ 13%]
+........................................................................ [ 18%]
+........................................................................ [ 23%]
+.......................s................................................ [ 27%]
+........................................................................ [ 32%]
+........................................................................ [ 37%]
+........................................................................ [ 41%]
+........................................................................ [ 46%]
+........................................................................ [ 50%]
+........................................................................ [ 55%]
+..............................................ssss...................... [ 60%]
+.....................................................................s.. [ 64%]
+...........................ss........................................... [ 69%]
+........................................................................ [ 74%]
+........................................................................ [ 78%]
+........................................................................ [ 83%]
+..........................................................s............. [ 87%]
+...............s........................................................ [ 92%]
+.........................................sss............................ [ 97%]
+...........................................                              [100%]
+- generated xml file: /Users/manishmehta/Desktop/iron-fresh-clone-day42/junit.xml -
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_envelope.py:195: this measurement has no unresolvable-to-resolvable boundary
+SKIPPED [4] tests/test_golden_vectors.py:170: 1 unmet prerequisite(s): V-JEPA2 OpenVINO IR not found at /Users/manishmehta/Desktop/iron-fresh-clone-day42/clone/models/int8/vjepa2_vitl_int8.xml
+SKIPPED [1] tests/test_inspector.py:200: only one golden set has been scored; nothing to mismatch
+SKIPPED [1] tests/test_known_bugs.py:66: 1 unmet prerequisite(s): V-JEPA2 OpenVINO IR not found at /Users/manishmehta/Desktop/iron-fresh-clone-day42/clone/models/int8/vjepa2_vitl_int8.xml. Install locking-requirements.txt and fetch weights with scripts/fetch_weights.py, then export/quantize per scripts/.
+SKIPPED [1] tests/test_known_bugs.py:66: 2 unmet prerequisite(s): V-JEPA2 OpenVINO IR not found at /Users/manishmehta/Desktop/iron-fresh-clone-day42/clone/models/int8/vjepa2_vitl_int8.xml; CoTracker3 checkpoint not found at /Users/manishmehta/Desktop/iron-fresh-clone-day42/clone/models/weights/cotracker3/scaled_offline.pth. Install locking-requirements.txt and fetch weights with scripts/fetch_weights.py, then export/quantize per scripts/.
+SKIPPED [1] tests/test_preprocess_spec.py:435: no legacy artifacts under /private/var/folders/rj/n0gzw7d95rjfkmd25k00h4gm0000gn/T/pytest-of-manishmehta/pytest-50/outputs0; nothing to refuse
+SKIPPED [1] tests/test_provenance.py:423: Day-3 export artifact not present in this checkout
+SKIPPED [3] tests/test_smartspaces_reprojection.py:111: PhysicalAI-SmartSpaces is not fetched at /Users/manishmehta/Desktop/iron-fresh-clone-day42/clone/data/raw/PhysicalAI-SmartSpaces/2cbe9563cbe9f47f846e5c871ee994572bbbc60e/paths-0deaa0fe541fbaf1/MTMC_Tracking_2026; run scripts/fetch_dataset.py (see configs/datasets.yaml)
+1542 passed, 13 skipped in 5453.17s (1:30:53)
