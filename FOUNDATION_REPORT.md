@@ -12575,7 +12575,20 @@ follow-up · `79fce55` B3 · `97d50d8` B4 · `9216387` B7 · `bf1d12c` ADR 0013 
 
 ## Fresh clone at the final commit
 
-Pending at the time of writing; recorded here when it completes.
+`scripts/fresh_clone_check.sh 4f3fc42` (the commit carrying this report and
+every Day-42 code change): **1615 passed, 0 failed, 0 errors, 16 skipped**,
+pip freeze matching all 38 lockfile pins
+(`artifacts/pytest/fresh_clone_4f3fc42f3621.xml`).
+
+Same commit, full suite in the rebuilt `.venv-pinned` (this checkout, with
+`data/` and the signed weights present): **1666 passed, 0 failed, 9 skipped**
+(`artifacts/pytest/day42_venv_pinned_full.xml`). The counts are not identical,
+and every difference is the clean clone lacking data the repository never
+ships: 46 SmartSpaces reprojection cases are generated one per fetched scene
+(the clone has a single "(no scenes fetched)" placeholder instead, 2 ids),
+and 5 tests that skip in the clone pass here (3 need the signed RT-DETRv2
+weights, 1 the Day-3 export, 1 the dataset). No test fails in either, and no
+test passes in one and fails in the other.
 
 ## Day 43, in order
 
