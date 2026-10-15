@@ -1254,6 +1254,8 @@ datasets:
   subsystem: detection
   hypothesis_class: AGPL-3.0 (from memory; never read here)
   ship_blocked: true
+  base_training_data: unknown (never examined; excluded by rule before that question
+    arose)
   notes: 'Excluded from the detector shortlist BY RULE (Day 42): AGPL conflicts with
     shipping an on-prem appliance unless counsel clears it. Registered so the exclusion
     is a recorded fact the registry enforces, not a sentence in a prompt.'

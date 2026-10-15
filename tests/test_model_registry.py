@@ -50,6 +50,7 @@ def _model(**kwargs: Any) -> DatasetEntry:
         "hosting": "huggingface",
         "hypothesis_class": "Apache-2.0",
         "hf_files": ["config.json"],
+        "base_training_data": "COCO 2017 train",
     }
     base.update(kwargs)
     return DatasetEntry.model_validate(base)
@@ -142,9 +143,36 @@ def test_an_unsigned_model_is_not_shippable_either() -> None:
         _registry(_model()).require_shippable("Test-Detector")
 
 
-def test_a_signed_permissive_model_is_promotable() -> None:
-    registry = _registry(_model(license_snapshot=_snapshot()))
-    assert registry.consumption_manifest(["Test-Detector"], promotable=True).promotable
+def test_signed_model_is_promotable_only_once_training_data_is_resolved() -> None:
+    unresolved = _registry(_model(license_snapshot=_snapshot()))
+    with pytest.raises(ShipBlocked, match="training-data licence unresolved"):
+        unresolved.consumption_manifest(["Test-Detector"], promotable=True)
+    resolved = _registry(
+        _model(
+            license_snapshot=_snapshot(),
+            base_training_data_resolution="counsel, 2026-11-01: memo ref",
+        )
+    )
+    assert resolved.consumption_manifest(["Test-Detector"], promotable=True).promotable
+
+
+def test_a_model_must_state_its_training_data() -> None:
+    with pytest.raises(ValueError, match="base_training_data"):
+        _model(base_training_data="")
+
+
+def test_an_empty_resolution_is_refused() -> None:
+    with pytest.raises(ValueError, match="who resolved"):
+        _model(base_training_data_resolution="  ")
+
+
+def test_the_signed_shortlist_is_still_not_shippable() -> None:
+    """Day 42: signing the weight licences must not make the models
+    shippable while COCO's image-licence question is open."""
+    registry = DatasetRegistry.load(REPO_ROOT / "configs" / "datasets.yaml")
+    for name in ("RT-DETRv2-S-COCO", "YOLOX-S-COCO"):
+        with pytest.raises(ShipBlocked, match="training-data"):
+            registry.require_shippable(name)
 
 
 def test_model_urls_parse_and_dataset_urls_do_not_pass_as_models() -> None:
@@ -183,6 +211,7 @@ def test_verify_license_records_a_pinned_snapshot_for_a_model_entry(
                         "hosting": "huggingface",
                         "hypothesis_class": "Apache-2.0",
                         "hf_files": ["config.json"],
+                        "base_training_data": "COCO 2017 train",
                     }
                 ]
             }

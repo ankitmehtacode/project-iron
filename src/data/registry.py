@@ -453,6 +453,13 @@ class DatasetEntry(BaseModel):
     stated by the publisher — a hypothesis, like ``hypothesis_class``, until
     someone reads the training data's own terms. A permissive weight licence
     says nothing about the licence of the images the weights were fit on."""
+    base_training_data_resolution: str | None = None
+    """Who resolved the licence question of :attr:`base_training_data`, and
+    how (Day 42). ``None`` means unresolved, and an unresolved training-data
+    question blocks :meth:`DatasetRegistry.require_shippable` for every
+    ``kind: model`` entry: a permissive weight licence says nothing about the
+    images the weights were fit on. Set only by a human (counsel); never
+    inferred from how clean the weight licence looks."""
     hf_files: list[str] = Field(default_factory=list)
     """For ``kind: model`` with ``hosting: huggingface``: the exact repo files
     to fetch at the snapshot's pinned commit. Nothing outside this list is
@@ -473,6 +480,19 @@ class DatasetEntry(BaseModel):
                 f"({' / '.join(c for c in classes if c)!r}) but ship_blocked is "
                 "false. Such an entry may be evaluated offline but must never "
                 "ship; set ship_blocked: true."
+            )
+        if self.kind == "model" and not self.base_training_data.strip():
+            raise ValueError(
+                f"{self.name!r} is kind: model but states no base_training_data; "
+                "record what the publisher says the weights were trained on "
+                "(or 'unknown') so the question cannot be skipped by omission"
+            )
+        if self.base_training_data_resolution is not None and not (
+            self.base_training_data_resolution.strip()
+        ):
+            raise ValueError(
+                f"{self.name!r}: base_training_data_resolution is set but empty; "
+                "record who resolved it and how, or leave it null"
             )
         if self.kind == "dataset" and self.hf_files:
             raise ValueError(
@@ -728,6 +748,11 @@ class DatasetRegistry:
         restriction = entry.deployment_scope_restriction
         if restriction is not None and not restriction.resolved:
             reasons.append("unresolved deployment_scope_restriction")
+        if entry.kind == "model" and entry.base_training_data_resolution is None:
+            reasons.append(
+                "base-model training-data licence unresolved "
+                f"({entry.base_training_data[:80]!r})"
+            )
         if reasons:
             raise ShipBlocked(f"{entry.name!r} cannot ship: {'; '.join(reasons)}")
         return entry
