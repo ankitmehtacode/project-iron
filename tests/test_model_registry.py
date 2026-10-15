@@ -59,12 +59,22 @@ def _registry(*entries: DatasetEntry) -> DatasetRegistry:
     return DatasetRegistry({normalise(e.name): e for e in entries})
 
 
-def test_repository_shortlist_is_registered_unsigned() -> None:
+def test_repository_shortlist_is_signed_by_a_named_human_at_a_pinned_source() -> None:
+    """Registered unsigned on Day 42 (B2); signed by the human at the B2
+    checkpoint the same day. Each snapshot names its signer and a source that
+    cannot move: a commit-pinned raw URL, recorded commit for HuggingFace."""
     registry = DatasetRegistry.load(REPO_ROOT / "configs" / "datasets.yaml")
     for name in ("RT-DETRv2-S-COCO", "YOLOX-S-COCO"):
         entry = registry.get(name)
         assert entry.kind == "model" and entry.base_training_data
-        assert entry.license_snapshot is None, "only a human signs (B2)"
+        snap = entry.license_snapshot
+        assert snap is not None and snap.verified_by == "Ankit Mehta"
+        assert snap.verified_class == "Apache-2.0"
+    rt = registry.get("RT-DETRv2-S-COCO").license_snapshot
+    assert rt is not None and rt.resolved_commit_sha == SHA and SHA in rt.url
+    yolox = registry.get("YOLOX-S-COCO").license_snapshot
+    assert yolox is not None
+    assert "6ddff4824372906469a7fae2dc3206c7aa4bbaee" in yolox.url
     assert registry.get("Ultralytics-YOLO").ship_blocked
 
 

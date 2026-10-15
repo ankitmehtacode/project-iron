@@ -1215,6 +1215,13 @@ datasets:
     COCO person class only; no forklift/AMR class (H8).'
   notes: 'Day-42 shortlist candidate 1 of 2. Runs on the pinned stack (torch 2.2.0
     CPU, transformers 4.50.3, RTDetrV2ForObjectDetection).'
+  license_snapshot:
+    url: https://huggingface.co/PekingU/rtdetr_v2_r18vd/raw/5650961749fa93567c0d46fc7f43ea4f9e914107/README.md
+    verified_date: '2026-10-15'
+    text_sha256: 4a26a3a6de73500f181e4edbc75b3f3f19ca6dde0fdaceeeb78167f223973305
+    verified_by: Ankit Mehta
+    verified_class: Apache-2.0
+    resolved_commit_sha: 5650961749fa93567c0d46fc7f43ea4f9e914107
 - name: YOLOX-S-COCO
   kind: model
   lane: R
@@ -1233,6 +1240,13 @@ datasets:
     release publishes NO checksum for the asset (GitHub API digest: null), so the
     first fetch can only be trust-on-first-use; the signer decides whether that is
     acceptable.'
+  license_snapshot:
+    url: https://raw.githubusercontent.com/Megvii-BaseDetection/YOLOX/6ddff4824372906469a7fae2dc3206c7aa4bbaee/LICENSE
+    verified_date: '2026-10-15'
+    text_sha256: 0ec3668d3274bcf29e8a29e9576d5a2cd96fc78d3c5bec4387355a796e5d9088
+    verified_by: Ankit Mehta
+    verified_class: Apache-2.0
+    resolved_commit_sha: null
 - name: Ultralytics-YOLO
   kind: model
   lane: R

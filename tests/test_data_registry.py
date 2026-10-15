@@ -78,6 +78,11 @@ HUMAN_ATTESTED = {
     "CHIRLA",  # Day 40: raw README at f6571836..., attested by Ankit Mehta
     # 2026-10-14: raw README at 2cbe9563..., attested by Ankit Mehta (2b29aad)
     "PhysicalAI-SmartSpaces",
+    # Day 42 (2026-10-15), model weights, attested by Ankit Mehta:
+    # raw README at PekingU/rtdetr_v2_r18vd@5650961749fa..., Apache-2.0
+    "RT-DETRv2-S-COCO",
+    # LICENSE at Megvii-BaseDetection/YOLOX@6ddff4824372..., Apache-2.0
+    "YOLOX-S-COCO",
 }
 
 
