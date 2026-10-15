@@ -1,0 +1,275 @@
+{
+  "label": "lane S synthetic (SmartSpaces) \u2014 zero-shot, not a product claim; NVIDIA terms unresolved",
+  "export_dir": "data/derived/PhysicalAI-SmartSpaces/2cbe9563cbe9f47f846e5c871ee994572bbbc60e/coco_day42/66c683ffa66f",
+  "sha": "66c683ffa66f5ccab08d80863ae80d70ff5bcae276642b2dff966c808fa6bb9c",
+  "rule": {
+    "seed": 42,
+    "window_frames": 1800,
+    "block": 300,
+    "per_block": 2,
+    "cameras": "day41_gate_parity sample minus excluded scenes",
+    "transient_frames_after_cut": 60
+  },
+  "splits_by_scene": {
+    "Warehouse_000": "train",
+    "Warehouse_002": "train",
+    "Warehouse_004": "train",
+    "Warehouse_006": "train",
+    "Warehouse_008": "train",
+    "Warehouse_009": "train",
+    "Warehouse_010": "train",
+    "Warehouse_011": "train",
+    "Warehouse_012": "train",
+    "Warehouse_013": "train",
+    "Warehouse_014": "train",
+    "Warehouse_015": "train",
+    "Warehouse_016": "train",
+    "Warehouse_017": "train",
+    "Warehouse_018": "train",
+    "Warehouse_019": "train",
+    "Warehouse_020": "val",
+    "Warehouse_022": "val",
+    "Warehouse_021": "val"
+  },
+  "excluded_scenes": {
+    "Warehouse_001": "re-render of train scene Warehouse_000: train may not hold a re-render, and val may not hold its source's trajectories",
+    "Warehouse_003": "re-render of train scene Warehouse_002: train may not hold a re-render, and val may not hold its source's trajectories",
+    "Warehouse_005": "re-render of train scene Warehouse_004: train may not hold a re-render, and val may not hold its source's trajectories",
+    "Warehouse_007": "re-render of train scene Warehouse_006: train may not hold a re-render, and val may not hold its source's trajectories"
+  },
+  "height_edges_px": [
+    0.0,
+    32.0,
+    64.0,
+    128.0,
+    256.0,
+    "inf"
+  ],
+  "min_instances_to_report": 30,
+  "splits": {
+    "train": {
+      "images": 384,
+      "rerender_images": 0,
+      "images_in_transient": 0,
+      "instances": 4860,
+      "instances_per_class": {
+        "AgilityDigit": 735,
+        "Forklift": 308,
+        "FourierGR1T2": 552,
+        "NovaCarter": 230,
+        "PalletTruck": 204,
+        "Person": 2259,
+        "Transporter": 572
+      },
+      "classes_too_thin": [],
+      "instances_per_height_bucket": {
+        "1080p": {
+          "[0,32)": {
+            "instances": 567,
+            "person": 315,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[32,64)": {
+            "instances": 642,
+            "person": 313,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[64,128)": {
+            "instances": 1073,
+            "person": 396,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[128,256)": {
+            "instances": 1589,
+            "person": 772,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[256,inf)": {
+            "instances": 989,
+            "person": 463,
+            "too_thin": false,
+            "person_too_thin": false
+          }
+        },
+        "720p": {
+          "[0,32)": {
+            "instances": 907,
+            "person": 507,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[32,64)": {
+            "instances": 882,
+            "person": 341,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[64,128)": {
+            "instances": 1309,
+            "person": 527,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[128,256)": {
+            "instances": 1680,
+            "person": 844,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[256,inf)": {
+            "instances": 82,
+            "person": 40,
+            "too_thin": false,
+            "person_too_thin": false
+          }
+        },
+        "360p": {
+          "[0,32)": {
+            "instances": 1789,
+            "person": 848,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[32,64)": {
+            "instances": 1309,
+            "person": 527,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[64,128)": {
+            "instances": 1680,
+            "person": 844,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[128,256)": {
+            "instances": 78,
+            "person": 40,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[256,inf)": {
+            "instances": 4,
+            "person": 0,
+            "too_thin": true,
+            "person_too_thin": true
+          }
+        }
+      }
+    },
+    "val": {
+      "images": 72,
+      "rerender_images": 24,
+      "images_in_transient": 1,
+      "instances": 827,
+      "instances_per_class": {
+        "Forklift": 166,
+        "PalletTruck": 90,
+        "Person": 565,
+        "Transporter": 6
+      },
+      "classes_too_thin": [
+        "AgilityDigit",
+        "FourierGR1T2",
+        "NovaCarter",
+        "Transporter"
+      ],
+      "instances_per_height_bucket": {
+        "1080p": {
+          "[0,32)": {
+            "instances": 210,
+            "person": 103,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[32,64)": {
+            "instances": 229,
+            "person": 170,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[64,128)": {
+            "instances": 227,
+            "person": 141,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[128,256)": {
+            "instances": 124,
+            "person": 114,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[256,inf)": {
+            "instances": 37,
+            "person": 37,
+            "too_thin": false,
+            "person_too_thin": false
+          }
+        },
+        "720p": {
+          "[0,32)": {
+            "instances": 285,
+            "person": 168,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[32,64)": {
+            "instances": 324,
+            "person": 193,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[64,128)": {
+            "instances": 116,
+            "person": 106,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[128,256)": {
+            "instances": 97,
+            "person": 93,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[256,inf)": {
+            "instances": 5,
+            "person": 5,
+            "too_thin": true,
+            "person_too_thin": true
+          }
+        },
+        "360p": {
+          "[0,32)": {
+            "instances": 609,
+            "person": 361,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[32,64)": {
+            "instances": 116,
+            "person": 106,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[64,128)": {
+            "instances": 97,
+            "person": 93,
+            "too_thin": false,
+            "person_too_thin": false
+          },
+          "[128,256)": {
+            "instances": 5,
+            "person": 5,
+            "too_thin": true,
+            "person_too_thin": true
+          }
+        }
+      }
+    }
+  }
+}
