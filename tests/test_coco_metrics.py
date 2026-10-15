@@ -80,3 +80,47 @@ def test_pycocotools_ap_matches_the_hand_computed_value() -> None:
 def test_pycocotools_recall_matches_the_hand_computed_value() -> None:
     ev = _evaluate()
     assert ev.stats[8] == pytest.approx(2 / 3, abs=1e-9)  # AR@100
+
+
+def test_the_detection_harness_agrees_with_the_hand_fixture() -> None:
+    """Lead-order rule 3, harness half: scripts/eval_detection_zero_shot.py's
+    height-bucket route (every area overwritten with height**2, pycocotools'
+    own area ranges) must reproduce the hand value on the same fixture, in the
+    'all' range, and COCO's size-range rule in the one bucket holding all
+    three GT boxes (100 px tall: [64, 128)). That rule ignores an unmatched
+    detection whose own size is outside the range, so the two 40 px false
+    positives do not count there: TP, TP gives precision 1 up to recall 2/3,
+    i.e. (34 + 33) / 101 = 67/101 by hand. Per-bucket AP never charges a
+    bucket for false positives of other sizes."""
+    import sys
+    from pathlib import Path
+
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+    import eval_detection_zero_shot as harness
+
+    payload = {
+        "images": [{"id": 1, "width": 1920, "height": 1080}],
+        "categories": [{"id": 1, "name": "Person"}],
+        "annotations": [
+            {
+                "id": i + 1,
+                "image_id": 1,
+                "category_id": 1,
+                "bbox": box,
+                "area": box[2] * box[3],
+                "iscrowd": 0,
+            }
+            for i, box in enumerate(GT_BOXES)
+        ],
+    }
+    dets = [
+        {"image_id": 1, "category_id": 1, "bbox": box, "score": score}
+        for box, score in DETECTIONS
+    ]
+    ev = harness._cocoeval(payload, dets, 1.0, use_cats=True)
+    rows = harness._ap_recall(ev, harness._gt_counts(payload, 1.0))
+    for bucket, hand in (("all", HAND_AP), ("[64,128)", 67 / 101)):
+        assert rows[bucket]["AP"] == pytest.approx(hand, abs=1e-9)
+        assert rows[bucket]["AP50"] == pytest.approx(hand, abs=1e-9)
+        assert rows[bucket]["recall_iou50"] == pytest.approx(2 / 3, abs=1e-9)
+    assert rows["[0,32)"] == {"gt": 0}
