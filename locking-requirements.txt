@@ -128,3 +128,9 @@ hypothesis==6.168.5
 types-psutil==7.2.2.20260906
 types-PyYAML==6.0.12.20260906
 scipy-stubs==1.15.3.0
+
+# Detection metrics (Day 42, Objective B1/H3). AP, AP50 and recall come from
+# pycocotools, never from a hand-written AP: tests/test_coco_metrics.py checks
+# it against a hand-computed fixture (AP = 56/101) before it scores anything.
+# Binary wheel (cp310 universal2); pulls in no new transitive dependency here.
+pycocotools==2.0.11
