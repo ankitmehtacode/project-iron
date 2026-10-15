@@ -325,3 +325,59 @@
        site-manifest parent link, and the two-layer erasure drill."
     - "The SmartSpaces -> CHIRLA experiment (not run on Day 41)."
   estimated_human_effort: "A yes/no from the user, plus redlines to the conditions if any."
+
+- id: adr-0013-detector-fine-tuning-decision
+  description: >-
+    docs/adr/0013-detector-fine-tuning-on-lane-s.md is Proposed: detector
+    fine-tuning on lane-S SmartSpaces allowed in principle; re-renders never
+    training data; selection on SmartSpaces val only, CHIRLA report-only;
+    warehouse classes need fine-tuning or an open-vocabulary route;
+    promotion blocked on NVIDIA's terms, SMPL provenance and the base model's
+    training-data licence; a stop rule fixed before any training run. Claude
+    Code must not change its status; the user accepts or rejects it by
+    editing the Status line.
+  category: human_decision
+  first_recorded:
+    sha: bf1d12ccbdfd8e2412f2df34ab5e29fa1a388cfd
+    date: 2026-10-15
+  unblocks:
+    - "Day 43 detector fine-tuning on SmartSpaces."
+  estimated_human_effort: "A yes/no from the user, plus redlines to the conditions or the stop rule if any."
+
+- id: detector-base-training-data-licence
+  description: >-
+    RT-DETRv2-S-COCO and YOLOX-S-COCO are signed Apache-2.0 for their weights,
+    but both were trained on COCO 2017, whose images are Flickr photographs
+    under their uploaders' own licences (some non-commercial); COCO's
+    annotations are CC-BY-4.0. Whether the image licences reach weights fit on
+    them is a legal question. DatasetRegistry.require_shippable refuses both
+    models until base_training_data_resolution records who resolved it and
+    how (configs/datasets.yaml).
+  category: human_decision
+  first_recorded:
+    sha: e343b8276ee295af7a4f58b8d6991d4fbb303204
+    date: 2026-10-15
+  unblocks:
+    - "Promotion of any detector checkpoint built on these weights, zero-shot or fine-tuned (ADR 0013 decision 4)."
+  estimated_human_effort: >-
+    Counsel: a read of COCO's terms of use and of how the weights' publishers
+    describe their training data, then a recorded resolution. Not an
+    engineering estimate.
+
+- id: texture-floor-resolution-dependence
+  description: >-
+    The validity gates' texture floor (MIN_TEXTURE_ENERGY = 12, a mean
+    per-pixel gradient) refuses appearance_semantics and detection on every
+    SmartSpaces camera: photoreal renders score median 3.3 at 1080p and 6-7 at
+    QVGA. The measure falls as resolution rises, and the point-tracking corner
+    floor cannot be met at 1080p at all (maxCorners=1024). Day 42 changed no
+    floor. Deciding whether the floors are mis-specified (and on what
+    measurement to re-set them) is the user's call; until then SmartSpaces
+    detection numbers are reported as gate-refused.
+  category: human_decision
+  first_recorded:
+    sha: 9216387a866a361fa3efe698f93426d564757c37
+    date: 2026-10-15
+  unblocks:
+    - "Treating SmartSpaces detection and appearance numbers as capability measurements rather than gate-refused diagnostics."
+  estimated_human_effort: "A decision on whether and how to re-measure the floors; the re-measurement itself is engineering once decided."

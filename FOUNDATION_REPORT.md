@@ -12301,3 +12301,299 @@ Not fixed here.
 
 **No timing, throughput, CPU-percentage, memory-rate or latency claim is
 made anywhere in this section.**
+
+
+# Day 42
+
+**Lead finding (rule 7 of the Day-42 prompt's lead order fired): high-
+confidence detections are frequently wrong, for two measured reasons.**
+(1) On SmartSpaces train scenes, 394 of 1,673 RT-DETRv2-S `person`
+detections scoring >= 0.6 (24%) match a humanoid-robot box (FourierGR1T2,
+AgilityDigit) and no person box at IoU 0.5; 32% of humanoid robots are
+"detected as person". (2) Overconfidence on small objects: a score
+calibration fitted on val does not transfer to train (4 of 10, 4 of 10 and
+5 of 9 comparable reliability bins disjoint at 1080p / 720p / 360p). Removing
+the ~960 humanoid-matched detections repairs the large-object, high-score
+bins but leaves 2, 3 and 3 bins disjoint, all under 128 px tall, where train
+precision is well below val's (e.g. 360p, under 32 px, score 0.4-0.6: 0.72 on
+val, 0.42 on train). Every CalibrationRecord is marked
+`show_as_probability: false` with that measured reason. Rules 1-6 did not
+fire: the fresh clone is green (A1), the detector clears the motion-blob
+baseline by a wide margin, pycocotools and the harness agree with hand
+computation, the AffineTransform agrees with direct computation, 720p does
+not drop against 1080p, and the re-render difference (A2) is not a transient
+that fails to return: it is present throughout the chunk.
+
+**This is the first detection measurement in this project**, with its limits:
+synthetic rendered scenes (lane S, NVIDIA terms unresolved), zero-shot COCO
+weights, no real-footage validation of the envelope, a thin val split (71
+images, 3 scenes), and SmartSpaces refused by the registered detection gate's
+texture floor (B7) — so every detection number below is a gate-refused
+diagnostic until the human decides the floor question.
+
+An independent review (a fresh-context reviewer, after the first draft of this
+section) found 15 issues; the confirmed ones are fixed and listed under
+**Review**. Two of them corrected claims in the first draft of this section.
+
+**No timing, throughput, CPU-percentage, memory-rate or latency claim is made
+anywhere in this section.**
+
+## Verdicts
+
+### Hypotheses H1-H10 (Objective B1) — `docs/day42/hypotheses.md`
+
+| | hypothesis | verdict | settled by |
+|---|---|---|---|
+| H1 | no working detector; `DetectorStage` raises | **VERIFIED** | `src/cascade/stages.py:49` (before today) |
+| H2 | x86_64, torch 2.2.0 CPU, transformers runs a DETR-family detector | **VERIFIED, restated** | x86_64; `torch.version.cuda` None; in the lockfile environment (transformers 4.50.3) RT-DETR and RT-DETRv2 run, **D-FINE does not exist** (it ran only in the drifted `.venv-pinned`). D-FINE dropped rather than upgrade tokenizers |
+| H3 | pycocotools at an exact pin agrees with a hand AP | **VERIFIED** | `pycocotools==2.0.11`; `tests/test_coco_metrics.py`: 56/101 (all), 67/101 in-bucket (COCO's range rule: unmatched detections of other sizes are ignored), recall 2/3; a box on a bucket edge counts once |
+| H4 | candidate licences | **settled by the human** | RT-DETRv2-S (README at `56509617`) and YOLOX-S (LICENSE at `6ddff482`) signed Apache-2.0 by Ankit Mehta (`765614d`); a re-fetch reproduces both hashes. Ultralytics excluded by rule (`ship_blocked`) |
+| H5 | boxes in model-input space; typed transform needed | **VERIFIED** (RT-DETRv2) | its own `preprocessor_config.json`: 640x640 stretch, x1/255, no normalise. YOLOX's letterbox not read (no backend) |
+| H6 | CHIRLA tracking holds full frames with boxes | **FALSIFIED** | all 17,437 rows in six configs are identity crops |
+| H7 | SmartSpaces classes | **VERIFIED + PalletTruck** | Person 23 scenes, Forklift 17, PalletTruck 13, Transporter 10, AgilityDigit 9, FourierGR1T2 9, NovaCarter 8 |
+| H8 | COCO has no forklift/AMR class | **VERIFIED** | 80 labels; nearest `truck`, `fork` |
+| H9 | contact sheets excluded by a versioned rule | **FALSIFIED** | `.git/info/exclude:14` only; fixed `2ad2c57` |
+| H10 | MOG2 history / learning rate readable | **VERIFIED** | `motion.py:268` history 250; automatic learning rate |
+
+### Part A
+
+**A1 fresh clone — fixed and proven.** The day-41 clone failed 19 tests
+(1494 passed, 14 skipped; counts from that run's junit, which lived in a
+session scratch directory that no longer exists — no artifact remains).
+11 needed generated data: the fixture rendered v1 while the active set is v3,
+and v3 was minted with 40 frames / seed 20260808 (the generator's defaults
+reproduce 0/30 golden hashes, the recorded parameters 30/30). Session fixtures
+now render the ACTIVE set, hash-verify every clip, and write the scorecard and
+association sweep to a per-session directory. 8 failed the 15 s
+unmarked-test guard during that run, while the machine was also running my
+own orphaned worker processes; none of the 8 failed in the later fresh-clone
+run below, and the guard is unchanged. Lockfile: every `>=` and bare name
+pinned, transformers pinned (4.50.3), huggingface-hub 0.26.0 -> 0.36.2 (ends
+the Day-40 conflict), pycocotools added. `.venv-pinned` had drifted (6
+packages; `scripts/check_lockfile.py` now fails on any difference) and was
+rebuilt from the lockfile (old one kept at
+`~/Desktop/project-iron-venv-pinned-day41-backup`).
+`scripts/fresh_clone_check.sh 234bedc`: **1542 passed, 0 failed, 0 errors,
+13 skipped** (`artifacts/pytest/fresh_clone_234bedc5b8d4.xml`). That commit
+predates most of Part B; the recheck on the final commit is under
+**Fresh clone at the final commit** below. The pydantic `model_hashes` warning
+is fixed.
+
+**A2 re-render cuts — there is no clean transient to exclude.** Cuts from
+pixels on all 184 videos of the five fetched re-renders and their sources:
+819/828 re-render boundaries cut (9 do not); 6 above-threshold jumps in
+sources 002/004 (largest non-cut jump 9.9 against a threshold of 10: a thin
+margin). Paired re-render vs source at the same frame index, 828 (camera,
+cut) units, 30-frame bins, simultaneous (Bonferroni) intervals: right after a
+cut the re-render's foreground fraction is +0.43 above its source for one bin
+and its `wake_next` +0.30 and +0.07 for two; the first bin whose interval
+reaches 0 is k = 60. But 14 of 30 wake bins are significant: besides that
+post-cut excess, deficits of 4-8 points through the middle of the chunk and
+excesses again at k = 300 (+0.07) and k = 750-840 (+0.04 to +0.15). The
+re-render differs from its source throughout, in both directions. The
+pre-registered steady-state rule returns 810 frames (it tracks that
+wandering; the rule was revised to simultaneous intervals before the real data
+was analysed, after a unit test showed the pointwise version fails on flat
+curves); the post-hoc first crossing returns 60, and 60 is the window the B4
+export flags and every B5/B6 metric excludes (named in the artifact).
+Whole-video wake-decision difference, mean over 92 camera pairs: 18.25% all
+frames, 17.77% excluding 60, 14.62% excluding 810 (which discards 80% of
+frames). Gate recall_retained: sources 0.968, re-renders 0.921 (0.919
+excluding 60). Day 41's 60 s window understated some pairs
+(Warehouse_021/Camera_0011: 1.8% then, 28.6% over the whole video). GT marks
+only 92 no-motion frames (about one per camera): quiet-frame wake rates are not
+measurable here. Structural: a scorecard with re-render frames must record its
+window, and `require_comparable` refuses across windows — for Scorecard
+objects in one process (no stored scorecard is read back into one yet).
+
+**A3 gate miss rate vs object height** (Day 41's stored decisions, 77,358
+event frames, Wilson intervals; the Kubric envelope classifies nothing). The
+pooled curve is not monotone: a 60-130 px bump (miss rate about 0.4) driven by
+slow movers (< 2 native px/frame) concentrated in a few cameras; fast movers
+give a near-monotone curve. The 320x180 gate's recall falls under 0.9 at
+160-200 px, under 0.8 at 130-160 px, under 0.5 at 30-40 px (native; read from
+the curve). Of 18,205 frames the Kubric limit calls below detectability, the
+320x180 gate woke on 12,999 and full resolution on 14,565: **the
+Kubric-measured limit does not transfer** (wakes include the 12-frame hold).
+
+**A4 hygiene.** Versioned `.gitignore` rules for rendered frames under
+`artifacts/`, and a test that the rule's source is `.gitignore`.
+
+### Part B
+
+**B2 model licence gate.** One registry: `kind: model` entries take the same
+snapshot and `--i-have-read-it` signature (run by the human); weights download
+only through `require_fetchable`, only the listed files, only at the signed
+commit, each hash-checked — including files already on disk, and a differing
+`content_sha` is refused rather than rewritten. `ship_blocked` is forced for
+AGPL/GPL-3/NC/research-only licences in normalised spelling. A model cannot
+ship while its lane is R, while its training-data licence is unresolved
+(`e343b82`), or while unsigned; a consumption manifest re-derives those
+blockers from the registry on disk before it may be `promotable`. YOLOX-S is
+signed but has **no backend yet**, so no candidate selection took place.
+
+**B3 contract and backends.** `src/detect/`: `DetectionSet` (canonical-frame
+boxes inside a declared `FrameGeometry`, `UncalibratedScore` only, versioned
+vocabulary, producer shas); `DetectorPreprocessSpec` (stretch, letterbox
+top-left/centre) whose `to_canonical()` is the AffineTransform home; Oracle,
+MotionBlob (MOG2 with the gate's parameters) and Pretrained (signed
+RT-DETRv2) backends; `DetectorStage` calls the protocol and still raises with
+no backend. Observations carry `Uncertainty.unmeasured()` (new kind) unless an
+envelope is given, never zero. Verified: a property test against an
+independent hand model of each policy (< 0.01 px; it catches a sign-flipped
+offset), content drawn in the image lands where the transform says (+-1 px,
+three source rasters, every policy), our pixels equal HuggingFace's processor
+to 6e-8, our boxes equal HuggingFace's post-processing to < 1e-3 px.
+
+**B4 export.** 456 frames (2 per 300-frame block, seed 42) from the Day-41
+gate cameras, PNG under `data/` only, content-addressed `66c683ffa66f`. Train
+384 images / 4,860 instances, no re-render; val 72 / 827 (24 re-render frames,
+1 in the 60-frame window). Re-renders of train scenes (001/003/005/007) are
+excluded. Val holds fewer than 30 instances of AgilityDigit, FourierGR1T2,
+NovaCarter and Transporter.
+
+**B5 zero-shot detection** — `value (baseline: motion blob)`, Person, 1080p:
+
+| split / stratum | images | GT | AP | AP50 | recall@0.5 |
+|---|---:|---:|---|---|---|
+| val, all | 71 | 561 | 0.337 (0.002, +0.335) | 0.498 (0.007) | 0.544 (0.059) |
+| val, source | 48 | 316 | 0.402 (0.004) | 0.579 (0.017) | 0.620 (0.092) |
+| val, re-render | 23 | 245 | 0.253 (0.000) | 0.391 (0.001) | 0.445 (0.016) |
+| train (all source) | 384 | 2,259 | 0.434 (0.005) | 0.554 (0.009) | 0.695 (0.106) |
+
+Against the empty predictor every margin equals the value. Val by native
+height (half-open buckets): recall 0.029 [0,32) (n 103), 0.271 [32,64) (170),
+0.791 [64,128) (139), 0.982 [128,256) (113), 0.972 [256,inf) (36).
+
+*Resolution curve* (val, all; clean downscales, no re-compression, so
+optimistic): AP 0.337 / 0.335 / 0.345, recall 0.544 / 0.535 / 0.531 at 1080p /
+720p / 360p. Flat, because the model stretches every input to 640x640: 1080p
+gives it nothing 720p does not. This supports "works down to 720p" for this
+detector on clean frames, and says 1080p is wasted on it.
+
+*Per class*: Person is the only COCO class here; for the other six AP is
+**undefined**. Class-agnostic recall@0.5 (any label, score >= 0.05, top 100)
+on train: AgilityDigit 0.672, FourierGR1T2 0.770, NovaCarter 0.757,
+Transporter 0.701, Forklift 0.474, PalletTruck 0.309; on val Forklift 0.042,
+PalletTruck 0.000. Boxes land on robots; names do not.
+
+*Cascade-level person recall* (val, 1080p): detector on every frame 0.544;
+only where the full-res gate woke 0.494 (60 of 71 frames); only where the
+320x180 gate woke 0.471 (57). Train: 0.695 / 0.680 / 0.670.
+
+*Motion-blob baseline*: weak, not obviously broken (diagnostic in the
+artifact): median 3 (val) / 8 (train) blobs per frame, but only 25% / 29% of
+people >= 64 px have a blob at their box centre — consistent with A3's
+slow-mover blindness and MOG2 absorbing standing people, not verified which.
+
+**B6 envelope and calibration.** Measured on val, checked on train, labelled
+synthetic-derived and tied to its producer (an envelope refuses detections
+from another model, preprocessing or frame height; a box outside the measured
+heights is labelled `outside_envelope`). Centre sigma at 1080p is about 1.7-2.0
+px and nearly flat in height (1.83, 1.98, 1.67, 1.66 at 50, 80, 195, 306 px);
+1.1-1.3 px at 720p; 0.6 at 360p. R comes from the envelope and grows as the
+object shrinks — on these curves almost entirely through the pinhole factor
+(a pixel at range z is z/fx metres), not because the pixel error grows.
+Calibration: see the lead finding.
+
+**B7 detection gate.** Registered; appears in the matrix with no other edit.
+SmartSpaces battery (38 cameras, native and QVGA): motion_geometry and
+state_estimation measurable everywhere; depth unmeasurable (no GT depth
+fetched); point_tracking **unsatisfiable at 1080p by construction**
+(maxCorners 1024 caps density at 4.9e-4 < floor 1e-3), measurable everywhere at
+QVGA; appearance_semantics and detection **refused everywhere** on texture
+(median 3.3 at 1080p, 6-7 at QVGA, floor 12; the measure falls as resolution
+rises). No floor changed.
+
+**B8.** ADR 0013 written, **status Proposed** (not changed by Claude Code),
+with a stop rule fixed before any training run.
+
+**B9 (stretch): not attempted** — its precondition (everything committed and
+the fresh clone green on that commit) was not met before this report.
+
+### Review
+
+A fresh-context reviewer read every Day-42 commit and the first draft of this
+section. Confirmed and fixed: the A2 "no excess from k = 60" claim and the
+"90%" figure (both corrected above; the artifact now lists every significant
+bin and names the window used downstream); the calibration cause and P6 (now
+measured, above); a promotable manifest constructible around the registry; a
+re-fetch that re-baselined `content_sha` from unverified local files;
+licence markers that missed human spellings; lane R not blocking shipping;
+envelope observations labelled `within_envelope` outside the measured range
+and an envelope not tied to its producer; pycocotools' closed area ranges
+double-counting edge heights; a property test that was an identity;
+resumable run files with no producer record (now a sidecar, checked on resume
+and on scoring; truncated last lines tolerated); report numbers with no
+artifact (the blob diagnostic is now in the artifact; the day-41 clone counts
+are labelled as unpreserved); an overstated "exactly the gate's model"
+docstring. Noted, not fixed: `require_comparable` protects only in-process
+Scorecards; the blob producer's model string is hand-written.
+
+### Predictions
+
+| | prediction | verdict |
+|---|---|---|
+| P1 | detector person AP clearly above motion blob; largest margin medium/large, smallest far-field small | **HELD**: 0.337 vs 0.002; native [256,inf) AP 0.857 vs 0.056, [0,32) 0.003 vs 0.000 |
+| P2 | recall falls monotonically 1080p > 720p > 360p, steepest for small | **BROKEN**: flat (0.544 / 0.535 / 0.531); the 640x640 input erases the difference |
+| P3 | forklift / AMR classes near zero zero-shot | **HELD for naming** (AP undefined: no class); class-agnostic recall is not near zero on train (0.31-0.77) |
+| P4 | 320x180 gate miss rate rises sharply below some height | **HELD in part**: for fast movers; the pooled curve is non-monotone because speed confounds height |
+| P5 | re-render wake differences concentrate in a post-cut transient | **BROKEN**: the post-cut excess is gone by k = 60, excluding it leaves 17.77% of the 18.25%, and significant differences recur through the chunk |
+| P6 | confidence overconfident on small objects | **HELD in part**: small objects (< 128 px) stay overconfident on train once humanoid matches are removed; the larger miscalibration is humanoid robots labelled person |
+
+## Blockers
+
+Computed fresh against `docs/blocker_ledger.yaml` via
+`python scripts/blocker_report.py --as-of 2026-10-15 --verify-git`:
+
+| age (days) | id | category | first recorded | estimated human effort |
+|---:|---|---|---|---|
+| 76 | `consent-template-counsel-review` | human_verification | 2026-07-31 (`3eed2eb`) | A yes/no plus redlines from counsel. |
+| 76 | `dataset-license-and-consent-verification` | human_verification | 2026-07-31 (`bf85e75`) | Per-entry; CHIRLA, SmartSpaces and the two detector weights now have snapshots. |
+| 68 | `site-zero-capture` | human_capture | 2026-08-08 (`e8162cd`) | About a day once hardware and consent clear. |
+| 66 | `git-history-divergence` | human_decision | 2026-08-10 (`d36a835`) | A yes/no, then ~5 minutes. |
+| 66 | `reference-hardware-procurement` | human_procurement | 2026-08-10 (`72db508`) | A purchase decision. |
+| 38 | `component-cap-carrier-identity-type-change` | human_decision | 2026-09-07 (`4b1c557`) | A schema decision. |
+| 37 | `chirla-deployment-scope-legal-review` | human_decision | 2026-09-08 (`8d6aec6`) | Counsel. |
+| 37 | `registry-deployment-scope-reaudit` | human_verification | 2026-09-08 (`b6326c5`) | Proportional to the priority list. |
+| 1 | `adr-0012-acceptance` | human_decision | 2026-10-14 (`6534323`) | A yes/no plus redlines. |
+| 1 | `smartspaces-nvidia-terms-of-service` | human_decision | 2026-10-14 (`1a2aff1`) | Counsel. |
+| 1 | `smartspaces-smpl-provenance` | human_verification | 2026-10-14 (`1a2aff1`) | Unknown until someone asks NVIDIA. |
+| 0 | `adr-0013-detector-fine-tuning-decision` | human_decision | 2026-10-15 (`bf1d12c`) | A yes/no plus redlines to the conditions or the stop rule. |
+| 0 | `detector-base-training-data-licence` | human_decision | 2026-10-15 (`e343b82`) | Counsel on COCO's image licences. |
+| 0 | `texture-floor-resolution-dependence` | human_decision | 2026-10-15 (`9216387`) | Decide whether and how to re-measure the floors. |
+
+**Added today:** the last three. **Resolved today, not added:** both model
+licence signatures (done by the human at the B2 checkpoint, `765614d`).
+
+## Commits
+
+`2ad2c57` A4 · `f8cef0e` A3 · `66c12da` A1 · `234bedc` A2 · `9ea20a2` B1 ·
+`f89ac02` B2 · `cc608ca` A1 evidence · `765614d` signatures · `e343b82` B2
+follow-up · `79fce55` B3 · `97d50d8` B4 · `9216387` B7 · `bf1d12c` ADR 0013 ·
+`9c57db1` B6 · `7da95dc` B5 · then the review fixes and this report.
+
+## Fresh clone at the final commit
+
+Pending at the time of writing; recorded here when it completes.
+
+## Day 43, in order
+
+1. **Decide the texture floor** (`texture-floor-resolution-dependence`): until
+   then SmartSpaces detection numbers are gate-refused diagnostics.
+2. **Decide ADR 0013**, then fine-tune under its stop rule; first target the
+   humanoid-as-person confusion (robot classes, or an open-vocabulary route),
+   then small-object calibration.
+3. **YOLOX-S backend** (signed, unbuilt): letterbox spec read from its code at
+   the pinned commit, OpenVINO route, then the two-candidate selection on val.
+4. **A thicker val**: 3 scenes and four thin classes; any new export keeps the
+   split rules.
+5. **Low-bitrate resolution curve**: today's downscales were not re-compressed.
+6. **B9**: ground-plane projection and the oracle-vs-pretrained pipeline on one
+   scene.
+7. Carried: ADR 0012; NVIDIA terms; SMPL provenance; CHIRLA legal review;
+   Tier-1 registry re-audit; flake8's 39 tracked-file findings;
+   `require_comparable` for stored scorecards.
+
+**No timing, throughput, CPU-percentage, memory-rate or latency claim is
+made anywhere in this section.**
