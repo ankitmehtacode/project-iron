@@ -30,6 +30,7 @@ a refusal is reported instead of a number.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from collections.abc import Mapping
 from typing import Any, Callable
 
 import numpy as np
@@ -220,6 +221,19 @@ def gate_depth(
     )
 
 
+def _grey_sample(frames: FrameArray) -> npt.NDArray[np.float64]:
+    sample = frames[: min(4, frames.shape[0])].astype(np.float64)
+    grey: npt.NDArray[np.float64] = sample.mean(axis=3)
+    return grey
+
+
+def _texture_energy(grey: npt.NDArray[np.float64]) -> float:
+    """Mean local gradient magnitude over ``[T, H, W]`` grey frames."""
+    gradient_y = np.abs(np.diff(grey, axis=1)).mean()
+    gradient_x = np.abs(np.diff(grey, axis=2)).mean()
+    return float((gradient_x + gradient_y) / 2.0)
+
+
 def gate_appearance_semantics(
     frames: FrameArray, **_: Any
 ) -> tuple[bool, str, dict[str, Any]]:
@@ -233,12 +247,8 @@ def gate_appearance_semantics(
     if frames.ndim != 4:
         return False, "expected [T, H, W, C] frames", {}
 
-    sample = frames[: min(4, frames.shape[0])].astype(np.float64)
-    grey = sample.mean(axis=3)
-
-    gradient_y = np.abs(np.diff(grey, axis=1)).mean()
-    gradient_x = np.abs(np.diff(grey, axis=2)).mean()
-    texture_energy = float((gradient_x + gradient_y) / 2.0)
+    grey = _grey_sample(frames)
+    texture_energy = _texture_energy(grey)
 
     # Coarse tiles stand in for "surfaces": if their mean intensities barely
     # differ, the scene has almost one material in it.
@@ -337,12 +347,85 @@ def gate_point_tracking(
     )
 
 
+MIN_DETECTION_INSTANCES = 30
+"""GT instances a (class, size bucket) cell needs before detection is scored
+there (Day 42). The same floor Day 42's export marks as too thin to report:
+below it, one or two misses move recall by several points and a per-bucket
+number describes the sample, not the detector."""
+
+
+def gate_detection(
+    frames: FrameArray,
+    instance_counts: Mapping[str, Mapping[str, int]] | None = None,
+    **_: Any,
+) -> tuple[bool, str, dict[str, Any]]:
+    """Detection is appearance-learned, and it is scored per class per size.
+
+    Two conditions, each measured: the frames clear the existing texture
+    floor (:data:`MIN_TEXTURE_ENERGY`, unchanged — an appearance model needs
+    appearance), and at least one (class, height bucket) cell holds
+    :data:`MIN_DETECTION_INSTANCES` GT instances. Cells under the floor are
+    named in the evidence as unscoreable; passing the gate authorises only
+    the cells that clear it.
+    """
+    if frames.ndim != 4:
+        return False, "expected [T, H, W, C] frames", {}
+    texture = _texture_energy(_grey_sample(frames))
+    evidence: dict[str, Any] = {
+        "texture_energy": round(texture, 3),
+        "texture_energy_floor": MIN_TEXTURE_ENERGY,
+        "min_instances_per_cell": MIN_DETECTION_INSTANCES,
+    }
+    if instance_counts is None:
+        return (
+            False,
+            "no GT instance counts were supplied: a dataset without box "
+            "annotations cannot score detection at all",
+            evidence,
+        )
+    scoreable = sorted(
+        f"{cls} x {bucket}"
+        for cls, buckets in instance_counts.items()
+        for bucket, n in buckets.items()
+        if n >= MIN_DETECTION_INSTANCES
+    )
+    thin = sorted(
+        f"{cls} x {bucket} ({n})"
+        for cls, buckets in instance_counts.items()
+        for bucket, n in buckets.items()
+        if n < MIN_DETECTION_INSTANCES
+    )
+    evidence["scoreable_cells"] = scoreable
+    evidence["unscoreable_cells"] = thin
+    failures = []
+    if texture < MIN_TEXTURE_ENERGY:
+        failures.append(
+            f"texture energy {texture:.2f} is below {MIN_TEXTURE_ENERGY}: no "
+            "appearance for a detector to key on"
+        )
+    if not scoreable:
+        failures.append(
+            f"no (class, size bucket) cell holds {MIN_DETECTION_INSTANCES} GT "
+            "instances"
+        )
+    if failures:
+        return False, "; ".join(failures), evidence
+    return (
+        True,
+        f"texture clears the floor and {len(scoreable)} (class, size) cells hold "
+        f">= {MIN_DETECTION_INSTANCES} instances; the {len(thin)} thinner cells "
+        "are not scoreable here",
+        evidence,
+    )
+
+
 GATES: dict[str, Callable[..., tuple[bool, str, dict[str, Any]]]] = {
     "motion_geometry": gate_motion_geometry,
     "state_estimation": gate_motion_geometry,
     "depth": gate_depth,
     "appearance_semantics": gate_appearance_semantics,
     "point_tracking": gate_point_tracking,
+    "detection": gate_detection,
 }
 
 
