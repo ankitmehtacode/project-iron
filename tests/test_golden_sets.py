@@ -273,25 +273,31 @@ def test_eval_report_refuses_an_empty_set(tmp_path: Path) -> None:
 
 @pytest.mark.slow
 def test_eval_report_scores_the_populated_indoor_set(
-    synthetic_indoor_clips: Path,
+    active_golden_clips: Path,
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The other half: a populated set must actually produce a scorecard.
 
     Guards the opposite failure — a refusal path broad enough to swallow a
     real run would make ``make eval`` permanently green-by-abstention.
 
-    Takes ``synthetic_indoor_clips`` because it used to depend on those clips
+    Takes the active set's clips because it used to depend on those clips
     happening to be on disk from a previous ``make eval``. That made it pass on
     a development machine and fail in a fresh clone, so it was testing the
     developer's working directory rather than the repository. The fixture
-    renders them when absent.
+    renders them when absent. (Day 42: it rendered v1 while the active set
+    was v3, so the fresh clone still failed here.)
     """
     import sys
 
     sys.path.insert(0, str(REPO_ROOT / "scripts"))
     import eval_report
 
-    assert sorted(synthetic_indoor_clips.glob("*.npz")), (
+    # Day 42: takes the ACTIVE set's clips (v3), not v1's, and writes its
+    # scorecard to a temporary directory rather than the repository's outputs/.
+    monkeypatch.setenv("IRON_PATHS__OUTPUT_DIR", str(tmp_path))
+    assert sorted(active_golden_clips.glob("*.npz")), (
         "the fixture must have materialised clips; scoring an empty directory "
         "would make this test pass by abstention, which is what it guards"
     )

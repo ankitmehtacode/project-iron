@@ -34,8 +34,17 @@ SERVING_CODE = [
 
 
 @pytest.fixture(scope="module")
-def store() -> art.Artifacts:
-    return art.Artifacts.from_config()
+def store(session_outputs: Path) -> art.Artifacts:
+    """The real store, with scorecards and associations read from this
+    session's own outputs (Day 42) rather than whatever an earlier run left in
+    the repository's outputs/."""
+    import dataclasses
+
+    return dataclasses.replace(
+        art.Artifacts.from_config(),
+        scorecards_dir=session_outputs / "scorecards",
+        associations_dir=session_outputs / "associations",
+    )
 
 
 def call(store: art.Artifacts, path: str, query: dict | None = None):

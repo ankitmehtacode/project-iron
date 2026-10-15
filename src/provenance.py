@@ -279,7 +279,10 @@ def cpu_description() -> str:
 class RunManifest(BaseModel):
     """Immutable record of everything that determines a run's output."""
 
-    model_config = ConfigDict(frozen=True)
+    # ``model_hashes`` collides with pydantic's reserved ``model_`` prefix and
+    # warned on every import. The field name is part of every manifest already
+    # written, so the namespace guard is narrowed rather than the field renamed.
+    model_config = ConfigDict(frozen=True, protected_namespaces=())
 
     schema_version: Literal["1.1"] = SCHEMA_VERSION
     started_at_utc: str

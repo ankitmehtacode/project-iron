@@ -462,3 +462,18 @@ def test_semantic_extractor_checks_manifest_before_compiling_model() -> None:
         "require_export_manifest() must run before core.compile_model() in "
         "SemanticExtractor.__init__"
     )
+
+
+def test_run_manifest_import_emits_no_protected_namespace_warning() -> None:
+    """Day 42: ``model_hashes`` tripped pydantic's ``model_`` namespace guard
+    and warned on every import. Re-import in a clean interpreter with
+    warnings as errors."""
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, "-W", "error::UserWarning", "-c", "import src.provenance"],
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
