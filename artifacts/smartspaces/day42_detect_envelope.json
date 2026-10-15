@@ -1,0 +1,2673 @@
+{
+  "label": "lane S synthetic (SmartSpaces) \u2014 zero-shot, not a product claim; NVIDIA terms unresolved",
+  "envelope_label": "synthetic-derived: not valid for a real camera until validated on real footage",
+  "class": "Person",
+  "fit_on": "SmartSpaces val, export 66c683ffa66f, transient frames excluded",
+  "check_on": "SmartSpaces train (held out from the fit)",
+  "manifest_sha": "19e909776187e33f0775271ecb95f6b209c937d518d3e261c2378aaa86e4b8bf",
+  "run_shas": {
+    "1080p": "004941ed749dd2b7219b5b017c2f9d1aaafd2276d0f6928e3c9e78fff56c91ea",
+    "720p": "e4719c5dc32462363c8103adca6681d53cdbc23ff3b076b05b4d78520ec00c4b",
+    "360p": "c9e72d13de46fe20f00506b7e340d60dad51e3b80e39d923b89b67b9ad911f6e"
+  },
+  "producer_model_sha": "4130c2847260b4e877709d9212147476d202549fec8085eafc6a661b1ebe3707",
+  "resolutions": {
+    "1080p": {
+      "calibration_transfer": {
+        "comparable_bins": 10,
+        "bins_where_intervals_disjoint": 4,
+        "rows": [
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[0,32)",
+            "precision_val": 0.015,
+            "precision_train": 0.023255813953488372,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[32,64)",
+            "precision_val": 0.02159468438538206,
+            "precision_train": 0.012385568120624663,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[64,128)",
+            "precision_val": 0.009879253567508232,
+            "precision_train": 0.009327758121582503,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[128,256)",
+            "precision_val": 0.007722007722007722,
+            "precision_train": 0.0074962518740629685,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[256,inf)",
+            "precision_val": 0.0,
+            "precision_train": 0.0031446540880503146,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[32,64)",
+            "precision_val": 0.24096385542168675,
+            "precision_train": 0.08316008316008316,
+            "intervals_overlap": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[64,128)",
+            "precision_val": 0.125,
+            "precision_train": 0.032534246575342464,
+            "intervals_overlap": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[64,128)",
+            "precision_val": 1.0,
+            "precision_train": 0.9193548387096774,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[128,256)",
+            "precision_val": 0.9876543209876543,
+            "precision_train": 0.8455882352941176,
+            "intervals_overlap": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[256,inf)",
+            "precision_val": 1.0,
+            "precision_train": 0.8110236220472441,
+            "intervals_overlap": false
+          }
+        ],
+        "verdict": "does not transfer"
+      },
+      "fit_val": {
+        "bins": [
+          {
+            "bucket": "[0,32)",
+            "gt": 103,
+            "median_height_px": 19.0,
+            "recall_iou50": 0.03508771929824561,
+            "matched_pairs": 3,
+            "centre_sigma_px": null,
+            "size_sigma_px": null,
+            "too_thin": false
+          },
+          {
+            "bucket": "[32,64)",
+            "gt": 170,
+            "median_height_px": 50.0,
+            "recall_iou50": 0.2774566473988439,
+            "matched_pairs": 46,
+            "centre_sigma_px": 1.8258218999999742,
+            "size_sigma_px": 4.337346299999957,
+            "too_thin": false
+          },
+          {
+            "bucket": "[64,128)",
+            "gt": 139,
+            "median_height_px": 80.0,
+            "recall_iou50": 0.7928571428571428,
+            "matched_pairs": 110,
+            "centre_sigma_px": 1.9774177500001398,
+            "size_sigma_px": 4.0111743,
+            "too_thin": false
+          },
+          {
+            "bucket": "[128,256)",
+            "gt": 113,
+            "median_height_px": 195.0,
+            "recall_iou50": 0.9823008849557522,
+            "matched_pairs": 111,
+            "centre_sigma_px": 1.6671836999999332,
+            "size_sigma_px": 4.781385000000033,
+            "too_thin": false
+          },
+          {
+            "bucket": "[256,inf)",
+            "gt": 36,
+            "median_height_px": 305.5,
+            "recall_iou50": 0.9722222222222222,
+            "matched_pairs": 35,
+            "centre_sigma_px": 1.6619945999999717,
+            "size_sigma_px": 4.430008799999999,
+            "too_thin": false
+          }
+        ],
+        "reliability": [
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 200,
+            "precision": 0.015,
+            "precision_wilson95": [
+              0.00511423779325831,
+              0.04316572879269026
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 602,
+            "precision": 0.02159468438538206,
+            "precision_wilson95": [
+              0.01266273323713009,
+              0.03659348451789491
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 911,
+            "precision": 0.009879253567508232,
+            "precision_wilson95": [
+              0.005206087655939289,
+              0.018668495869002363
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 518,
+            "precision": 0.007722007722007722,
+            "precision_wilson95": [
+              0.00300691730061879,
+              0.019684761600200155
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 62,
+            "precision": 0.0,
+            "precision_wilson95": [
+              0.0,
+              0.058344072101372484
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 23,
+            "precision": 0.043478260869565216,
+            "precision_wilson95": [
+              0.007716666143453149,
+              0.20991155070258877
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 83,
+            "precision": 0.24096385542168675,
+            "precision_wilson95": [
+              0.16174743841159034,
+              0.34309736055955287
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 72,
+            "precision": 0.125,
+            "precision_wilson95": [
+              0.06717784220573506,
+              0.2208105372416083
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 14,
+            "precision": 0.42857142857142855,
+            "precision_wilson95": [
+              0.21380798904474121,
+              0.6740935542034926
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 2,
+            "precision": 0.0,
+            "precision_wilson95": [
+              0.0,
+              0.6576197724933469
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 18,
+            "precision": 0.5555555555555556,
+            "precision_wilson95": [
+              0.33716415642042774,
+              0.7544048187299437
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 26,
+            "precision": 0.8076923076923077,
+            "precision_wilson95": [
+              0.6212374288068301,
+              0.9149293885105758
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 10,
+            "precision": 0.6,
+            "precision_wilson95": [
+              0.31267376973365824,
+              0.8318196702937638
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 2,
+            "precision": 0.5,
+            "precision_wilson95": [
+              0.09453120573423074,
+              0.9054687942657693
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 12,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.7575059933447592,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 26,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.8712710781407846,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 8,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.6755924351161198,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 1,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.20654931437723745,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 1,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.20654931437723745,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 41,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.9143324298155681,
+              0.9999999999999999
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 81,
+            "precision": 0.9876543209876543,
+            "precision_wilson95": [
+              0.9333311840195164,
+              0.9978173499414611
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 33,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.895730002457548,
+              1.0
+            ],
+            "too_thin": false
+          }
+        ]
+      },
+      "check_train": {
+        "bins": [
+          {
+            "bucket": "[0,32)",
+            "gt": 315,
+            "median_height_px": 15.0,
+            "recall_iou50": 0.043343653250773995,
+            "matched_pairs": 11,
+            "centre_sigma_px": null,
+            "size_sigma_px": null,
+            "too_thin": false
+          },
+          {
+            "bucket": "[32,64)",
+            "gt": 313,
+            "median_height_px": 43.0,
+            "recall_iou50": 0.3103448275862069,
+            "matched_pairs": 96,
+            "centre_sigma_px": 1.7216692499999933,
+            "size_sigma_px": 4.079373900000094,
+            "too_thin": false
+          },
+          {
+            "bucket": "[64,128)",
+            "gt": 396,
+            "median_height_px": 92.0,
+            "recall_iou50": 0.7202970297029703,
+            "matched_pairs": 283,
+            "centre_sigma_px": 1.906994249999951,
+            "size_sigma_px": 4.149056100000006,
+            "too_thin": false
+          },
+          {
+            "bucket": "[128,256)",
+            "gt": 772,
+            "median_height_px": 198.0,
+            "recall_iou50": 0.9379042690815006,
+            "matched_pairs": 724,
+            "centre_sigma_px": 1.7301941999999813,
+            "size_sigma_px": 4.012656900000008,
+            "too_thin": false
+          },
+          {
+            "bucket": "[256,inf)",
+            "gt": 463,
+            "median_height_px": 300.0,
+            "recall_iou50": 0.9848812095032398,
+            "matched_pairs": 455,
+            "centre_sigma_px": 1.6475392500001134,
+            "size_sigma_px": 3.4381493999999826,
+            "too_thin": false
+          }
+        ],
+        "reliability": [
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 473,
+            "precision": 0.023255813953488372,
+            "precision_wilson95": [
+              0.01303434783700029,
+              0.04115863044262377
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 1857,
+            "precision": 0.012385568120624663,
+            "precision_wilson95": [
+              0.008267249153103352,
+              0.018517116911204508
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 3109,
+            "precision": 0.009327758121582503,
+            "precision_wilson95": [
+              0.0065024830508130845,
+              0.01336407926493135
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 2001,
+            "precision": 0.0074962518740629685,
+            "precision_wilson95": [
+              0.00454810083809166,
+              0.012331766979785894
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 318,
+            "precision": 0.0031446540880503146,
+            "precision_wilson95": [
+              0.000555324511689494,
+              0.017594788410675015
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 57,
+            "precision": 0.07017543859649122,
+            "precision_wilson95": [
+              0.02762642022906603,
+              0.1670017009603369
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 481,
+            "precision": 0.08316008316008316,
+            "precision_wilson95": [
+              0.061663520921122386,
+              0.11126199379172046
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 1168,
+            "precision": 0.032534246575342464,
+            "precision_wilson95": [
+              0.02379387285618704,
+              0.044339455436399715
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 968,
+            "precision": 0.03409090909090909,
+            "precision_wilson95": [
+              0.024376109952776972,
+              0.04748896452701011
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 136,
+            "precision": 0.058823529411764705,
+            "precision_wilson95": [
+              0.03010508522265045,
+              0.11178029689521635
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 4,
+            "precision": 0.25,
+            "precision_wilson95": [
+              0.04558726080970055,
+              0.6993581574175981
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 73,
+            "precision": 0.3561643835616438,
+            "precision_wilson95": [
+              0.25604500466575497,
+              0.4706650250201402
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 293,
+            "precision": 0.24914675767918087,
+            "precision_wilson95": [
+              0.20308317127053616,
+              0.30170298432912773
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 382,
+            "precision": 0.16230366492146597,
+            "precision_wilson95": [
+              0.12872068133409764,
+              0.2026108951414719
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 51,
+            "precision": 0.13725490196078433,
+            "precision_wilson95": [
+              0.06811101735056879,
+              0.2572169225758168
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 10,
+            "precision": 0.8,
+            "precision_wilson95": [
+              0.4901624715366418,
+              0.9433178485456248
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 162,
+            "precision": 0.5987654320987654,
+            "precision_wilson95": [
+              0.5218442898289594,
+              0.6711110798810841
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 305,
+            "precision": 0.42950819672131146,
+            "precision_wilson95": [
+              0.37517146673649987,
+              0.48559852132082
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 81,
+            "precision": 0.3950617283950617,
+            "precision_wilson95": [
+              0.29568103807990187,
+              0.5039452267639383
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 1,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.20654931437723745,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 62,
+            "precision": 0.9193548387096774,
+            "precision_wilson95": [
+              0.8247142865138739,
+              0.9650616530140073
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 544,
+            "precision": 0.8455882352941176,
+            "precision_wilson95": [
+              0.8128100878936961,
+              0.8735198602073346
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 508,
+            "precision": 0.8110236220472441,
+            "precision_wilson95": [
+              0.7746933940037571,
+              0.842685277759328
+            ],
+            "too_thin": false
+          }
+        ]
+      },
+      "envelope_curves": {
+        "recall_iou50": [
+          [
+            19.0,
+            0.03508771929824561
+          ],
+          [
+            50.0,
+            0.2774566473988439
+          ],
+          [
+            80.0,
+            0.7928571428571428
+          ],
+          [
+            195.0,
+            0.9823008849557522
+          ],
+          [
+            305.5,
+            0.9722222222222222
+          ]
+        ],
+        "centre_sigma_px": [
+          [
+            50.0,
+            1.8258218999999742
+          ],
+          [
+            80.0,
+            1.9774177500001398
+          ],
+          [
+            195.0,
+            1.6671836999999332
+          ],
+          [
+            305.5,
+            1.6619945999999717
+          ]
+        ],
+        "size_sigma_px": [
+          [
+            50.0,
+            4.337346299999957
+          ],
+          [
+            80.0,
+            4.0111743
+          ],
+          [
+            195.0,
+            4.781385000000033
+          ],
+          [
+            305.5,
+            4.430008799999999
+          ]
+        ]
+      },
+      "envelope_status": "measured"
+    },
+    "720p": {
+      "calibration_transfer": {
+        "comparable_bins": 10,
+        "bins_where_intervals_disjoint": 4,
+        "rows": [
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[0,32)",
+            "precision_val": 0.010040160642570281,
+            "precision_train": 0.019098548510313215,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[32,64)",
+            "precision_val": 0.0208078335373317,
+            "precision_train": 0.010269121813031162,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[64,128)",
+            "precision_val": 0.005270092226613966,
+            "precision_train": 0.007470651013874066,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[128,256)",
+            "precision_val": 0.0,
+            "precision_train": 0.011025358324145534,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[0,32)",
+            "precision_val": 0.0392156862745098,
+            "precision_train": 0.08372093023255814,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[32,64)",
+            "precision_val": 0.25274725274725274,
+            "precision_train": 0.04880581516095535,
+            "intervals_overlap": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[64,128)",
+            "precision_val": 0.11363636363636363,
+            "precision_train": 0.030983733539891558,
+            "intervals_overlap": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[32,64)",
+            "precision_val": 1.0,
+            "precision_train": 0.6268656716417911,
+            "intervals_overlap": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[64,128)",
+            "precision_val": 0.9821428571428571,
+            "precision_train": 0.9134615384615384,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[128,256)",
+            "precision_val": 1.0,
+            "precision_train": 0.8041615667074663,
+            "intervals_overlap": false
+          }
+        ],
+        "verdict": "does not transfer"
+      },
+      "fit_val": {
+        "bins": [
+          {
+            "bucket": "[0,32)",
+            "gt": 168,
+            "median_height_px": 18.333333333333332,
+            "recall_iou50": 0.046511627906976744,
+            "matched_pairs": 8,
+            "centre_sigma_px": null,
+            "size_sigma_px": null,
+            "too_thin": false
+          },
+          {
+            "bucket": "[32,64)",
+            "gt": 193,
+            "median_height_px": 41.33333333333333,
+            "recall_iou50": 0.5538461538461539,
+            "matched_pairs": 107,
+            "centre_sigma_px": 1.3420000999999677,
+            "size_sigma_px": 2.8105153999999493,
+            "too_thin": false
+          },
+          {
+            "bucket": "[64,128)",
+            "gt": 104,
+            "median_height_px": 86.33333333333333,
+            "recall_iou50": 0.8761904761904762,
+            "matched_pairs": 91,
+            "centre_sigma_px": 1.1099731999999622,
+            "size_sigma_px": 3.0981397999999465,
+            "too_thin": false
+          },
+          {
+            "bucket": "[128,256)",
+            "gt": 91,
+            "median_height_px": 164.0,
+            "recall_iou50": 0.9782608695652174,
+            "matched_pairs": 89,
+            "centre_sigma_px": 1.121833999999991,
+            "size_sigma_px": 2.8881048000000247,
+            "too_thin": false
+          },
+          {
+            "bucket": "[256,inf)",
+            "gt": 5,
+            "median_height_px": 272.66666666666663,
+            "recall_iou50": 1.0,
+            "matched_pairs": 5,
+            "centre_sigma_px": null,
+            "size_sigma_px": null,
+            "too_thin": true
+          }
+        ],
+        "reliability": [
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 498,
+            "precision": 0.010040160642570281,
+            "precision_wilson95": [
+              0.004295967404483235,
+              0.023285370441180134
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 817,
+            "precision": 0.0208078335373317,
+            "precision_wilson95": [
+              0.013031347378838038,
+              0.03306946589521501
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 759,
+            "precision": 0.005270092226613966,
+            "precision_wilson95": [
+              0.002051287705510431,
+              0.013471543000361654
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 189,
+            "precision": 0.0,
+            "precision_wilson95": [
+              0.0,
+              0.019920295377281662
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 9,
+            "precision": 0.0,
+            "precision_wilson95": [
+              2.7755575615628914e-17,
+              0.29914504841954404
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 51,
+            "precision": 0.0392156862745098,
+            "precision_wilson95": [
+              0.010821083352867092,
+              0.13216305655362265
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 91,
+            "precision": 0.25274725274725274,
+            "precision_wilson95": [
+              0.17472717254356776,
+              0.3507967854432412
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 44,
+            "precision": 0.11363636363636363,
+            "precision_wilson95": [
+              0.04952780601092492,
+              0.23979152416608285
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 8,
+            "precision": 0.375,
+            "precision_wilson95": [
+              0.13684428582359737,
+              0.6942576053973728
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 1,
+            "precision": 0.0,
+            "precision_wilson95": [
+              0.0,
+              0.7934506856227626
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 4,
+            "precision": 0.75,
+            "precision_wilson95": [
+              0.30064184258240184,
+              0.9544127391902995
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 29,
+            "precision": 0.6896551724137931,
+            "precision_wilson95": [
+              0.5076986576690685,
+              0.8272438325551679
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 14,
+            "precision": 0.7142857142857143,
+            "precision_wilson95": [
+              0.4535091567010681,
+              0.8827862135542308
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 2,
+            "precision": 0.5,
+            "precision_wilson95": [
+              0.09453120573423074,
+              0.9054687942657693
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 1,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.20654931437723745,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 1,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.20654931437723745,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 36,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.9035813714055363,
+              1.0
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 15,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.7961166989641515,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 7,
+            "precision": 0.8571428571428571,
+            "precision_wilson95": [
+              0.4868721707256811,
+              0.9743203756552565
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 11,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.7411670330319684,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 56,
+            "precision": 0.9821428571428571,
+            "precision_wilson95": [
+              0.9055436285060243,
+              0.9968407896580254
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 79,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.9536287883460773,
+              0.9999999999999999
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 3,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.43850296824495455,
+              1.0
+            ],
+            "too_thin": true
+          }
+        ]
+      },
+      "check_train": {
+        "bins": [
+          {
+            "bucket": "[0,32)",
+            "gt": 507,
+            "median_height_px": 16.666666666666664,
+            "recall_iou50": 0.09055118110236221,
+            "matched_pairs": 46,
+            "centre_sigma_px": 1.129741200000004,
+            "size_sigma_px": 2.2095681999999983,
+            "too_thin": false
+          },
+          {
+            "bucket": "[32,64)",
+            "gt": 341,
+            "median_height_px": 48.0,
+            "recall_iou50": 0.5734870317002881,
+            "matched_pairs": 195,
+            "centre_sigma_px": 1.280719300000026,
+            "size_sigma_px": 2.7947010000000145,
+            "too_thin": false
+          },
+          {
+            "bucket": "[64,128)",
+            "gt": 527,
+            "median_height_px": 96.66666666666666,
+            "recall_iou50": 0.8928571428571429,
+            "matched_pairs": 470,
+            "centre_sigma_px": 1.1991762999998896,
+            "size_sigma_px": 2.7991487999999376,
+            "too_thin": false
+          },
+          {
+            "bucket": "[128,256)",
+            "gt": 844,
+            "median_height_px": 171.0,
+            "recall_iou50": 0.9621749408983451,
+            "matched_pairs": 812,
+            "centre_sigma_px": 1.1176333000000198,
+            "size_sigma_px": 2.399340999999967,
+            "too_thin": false
+          },
+          {
+            "bucket": "[256,inf)",
+            "gt": 40,
+            "median_height_px": 291.3333333333333,
+            "recall_iou50": 1.0,
+            "matched_pairs": 40,
+            "centre_sigma_px": 1.3237146999999927,
+            "size_sigma_px": 2.6711509999999867,
+            "too_thin": false
+          }
+        ],
+        "reliability": [
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 1309,
+            "precision": 0.019098548510313215,
+            "precision_wilson95": [
+              0.01296936138549315,
+              0.02804203299038152
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 2824,
+            "precision": 0.010269121813031162,
+            "precision_wilson95": [
+              0.007159563261891849,
+              0.01470922242543735
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 2811,
+            "precision": 0.007470651013874066,
+            "precision_wilson95": [
+              0.00489151343844599,
+              0.011394113830913563
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 907,
+            "precision": 0.011025358324145534,
+            "precision_wilson95": [
+              0.005999622267932461,
+              0.020175579343512294
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 59,
+            "precision": 0.0,
+            "precision_wilson95": [
+              0.0,
+              0.061129370526788386
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 215,
+            "precision": 0.08372093023255814,
+            "precision_wilson95": [
+              0.053612046444313735,
+              0.12844421947254747
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 963,
+            "precision": 0.04880581516095535,
+            "precision_wilson95": [
+              0.036899414130383196,
+              0.06429758970935322
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 1291,
+            "precision": 0.030983733539891558,
+            "precision_wilson95": [
+              0.022835330553415363,
+              0.04191503579417951
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 380,
+            "precision": 0.04473684210526316,
+            "precision_wilson95": [
+              0.028116379057403426,
+              0.07046978966172707
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 17,
+            "precision": 0.058823529411764705,
+            "precision_wilson95": [
+              0.01046040098499762,
+              0.269820306375754
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 24,
+            "precision": 0.3333333333333333,
+            "precision_wilson95": [
+              0.17972190327297752,
+              0.5329368316186824
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 190,
+            "precision": 0.2789473684210526,
+            "precision_wilson95": [
+              0.2200414042608183,
+              0.34661476665821556
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 391,
+            "precision": 0.18414322250639387,
+            "precision_wilson95": [
+              0.14886140781595955,
+              0.2255710523979819
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 184,
+            "precision": 0.15217391304347827,
+            "precision_wilson95": [
+              0.10743094494358219,
+              0.21114334209821706
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 6,
+            "precision": 0.16666666666666666,
+            "precision_wilson95": [
+              0.03005336974830658,
+              0.5635028221864702
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 4,
+            "precision": 0.25,
+            "precision_wilson95": [
+              0.04558726080970055,
+              0.6993581574175981
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 67,
+            "precision": 0.6268656716417911,
+            "precision_wilson95": [
+              0.5071540719064641,
+              0.7328184001882802
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 307,
+            "precision": 0.49185667752442996,
+            "precision_wilson95": [
+              0.43638074594422777,
+              0.5475338836583691
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 209,
+            "precision": 0.42105263157894735,
+            "precision_wilson95": [
+              0.35613255560913415,
+              0.48882246310364175
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 3,
+            "precision": 0.6666666666666666,
+            "precision_wilson95": [
+              0.20765960080204765,
+              0.9385080552796037
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 24,
+            "precision": 0.9583333333333334,
+            "precision_wilson95": [
+              0.7975819352134406,
+              0.9926065438344942
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 208,
+            "precision": 0.9134615384615384,
+            "precision_wilson95": [
+              0.8673677222544249,
+              0.9445602212062716
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 817,
+            "precision": 0.8041615667074663,
+            "precision_wilson95": [
+              0.7755527511817427,
+              0.8299234886685708
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[256,inf)",
+            "detections": 39,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.9103331462924287,
+              1.0
+            ],
+            "too_thin": false
+          }
+        ]
+      },
+      "envelope_curves": {
+        "recall_iou50": [
+          [
+            18.333333333333332,
+            0.046511627906976744
+          ],
+          [
+            41.33333333333333,
+            0.5538461538461539
+          ],
+          [
+            86.33333333333333,
+            0.8761904761904762
+          ],
+          [
+            164.0,
+            0.9782608695652174
+          ]
+        ],
+        "centre_sigma_px": [
+          [
+            41.33333333333333,
+            1.3420000999999677
+          ],
+          [
+            86.33333333333333,
+            1.1099731999999622
+          ],
+          [
+            164.0,
+            1.121833999999991
+          ]
+        ],
+        "size_sigma_px": [
+          [
+            41.33333333333333,
+            2.8105153999999493
+          ],
+          [
+            86.33333333333333,
+            3.0981397999999465
+          ],
+          [
+            164.0,
+            2.8881048000000247
+          ]
+        ]
+      },
+      "envelope_status": "measured"
+    },
+    "360p": {
+      "calibration_transfer": {
+        "comparable_bins": 9,
+        "bins_where_intervals_disjoint": 5,
+        "rows": [
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[0,32)",
+            "precision_val": 0.00911854103343465,
+            "precision_train": 0.012233912405187179,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[32,64)",
+            "precision_val": 0.009283819628647215,
+            "precision_train": 0.006493506493506494,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[64,128)",
+            "precision_val": 0.00425531914893617,
+            "precision_train": 0.004761904761904762,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[0,32)",
+            "precision_val": 0.2112676056338028,
+            "precision_train": 0.0622568093385214,
+            "intervals_overlap": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[32,64)",
+            "precision_val": 0.1111111111111111,
+            "precision_train": 0.024070021881838075,
+            "intervals_overlap": false
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[0,32)",
+            "precision_val": 0.71875,
+            "precision_train": 0.3298429319371728,
+            "intervals_overlap": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[0,32)",
+            "precision_val": 0.9696969696969697,
+            "precision_train": 0.6567164179104478,
+            "intervals_overlap": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[32,64)",
+            "precision_val": 0.9836065573770492,
+            "precision_train": 0.8873239436619719,
+            "intervals_overlap": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[64,128)",
+            "precision_val": 1.0,
+            "precision_train": 0.8,
+            "intervals_overlap": false
+          }
+        ],
+        "verdict": "does not transfer"
+      },
+      "fit_val": {
+        "bins": [
+          {
+            "bucket": "[0,32)",
+            "gt": 361,
+            "median_height_px": 16.333333333333332,
+            "recall_iou50": 0.3085399449035813,
+            "matched_pairs": 110,
+            "centre_sigma_px": 0.6533324000000013,
+            "size_sigma_px": 1.269352699999993,
+            "too_thin": false
+          },
+          {
+            "bucket": "[32,64)",
+            "gt": 104,
+            "median_height_px": 43.166666666666664,
+            "recall_iou50": 0.9047619047619048,
+            "matched_pairs": 94,
+            "centre_sigma_px": 0.6271397999999956,
+            "size_sigma_px": 1.589594299999998,
+            "too_thin": false
+          },
+          {
+            "bucket": "[64,128)",
+            "gt": 91,
+            "median_height_px": 82.0,
+            "recall_iou50": 0.9782608695652174,
+            "matched_pairs": 89,
+            "centre_sigma_px": 0.5663531999999933,
+            "size_sigma_px": 1.401304099999998,
+            "too_thin": false
+          },
+          {
+            "bucket": "[128,256)",
+            "gt": 5,
+            "median_height_px": 136.33333333333331,
+            "recall_iou50": 1.0,
+            "matched_pairs": 5,
+            "centre_sigma_px": null,
+            "size_sigma_px": null,
+            "too_thin": true
+          },
+          {
+            "bucket": "[256,inf)",
+            "gt": 0,
+            "median_height_px": null,
+            "recall_iou50": null,
+            "matched_pairs": 0,
+            "centre_sigma_px": null,
+            "size_sigma_px": null,
+            "too_thin": true
+          }
+        ],
+        "reliability": [
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 1316,
+            "precision": 0.00911854103343465,
+            "precision_wilson95": [
+              0.005223816198749468,
+              0.015870731661242025
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 754,
+            "precision": 0.009283819628647215,
+            "precision_wilson95": [
+              0.004504217059042917,
+              0.019038251636794727
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 235,
+            "precision": 0.00425531914893617,
+            "precision_wilson95": [
+              0.0007515636750901646,
+              0.023705910540387204
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 10,
+            "precision": 0.0,
+            "precision_wilson95": [
+              0.0,
+              0.2775327998628892
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 142,
+            "precision": 0.2112676056338028,
+            "precision_wilson95": [
+              0.1521872588671313,
+              0.2855583543277044
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 45,
+            "precision": 0.1111111111111111,
+            "precision_wilson95": [
+              0.04840471794567186,
+              0.2349909699576858
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 8,
+            "precision": 0.375,
+            "precision_wilson95": [
+              0.13684428582359737,
+              0.6942576053973728
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 32,
+            "precision": 0.71875,
+            "precision_wilson95": [
+              0.5462549057408342,
+              0.8443541950225723
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 8,
+            "precision": 0.625,
+            "precision_wilson95": [
+              0.3057423946026273,
+              0.8631557141764027
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 3,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.43850296824495455,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 1,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.20654931437723745,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 33,
+            "precision": 0.9696969696969697,
+            "precision_wilson95": [
+              0.846812746178811,
+              0.9946305894631283
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 17,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.8156818649911483,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 4,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.5101091635454027,
+              1.0
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 13,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.7719046276458016,
+              0.9999999999999999
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 61,
+            "precision": 0.9836065573770492,
+            "precision_wilson95": [
+              0.9128113995535841,
+              0.9971002692007002
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 79,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.9536287883460773,
+              0.9999999999999999
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 3,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.43850296824495455,
+              1.0
+            ],
+            "too_thin": true
+          }
+        ]
+      },
+      "check_train": {
+        "bins": [
+          {
+            "bucket": "[0,32)",
+            "gt": 848,
+            "median_height_px": 12.666666666666666,
+            "recall_iou50": 0.2903981264637002,
+            "matched_pairs": 244,
+            "centre_sigma_px": 0.6533324000000268,
+            "size_sigma_px": 1.3442239999999852,
+            "too_thin": false
+          },
+          {
+            "bucket": "[32,64)",
+            "gt": 527,
+            "median_height_px": 48.33333333333333,
+            "recall_iou50": 0.8890977443609023,
+            "matched_pairs": 468,
+            "centre_sigma_px": 0.5914338499999973,
+            "size_sigma_px": 1.3862310000000313,
+            "too_thin": false
+          },
+          {
+            "bucket": "[64,128)",
+            "gt": 844,
+            "median_height_px": 85.5,
+            "recall_iou50": 0.9621749408983451,
+            "matched_pairs": 812,
+            "centre_sigma_px": 0.5578282499999562,
+            "size_sigma_px": 1.213261000000015,
+            "too_thin": false
+          },
+          {
+            "bucket": "[128,256)",
+            "gt": 40,
+            "median_height_px": 145.66666666666666,
+            "recall_iou50": 1.0,
+            "matched_pairs": 40,
+            "centre_sigma_px": 0.6975633000000229,
+            "size_sigma_px": 1.4739514999999652,
+            "too_thin": false
+          },
+          {
+            "bucket": "[256,inf)",
+            "gt": 0,
+            "median_height_px": null,
+            "recall_iou50": null,
+            "matched_pairs": 0,
+            "centre_sigma_px": null,
+            "size_sigma_px": null,
+            "too_thin": true
+          }
+        ],
+        "reliability": [
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 4087,
+            "precision": 0.012233912405187179,
+            "precision_wilson95": [
+              0.009292331007564667,
+              0.016091556357904022
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 3080,
+            "precision": 0.006493506493506494,
+            "precision_wilson95": [
+              0.004207534134454542,
+              0.010008974530507676
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 1050,
+            "precision": 0.004761904761904762,
+            "precision_wilson95": [
+              0.002035664777533079,
+              0.01109862473522102
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.05,
+              0.2
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 68,
+            "precision": 0.0,
+            "precision_wilson95": [
+              0.0,
+              0.053471336520070537
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 1028,
+            "precision": 0.0622568093385214,
+            "precision_wilson95": [
+              0.049053991282244885,
+              0.07871898943455782
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 1371,
+            "precision": 0.024070021881838075,
+            "precision_wilson95": [
+              0.017189837612983795,
+              0.033609807955315006
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 450,
+            "precision": 0.03111111111111111,
+            "precision_wilson95": [
+              0.018621099270101377,
+              0.05153877308584001
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.2,
+              0.4
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 17,
+            "precision": 0.058823529411764705,
+            "precision_wilson95": [
+              0.01046040098499762,
+              0.269820306375754
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 191,
+            "precision": 0.3298429319371728,
+            "precision_wilson95": [
+              0.2670965176110982,
+              0.3992989179731875
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 422,
+            "precision": 0.20616113744075829,
+            "precision_wilson95": [
+              0.17029728162778807,
+              0.2473263553783413
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 188,
+            "precision": 0.17553191489361702,
+            "precision_wilson95": [
+              0.12780627747480672,
+              0.23625193627122154
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.4,
+              0.6
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 4,
+            "precision": 0.25,
+            "precision_wilson95": [
+              0.04558726080970055,
+              0.6993581574175981
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 67,
+            "precision": 0.6567164179104478,
+            "precision_wilson95": [
+              0.5373266459034898,
+              0.7591099372723709
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 305,
+            "precision": 0.4786885245901639,
+            "precision_wilson95": [
+              0.42324011342381185,
+              0.534667092267936
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 213,
+            "precision": 0.3755868544600939,
+            "precision_wilson95": [
+              0.3132965150855755,
+              0.442285280534857
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.6,
+              0.8
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 6,
+            "precision": 0.16666666666666666,
+            "precision_wilson95": [
+              0.03005336974830658,
+              0.5635028221864702
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[0,32)",
+            "detections": 22,
+            "precision": 0.9545454545454546,
+            "precision_wilson95": [
+              0.7820195416134267,
+              0.991930572378736
+            ],
+            "too_thin": true
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[32,64)",
+            "detections": 213,
+            "precision": 0.8873239436619719,
+            "precision_wilson95": [
+              0.8378209747136608,
+              0.9231036238265026
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[64,128)",
+            "detections": 840,
+            "precision": 0.8,
+            "precision_wilson95": [
+              0.7716113315538025,
+              0.8256572604686403
+            ],
+            "too_thin": false
+          },
+          {
+            "score_bin": [
+              0.8,
+              1.0
+            ],
+            "height_bucket": "[128,256)",
+            "detections": 40,
+            "precision": 1.0,
+            "precision_wilson95": [
+              0.9123783988027135,
+              1.0
+            ],
+            "too_thin": false
+          }
+        ]
+      },
+      "envelope_curves": {
+        "recall_iou50": [
+          [
+            16.333333333333332,
+            0.3085399449035813
+          ],
+          [
+            43.166666666666664,
+            0.9047619047619048
+          ],
+          [
+            82.0,
+            0.9782608695652174
+          ]
+        ],
+        "centre_sigma_px": [
+          [
+            16.333333333333332,
+            0.6533324000000013
+          ],
+          [
+            43.166666666666664,
+            0.6271397999999956
+          ],
+          [
+            82.0,
+            0.5663531999999933
+          ]
+        ],
+        "size_sigma_px": [
+          [
+            16.333333333333332,
+            1.269352699999993
+          ],
+          [
+            43.166666666666664,
+            1.589594299999998
+          ],
+          [
+            82.0,
+            1.401304099999998
+          ]
+        ]
+      },
+      "envelope_status": "measured"
+    }
+  },
+  "calibration_records": {
+    "1080p": {
+      "calibration_id": "rtdetr_v2_s-person-1080p-19e909776187",
+      "method": "histogram_binning (score bin x detection height bucket)",
+      "fit_on": "SmartSpaces val, export 66c683ffa66f, transient frames excluded",
+      "valid_for": "RT-DETRv2-S-COCO@4130c2847260 person @ 1080p",
+      "manifest_sha": "19e909776187e33f0775271ecb95f6b209c937d518d3e261c2378aaa86e4b8bf",
+      "show_as_probability": false,
+      "why_not": "does not transfer: 4 of 10 comparable bins disjoint on train (val has no humanoid robots; train does, and COCO 'person' fires on them)"
+    },
+    "720p": {
+      "calibration_id": "rtdetr_v2_s-person-720p-19e909776187",
+      "method": "histogram_binning (score bin x detection height bucket)",
+      "fit_on": "SmartSpaces val, export 66c683ffa66f, transient frames excluded",
+      "valid_for": "RT-DETRv2-S-COCO@4130c2847260 person @ 720p",
+      "manifest_sha": "19e909776187e33f0775271ecb95f6b209c937d518d3e261c2378aaa86e4b8bf",
+      "show_as_probability": false,
+      "why_not": "does not transfer: 4 of 10 comparable bins disjoint on train (val has no humanoid robots; train does, and COCO 'person' fires on them)"
+    },
+    "360p": {
+      "calibration_id": "rtdetr_v2_s-person-360p-19e909776187",
+      "method": "histogram_binning (score bin x detection height bucket)",
+      "fit_on": "SmartSpaces val, export 66c683ffa66f, transient frames excluded",
+      "valid_for": "RT-DETRv2-S-COCO@4130c2847260 person @ 360p",
+      "manifest_sha": "19e909776187e33f0775271ecb95f6b209c937d518d3e261c2378aaa86e4b8bf",
+      "show_as_probability": false,
+      "why_not": "does not transfer: 5 of 9 comparable bins disjoint on train (val has no humanoid robots; train does, and COCO 'person' fires on them)"
+    }
+  }
+}
