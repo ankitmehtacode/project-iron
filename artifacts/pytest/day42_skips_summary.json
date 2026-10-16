@@ -1,0 +1,64 @@
+{
+  "did_not_run": [
+    {
+      "count": 1,
+      "defect": false,
+      "found_elsewhere": [],
+      "named_paths": [],
+      "reason": "no legacy artifacts under <tmp>; nothing to refuse",
+      "similar_elsewhere": [],
+      "tests": [
+        "tests.test_preprocess_spec::test_refusal_fires_on_the_real_stale_artifacts"
+      ]
+    },
+    {
+      "count": 1,
+      "defect": false,
+      "found_elsewhere": [],
+      "named_paths": [],
+      "reason": "only one golden set has been scored; nothing to mismatch",
+      "similar_elsewhere": [],
+      "tests": [
+        "tests.test_inspector::test_comparison_across_different_golden_sets_is_refused"
+      ]
+    },
+    {
+      "count": 1,
+      "defect": false,
+      "found_elsewhere": [],
+      "named_paths": [],
+      "reason": "this measurement has no unresolvable-to-resolvable boundary",
+      "similar_elsewhere": [],
+      "tests": [
+        "tests.test_envelope::test_unresolvable_neighbour_wins_the_interpolation"
+      ]
+    }
+  ],
+  "full": {
+    "deselected": 0,
+    "errors": 0,
+    "failures": 0,
+    "junit_path": "artifacts/pytest/day42_skips_full.xml",
+    "label": "day42_skips_full",
+    "log_path": "artifacts/pytest/day42_skips_full.log",
+    "marker_expr": null,
+    "returncode": 0,
+    "skipped": 4,
+    "tests": 1682
+  },
+  "gated": {
+    "deselected": 10,
+    "errors": 0,
+    "failures": 0,
+    "junit_path": "artifacts/pytest/day42_skips_gated.xml",
+    "label": "day42_skips_gated",
+    "log_path": "artifacts/pytest/day42_skips_gated.log",
+    "marker_expr": "not requires_weights",
+    "returncode": 0,
+    "skipped": 3,
+    "tests": 1672
+  },
+  "reconciled": true,
+  "reconciliation_message": "reconciled: day42_skips_gated executed=1672 + deselected=10 = 1682 == day42_skips_full executed=1682",
+  "skip_defects": 0
+}

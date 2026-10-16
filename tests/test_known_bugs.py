@@ -20,7 +20,7 @@ from __future__ import annotations
 import importlib.util
 import re
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import pytest
@@ -79,11 +79,25 @@ _COTRACKER = (
 )
 
 
+def _verification_ir(config: IronConfig) -> Path:
+    """The IR these findings are checked against: ``paths.current_ir``, the
+    manifested Day-3 FP32 export (Day 42 follow-up), never the production
+    INT8 path, whose provenance ADR 0008 records as lost. The manifest is
+    required before anything compiles it; a result here is a verdict on that
+    export, not on production."""
+    xml = config.paths.resolved_current_ir
+    if xml.exists():
+        from src.provenance import require_export_manifest
+
+        require_export_manifest(xml)
+    return xml
+
+
 def _require_openvino(config: IronConfig) -> Any:
     """Return the openvino module, skipping if it or the IR is unavailable."""
     _skip_unless_ready(
         (_OPENVINO,),
-        (("V-JEPA2 OpenVINO IR", config.paths.resolved_vjepa_xml),),
+        (("V-JEPA2 OpenVINO IR (paths.current_ir)", _verification_ir(config)),),
     )
     import openvino as ov
 
@@ -95,7 +109,7 @@ def _require_semantic_extractor(config: IronConfig) -> Any:
     _skip_unless_ready(
         (_OPENVINO, _TORCH, _COTRACKER),
         (
-            ("V-JEPA2 OpenVINO IR", config.paths.resolved_vjepa_xml),
+            ("V-JEPA2 OpenVINO IR (paths.current_ir)", _verification_ir(config)),
             ("CoTracker3 checkpoint", config.paths.resolved_cotracker_checkpoint),
         ),
     )
@@ -115,7 +129,9 @@ def _require_semantic_extractor(config: IronConfig) -> Any:
 @pytest.mark.xfail(
     strict=False, reason="AUDIT FINDING 1: unverified — needs the V-JEPA2 IR to resolve"
 )
-def test_vjepa_token_count_matches_tubelet() -> None:
+def test_vjepa_token_count_matches_tubelet(
+    record_property: Callable[[str, object], None],
+) -> None:
     """AUDIT FINDING 1: V-JEPA2 token count vs. the repo's documented T*196.
 
     semantic_extractor.py documents its V-JEPA output as ``[B, T*196, 1024]``
@@ -129,7 +145,7 @@ def test_vjepa_token_count_matches_tubelet() -> None:
     """
     config = IronConfig.load()
     ov = _require_openvino(config)
-    xml_path = config.paths.resolved_vjepa_xml
+    xml_path = _verification_ir(config)
 
     pipeline = config.pipeline
     core = ov.Core()
@@ -155,6 +171,9 @@ def test_vjepa_token_count_matches_tubelet() -> None:
         f"\n  If B holds, the export is nonstandard and every downstream"
         f"\n  temporal index is built on an assumption the encoder does not honour."
     )
+    record_property("artifact", xml_path.name)
+    record_property("observed_tokens", observed_tokens)
+    print(message)
     assert observed_tokens == tubelet_hypothesis, message
 
 
@@ -192,7 +211,7 @@ def test_patch_mapper_temporal_alignment() -> None:
     video[:, half:] = 1.0  # first half black, second half white
 
     extractor = SemanticExtractor(
-        vjepa_xml=str(config.paths.resolved_vjepa_xml),
+        vjepa_xml=str(_verification_ir(config)),
         cotracker_checkpoint=str(config.paths.resolved_cotracker_checkpoint),
         grid_size=pipeline.grid_size,
         device=config.runtime.device,

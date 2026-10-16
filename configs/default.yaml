@@ -16,7 +16,15 @@ paths:
   output_dir: outputs
   log_dir: logs
   # Relative to models_dir.
+  # The PRODUCTION artifact path. Reserved (src/config.py) and absent on every
+  # machine: ADR 0008 records its provenance as permanently lost. Production
+  # loaders read this key and keep refusing; nothing here changes that.
   vjepa_xml: int8/vjepa2_vitl_int8.xml
+  # The IR this process loads for verification (Day 42 follow-up): the
+  # manifested Day-3 FP32 export. Every reader goes through
+  # require_export_manifest before compiling it. A result measured on it is a
+  # verdict on this export, never on production (paths.using_production_ir).
+  current_ir: export/2026-07-31/vjepa2_vitl_fp32.xml
   cotracker_checkpoint: weights/cotracker3/scaled_offline.pth
 
 runtime:

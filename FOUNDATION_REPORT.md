@@ -12541,6 +12541,67 @@ Scorecards; the blob producer's model string is hand-written.
 | P5 | re-render wake differences concentrate in a post-cut transient | **BROKEN**: the post-cut excess is gone by k = 60, excluding it leaves 17.77% of the 18.25%, and significant differences recur through the chunk |
 | P6 | confidence overconfident on small objects | **HELD in part**: small objects (< 128 px) stay overconfident on train once humanoid matches are removed; the larger miscalibration is humanoid robots labelled person |
 
+### V-JEPA2 verification against the manifested FP32 export (follow-up, 2026-10-16)
+
+**Lead (rule: any failure leads): `test_known_bugs.py::test_patch_mapper_temporal_alignment`
+fails, but not because of the bug it encodes.** Six tests had skipped on every
+machine because they looked for `models/int8/vjepa2_vitl_int8.xml`, which ADR
+0008 declares unattributable. `paths.current_ir` (the key existed, unset) now
+names the Day-3 export `models/export/2026-07-31/vjepa2_vitl_fp32.xml`, and all
+six load it only after `require_export_manifest` (FP32, unquantised, 392
+tokens, source-checkpoint shas recorded). `paths.vjepa_xml` is unchanged, so
+every production loader keeps refusing; ADR 0008 is untouched; every result
+below is a verdict on that export, not on production.
+
+| test | result | measured |
+|---|---|---|
+| `test_golden_vectors::test_openvino_matches_pytorch_reference[real_test_video]` | pass | p1 cosine 0.999999999, 392 tokens |
+| `...[synthetic_seeded_noise]` | pass | p1 0.999999999, 392 tokens |
+| `...[synthetic_spatial_gradient]` | pass | p1 0.999999866, 392 tokens |
+| `...[synthetic_tubelet_probe]` | pass | p1 0.999963253, 392 tokens |
+| `test_known_bugs::test_vjepa_token_count_matches_tubelet` | xpass | 392 tokens = (4 // 2) x 196: tubelet 2 |
+| `test_known_bugs::test_patch_mapper_temporal_alignment` | **xfail (fails)** | within-tubelet difference 0.00593 (black) and 0.000184 (white) against a tolerance of 1e-5; across 0.140 |
+
+Day-3 stop rule p1 < 0.98: not triggered (lowest p1 0.99996). No threshold
+was changed. The failure's cause, measured: the temporal-slot bug the test was
+written for is fixed structurally (the mapper routes through `PatchTokens`,
+frames 0 and 1 read the same slot). On the probe's all-black first half
+CoTracker has nothing to lock onto and its tracks drift a median 1.49 px (max
+16.9 px) between frames 0 and 1, so the bilinear lookups sample different
+positions; on the textured white half the drift is 0.10 px. The test's probe
+is confounded by tracker drift on a featureless field, not by the mapper. The
+test and its tolerance are unchanged; redesigning the probe (fixed track
+positions, or a textured field) is a decision for the human.
+
+### Checks that did not run
+
+Full suite before this change (`artifacts/pytest/day42_venv_pinned_full.xml`,
+via `scripts/suite_report.py --did-not-run-only`):
+
+| skipped | reason | prerequisite found elsewhere on this machine |
+|---:|---|---|
+| 4 | 1 unmet prerequisite(s): V-JEPA2 OpenVINO IR not found at /Users/manishmehta/Desktop/project-iron-main/models/int8/vjepa2_vitl_int8.xml | POSSIBLE DEFECT, similar: `/Users/manishmehta/Desktop/project-iron-main/models/export/2026-07-31/vjepa2_vitl_fp32.xml` |
+| 2 | 1 unmet prerequisite(s): V-JEPA2 OpenVINO IR not found at /Users/manishmehta/Desktop/project-iron-main/models/int8/vjepa2_vitl_int8.xml. Install locking-requirements.txt and fetch weights with scri... | POSSIBLE DEFECT, similar: `/Users/manishmehta/Desktop/project-iron-main/models/export/2026-07-31/vjepa2_vitl_fp32.xml` |
+| 1 | no legacy artifacts under <tmp>; nothing to refuse | no |
+| 1 | only one golden set has been scored; nothing to mismatch | no |
+| 1 | this measurement has no unresolvable-to-resolvable boundary | no |
+
+The two INT8 rows are the six tests above: the check now names the FP32
+export they could have used as a POSSIBLE DEFECT.
+
+After this change (`scripts/suite_report.py --label-prefix day42_skips`; gated
+1669 passed, 3 skipped, 10 deselected; full 1678 passed, 4 skipped, 0 failed;
+reconciled 1672 + 10 = 1682; `artifacts/pytest/day42_skips_summary.json`):
+
+| skipped | reason | prerequisite found elsewhere on this machine |
+|---:|---|---|
+| 1 | no legacy artifacts under <tmp>; nothing to refuse | no |
+| 1 | only one golden set has been scored; nothing to mismatch | no |
+| 1 | this measurement has no unresolvable-to-resolvable boundary | no |
+
+The full run's fourth "skipped" in junit is the patch-mapper xfail, which ran
+and is therefore not a check that did not run. No skip is a defect.
+
 ## Blockers
 
 Computed fresh against `docs/blocker_ledger.yaml` via

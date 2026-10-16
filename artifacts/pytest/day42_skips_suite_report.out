@@ -1,0 +1,16 @@
+gated (not requires_weights): 1669 passed, 3 skipped, 10 deselected
+  artifact: artifacts/pytest/day42_skips_gated.xml
+full (no exclusions):        1678 passed, 4 skipped
+  artifact: artifacts/pytest/day42_skips_full.xml
+
+reconciled: day42_skips_gated executed=1672 + deselected=10 = 1682 == day42_skips_full executed=1682
+
+Checks that did not run (full run):
+| skipped | reason | prerequisite found elsewhere on this machine |
+|---:|---|---|
+| 1 | no legacy artifacts under <tmp>; nothing to refuse | no |
+| 1 | only one golden set has been scored; nothing to mismatch | no |
+| 1 | this measurement has no unresolvable-to-resolvable boundary | no |
+summary written to artifacts/pytest/day42_skips_summary.json
+table written to artifacts/pytest/day42_skips_did_not_run.md
+exit 0

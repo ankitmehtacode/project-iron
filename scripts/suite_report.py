@@ -16,6 +16,15 @@ each with `--junitxml` for pass/fail/skip/error counts (a stdlib-adjacent
 artifact; no new dependency) and stdout captured to a `.log` for the
 `N deselected` figure junitxml does not carry.
 
+It also lists the checks that did not run (Day 42): every ``pytest.skip``
+in the full run, grouped by reason, with each path the reason names searched
+for elsewhere on this machine. A skip whose named prerequisite exists under a
+different path is a DEFECT, not a skip: the check could have run, and is
+pointed at the wrong place. (Six golden-vector and known-bug tests skipped on
+every machine for 42 days because they looked for an INT8 IR that ADR 0008
+declares lost, while a manifested FP32 export sat in models/export/.) Every
+day's Verdicts block restates the table (``tests/test_report_did_not_run.py``).
+
 Then it reconciles: every test the gated run deselected plus every test it
 ran must equal the full run's total. A mismatch there is exactly what would
 hide a test that silently stopped being collected by either run -- the
@@ -27,6 +36,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import subprocess
 import sys
@@ -39,6 +49,195 @@ PYTHON = sys.executable
 ARTIFACT_DIR = REPO_ROOT / "artifacts" / "pytest"
 
 _DESELECTED_RE = re.compile(r"(\d+) deselected")
+_PATH_RE = re.compile(r"(?:^|(?<=[\s'\"(]))(/[^\s;:,'\"()\[\]]+)")
+"""An ABSOLUTE path: a slash at the start of the reason or after whitespace,
+a quote or a parenthesis — not the middle of ``scripts/fetch_weights.py``."""
+_TEMP_RE = re.compile(
+    r"(/private)?/var/folders/[^\s;:,'\"()]+|/tmp/[^\s;:,'\"()]+"
+    r"|pytest-of-[^/\s]+/pytest-\d+"
+)
+_SKIP_SEARCH_EXCLUDE = {
+    ".git",
+    "__pycache__",
+    "node_modules",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".hypothesis",
+}
+DEFAULT_SEARCH_ROOTS = (REPO_ROOT, Path.home() / ".cache")
+"""Where a skipped prerequisite is looked for "elsewhere on this machine":
+the repository (models/, data/, exports) and the user cache (HuggingFace and
+torch hub land there). ``--search-root`` adds more."""
+
+
+@dataclass(frozen=True)
+class SkipGroup:
+    """Every skipped test that gave one (normalised) reason."""
+
+    reason: str
+    tests: tuple[str, ...]
+    named_paths: tuple[str, ...]
+    found_elsewhere: tuple[str, ...]
+    similar_elsewhere: tuple[str, ...] = ()
+    """Same extension and same stem up to its last ``_`` part (e.g.
+    ``vjepa2_vitl_int8.xml`` -> ``vjepa2_vitl_fp32.xml``): possibly the same
+    prerequisite in another form. Reported for a human to judge; not a
+    defect by itself."""
+
+    @property
+    def defect(self) -> bool:
+        """True when a prerequisite the reason says is missing exists under
+        another path on this machine with the same name: the check could have
+        run."""
+        return bool(self.found_elsewhere)
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "reason": self.reason,
+            "count": len(self.tests),
+            "tests": list(self.tests),
+            "named_paths": list(self.named_paths),
+            "found_elsewhere": list(self.found_elsewhere),
+            "similar_elsewhere": list(self.similar_elsewhere),
+            "defect": self.defect,
+        }
+
+
+def normalise_reason(message: str, temp: re.Pattern[str] | None = _TEMP_RE) -> str:
+    """Per-run temporary paths would split one reason into many groups."""
+    return (temp.sub("<tmp>", message) if temp is not None else message).strip()
+
+
+def named_paths(reason: str) -> tuple[str, ...]:
+    """Absolute paths a skip reason names; ``<tmp>`` (normalised temporary
+    directories) excluded."""
+    found = []
+    for match in _PATH_RE.findall(reason):
+        path = match.rstrip(".")
+        if "<tmp>" in path:
+            continue
+        found.append(path)
+    return tuple(dict.fromkeys(found))
+
+
+def _family(name: str) -> tuple[str, str] | None:
+    """``("vjepa2_vitl", ".xml")`` for ``vjepa2_vitl_int8.xml``; None when the
+    stem has no ``_`` part to drop."""
+    stem, suffix = Path(name).stem, Path(name).suffix
+    if "_" not in stem or not suffix:
+        return None
+    return (stem.rsplit("_", 1)[0], suffix)
+
+
+def find_similar(path: str, roots: tuple[Path, ...]) -> tuple[str, ...]:
+    """Files of the same family (see :class:`SkipGroup`) under ``roots``."""
+    family = _family(Path(path).name)
+    if family is None:
+        return ()
+    hits = []
+    for root in roots:
+        if not root.exists():
+            continue
+        for directory, subdirs, files in os.walk(root):
+            subdirs[:] = [
+                d
+                for d in subdirs
+                if d not in _SKIP_SEARCH_EXCLUDE and not d.startswith(".venv")
+            ]
+            for name in files:
+                if name != Path(path).name and _family(name) == family:
+                    hits.append(str(Path(directory) / name))
+    return tuple(sorted(set(hits)))
+
+
+def find_elsewhere(path: str, roots: tuple[Path, ...]) -> tuple[str, ...]:
+    """Files named like ``path`` that exist under ``roots`` at another path."""
+    target = Path(path)
+    if not target.name:
+        return ()
+    hits = []
+    for root in roots:
+        if not root.exists():
+            continue
+        for directory, subdirs, files in os.walk(root):
+            subdirs[:] = [
+                d
+                for d in subdirs
+                if d not in _SKIP_SEARCH_EXCLUDE and not d.startswith(".venv")
+            ]
+            if target.name in files:
+                hit = Path(directory) / target.name
+                if hit != target:
+                    hits.append(str(hit))
+    return tuple(sorted(set(hits)))
+
+
+def skips_by_reason(
+    junit_path: Path,
+    roots: tuple[Path, ...] = DEFAULT_SEARCH_ROOTS,
+    temp: re.Pattern[str] | None = _TEMP_RE,
+) -> list[SkipGroup]:
+    """Group every ``pytest.skip`` (not xfail: an xfail ran) by reason."""
+    root = ET.parse(junit_path).getroot()
+    grouped: dict[str, list[str]] = {}
+    for case in root.iter("testcase"):
+        skipped = case.find("skipped")
+        if skipped is None or skipped.get("type") == "pytest.xfail":
+            continue
+        reason = normalise_reason(
+            skipped.get("message", "") or "(no reason given)", temp
+        )
+        test = f"{case.get('classname')}::{case.get('name')}"
+        grouped.setdefault(reason, []).append(test)
+    groups = []
+    for reason, tests in sorted(grouped.items(), key=lambda kv: (-len(kv[1]), kv[0])):
+        paths = named_paths(reason)
+        elsewhere = tuple(
+            hit
+            for path in paths
+            if not Path(path).exists()
+            for hit in find_elsewhere(path, roots)
+        )
+        similar = tuple(
+            hit
+            for path in paths
+            if not Path(path).exists()
+            for hit in find_similar(path, roots)
+        )
+        groups.append(
+            SkipGroup(
+                reason=reason,
+                tests=tuple(sorted(tests)),
+                named_paths=paths,
+                found_elsewhere=elsewhere,
+                similar_elsewhere=similar,
+            )
+        )
+    return groups
+
+
+def render_did_not_run(groups: list[SkipGroup]) -> str:
+    """The Markdown table every day's Verdicts block restates."""
+    lines = [
+        "| skipped | reason | prerequisite found elsewhere on this machine |",
+        "|---:|---|---|",
+    ]
+    if not groups:
+        lines.append("| 0 | (every collected check ran) | — |")
+    for g in groups:
+        reason = g.reason.replace("|", "\\|")
+        if len(reason) > 200:
+            reason = reason[:197] + "..."
+        if g.defect:
+            where = "**DEFECT**: " + "; ".join(f"`{p}`" for p in g.found_elsewhere)
+        elif g.similar_elsewhere:
+            where = "POSSIBLE DEFECT, similar: " + "; ".join(
+                f"`{p}`" for p in g.similar_elsewhere
+            )
+        else:
+            where = "no"
+        lines.append(f"| {len(g.tests)} | {reason} | {where} |")
+    return "\n".join(lines)
 
 
 @dataclass
@@ -156,12 +355,34 @@ def main(argv: list[str] | None = None) -> int:
         help="artifact filename prefix, e.g. 'day32' -> "
         "artifacts/pytest/day32_gated.xml",
     )
+    parser.add_argument(
+        "--search-root",
+        action="append",
+        type=Path,
+        default=[],
+        help="extra directory to search for skipped prerequisites",
+    )
+    parser.add_argument(
+        "--did-not-run-only",
+        type=Path,
+        metavar="JUNIT_XML",
+        help="only print the checks-that-did-not-run table for an existing run",
+    )
     args = parser.parse_args(argv)
+    roots = DEFAULT_SEARCH_ROOTS + tuple(args.search_root)
+
+    if args.did_not_run_only is not None:
+        groups = skips_by_reason(args.did_not_run_only, roots)
+        print(render_did_not_run(groups))
+        return 1 if any(g.defect for g in groups) else 0
 
     gated = _run_pytest(f"{args.label_prefix}_gated", "not requires_weights")
     full = _run_pytest(f"{args.label_prefix}_full", None)
 
     ok, message = reconcile(gated, full)
+    did_not_run = skips_by_reason(full.junit_path, roots)
+    table_path = ARTIFACT_DIR / f"{args.label_prefix}_did_not_run.md"
+    table_path.write_text(render_did_not_run(did_not_run) + "\n", encoding="utf-8")
 
     summary_path = ARTIFACT_DIR / f"{args.label_prefix}_summary.json"
     summary_path.write_text(
@@ -171,6 +392,8 @@ def main(argv: list[str] | None = None) -> int:
                 "full": full.as_dict(),
                 "reconciled": ok,
                 "reconciliation_message": message,
+                "did_not_run": [g.as_dict() for g in did_not_run],
+                "skip_defects": sum(g.defect for g in did_not_run),
             },
             indent=2,
             sort_keys=True,
@@ -184,9 +407,15 @@ def main(argv: list[str] | None = None) -> int:
     print(f"  artifact: {full.junit_path.relative_to(REPO_ROOT)}")
     print()
     print(message)
+    print()
+    print("Checks that did not run (full run):")
+    print(render_did_not_run(did_not_run))
     print(f"summary written to {summary_path.relative_to(REPO_ROOT)}")
+    print(f"table written to {table_path.relative_to(REPO_ROOT)}")
 
     if not ok:
+        return 1
+    if any(g.defect for g in did_not_run):
         return 1
     if gated.failures or gated.errors or full.failures or full.errors:
         return 1

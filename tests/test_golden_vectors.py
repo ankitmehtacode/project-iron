@@ -22,7 +22,7 @@ from __future__ import annotations
 import importlib.util
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import pytest
@@ -158,7 +158,14 @@ def _require_openvino_and_reference(name: str) -> tuple[Any, np.ndarray]:
         unmet.append("module 'openvino' is not installed")
     xml = config.paths.resolved_current_ir
     if not xml.exists():
-        unmet.append(f"V-JEPA2 OpenVINO IR not found at {xml}")
+        unmet.append(f"V-JEPA2 OpenVINO IR (paths.current_ir) not found at {xml}")
+    else:
+        # Day 42 follow-up: the IR is the manifested FP32 export, and nothing
+        # compiles it unmanifested (ADR 0008's process change). A missing or
+        # mismatched manifest is a failure, not a skip.
+        from src.provenance import require_export_manifest
+
+        require_export_manifest(xml)
     reference_path = REFERENCE_DIR / f"{name}.npz"
     if not reference_path.exists():
         unmet.append(
@@ -178,7 +185,9 @@ def _require_openvino_and_reference(name: str) -> tuple[Any, np.ndarray]:
 
 @pytest.mark.requires_weights
 @pytest.mark.parametrize("name", clip_names())
-def test_openvino_matches_pytorch_reference(name: str) -> None:
+def test_openvino_matches_pytorch_reference(
+    name: str, record_property: Callable[[str, object], None]
+) -> None:
     """Per-patch cosine between the production path and the official reference.
 
     The failure message reports the full distribution rather than a pass/fail,
@@ -219,9 +228,13 @@ def test_openvino_matches_pytorch_reference(name: str) -> None:
         "vector corrupts every index built from it"
     )
 
+    role = (
+        "production" if config.paths.using_production_ir else "export, not production"
+    )
     cosine = per_patch_cosine(produced, reference)
     p1 = float(np.percentile(cosine, 1))
     report = (
+        f"\n  artifact        : {config.paths.resolved_current_ir.name} ({role})"
         f"\n  clip            : {name}"
         f"\n  tokens compared : {cosine.size}"
         f"\n  cosine p1       : {p1:.6f}   <- gated (floor {GOLDEN_COSINE_P1_MIN})"
@@ -232,6 +245,11 @@ def test_openvino_matches_pytorch_reference(name: str) -> None:
         f"\n  A uniform moderate drop across patches indicates preprocessing;"
         f"\n  a few catastrophic patches indicate token layout or pos-embeds."
     )
+    # Recorded whether it passes or fails: a passing p1 is a measurement too.
+    record_property("artifact", config.paths.resolved_current_ir.name)
+    record_property("tokens_compared", int(cosine.size))
+    record_property("cosine_p1", p1)
+    print(report)
     assert p1 >= GOLDEN_COSINE_P1_MIN, report
 
 
