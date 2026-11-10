@@ -25,6 +25,7 @@ from src.provenance import (
     require_export_manifest,
     sha256_file,
 )
+from src.runstamp import latest
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -305,9 +306,20 @@ def test_run_writes_a_manifest_before_processing(scoped_config: IronConfig) -> N
     code = execute(scoped_config, mode="steady", iterations=4, factory=_StableExtractor)
     assert code == ExitCode.OK
 
-    manifest_path = scoped_config.paths.resolved_output_dir / "manifest.json"
+    manifest_path = latest(scoped_config.paths.resolved_output_dir / "manifest.json")
     assert manifest_path.exists(), "run produced results without a manifest"
     assert RunManifest.read(manifest_path).config_sha == scoped_config.config_sha()
+
+
+def test_two_runs_keep_two_manifests_and_two_logs(scoped_config: IronConfig) -> None:
+    """Day 43: a second run must not overwrite the first run's records."""
+    execute(scoped_config, mode="steady", iterations=2, factory=_StableExtractor)
+    execute(scoped_config, mode="steady", iterations=2, factory=_StableExtractor)
+    out = scoped_config.paths.resolved_output_dir
+    logs = scoped_config.paths.resolved_log_dir
+    assert len(list(out.glob("manifest.*.json"))) == 2
+    assert len(list(logs.glob("endurance_metrics.*.jsonl"))) == 2
+    assert len(list(logs.glob("endurance_run.*.log"))) == 2
 
 
 def test_every_metrics_record_carries_the_manifest_sha(
@@ -317,9 +329,9 @@ def test_every_metrics_record_carries_the_manifest_sha(
     execute(scoped_config, mode="steady", iterations=5, factory=_StableExtractor)
 
     manifest = RunManifest.read(
-        scoped_config.paths.resolved_output_dir / "manifest.json"
+        latest(scoped_config.paths.resolved_output_dir / "manifest.json")
     )
-    metrics_path = (
+    metrics_path = latest(
         scoped_config.paths.resolved_log_dir / scoped_config.endurance.metrics_filename
     )
     records = [
@@ -334,7 +346,7 @@ def test_reinit_records_also_carry_the_manifest_sha(
     scoped_config: IronConfig,
 ) -> None:
     execute(scoped_config, mode="reinit", iterations=3, factory=_StableExtractor)
-    metrics_path = (
+    metrics_path = latest(
         scoped_config.paths.resolved_log_dir / scoped_config.endurance.metrics_filename
     )
     records = [

@@ -32,6 +32,7 @@ from src.data.golden import (
     available_versions,
     load_golden_set,
 )
+from src.runstamp import run_stamp
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -173,7 +174,7 @@ def main(argv: list[str] | None = None) -> int:
         card,
         config.paths.resolved_output_dir
         / "scorecards"
-        / f"{golden.version}_{golden.set_sha[:12]}.json",
+        / f"{golden.version}_{golden.set_sha[:12]}.{run_stamp()}.json",
     )
     print(f"\nScorecard written to {out}")
     return 0

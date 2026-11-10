@@ -282,8 +282,8 @@ _STANDARDISATION_PATTERNS = (
     r"_preprocess\.apply\(",
 )
 
-# The module that actually runs inference in production. endurance_run.py and
-# integration.py both reach the encoder through this path.
+# The module that actually runs inference in production. endurance_run.py
+# reaches the encoder through this path.
 _PRODUCTION_ENCODER_PATH = REPO_ROOT / "src" / "semantics" / "semantic_extractor.py"
 
 _ALL_ENCODER_PATHS = (

@@ -37,17 +37,10 @@ source = ["src"]
 # they gain tests, matching how mypy.ini tightens.
 omit = [
     "src/geometry/*",
-    "src/graph/*",
     "src/interface/*",
     "src/models/*",
     "src/semantics/*",
     "src/utils/*",
-    "src/integration.py",
-    "src/main.py",
-    "src/memory_manager.py",
-    "src/orchestrator.py",
-    "src/rag_agent.py",
-    "src/vector_database.py",
 ]
 
 [tool.coverage.report]

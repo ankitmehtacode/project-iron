@@ -29,6 +29,7 @@ from src.endurance.runner import (
     check_determinism,
     execute,
 )
+from src.runstamp import latest
 
 # One second per clip makes MB/clip and MB/hour convert by exactly 3600,
 # so the expected numbers in these tests are checkable by hand.
@@ -284,7 +285,7 @@ def test_execute_completes_and_writes_jsonl(scoped_config: IronConfig) -> None:
     code = execute(scoped_config, mode="steady", iterations=6, factory=_StableExtractor)
     assert code == ExitCode.OK
 
-    metrics_path = (
+    metrics_path = latest(
         scoped_config.paths.resolved_log_dir / scoped_config.endurance.metrics_filename
     )
     lines = [line for line in metrics_path.read_text().splitlines() if line]
@@ -321,7 +322,9 @@ def test_traceback_reaches_the_log(scoped_config: IronConfig) -> None:
         factory=lambda: _ExplodingExtractor(fail_on_call=2),
     )
     log_text = (
-        scoped_config.paths.resolved_log_dir / scoped_config.endurance.log_filename
+        latest(
+            scoped_config.paths.resolved_log_dir / scoped_config.endurance.log_filename
+        )
     ).read_text()
     assert "FATAL" in log_text
     assert "synthetic inference failure" in log_text
@@ -340,7 +343,9 @@ def test_missing_weights_exits_two_without_a_traceback(
     assert code == ExitCode.PREREQUISITES_MISSING
 
     log_text = (
-        scoped_config.paths.resolved_log_dir / scoped_config.endurance.log_filename
+        latest(
+            scoped_config.paths.resolved_log_dir / scoped_config.endurance.log_filename
+        )
     ).read_text()
     assert "weights not found at" in log_text
     assert "Traceback" not in log_text

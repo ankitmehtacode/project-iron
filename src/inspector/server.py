@@ -71,6 +71,9 @@ def build_routes(store: art.Artifacts) -> list[tuple[re.Pattern[str], Callable]]
     def events(_: re.Match[str], __: dict[str, list[str]]):
         return json_response(art.read_events(store))
 
+    def run(_: re.Match[str], __: dict[str, list[str]]):
+        return json_response(art.read_run(store))
+
     def provenance(_: re.Match[str], __: dict[str, list[str]]):
         return json_response(art.provenance(store))
 
@@ -102,6 +105,7 @@ def build_routes(store: art.Artifacts) -> list[tuple[re.Pattern[str], Callable]]
         (re.compile(r"^/api/envelope$"), envelope),
         (re.compile(r"^/api/golden$"), golden),
         (re.compile(r"^/api/events$"), events),
+        (re.compile(r"^/api/run$"), run),
         (re.compile(r"^/api/provenance$"), provenance),
         (re.compile(r"^/api/associations$"), associations),
         (re.compile(r"^/api/association/(?P<component>[\w.\-]+)$"), association),
@@ -215,9 +219,15 @@ def make_server(port: int, store: art.Artifacts | None = None) -> ThreadingHTTPS
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--port", type=int, default=8899)
+    parser.add_argument(
+        "--run", type=Path, help="a python -m iron run output directory to view"
+    )
     args = parser.parse_args(argv)
 
-    server = make_server(args.port)
+    store = art.Artifacts.from_config()
+    if args.run is not None:
+        store = store.with_run(args.run.resolve())
+    server = make_server(args.port, store)
     host, port = server.server_address[:2]
     print(f"Iron Inspector  ->  http://{host}:{port}")
     print("read-only; Ctrl-C to stop")

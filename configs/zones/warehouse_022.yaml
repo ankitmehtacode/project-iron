@@ -1,0 +1,16 @@
+# Zones for the Day-43 slice, SmartSpaces val/Warehouse_022, world metres
+# (scene floor frame, X_Y_Z_UP). Chosen BEFORE the first run from where GT
+# persons walk in the first 60 s (main aisle y in [-88, -80]; cross corridor
+# x in [-64, -56]); not tuned on any pipeline output.
+site_id: smartspaces-warehouse-022
+zones:
+  - name: aisle_west
+    polygon: [[-80, -88], [-72, -88], [-72, -79], [-80, -79]]
+  - name: junction
+    polygon: [[-66, -88], [-56, -88], [-56, -76], [-66, -76]]
+  - name: corridor_north
+    polygon: [[-64, -72], [-56, -72], [-56, -62], [-64, -62]]
+rules:
+  min_presence_s: 0.5
+  dwell_s: 5.0
+  max_gap_s: 2.0

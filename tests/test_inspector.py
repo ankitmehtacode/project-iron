@@ -571,7 +571,7 @@ def test_empty_state_snapshot(tmp_path: Path) -> None:
     events = art.read_events(empty)
     assert isinstance(events, art.Absent)
     assert events.looked_for == "outputs/events/events.parquet"
-    assert "nothing has run" in events.produced_by
+    assert "python -m iron run" in events.produced_by
 
     assert art.list_associations(empty) == []
     association = art.read_association(empty, "any-component")
@@ -900,3 +900,33 @@ def test_ambiguous_verdict_tag_uses_a_non_color_signal() -> None:
         '"AMBIGUOUS' in js or "'AMBIGUOUS" in js
     ), "the Ambiguous state must carry a literal text label, not only a class name"
     assert '"DECISIVE"' in js, "the Decisive state must carry a literal text label too"
+
+
+def test_a_slice_run_is_viewable(tmp_path: Path) -> None:
+    """Day 43: ``python -m iron inspect --run DIR`` reads that run's events,
+    manifest and evaluations; with no run, the Run view is an instruction."""
+    base = art.Artifacts(
+        project_root=tmp_path,
+        scorecards_dir=tmp_path / "s",
+        golden_dir=tmp_path / "g",
+        envelope_path=tmp_path / "e.json",
+        data_dir=tmp_path / "data",
+        events_path=tmp_path / "events.parquet",
+        associations_dir=tmp_path / "a",
+        coverage_queries_dir=tmp_path / "c",
+    )
+    status, payload = call(base, "/api/run")
+    assert status == 404 and payload["absent"] is True
+
+    run_dir = tmp_path / "run"
+    (run_dir / "eval").mkdir(parents=True)
+    (run_dir / "manifest.json").write_text(json.dumps({"manifest_sha": "m"}))
+    (run_dir / "eval" / "eval.20261111T000000Z-aaaaaa.json").write_text(
+        json.dumps({"label": "synthetic"})
+    )
+    store = base.with_run(run_dir)
+    assert store.events_path == run_dir / "events.parquet"
+    status, payload = call(store, "/api/run")
+    assert status == 200
+    assert payload["manifest"] == {"manifest_sha": "m"}
+    assert [e["label"] for e in payload["evals"]] == ["synthetic"]

@@ -721,6 +721,78 @@ async function viewEvents(root) {
   root.append(panel);
 }
 
+/* --- view: slice run ---------------------------------------------------- */
+
+/* One `python -m iron run` output directory: what ran per camera, and every
+ * evaluation of it. Each eval number is shown beside its baseline, never
+ * alone, and an unmeasured value renders as "unmeasured", never 0. */
+function fmt(v, digits = 3) {
+  return v === null || v === undefined ? "unmeasured" : Number(v).toFixed(digits);
+}
+
+function simpleTable(cols, rows) {
+  const table = el("table");
+  const head = el("tr");
+  cols.forEach((c, i) => head.append(el("th", i ? "num" : null, c)));
+  { const thead = el("thead"); thead.append(head); table.append(thead); }
+  const tb = el("tbody");
+  rows.forEach((r) => {
+    const tr = el("tr");
+    r.forEach((v, i) => tr.append(el("td", i ? "num" : null, String(v))));
+    tb.append(tr);
+  });
+  table.append(tb);
+  return table;
+}
+
+async function viewRun(root) {
+  root.textContent = "";
+  const data = await api("/api/run");
+  const panel = el("div", "panel");
+  panel.append(el("h2", null, "Slice run"));
+  if (data.absent) {
+    panel.append(absentBlock(data));
+    root.append(panel);
+    return;
+  }
+  const m = data.manifest;
+  panel.append(el("p", "note",
+    `detector ${m.detector} · manifest ${String(m.manifest_sha).slice(0, 12)} · ${m.events} events · per-camera scope`));
+  panel.append(simpleTable(
+    ["camera", "frames", "detector runs", "person dets", "tracks", "unprojectable"],
+    Object.entries(m.cameras).map(([cam, c]) => [
+      cam, c.frames_decoded, c.detector_runs, c.person_detections, c.tracks,
+      c.unprojectable_assignments,
+    ])));
+  panel.append(el("p", "note", `source: ${data._source}`));
+  root.append(panel);
+
+  (data.evals || []).forEach((ev) => {
+    const p = el("div", "panel");
+    p.append(el("h3", null, `Evaluation — ${ev.detector}`));
+    p.append(el("p", "note", ev.label));
+    const pooled = ev.pooled;
+    p.append(simpleTable(
+      ["distance (m)", "RMSE estimator", "RMSE raw projection", "median est.", "median raw", "n"],
+      Object.entries(pooled.rmse_m_by_distance).map(([b, r]) => [
+        b, fmt(r.estimator), fmt(r.raw_projection), fmt(r.estimator_p50),
+        fmt(r.raw_projection_p50), r.n,
+      ])));
+    const mot = pooled.mot;
+    p.append(simpleTable(
+      ["tracker", "ID switches", "matched", "missed", "false positives", "GT boxes"],
+      [["pipeline", mot.pipeline], ["IoU-only baseline", mot.iou_only_baseline]].map(
+        ([name, c]) => [name, c.id_switches, c.matches, c.misses, c.false_positives, c.gt])));
+    p.append(simpleTable(
+      ["event positions", "precision", "recall", "predicted", "GT", "matched"],
+      Object.entries(pooled.events).map(([name, e]) => [
+        name, fmt(e.precision), fmt(e.recall), e.predicted, e.gt, e.matched,
+      ])));
+    p.append(el("p", "note", `source: ${ev._source}`));
+    root.append(p);
+  });
+}
+
 /* --- view: association / identity --------------------------------------- */
 
 /* Kept out of the CSS class name space entirely: an Ambiguous verdict's
@@ -1178,6 +1250,7 @@ const VIEWS = {
   scorecard: viewScorecard,
   clip: viewClip,
   envelope: viewEnvelope,
+  run: viewRun,
   events: viewEvents,
   association: viewAssociation,
   coverage: viewCoverage,

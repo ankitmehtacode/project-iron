@@ -51,6 +51,8 @@ class Artifacts:
     events_path: Path
     associations_dir: Path
     coverage_queries_dir: Path
+    run_dir: Path | None = None
+    """A ``python -m iron run`` output directory, when one is being viewed."""
 
     @classmethod
     def from_config(cls) -> "Artifacts":
@@ -68,6 +70,12 @@ class Artifacts:
             associations_dir=root / "outputs" / "associations",
             coverage_queries_dir=root / "outputs" / "coverage_queries",
         )
+
+    def with_run(self, run_dir: Path) -> "Artifacts":
+        """This store, reading events from a slice run's output directory."""
+        from dataclasses import replace
+
+        return replace(self, run_dir=run_dir, events_path=run_dir / "events.parquet")
 
     def relative(self, path: Path) -> str:
         """Path as shown in the UI. Every number on screen names its source."""
@@ -221,17 +229,16 @@ def read_envelope(artifacts: Artifacts) -> dict[str, Any] | Absent:
 def read_events(artifacts: Artifacts) -> dict[str, Any] | Absent:
     """The event log, if one has been written.
 
-    None has been at the time of writing, and the Inspector says so rather than
-    rendering an empty table that looks like "no events happened".
+    Absent is said as absent, never rendered as an empty table that looks
+    like "no events happened".
     """
     if not artifacts.events_path.exists():
         return Absent(
             what="event log",
             looked_for=artifacts.relative(artifacts.events_path),
             produced_by=(
-                "no command yet — the event compiler does not write this file. "
-                "An empty table here would claim nothing happened; nothing has "
-                "run."
+                "python -m iron run --video V --calibration C --out DIR, then "
+                "python -m iron inspect --run DIR"
             ),
         )
     import pyarrow.parquet as pq
@@ -239,6 +246,30 @@ def read_events(artifacts: Artifacts) -> dict[str, Any] | Absent:
     table = pq.read_table(artifacts.events_path)
     rows = table.to_pylist()
     return {"_source": artifacts.relative(artifacts.events_path), "rows": rows}
+
+
+def read_run(artifacts: Artifacts) -> dict[str, Any] | Absent:
+    """A slice run's manifest and every evaluation of it, newest first."""
+    produced_by = "python -m iron inspect --run DIR (DIR from python -m iron run)"
+    if artifacts.run_dir is None:
+        return Absent(what="slice run", looked_for="--run DIR", produced_by=produced_by)
+    manifest_path = artifacts.run_dir / "manifest.json"
+    if not manifest_path.exists():
+        return Absent(
+            what="slice run manifest",
+            looked_for=artifacts.relative(manifest_path),
+            produced_by=produced_by,
+        )
+    evals = []
+    for path in sorted((artifacts.run_dir / "eval").glob("eval.*.json"), reverse=True):
+        payload = json.loads(path.read_text())
+        payload["_source"] = artifacts.relative(path)
+        evals.append(payload)
+    return {
+        "_source": artifacts.relative(manifest_path),
+        "manifest": json.loads(manifest_path.read_text()),
+        "evals": evals,
+    }
 
 
 def list_associations(artifacts: Artifacts) -> list[dict[str, Any]]:

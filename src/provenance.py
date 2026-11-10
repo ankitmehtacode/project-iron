@@ -377,7 +377,10 @@ class RunManifest(BaseModel):
         """
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(json.dumps(self.model_dump(mode="json"), indent=2) + "\n")
+            # Exclusive create: a manifest is a record of one run, and an
+            # existing one at this path belongs to another run.
+            with open(path, "x") as handle:
+                handle.write(json.dumps(self.model_dump(mode="json"), indent=2) + "\n")
         except OSError as exc:
             raise ManifestError(
                 f"cannot write the run manifest to {path}: {exc}. "

@@ -1465,6 +1465,11 @@ def assemble_gate_scorecard(
 
 
 def write(card: Scorecard, path: Path) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(card.as_dict(), indent=2, sort_keys=True) + "\n")
-    return path
+    """Exclusive create: raises :class:`FileExistsError` rather than replace
+    another run's scorecard. Callers pass a run-stamped path
+    (:func:`src.runstamp.stamped`)."""
+    from src.runstamp import write_exclusive
+
+    return write_exclusive(
+        path, json.dumps(card.as_dict(), indent=2, sort_keys=True) + "\n"
+    )

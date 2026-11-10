@@ -42,6 +42,7 @@ from src.endurance.gates import (
 )
 from src.endurance.memory import MemorySample, MemorySampler, platform_fidelity_note
 from src.provenance import ManifestError, RunManifest
+from src.runstamp import open_exclusive, run_stamp, stamped
 
 DETERMINISM_COSINE_TOLERANCE = 1e-5
 VideoArray = npt.NDArray[np.float32]
@@ -492,13 +493,14 @@ def report(outcome: RunOutcome, log: RunLogger) -> None:
     log("=" * 72)
 
 
-def resolve_log_paths(config: IronConfig) -> tuple[Path, Path]:
-    """Return ``(log_path, metrics_path)``, creating the directory."""
+def resolve_log_paths(config: IronConfig, stamp: str) -> tuple[Path, Path]:
+    """Return this run's ``(log_path, metrics_path)``, stamped so no run
+    overwrites another's (:mod:`src.runstamp`), creating the directory."""
     log_dir = config.paths.resolved_log_dir
     log_dir.mkdir(parents=True, exist_ok=True)
     return (
-        log_dir / config.endurance.log_filename,
-        log_dir / config.endurance.metrics_filename,
+        stamped(log_dir / config.endurance.log_filename, stamp),
+        stamped(log_dir / config.endurance.metrics_filename, stamp),
     )
 
 
@@ -519,10 +521,13 @@ def execute(
     if mode not in ("steady", "reinit"):
         raise ValueError(f"unknown mode {mode!r}; expected 'steady' or 'reinit'")
 
-    log_path, metrics_path = resolve_log_paths(config)
+    stamp = run_stamp()
+    log_path, metrics_path = resolve_log_paths(config, stamp)
     applied = apply_runtime_settings(config)
 
-    with open(log_path, "w") as log_handle, open(metrics_path, "w") as metrics_handle:
+    with open_exclusive(log_path) as log_handle, open_exclusive(
+        metrics_path
+    ) as metrics_handle:
         log = RunLogger(log_handle)
         metrics = JsonlWriter(metrics_handle)
 
@@ -547,7 +552,7 @@ def execute(
         try:
             manifest = RunManifest.capture(config)
             manifest_path = manifest.write(
-                config.paths.resolved_output_dir / "manifest.json"
+                stamped(config.paths.resolved_output_dir / "manifest.json", stamp)
             )
         except ManifestError as exc:
             log(f"ERROR: {exc}")
