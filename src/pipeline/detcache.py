@@ -157,6 +157,12 @@ class DetectionCache:
                     ) from None
                 handle.truncate(good_bytes)
                 handle.seek(0, os.SEEK_END)
+                if good_bytes == 0:
+                    # The torn line was the header itself: write it again,
+                    # or frame 0 would be read back as the header.
+                    handle.write(json.dumps({"header": header}, sort_keys=True) + "\n")
+                    handle.flush()
+                    os.fsync(handle.fileno())
                 break
             if i == 0:
                 stored = item.get("header")

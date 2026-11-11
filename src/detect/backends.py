@@ -78,6 +78,10 @@ class OracleDetector:
         return self._vocabulary
 
     @property
+    def stateless(self) -> bool:
+        return True
+
+    @property
     def producer(self) -> ProducerShas:
         return self._producer
 
@@ -155,6 +159,10 @@ class MotionBlobDetector:
     @property
     def vocabulary(self) -> ClassVocabulary:
         return MOTION_BLOB_VOCABULARY
+
+    @property
+    def stateless(self) -> bool:
+        return False
 
     @property
     def producer(self) -> ProducerShas:
@@ -310,6 +318,10 @@ class PretrainedDetector:
     @property
     def spec(self) -> DetectorPreprocessSpec:
         return self._spec
+
+    @property
+    def stateless(self) -> bool:
+        return True
 
     @property
     def producer(self) -> ProducerShas:

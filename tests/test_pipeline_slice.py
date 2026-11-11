@@ -367,23 +367,93 @@ def test_keepalive_keeps_frames_while_a_track_lives(tmp_path: Path) -> None:
 def test_dirty_paths_counts_tracked_changes_and_untracked_code() -> None:
     from src.pipeline.run import dirty_paths
 
-    porcelain = "\n".join(
+    porcelain = "\0".join(
         [
             " M README.md",
             "A  docs/new.md",
+            "R  src/new_name.py",
+            "src/old_name.py",
             "?? src/pipeline/new_module.py",
+            "?? src/a b.py",
             "?? configs/zones/x.yaml",
             "?? artifacts/pytest/run.log",
             "?? .cache/thing.npz",
+            "",
         ]
     )
     assert dirty_paths(porcelain) == [
         "README.md",
         "docs/new.md",
+        "src/new_name.py",
         "src/pipeline/new_module.py",
+        "src/a b.py",
         "configs/zones/x.yaml",
     ]
-    assert dirty_paths("?? notes.txt\n") == []
+    assert dirty_paths("?? notes.txt\0") == []
+    # The project inside a larger repository: paths carry the prefix.
+    nested = "?? iron-repo/src/x.py\0?? other/src/y.py\0"
+    assert dirty_paths(nested, prefix="iron-repo/") == ["iron-repo/src/x.py"]
+
+
+def test_git_state_sees_an_untracked_path_git_would_quote(tmp_path: Path) -> None:
+    import subprocess
+
+    from src.pipeline.run import git_state
+
+    def git(*args: str) -> None:
+        subprocess.run(
+            ["git", "-C", str(tmp_path), *args], check=True, capture_output=True
+        )
+
+    git("init", "-q")
+    git("config", "user.email", "t@example.invalid")
+    git("config", "user.name", "t")
+    (tmp_path / "README").write_text("x")
+    git("add", "README")
+    git("commit", "-qm", "init")
+    assert git_state(tmp_path)["dirty"] is False
+    (tmp_path / "src").mkdir()
+    (tmp_path / "src" / "caf\u00e9 module.py").write_text("x = 1\n")
+    state = git_state(tmp_path)
+    assert state["dirty"] is True
+    assert state["dirty_paths"] == ["src/caf\u00e9 module.py"]
+
+
+def test_a_stateful_detector_is_refused(tmp_path: Path) -> None:
+    from src.detect.backends import MotionBlobDetector
+    from src.pipeline.run import run
+
+    camera, _, zones = _synthetic(tmp_path, n=5)
+    with pytest.raises(ValueError, match="keeps state"):
+        run(
+            [camera],
+            lambda _c: MotionBlobDetector(),
+            "moving",
+            zones,
+            tmp_path / "run",
+            max_seconds=None,
+            progress=lambda _m: None,
+            cache_root=tmp_path / "cache",
+            allow_dirty=True,
+        )
+
+
+def test_seconds_under_one_frame_are_refused(tmp_path: Path) -> None:
+    from src.pipeline.run import run
+
+    camera, factory, zones = _synthetic(tmp_path, n=5)
+    with pytest.raises(ValueError, match="under one frame"):
+        run(
+            [camera],
+            factory,
+            "Person",
+            zones,
+            tmp_path / "run",
+            max_seconds=0.01,
+            progress=lambda _m: None,
+            cache_root=tmp_path / "cache",
+            allow_dirty=True,
+        )
 
 
 @pytest.mark.parametrize("dirty", [True, None])

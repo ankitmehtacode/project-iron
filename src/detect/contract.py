@@ -253,6 +253,12 @@ class Detector(Protocol):
         ...
 
     @property
+    def stateless(self) -> bool:
+        """``True`` when a frame's output depends on that frame alone. The
+        detection cache and the gate-as-mask require it."""
+        ...
+
+    @property
     def producer(self) -> ProducerShas:
         """The shas every :class:`DetectionSet` from this backend carries."""
         ...

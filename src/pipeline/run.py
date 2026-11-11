@@ -176,6 +176,11 @@ def detect_camera(
 
     if gate_mode not in GATE_MODES:
         raise ValueError(f"gate_mode {gate_mode!r} not in {GATE_MODES}")
+    if not detector.stateless:
+        raise ValueError(
+            f"{detector.name} keeps state across frames; the per-frame cache "
+            "and the gate-as-mask both assume a stateless detector"
+        )
     capture = cv2.VideoCapture(str(camera.video))
     if not capture.isOpened():
         raise RuntimeError(f"cannot open {camera.video}")
@@ -183,6 +188,8 @@ def detect_camera(
     if not fps > 0:
         raise RuntimeError(f"{camera.video} reports no frame rate")
     max_frames = int(round(max_seconds * fps)) if max_seconds else 2**62
+    if max_frames < 1:
+        raise ValueError(f"max_seconds={max_seconds} is under one frame at {fps} fps")
     ok, image = capture.read()
     if not ok:
         raise RuntimeError(f"{camera.video} decoded no frames")
@@ -505,18 +512,31 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def dirty_paths(porcelain: str) -> list[str]:
-    """Paths in ``git status --porcelain`` output that make a run's commit a
-    lie: any change to a tracked file, and untracked files under
+def dirty_paths(porcelain_z: str, prefix: str = "") -> list[str]:
+    """Paths in ``git status --porcelain=v1 -z`` output that make a run's
+    commit a lie: any change to a tracked file, and untracked files under
     :data:`CODE_PATHS`. Untracked files elsewhere (logs, scratch) cannot
-    change what runs."""
+    change what runs.
+
+    ``-z`` because without it git quotes paths with spaces or non-ASCII
+    bytes, and a quoted ``"src/a b.py"`` would not match ``src/``. Paths come
+    relative to the repository top level; ``prefix`` (``git rev-parse
+    --show-prefix``) is where this project sits inside it."""
     out = []
-    for line in porcelain.splitlines():
-        if len(line) < 4:
+    fields = porcelain_z.split("\0")
+    i = 0
+    while i < len(fields):
+        entry = fields[i]
+        i += 1
+        if len(entry) < 4:
             continue
-        status, path = line[:2], line[3:]
-        if status == "??" and not path.startswith(CODE_PATHS):
-            continue
+        status, path = entry[:2], entry[3:]
+        if status[0] in "RC":
+            i += 1  # the rename/copy source follows as its own field
+        if status == "??":
+            inside = path[len(prefix) :] if path.startswith(prefix) else None
+            if inside is None or not inside.startswith(CODE_PATHS):
+                continue
         out.append(path)
     return out
 
@@ -524,33 +544,26 @@ def dirty_paths(porcelain: str) -> list[str]:
 def git_state(root: Path) -> dict[str, Any]:
     """``{"commit", "dirty", "dirty_paths"}``. ``dirty`` is ``None`` when git
     cannot answer, which a run treats as dirty: it cannot prove it is clean."""
-    try:
-        commit = subprocess.run(
-            ["git", "-C", str(root), "rev-parse", "HEAD"],
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout.strip()
-        status = subprocess.run(
-            [
-                "git",
-                "-C",
-                str(root),
-                "status",
-                "--porcelain=v1",
-                "--untracked-files=all",
-            ],
+
+    def git(*args: str) -> str:
+        return subprocess.run(
+            ["git", "-C", str(root), *args],
             capture_output=True,
             text=True,
             check=True,
         ).stdout
+
+    try:
+        commit = git("rev-parse", "HEAD").strip()
+        prefix = git("rev-parse", "--show-prefix").strip()
+        status = git("status", "--porcelain=v1", "-z", "--untracked-files=all")
     except (OSError, subprocess.CalledProcessError) as exc:
         return {
             "commit": f"unknown ({exc.__class__.__name__})",
             "dirty": None,
             "dirty_paths": [],
         }
-    paths = dirty_paths(status)
+    paths = dirty_paths(status, prefix)
     return {"commit": commit, "dirty": bool(paths), "dirty_paths": paths}
 
 

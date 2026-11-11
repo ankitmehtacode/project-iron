@@ -111,3 +111,18 @@ def test_a_second_writer_is_refused(tmp_path: Path) -> None:
     with _open(tmp_path):
         with pytest.raises(DetectionCacheError, match="locked"):
             _open(tmp_path)
+
+
+@pytest.mark.parametrize("cut", [0.5, 1.0])
+def test_a_torn_header_is_rewritten(tmp_path: Path, cut: float) -> None:
+    with _open(tmp_path) as cache:
+        path = cache.path
+    header = path.read_text().rstrip("\n")
+    # Killed while writing the header: a prefix of it, or all of it but the
+    # newline. The next open must write the header again before frame 0.
+    path.write_text(header[: int(len(header) * cut)])
+    with _open(tmp_path) as cache:
+        assert len(cache) == 0
+        cache.append(0, _record(0))
+    with _open(tmp_path) as cache:
+        assert len(cache) == 1
