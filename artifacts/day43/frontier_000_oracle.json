@@ -1,0 +1,3867 @@
+{
+  "cameras": [
+    "Camera_0000",
+    "Camera_0001",
+    "Camera_0002",
+    "Camera_0003"
+  ],
+  "candidates": {
+    "adaptive": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              26.0,
+              59.0
+            ],
+            "id_switches_baseline": [
+              33.0,
+              73.0
+            ],
+            "precision": [
+              0.5,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              27.0
+            ],
+            "recall": [
+              0.25,
+              0.6
+            ],
+            "recall_undefined_resamples": [
+              5.0
+            ]
+          },
+          "bootstrap_units": 18,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 18,
+              "objects": 18,
+              "share": 1.0,
+              "wilson95": [
+                0.8241207763533425,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 11,
+            "matched": 5,
+            "precision": 0.7142857142857143,
+            "predicted": 7,
+            "recall": 0.45454545454545453
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7133,
+              "id_switches": 52,
+              "matches": 1062,
+              "misses": 6071
+            },
+            "pipeline": {
+              "false_positives": 1,
+              "gt": 7133,
+              "id_switches": 41,
+              "matches": 1075,
+              "misses": 6058
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.9623104446539283,
+              "estimator_p50": 1.353603211827341,
+              "n": 108,
+              "raw_projection": 1.9639478976085674,
+              "raw_projection_p50": 1.3542704583327065
+            },
+            "[10,20)": {
+              "estimator": 0.2660009913401964,
+              "estimator_p50": 0.2574088359196263,
+              "n": 23,
+              "raw_projection": 0.28978454836156947,
+              "raw_projection_p50": 0.18611656896699505
+            },
+            "[20,30)": {
+              "estimator": 8.301288937761383,
+              "estimator_p50": 0.13300616588360545,
+              "n": 158,
+              "raw_projection": 8.307929704617312,
+              "raw_projection_p50": 0.1243370569996203
+            },
+            "[30,inf)": {
+              "estimator": 11.592071157489931,
+              "estimator_p50": 0.47764769465788093,
+              "n": 786,
+              "raw_projection": 11.93526547585051,
+              "raw_projection_p50": 0.39388834636783326
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              71.0,
+              154.0
+            ],
+            "id_switches_baseline": [
+              95.0,
+              225.0
+            ],
+            "precision": [
+              0.45,
+              0.9230769230769231
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.3157894736842105,
+              0.9285714285714286
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 27,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 6,
+              "objects": 6,
+              "share": 1.0,
+              "wilson95": [
+                0.6096657120978346,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 27,
+              "objects": 27,
+              "share": 1.0,
+              "wilson95": [
+                0.8754449702581327,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 22,
+            "matched": 14,
+            "precision": 0.7,
+            "predicted": 20,
+            "recall": 0.6363636363636364
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 22436,
+              "id_switches": 157,
+              "matches": 3294,
+              "misses": 19142
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 22436,
+              "id_switches": 109,
+              "matches": 3296,
+              "misses": 19140
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.4538687912605704,
+              "estimator_p50": 0.15327778127953565,
+              "n": 270,
+              "raw_projection": 0.8823228321380702,
+              "raw_projection_p50": 0.15071777173015233
+            },
+            "[20,30)": {
+              "estimator": 2.383026572910794,
+              "estimator_p50": 0.36999023871896336,
+              "n": 711,
+              "raw_projection": 2.447012430971555,
+              "raw_projection_p50": 0.22125940753872222
+            },
+            "[30,inf)": {
+              "estimator": 10.311544624268231,
+              "estimator_p50": 0.7760615032535993,
+              "n": 2315,
+              "raw_projection": 10.297151995411573,
+              "raw_projection_p50": 0.2916901593816382
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              12.0,
+              29.0
+            ],
+            "id_switches_baseline": [
+              18.0,
+              36.0
+            ],
+            "precision": [
+              0.0,
+              0.0
+            ],
+            "precision_undefined_resamples": [
+              194.0
+            ],
+            "recall": [
+              0.0,
+              0.0
+            ],
+            "recall_undefined_resamples": [
+              662.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 1,
+            "matched": 0,
+            "precision": 0.0,
+            "predicted": 3,
+            "recall": 0.0
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7671,
+              "id_switches": 26,
+              "matches": 1227,
+              "misses": 6444
+            },
+            "pipeline": {
+              "false_positives": 1,
+              "gt": 7671,
+              "id_switches": 19,
+              "matches": 1224,
+              "misses": 6447
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.4851951522763316,
+              "estimator_p50": 0.3146337217188552,
+              "n": 138,
+              "raw_projection": 1.4878966485858391,
+              "raw_projection_p50": 0.3352098658784064
+            },
+            "[10,20)": {
+              "estimator": 0.17846813151065105,
+              "estimator_p50": 0.16051144297130326,
+              "n": 180,
+              "raw_projection": 0.2045691122987506,
+              "raw_projection_p50": 0.1655097298711355
+            },
+            "[20,30)": {
+              "estimator": 0.7498793550112255,
+              "estimator_p50": 0.22788916489750172,
+              "n": 273,
+              "raw_projection": 1.1041545058960782,
+              "raw_projection_p50": 0.14241858159322
+            },
+            "[30,inf)": {
+              "estimator": 14.459116026139794,
+              "estimator_p50": 0.7967687459750759,
+              "n": 633,
+              "raw_projection": 14.77487723478482,
+              "raw_projection_p50": 0.26705301362884115
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              150.0,
+              253.0
+            ],
+            "id_switches_baseline": [
+              262.0,
+              450.0
+            ],
+            "precision": [
+              0.1749353448275862,
+              0.807738095238095
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.2857142857142857,
+              0.9090909090909091
+            ],
+            "recall_undefined_resamples": [
+              2.0
+            ]
+          },
+          "bootstrap_units": 42,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 5,
+              "objects": 5,
+              "share": 1.0,
+              "wilson95": [
+                0.5655175352168251,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 42,
+              "objects": 42,
+              "share": 1.0,
+              "wilson95": [
+                0.916201209134296,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 20,
+            "matched": 12,
+            "precision": 0.46153846153846156,
+            "predicted": 26,
+            "recall": 0.6
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 36231,
+              "id_switches": 353,
+              "matches": 5324,
+              "misses": 30907
+            },
+            "pipeline": {
+              "false_positives": 3,
+              "gt": 36231,
+              "id_switches": 199,
+              "matches": 5394,
+              "misses": 30837
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.9680836664902056,
+              "estimator_p50": 0.21621160237101528,
+              "n": 117,
+              "raw_projection": 0.9681335582528283,
+              "raw_projection_p50": 0.19123925778402576
+            },
+            "[10,20)": {
+              "estimator": 0.4984897247415826,
+              "estimator_p50": 0.16010691750925798,
+              "n": 493,
+              "raw_projection": 0.569492527692674,
+              "raw_projection_p50": 0.15684811445424052
+            },
+            "[20,30)": {
+              "estimator": 0.5381744157266308,
+              "estimator_p50": 0.16085405035955136,
+              "n": 151,
+              "raw_projection": 1.3340610831817032,
+              "raw_projection_p50": 0.12228361934375462
+            },
+            "[30,inf)": {
+              "estimator": 11.420809880600302,
+              "estimator_p50": 3.840905210061989,
+              "n": 4633,
+              "raw_projection": 11.720931738503829,
+              "raw_projection_p50": 3.7098097200682023
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            299.0,
+            442.02499999999986
+          ],
+          "id_switches_baseline": [
+            470.975,
+            711.0249999999999
+          ],
+          "precision": [
+            0.3817965367965368,
+            0.7272727272727273
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.4042450900163666,
+            0.7391304347826086
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 96,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "Forklift": {
+            "covered": 15,
+            "objects": 15,
+            "share": 1.0,
+            "wilson95": [
+              0.7961166989641515,
+              1.0
+            ]
+          },
+          "PalletTruck": {
+            "covered": 5,
+            "objects": 5,
+            "share": 1.0,
+            "wilson95": [
+              0.5655175352168251,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 96,
+            "objects": 96,
+            "share": 1.0,
+            "wilson95": [
+              0.9615244121423243,
+              1.0
+            ]
+          }
+        },
+        "events": {
+          "gt": 54,
+          "matched": 31,
+          "precision": 0.5535714285714286,
+          "predicted": 56,
+          "recall": 0.5740740740740741
+        },
+        "invocations": 1200,
+        "invocations_per_camera_minute": 300.0,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 73471,
+            "id_switches": 588,
+            "matches": 10907,
+            "misses": 62564
+          },
+          "pipeline": {
+            "false_positives": 5,
+            "gt": 73471,
+            "id_switches": 368,
+            "matches": 10989,
+            "misses": 62482
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 1.512048331595255,
+            "estimator_p50": 0.3399779882912275,
+            "n": 363,
+            "raw_projection": 1.513699931444084,
+            "raw_projection_p50": 0.33978966950927414
+          },
+          "[10,20)": {
+            "estimator": 0.43819490656904714,
+            "estimator_p50": 0.15919246574918477,
+            "n": 966,
+            "raw_projection": 0.6268228447754491,
+            "raw_projection_p50": 0.15546878751300985
+          },
+          "[20,30)": {
+            "estimator": 3.419936804935263,
+            "estimator_p50": 0.23576781688846962,
+            "n": 1293,
+            "raw_projection": 3.49171717881763,
+            "raw_projection_p50": 0.1535811761977239
+          },
+          "[30,inf)": {
+            "estimator": 11.405435688247392,
+            "estimator_p50": 1.378782987284702,
+            "n": 8367,
+            "raw_projection": 11.632049310993066,
+            "raw_projection_p50": 0.7741060154057346
+          }
+        }
+      }
+    },
+    "gate_default": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              7.975000000000001,
+              26.0
+            ],
+            "id_switches_baseline": [
+              6.0,
+              21.0
+            ],
+            "precision": [
+              0.0,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              236.0
+            ],
+            "recall": [
+              0.0,
+              0.3333333333333333
+            ],
+            "recall_undefined_resamples": [
+              5.0
+            ]
+          },
+          "bootstrap_units": 18,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 16,
+              "objects": 18,
+              "share": 0.8888888888888888,
+              "wilson95": [
+                0.672002348698212,
+                0.9689804773543876
+              ]
+            }
+          },
+          "events": {
+            "gt": 11,
+            "matched": 1,
+            "precision": 0.5,
+            "predicted": 2,
+            "recall": 0.09090909090909091
+          },
+          "invocations": 682,
+          "invocations_per_camera_minute": 682.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7133,
+              "id_switches": 13,
+              "matches": 3003,
+              "misses": 4130
+            },
+            "pipeline": {
+              "false_positives": 3,
+              "gt": 7133,
+              "id_switches": 16,
+              "matches": 3002,
+              "misses": 4131
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 2.141320722349163,
+              "estimator_p50": 1.8546876403993375,
+              "n": 599,
+              "raw_projection": 2.1423656713148373,
+              "raw_projection_p50": 1.8681495316566488
+            },
+            "[10,20)": {
+              "estimator": 0.2992339814119356,
+              "estimator_p50": 0.2622128473456494,
+              "n": 68,
+              "raw_projection": 0.29582558970472833,
+              "raw_projection_p50": 0.24334708655714343
+            },
+            "[20,30)": {
+              "estimator": 7.518536183189024,
+              "estimator_p50": 0.08367755727813744,
+              "n": 402,
+              "raw_projection": 7.523012617395703,
+              "raw_projection_p50": 0.08502176370608794
+            },
+            "[30,inf)": {
+              "estimator": 14.466441082530459,
+              "estimator_p50": 0.5124947094827241,
+              "n": 1933,
+              "raw_projection": 14.523759560363294,
+              "raw_projection_p50": 0.31793507737210425
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              104.0,
+              205.0
+            ],
+            "id_switches_baseline": [
+              98.0,
+              200.0
+            ],
+            "precision": [
+              0.5238095238095238,
+              0.875
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.6248922413793103,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 27,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 6,
+              "objects": 6,
+              "share": 1.0,
+              "wilson95": [
+                0.6096657120978346,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 27,
+              "objects": 27,
+              "share": 1.0,
+              "wilson95": [
+                0.8754449702581327,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 22,
+            "matched": 18,
+            "precision": 0.6428571428571429,
+            "predicted": 28,
+            "recall": 0.8181818181818182
+          },
+          "invocations": 1780,
+          "invocations_per_camera_minute": 1780.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 22436,
+              "id_switches": 147,
+              "matches": 20972,
+              "misses": 1464
+            },
+            "pipeline": {
+              "false_positives": 22,
+              "gt": 22436,
+              "id_switches": 152,
+              "matches": 20967,
+              "misses": 1469
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.6370691726939696,
+              "estimator_p50": 0.16950138059876885,
+              "n": 1659,
+              "raw_projection": 0.9339035975718898,
+              "raw_projection_p50": 0.1515779605112718
+            },
+            "[20,30)": {
+              "estimator": 2.4050666902413793,
+              "estimator_p50": 0.42462644399932986,
+              "n": 4257,
+              "raw_projection": 2.6244074640718673,
+              "raw_projection_p50": 0.24183273905022334
+            },
+            "[30,inf)": {
+              "estimator": 12.539654185926508,
+              "estimator_p50": 0.9994280961538221,
+              "n": 15051,
+              "raw_projection": 12.58344114637067,
+              "raw_projection_p50": 0.32704057891780763
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              15.0,
+              38.0
+            ],
+            "id_switches_baseline": [
+              17.0,
+              45.024999999999864
+            ],
+            "precision": [
+              0.0,
+              0.0
+            ],
+            "precision_undefined_resamples": [
+              662.0
+            ],
+            "recall": [
+              0.0,
+              0.0
+            ],
+            "recall_undefined_resamples": [
+              662.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 1,
+            "matched": 0,
+            "precision": 0.0,
+            "predicted": 3,
+            "recall": 0.0
+          },
+          "invocations": 1023,
+          "invocations_per_camera_minute": 1023.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7671,
+              "id_switches": 29,
+              "matches": 4718,
+              "misses": 2953
+            },
+            "pipeline": {
+              "false_positives": 1,
+              "gt": 7671,
+              "id_switches": 25,
+              "matches": 4716,
+              "misses": 2955
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.4926764191823119,
+              "estimator_p50": 0.33507603985962287,
+              "n": 846,
+              "raw_projection": 1.495358678007121,
+              "raw_projection_p50": 0.3425166547102422
+            },
+            "[10,20)": {
+              "estimator": 0.2050776084070685,
+              "estimator_p50": 0.19207951235989143,
+              "n": 391,
+              "raw_projection": 0.22595303205401898,
+              "raw_projection_p50": 0.16734653398359228
+            },
+            "[20,30)": {
+              "estimator": 0.9393989478800652,
+              "estimator_p50": 0.23202216567919137,
+              "n": 983,
+              "raw_projection": 1.2200645661135343,
+              "raw_projection_p50": 0.1275117862987276
+            },
+            "[30,inf)": {
+              "estimator": 14.092325023815611,
+              "estimator_p50": 0.7292092137143417,
+              "n": 2496,
+              "raw_projection": 14.59540379051707,
+              "raw_projection_p50": 0.2929563345198972
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              151.0,
+              257.0
+            ],
+            "id_switches_baseline": [
+              147.0,
+              256.0
+            ],
+            "precision": [
+              0.060561497326203216,
+              0.5357829670329667
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.125,
+              0.7201666666666667
+            ],
+            "recall_undefined_resamples": [
+              2.0
+            ]
+          },
+          "bootstrap_units": 42,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 5,
+              "objects": 5,
+              "share": 1.0,
+              "wilson95": [
+                0.5655175352168251,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 42,
+              "objects": 42,
+              "share": 1.0,
+              "wilson95": [
+                0.916201209134296,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 20,
+            "matched": 8,
+            "precision": 0.25,
+            "predicted": 32,
+            "recall": 0.4
+          },
+          "invocations": 1643,
+          "invocations_per_camera_minute": 1643.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 36231,
+              "id_switches": 199,
+              "matches": 31949,
+              "misses": 4282
+            },
+            "pipeline": {
+              "false_positives": 27,
+              "gt": 36231,
+              "id_switches": 201,
+              "matches": 31949,
+              "misses": 4282
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.0929259423320536,
+              "estimator_p50": 0.24629445176426246,
+              "n": 722,
+              "raw_projection": 1.092214683013701,
+              "raw_projection_p50": 0.22436202747832892
+            },
+            "[10,20)": {
+              "estimator": 0.5234355144097881,
+              "estimator_p50": 0.1741539495365199,
+              "n": 2970,
+              "raw_projection": 0.5874500233430261,
+              "raw_projection_p50": 0.16043162524854718
+            },
+            "[20,30)": {
+              "estimator": 0.590857704040326,
+              "estimator_p50": 0.16654774387396398,
+              "n": 935,
+              "raw_projection": 1.4477662688006898,
+              "raw_projection_p50": 0.1364602656185664
+            },
+            "[30,inf)": {
+              "estimator": 12.401142872144908,
+              "estimator_p50": 4.913994529227333,
+              "n": 27322,
+              "raw_projection": 12.796323784056018,
+              "raw_projection_p50": 4.980177206611639
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            316.975,
+            476.0
+          ],
+          "id_switches_baseline": [
+            308.0,
+            469.0
+          ],
+          "precision": [
+            0.2545454545454545,
+            0.5849171652093879
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.31746031746031744,
+            0.6808510638297872
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 96,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "Forklift": {
+            "covered": 15,
+            "objects": 15,
+            "share": 1.0,
+            "wilson95": [
+              0.7961166989641515,
+              1.0
+            ]
+          },
+          "PalletTruck": {
+            "covered": 5,
+            "objects": 5,
+            "share": 1.0,
+            "wilson95": [
+              0.5655175352168251,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 94,
+            "objects": 96,
+            "share": 0.9791666666666666,
+            "wilson95": [
+              0.9271928648221579,
+              0.9942680301475697
+            ]
+          }
+        },
+        "events": {
+          "gt": 54,
+          "matched": 27,
+          "precision": 0.4153846153846154,
+          "predicted": 65,
+          "recall": 0.5
+        },
+        "invocations": 5128,
+        "invocations_per_camera_minute": 1282.0,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 73471,
+            "id_switches": 388,
+            "matches": 60642,
+            "misses": 12829
+          },
+          "pipeline": {
+            "false_positives": 53,
+            "gt": 73471,
+            "id_switches": 394,
+            "matches": 60634,
+            "misses": 12837
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 1.5922553147276128,
+            "estimator_p50": 0.4051212127324502,
+            "n": 2167,
+            "raw_projection": 1.5934633411237915,
+            "raw_projection_p50": 0.4067254867877778
+          },
+          "[10,20)": {
+            "estimator": 0.5446972530894224,
+            "estimator_p50": 0.17454430487276607,
+            "n": 5088,
+            "raw_projection": 0.7006556924766415,
+            "raw_projection_p50": 0.15669911380389973
+          },
+          "[20,30)": {
+            "estimator": 2.7167274815867852,
+            "estimator_p50": 0.2919406158916148,
+            "n": 6577,
+            "raw_projection": 2.9047696572250126,
+            "raw_projection_p50": 0.1659141311253886
+          },
+          "[30,inf)": {
+            "estimator": 12.632522456913353,
+            "estimator_p50": 2.5495128144623664,
+            "n": 46802,
+            "raw_projection": 12.906808802013915,
+            "raw_projection_p50": 1.3803243596158898
+          }
+        }
+      }
+    },
+    "gate_keepalive": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              31.975,
+              70.0
+            ],
+            "id_switches_baseline": [
+              29.0,
+              67.02499999999986
+            ],
+            "precision": [
+              0.35256410256410253,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              24.0
+            ],
+            "recall": [
+              0.2,
+              0.75
+            ],
+            "recall_undefined_resamples": [
+              5.0
+            ]
+          },
+          "bootstrap_units": 18,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 18,
+              "objects": 18,
+              "share": 1.0,
+              "wilson95": [
+                0.8241207763533425,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 11,
+            "matched": 5,
+            "precision": 0.625,
+            "predicted": 8,
+            "recall": 0.45454545454545453
+          },
+          "invocations": 1733,
+          "invocations_per_camera_minute": 1733.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7133,
+              "id_switches": 47,
+              "matches": 6502,
+              "misses": 631
+            },
+            "pipeline": {
+              "false_positives": 10,
+              "gt": 7133,
+              "id_switches": 50,
+              "matches": 6498,
+              "misses": 635
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 2.1017000894265716,
+              "estimator_p50": 1.7169246117233874,
+              "n": 723,
+              "raw_projection": 2.1019112453937736,
+              "raw_projection_p50": 1.7158060065223348
+            },
+            "[10,20)": {
+              "estimator": 0.2992339814119356,
+              "estimator_p50": 0.2622128473456494,
+              "n": 68,
+              "raw_projection": 0.29582558970472833,
+              "raw_projection_p50": 0.24334708655714343
+            },
+            "[20,30)": {
+              "estimator": 5.075258938537059,
+              "estimator_p50": 0.12871171522557515,
+              "n": 886,
+              "raw_projection": 5.068354327173752,
+              "raw_projection_p50": 0.11729623929799525
+            },
+            "[30,inf)": {
+              "estimator": 13.560874861833396,
+              "estimator_p50": 0.6959141461232229,
+              "n": 4821,
+              "raw_projection": 13.270063864718297,
+              "raw_projection_p50": 0.43351215745273436
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              104.0,
+              205.0
+            ],
+            "id_switches_baseline": [
+              98.0,
+              200.0
+            ],
+            "precision": [
+              0.5238095238095238,
+              0.875
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.6248922413793103,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 27,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 6,
+              "objects": 6,
+              "share": 1.0,
+              "wilson95": [
+                0.6096657120978346,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 27,
+              "objects": 27,
+              "share": 1.0,
+              "wilson95": [
+                0.8754449702581327,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 22,
+            "matched": 18,
+            "precision": 0.6428571428571429,
+            "predicted": 28,
+            "recall": 0.8181818181818182
+          },
+          "invocations": 1780,
+          "invocations_per_camera_minute": 1780.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 22436,
+              "id_switches": 147,
+              "matches": 20972,
+              "misses": 1464
+            },
+            "pipeline": {
+              "false_positives": 22,
+              "gt": 22436,
+              "id_switches": 152,
+              "matches": 20967,
+              "misses": 1469
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.6370691726939696,
+              "estimator_p50": 0.16950138059876885,
+              "n": 1659,
+              "raw_projection": 0.9339035975718898,
+              "raw_projection_p50": 0.1515779605112718
+            },
+            "[20,30)": {
+              "estimator": 2.4050666902413793,
+              "estimator_p50": 0.42462644399932986,
+              "n": 4257,
+              "raw_projection": 2.6244074640718673,
+              "raw_projection_p50": 0.24183273905022334
+            },
+            "[30,inf)": {
+              "estimator": 12.539654185926508,
+              "estimator_p50": 0.9994280961538221,
+              "n": 15051,
+              "raw_projection": 12.58344114637067,
+              "raw_projection_p50": 0.32704057891780763
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              16.0,
+              45.024999999999864
+            ],
+            "id_switches_baseline": [
+              16.0,
+              48.0
+            ],
+            "precision": [
+              0.0,
+              0.0
+            ],
+            "precision_undefined_resamples": [
+              194.0
+            ],
+            "recall": [
+              0.0,
+              0.0
+            ],
+            "recall_undefined_resamples": [
+              662.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 1,
+            "matched": 0,
+            "precision": 0.0,
+            "predicted": 5,
+            "recall": 0.0
+          },
+          "invocations": 1718,
+          "invocations_per_camera_minute": 1718.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7671,
+              "id_switches": 30,
+              "matches": 7319,
+              "misses": 352
+            },
+            "pipeline": {
+              "false_positives": 1,
+              "gt": 7671,
+              "id_switches": 29,
+              "matches": 7317,
+              "misses": 354
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.5043249003823018,
+              "estimator_p50": 0.3379720214779796,
+              "n": 849,
+              "raw_projection": 1.5068739371018718,
+              "raw_projection_p50": 0.34311481746705114
+            },
+            "[10,20)": {
+              "estimator": 0.22505523494083432,
+              "estimator_p50": 0.16965272497368591,
+              "n": 1008,
+              "raw_projection": 0.4056297515651074,
+              "raw_projection_p50": 0.16731107850824273
+            },
+            "[20,30)": {
+              "estimator": 1.0561143879115475,
+              "estimator_p50": 0.2424595445255412,
+              "n": 1647,
+              "raw_projection": 1.329493504866966,
+              "raw_projection_p50": 0.14241858159322
+            },
+            "[30,inf)": {
+              "estimator": 14.884072573919703,
+              "estimator_p50": 0.8801164739960777,
+              "n": 3813,
+              "raw_projection": 15.256779472743023,
+              "raw_projection_p50": 0.28712719184365304
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              155.975,
+              263.02499999999986
+            ],
+            "id_switches_baseline": [
+              149.0,
+              260.0
+            ],
+            "precision": [
+              0.1388888888888889,
+              0.625
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.4498706896551724,
+              0.7698717948717954
+            ],
+            "recall_undefined_resamples": [
+              2.0
+            ]
+          },
+          "bootstrap_units": 42,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 5,
+              "objects": 5,
+              "share": 1.0,
+              "wilson95": [
+                0.5655175352168251,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 42,
+              "objects": 42,
+              "share": 1.0,
+              "wilson95": [
+                0.916201209134296,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 20,
+            "matched": 12,
+            "precision": 0.35294117647058826,
+            "predicted": 34,
+            "recall": 0.6
+          },
+          "invocations": 1789,
+          "invocations_per_camera_minute": 1789.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 36231,
+              "id_switches": 202,
+              "matches": 34172,
+              "misses": 2059
+            },
+            "pipeline": {
+              "false_positives": 30,
+              "gt": 36231,
+              "id_switches": 206,
+              "matches": 34170,
+              "misses": 2061
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.092925942332054,
+              "estimator_p50": 0.2462944517617413,
+              "n": 722,
+              "raw_projection": 1.092214683013701,
+              "raw_projection_p50": 0.22436202747832892
+            },
+            "[10,20)": {
+              "estimator": 0.5231115815150201,
+              "estimator_p50": 0.17412638839507028,
+              "n": 2975,
+              "raw_projection": 0.5870257975748321,
+              "raw_projection_p50": 0.16042684785015712
+            },
+            "[20,30)": {
+              "estimator": 0.590857704040326,
+              "estimator_p50": 0.16654774387396398,
+              "n": 935,
+              "raw_projection": 1.4477662688006898,
+              "raw_projection_p50": 0.1364602656185664
+            },
+            "[30,inf)": {
+              "estimator": 12.564226541485867,
+              "estimator_p50": 4.783728877065458,
+              "n": 29538,
+              "raw_projection": 12.960636584750848,
+              "raw_projection_p50": 4.986062291005792
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            359.975,
+            518.0249999999999
+          ],
+          "id_switches_baseline": [
+            346.0,
+            510.0
+          ],
+          "precision": [
+            0.33324742268041235,
+            0.6093845274390244
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.5227025691699605,
+            0.7758734119782214
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 96,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "Forklift": {
+            "covered": 15,
+            "objects": 15,
+            "share": 1.0,
+            "wilson95": [
+              0.7961166989641515,
+              1.0
+            ]
+          },
+          "PalletTruck": {
+            "covered": 5,
+            "objects": 5,
+            "share": 1.0,
+            "wilson95": [
+              0.5655175352168251,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 96,
+            "objects": 96,
+            "share": 1.0,
+            "wilson95": [
+              0.9615244121423243,
+              1.0
+            ]
+          }
+        },
+        "events": {
+          "gt": 54,
+          "matched": 35,
+          "precision": 0.4666666666666667,
+          "predicted": 75,
+          "recall": 0.6481481481481481
+        },
+        "invocations": 7020,
+        "invocations_per_camera_minute": 1755.0,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 73471,
+            "id_switches": 426,
+            "matches": 68965,
+            "misses": 4506
+          },
+          "pipeline": {
+            "false_positives": 63,
+            "gt": 73471,
+            "id_switches": 437,
+            "matches": 68952,
+            "misses": 4519
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 1.6141937560938688,
+            "estimator_p50": 0.3872618602551256,
+            "n": 2294,
+            "raw_projection": 1.6150086072259782,
+            "raw_projection_p50": 0.3914302483057411
+          },
+          "[10,20)": {
+            "estimator": 0.5200964582766718,
+            "estimator_p50": 0.17313040040461064,
+            "n": 5710,
+            "raw_projection": 0.6804661782002519,
+            "raw_projection_p50": 0.15806386342000459
+          },
+          "[20,30)": {
+            "estimator": 2.53414788019461,
+            "estimator_p50": 0.2772948305666636,
+            "n": 7725,
+            "raw_projection": 2.7151940588822603,
+            "raw_projection_p50": 0.15703565283167298
+          },
+          "[30,inf)": {
+            "estimator": 12.829875935164024,
+            "estimator_p50": 2.3654149733001617,
+            "n": 53223,
+            "raw_projection": 13.062555146368991,
+            "raw_projection_p50": 1.1567312880497311
+          }
+        }
+      }
+    },
+    "gate_off": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              32.0,
+              71.02499999999986
+            ],
+            "id_switches_baseline": [
+              29.975,
+              69.0
+            ],
+            "precision": [
+              0.42857142857142855,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              5.0
+            ],
+            "recall": [
+              0.4,
+              0.75
+            ],
+            "recall_undefined_resamples": [
+              5.0
+            ]
+          },
+          "bootstrap_units": 18,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 18,
+              "objects": 18,
+              "share": 1.0,
+              "wilson95": [
+                0.8241207763533425,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 11,
+            "matched": 6,
+            "precision": 0.6666666666666666,
+            "predicted": 9,
+            "recall": 0.5454545454545454
+          },
+          "invocations": 1800,
+          "invocations_per_camera_minute": 1800.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7133,
+              "id_switches": 48,
+              "matches": 6900,
+              "misses": 233
+            },
+            "pipeline": {
+              "false_positives": 10,
+              "gt": 7133,
+              "id_switches": 51,
+              "matches": 6896,
+              "misses": 237
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 2.1017021865521426,
+              "estimator_p50": 1.7169246117233874,
+              "n": 723,
+              "raw_projection": 2.1019112453937736,
+              "raw_projection_p50": 1.7158060065223348
+            },
+            "[10,20)": {
+              "estimator": 0.2577992955499326,
+              "estimator_p50": 0.23133427561238998,
+              "n": 135,
+              "raw_projection": 0.2812434960359455,
+              "raw_projection_p50": 0.22380153113699083
+            },
+            "[20,30)": {
+              "estimator": 8.415244201281011,
+              "estimator_p50": 0.13073690787803482,
+              "n": 949,
+              "raw_projection": 8.420045537420666,
+              "raw_projection_p50": 0.12409453332856242
+            },
+            "[30,inf)": {
+              "estimator": 13.765055603588216,
+              "estimator_p50": 0.6942696664206548,
+              "n": 5089,
+              "raw_projection": 13.502394276570287,
+              "raw_projection_p50": 0.43351215745273436
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              104.0,
+              207.0
+            ],
+            "id_switches_baseline": [
+              98.0,
+              203.0
+            ],
+            "precision": [
+              0.5238095238095238,
+              0.875
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.6248922413793103,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 27,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 6,
+              "objects": 6,
+              "share": 1.0,
+              "wilson95": [
+                0.6096657120978346,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 27,
+              "objects": 27,
+              "share": 1.0,
+              "wilson95": [
+                0.8754449702581327,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 22,
+            "matched": 18,
+            "precision": 0.6428571428571429,
+            "predicted": 28,
+            "recall": 0.8181818181818182
+          },
+          "invocations": 1800,
+          "invocations_per_camera_minute": 1800.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 22436,
+              "id_switches": 148,
+              "matches": 21192,
+              "misses": 1244
+            },
+            "pipeline": {
+              "false_positives": 22,
+              "gt": 22436,
+              "id_switches": 153,
+              "matches": 21187,
+              "misses": 1249
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.633550806594664,
+              "estimator_p50": 0.17073288695608863,
+              "n": 1679,
+              "raw_projection": 0.9285179166138773,
+              "raw_projection_p50": 0.15177363432560867
+            },
+            "[20,30)": {
+              "estimator": 2.383512992409861,
+              "estimator_p50": 0.42323904752000807,
+              "n": 4337,
+              "raw_projection": 2.6002639582788603,
+              "raw_projection_p50": 0.23905618925313293
+            },
+            "[30,inf)": {
+              "estimator": 12.518901999105418,
+              "estimator_p50": 1.0034017948031937,
+              "n": 15171,
+              "raw_projection": 12.56807399209526,
+              "raw_projection_p50": 0.32704057891780763
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              16.0,
+              45.024999999999864
+            ],
+            "id_switches_baseline": [
+              16.0,
+              48.0
+            ],
+            "precision": [
+              0.0,
+              0.0
+            ],
+            "precision_undefined_resamples": [
+              194.0
+            ],
+            "recall": [
+              0.0,
+              0.0
+            ],
+            "recall_undefined_resamples": [
+              662.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 1,
+            "matched": 0,
+            "precision": 0.0,
+            "predicted": 5,
+            "recall": 0.0
+          },
+          "invocations": 1800,
+          "invocations_per_camera_minute": 1800.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7671,
+              "id_switches": 30,
+              "matches": 7483,
+              "misses": 188
+            },
+            "pipeline": {
+              "false_positives": 1,
+              "gt": 7671,
+              "id_switches": 29,
+              "matches": 7481,
+              "misses": 190
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.5043284505644727,
+              "estimator_p50": 0.33791798524780947,
+              "n": 849,
+              "raw_projection": 1.5068739371018718,
+              "raw_projection_p50": 0.34311481746705114
+            },
+            "[10,20)": {
+              "estimator": 0.22265896461579382,
+              "estimator_p50": 0.16967838727086976,
+              "n": 1090,
+              "raw_projection": 0.39450488001389267,
+              "raw_projection_p50": 0.16731107850824273
+            },
+            "[20,30)": {
+              "estimator": 1.0561143879115475,
+              "estimator_p50": 0.2424595445255412,
+              "n": 1647,
+              "raw_projection": 1.329493504866966,
+              "raw_projection_p50": 0.14241858159322
+            },
+            "[30,inf)": {
+              "estimator": 14.72712612575218,
+              "estimator_p50": 0.8700690155489234,
+              "n": 3895,
+              "raw_projection": 15.095971376013859,
+              "raw_projection_p50": 0.29893949900763983
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              155.975,
+              263.02499999999986
+            ],
+            "id_switches_baseline": [
+              149.0,
+              260.0
+            ],
+            "precision": [
+              0.1388888888888889,
+              0.625
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.4498706896551724,
+              0.7698717948717954
+            ],
+            "recall_undefined_resamples": [
+              2.0
+            ]
+          },
+          "bootstrap_units": 42,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 5,
+              "objects": 5,
+              "share": 1.0,
+              "wilson95": [
+                0.5655175352168251,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 42,
+              "objects": 42,
+              "share": 1.0,
+              "wilson95": [
+                0.916201209134296,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 20,
+            "matched": 12,
+            "precision": 0.35294117647058826,
+            "predicted": 34,
+            "recall": 0.6
+          },
+          "invocations": 1800,
+          "invocations_per_camera_minute": 1800.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 36231,
+              "id_switches": 202,
+              "matches": 34381,
+              "misses": 1850
+            },
+            "pipeline": {
+              "false_positives": 30,
+              "gt": 36231,
+              "id_switches": 206,
+              "matches": 34379,
+              "misses": 1852
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.0777334943660128,
+              "estimator_p50": 0.24916156008920948,
+              "n": 744,
+              "raw_projection": 1.0765377415455977,
+              "raw_projection_p50": 0.21337118656254117
+            },
+            "[10,20)": {
+              "estimator": 0.522221053770097,
+              "estimator_p50": 0.17385509984932995,
+              "n": 2986,
+              "raw_projection": 0.5860049787719132,
+              "raw_projection_p50": 0.15989480841874004
+            },
+            "[20,30)": {
+              "estimator": 0.590857704040326,
+              "estimator_p50": 0.16654774387396398,
+              "n": 935,
+              "raw_projection": 1.4477662688006898,
+              "raw_projection_p50": 0.1364602656185664
+            },
+            "[30,inf)": {
+              "estimator": 12.534314402281241,
+              "estimator_p50": 4.7746891995898295,
+              "n": 29714,
+              "raw_projection": 12.937409497730126,
+              "raw_projection_p50": 4.916433957756649
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            361.0,
+            520.0249999999999
+          ],
+          "id_switches_baseline": [
+            346.975,
+            512.0
+          ],
+          "precision": [
+            0.33783783783783783,
+            0.6197425934919862
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.55,
+            0.781614420062696
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 96,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "Forklift": {
+            "covered": 15,
+            "objects": 15,
+            "share": 1.0,
+            "wilson95": [
+              0.7961166989641515,
+              1.0
+            ]
+          },
+          "PalletTruck": {
+            "covered": 5,
+            "objects": 5,
+            "share": 1.0,
+            "wilson95": [
+              0.5655175352168251,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 96,
+            "objects": 96,
+            "share": 1.0,
+            "wilson95": [
+              0.9615244121423243,
+              1.0
+            ]
+          }
+        },
+        "events": {
+          "gt": 54,
+          "matched": 36,
+          "precision": 0.47368421052631576,
+          "predicted": 76,
+          "recall": 0.6666666666666666
+        },
+        "invocations": 7200,
+        "invocations_per_camera_minute": 1800.0,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 73471,
+            "id_switches": 428,
+            "matches": 69956,
+            "misses": 3515
+          },
+          "pipeline": {
+            "false_positives": 63,
+            "gt": 73471,
+            "id_switches": 439,
+            "matches": 69943,
+            "misses": 3528
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 1.6067450766976865,
+            "estimator_p50": 0.3791373042939305,
+            "n": 2316,
+            "raw_projection": 1.6074471674358695,
+            "raw_projection_p50": 0.3858937583076839
+          },
+          "[10,20)": {
+            "estimator": 0.51319858714301,
+            "estimator_p50": 0.17316983830038904,
+            "n": 5890,
+            "raw_projection": 0.6711695183524612,
+            "raw_projection_p50": 0.15907894554989926
+          },
+          "[20,30)": {
+            "estimator": 3.456594609502041,
+            "estimator_p50": 0.28060307015081565,
+            "n": 7868,
+            "raw_projection": 3.5912894835693607,
+            "raw_projection_p50": 0.15782054654962863
+          },
+          "[30,inf)": {
+            "estimator": 12.821092228842641,
+            "estimator_p50": 2.3151691400227037,
+            "n": 53869,
+            "raw_projection": 13.05795221742896,
+            "raw_projection_p50": 1.1274016669818319
+          }
+        }
+      }
+    },
+    "motion_adaptive": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              2.0,
+              20.0
+            ],
+            "id_switches_baseline": [
+              4.0,
+              37.0
+            ],
+            "precision": [
+              1.0,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              724.0
+            ],
+            "recall": [
+              0.0,
+              0.3333333333333333
+            ],
+            "recall_undefined_resamples": [
+              5.0
+            ]
+          },
+          "bootstrap_units": 18,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 15,
+              "objects": 18,
+              "share": 0.8333333333333334,
+              "wilson95": [
+                0.6077796189608429,
+                0.9416342319413855
+              ]
+            }
+          },
+          "events": {
+            "gt": 11,
+            "matched": 1,
+            "precision": 1.0,
+            "predicted": 1,
+            "recall": 0.09090909090909091
+          },
+          "invocations": 116,
+          "invocations_per_camera_minute": 116.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7133,
+              "id_switches": 19,
+              "matches": 464,
+              "misses": 6669
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 7133,
+              "id_switches": 10,
+              "matches": 473,
+              "misses": 6660
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 2.0498165076101365,
+              "estimator_p50": 1.6408953172507283,
+              "n": 92,
+              "raw_projection": 2.052655763875507,
+              "raw_projection_p50": 1.6401244807004125
+            },
+            "[10,20)": {
+              "estimator": 0.2964726732592017,
+              "estimator_p50": 0.26591672069213335,
+              "n": 12,
+              "raw_projection": 0.30299539366359235,
+              "raw_projection_p50": 0.1809843474353442
+            },
+            "[20,30)": {
+              "estimator": 7.538782223138108,
+              "estimator_p50": 0.08443932180204483,
+              "n": 69,
+              "raw_projection": 7.5358029855274085,
+              "raw_projection_p50": 0.08494103242840709
+            },
+            "[30,inf)": {
+              "estimator": 12.212780219450526,
+              "estimator_p50": 0.46924763695469296,
+              "n": 300,
+              "raw_projection": 12.05573003688435,
+              "raw_projection_p50": 0.2889787011700149
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              67.0,
+              171.0
+            ],
+            "id_switches_baseline": [
+              97.0,
+              241.0
+            ],
+            "precision": [
+              0.4827586206896552,
+              0.9230769230769231
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.42857142857142855,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 27,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 6,
+              "objects": 6,
+              "share": 1.0,
+              "wilson95": [
+                0.6096657120978346,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 27,
+              "objects": 27,
+              "share": 1.0,
+              "wilson95": [
+                0.8754449702581327,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 22,
+            "matched": 16,
+            "precision": 0.64,
+            "predicted": 25,
+            "recall": 0.7272727272727273
+          },
+          "invocations": 297,
+          "invocations_per_camera_minute": 297.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 22436,
+              "id_switches": 167,
+              "matches": 3259,
+              "misses": 19177
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 22436,
+              "id_switches": 114,
+              "matches": 3268,
+              "misses": 19168
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.37977847360730216,
+              "estimator_p50": 0.16150582041105938,
+              "n": 264,
+              "raw_projection": 0.7038336404526457,
+              "raw_projection_p50": 0.15022894067188985
+            },
+            "[20,30)": {
+              "estimator": 2.2477481355813347,
+              "estimator_p50": 0.3930548381823763,
+              "n": 699,
+              "raw_projection": 2.467202048284087,
+              "raw_projection_p50": 0.23910535875783126
+            },
+            "[30,inf)": {
+              "estimator": 10.304843323355083,
+              "estimator_p50": 0.7305976347393971,
+              "n": 2305,
+              "raw_projection": 10.32368050332834,
+              "raw_projection_p50": 0.28668824821176747
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              18.0,
+              39.0
+            ],
+            "id_switches_baseline": [
+              18.0,
+              41.0
+            ],
+            "precision": [
+              0.0,
+              0.0
+            ],
+            "precision_undefined_resamples": [
+              662.0
+            ],
+            "recall": [
+              0.0,
+              0.0
+            ],
+            "recall_undefined_resamples": [
+              662.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 1,
+            "matched": 0,
+            "precision": 0.0,
+            "predicted": 2,
+            "recall": 0.0
+          },
+          "invocations": 173,
+          "invocations_per_camera_minute": 173.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7671,
+              "id_switches": 29,
+              "matches": 788,
+              "misses": 6883
+            },
+            "pipeline": {
+              "false_positives": 1,
+              "gt": 7671,
+              "id_switches": 28,
+              "matches": 787,
+              "misses": 6884
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.4741879950943593,
+              "estimator_p50": 0.33529499167309224,
+              "n": 136,
+              "raw_projection": 1.4763331650204616,
+              "raw_projection_p50": 0.34618091172131316
+            },
+            "[10,20)": {
+              "estimator": 0.2092961667285105,
+              "estimator_p50": 0.1833743840823531,
+              "n": 67,
+              "raw_projection": 0.22754101471955654,
+              "raw_projection_p50": 0.1620431797795687
+            },
+            "[20,30)": {
+              "estimator": 0.4431026085246703,
+              "estimator_p50": 0.18942179273482812,
+              "n": 166,
+              "raw_projection": 0.8996882194006993,
+              "raw_projection_p50": 0.11432271334923796
+            },
+            "[30,inf)": {
+              "estimator": 14.234868771241262,
+              "estimator_p50": 0.6932365145403674,
+              "n": 418,
+              "raw_projection": 14.75787754102588,
+              "raw_projection_p50": 0.29824774633688017
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              139.975,
+              225.0
+            ],
+            "id_switches_baseline": [
+              242.0,
+              405.0
+            ],
+            "precision": [
+              0.1,
+              0.8
+            ],
+            "precision_undefined_resamples": [
+              1.0
+            ],
+            "recall": [
+              0.125,
+              0.6296296296296297
+            ],
+            "recall_undefined_resamples": [
+              2.0
+            ]
+          },
+          "bootstrap_units": 42,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 5,
+              "objects": 5,
+              "share": 1.0,
+              "wilson95": [
+                0.5655175352168251,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 42,
+              "objects": 42,
+              "share": 1.0,
+              "wilson95": [
+                0.916201209134296,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 20,
+            "matched": 7,
+            "precision": 0.3684210526315789,
+            "predicted": 19,
+            "recall": 0.35
+          },
+          "invocations": 275,
+          "invocations_per_camera_minute": 275.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 36231,
+              "id_switches": 321,
+              "matches": 4951,
+              "misses": 31280
+            },
+            "pipeline": {
+              "false_positives": 2,
+              "gt": 36231,
+              "id_switches": 181,
+              "matches": 5000,
+              "misses": 31231
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.9814028519014228,
+              "estimator_p50": 0.21544776199550408,
+              "n": 113,
+              "raw_projection": 0.9820795717682784,
+              "raw_projection_p50": 0.1929304141706383
+            },
+            "[10,20)": {
+              "estimator": 0.4843354719746346,
+              "estimator_p50": 0.16422344697217162,
+              "n": 493,
+              "raw_projection": 0.5614525053310508,
+              "raw_projection_p50": 0.16080357087002042
+            },
+            "[20,30)": {
+              "estimator": 0.5560529234143871,
+              "estimator_p50": 0.15487722673131765,
+              "n": 150,
+              "raw_projection": 1.3507922651419773,
+              "raw_projection_p50": 0.13330672091720058
+            },
+            "[30,inf)": {
+              "estimator": 11.22901374129633,
+              "estimator_p50": 3.8322124577484113,
+              "n": 4244,
+              "raw_projection": 11.4857679249601,
+              "raw_projection_p50": 3.7141219578618063
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            263.0,
+            411.02499999999986
+          ],
+          "id_switches_baseline": [
+            419.0,
+            660.0249999999999
+          ],
+          "precision": [
+            0.3408863636363636,
+            0.71875
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.25639534883720927,
+            0.6363636363636364
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 96,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "Forklift": {
+            "covered": 15,
+            "objects": 15,
+            "share": 1.0,
+            "wilson95": [
+              0.7961166989641515,
+              1.0
+            ]
+          },
+          "PalletTruck": {
+            "covered": 5,
+            "objects": 5,
+            "share": 1.0,
+            "wilson95": [
+              0.5655175352168251,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 93,
+            "objects": 96,
+            "share": 0.96875,
+            "wilson95": [
+              0.9121132067546304,
+              0.9893159296287989
+            ]
+          }
+        },
+        "events": {
+          "gt": 54,
+          "matched": 24,
+          "precision": 0.5106382978723404,
+          "predicted": 47,
+          "recall": 0.4444444444444444
+        },
+        "invocations": 861,
+        "invocations_per_camera_minute": 215.25,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 73471,
+            "id_switches": 536,
+            "matches": 9462,
+            "misses": 64009
+          },
+          "pipeline": {
+            "false_positives": 3,
+            "gt": 73471,
+            "id_switches": 333,
+            "matches": 9528,
+            "misses": 63943
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 1.522996957782323,
+            "estimator_p50": 0.3646956025371429,
+            "n": 341,
+            "raw_projection": 1.525000632447798,
+            "raw_projection_p50": 0.359065163259286
+          },
+          "[10,20)": {
+            "estimator": 0.43434381643918124,
+            "estimator_p50": 0.16454322581881603,
+            "n": 836,
+            "raw_projection": 0.5897441285111017,
+            "raw_projection_p50": 0.15440776138677625
+          },
+          "[20,30)": {
+            "estimator": 2.6359830576254115,
+            "estimator_p50": 0.23792901735011174,
+            "n": 1084,
+            "raw_projection": 2.8136020485482014,
+            "raw_projection_p50": 0.16172078217187452
+          },
+          "[30,inf)": {
+            "estimator": 11.186290383308915,
+            "estimator_p50": 1.530026907494106,
+            "n": 7267,
+            "raw_projection": 11.374410883428729,
+            "raw_projection_p50": 0.8703060033960978
+          }
+        }
+      }
+    },
+    "stride_15": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              41.0,
+              107.02499999999986
+            ],
+            "id_switches_baseline": [
+              57.0,
+              135.0
+            ],
+            "precision": [
+              0.0,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              27.0
+            ],
+            "recall": [
+              0.0,
+              0.5
+            ],
+            "recall_undefined_resamples": [
+              5.0
+            ]
+          },
+          "bootstrap_units": 18,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 18,
+              "objects": 18,
+              "share": 1.0,
+              "wilson95": [
+                0.8241207763533425,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 11,
+            "matched": 2,
+            "precision": 0.5,
+            "predicted": 4,
+            "recall": 0.18181818181818182
+          },
+          "invocations": 120,
+          "invocations_per_camera_minute": 120.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7133,
+              "id_switches": 95,
+              "matches": 378,
+              "misses": 6755
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 7133,
+              "id_switches": 71,
+              "matches": 359,
+              "misses": 6774
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.2738978441603197,
+              "estimator_p50": 0.3845137307320594,
+              "n": 25,
+              "raw_projection": 1.2753185772741005,
+              "raw_projection_p50": 0.4397601975260542
+            },
+            "[10,20)": {
+              "estimator": 0.23051687128018275,
+              "estimator_p50": 0.18047032077951336,
+              "n": 9,
+              "raw_projection": 0.24437994164773225,
+              "raw_projection_p50": 0.18047032077951336
+            },
+            "[20,30)": {
+              "estimator": 7.554677158123834,
+              "estimator_p50": 0.13291157698456413,
+              "n": 62,
+              "raw_projection": 7.551053351591487,
+              "raw_projection_p50": 0.1258273422153664
+            },
+            "[30,inf)": {
+              "estimator": 9.227544436336306,
+              "estimator_p50": 0.43253248506619046,
+              "n": 263,
+              "raw_projection": 9.452876731043975,
+              "raw_projection_p50": 0.34190729757087573
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              143.0,
+              253.02499999999986
+            ],
+            "id_switches_baseline": [
+              200.0,
+              334.0
+            ],
+            "precision": [
+              0.5,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.16666666666666666,
+              0.8235294117647058
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 27,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 6,
+              "objects": 6,
+              "share": 1.0,
+              "wilson95": [
+                0.6096657120978346,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 27,
+              "objects": 27,
+              "share": 1.0,
+              "wilson95": [
+                0.8754449702581327,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 22,
+            "matched": 11,
+            "precision": 0.8461538461538461,
+            "predicted": 13,
+            "recall": 0.5
+          },
+          "invocations": 120,
+          "invocations_per_camera_minute": 120.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 22436,
+              "id_switches": 266,
+              "matches": 1131,
+              "misses": 21305
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 22436,
+              "id_switches": 197,
+              "matches": 1066,
+              "misses": 21370
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.6767513239704369,
+              "estimator_p50": 0.1528232399116783,
+              "n": 57,
+              "raw_projection": 0.6725478656145806,
+              "raw_projection_p50": 0.15234234653870316
+            },
+            "[20,30)": {
+              "estimator": 2.3918238441885755,
+              "estimator_p50": 0.3556850493045084,
+              "n": 213,
+              "raw_projection": 2.3488618362370985,
+              "raw_projection_p50": 0.27852007496222636
+            },
+            "[30,inf)": {
+              "estimator": 9.927523977859325,
+              "estimator_p50": 0.47068304356144175,
+              "n": 796,
+              "raw_projection": 9.960665406677217,
+              "raw_projection_p50": 0.26651528656411705
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              34.0,
+              68.02499999999986
+            ],
+            "id_switches_baseline": [
+              44.0,
+              91.0
+            ],
+            "precision": [
+              0.0,
+              0.0
+            ],
+            "precision_undefined_resamples": [
+              677.0
+            ],
+            "recall": [
+              0.0,
+              0.0
+            ],
+            "recall_undefined_resamples": [
+              662.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 1,
+            "matched": 0,
+            "precision": 0.0,
+            "predicted": 2,
+            "recall": 0.0
+          },
+          "invocations": 120,
+          "invocations_per_camera_minute": 120.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7671,
+              "id_switches": 69,
+              "matches": 471,
+              "misses": 7200
+            },
+            "pipeline": {
+              "false_positives": 1,
+              "gt": 7671,
+              "id_switches": 51,
+              "matches": 458,
+              "misses": 7213
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.3964716757692386,
+              "estimator_p50": 0.4674777421443806,
+              "n": 43,
+              "raw_projection": 1.3973977432264242,
+              "raw_projection_p50": 0.4115082022856606
+            },
+            "[10,20)": {
+              "estimator": 0.19476665319607445,
+              "estimator_p50": 0.14890785988193775,
+              "n": 72,
+              "raw_projection": 0.19628724869236233,
+              "raw_projection_p50": 0.16654919938295565
+            },
+            "[20,30)": {
+              "estimator": 0.6740842647392008,
+              "estimator_p50": 0.17077398771072116,
+              "n": 96,
+              "raw_projection": 0.9605762998697254,
+              "raw_projection_p50": 0.12145594279646069
+            },
+            "[30,inf)": {
+              "estimator": 14.630580686706706,
+              "estimator_p50": 0.7790714253697086,
+              "n": 247,
+              "raw_projection": 14.871618163366382,
+              "raw_projection_p50": 0.2866264829775018
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              291.0,
+              504.0499999999997
+            ],
+            "id_switches_baseline": [
+              386.0,
+              676.0249999999999
+            ],
+            "precision": [
+              0.0,
+              0.6666666666666666
+            ],
+            "precision_undefined_resamples": [
+              9.0
+            ],
+            "recall": [
+              0.0,
+              0.25
+            ],
+            "recall_undefined_resamples": [
+              2.0
+            ]
+          },
+          "bootstrap_units": 42,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 5,
+              "objects": 5,
+              "share": 1.0,
+              "wilson95": [
+                0.5655175352168251,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 41,
+              "objects": 42,
+              "share": 0.9761904761904762,
+              "wilson95": [
+                0.8767879842623334,
+                0.9957845958655673
+              ]
+            }
+          },
+          "events": {
+            "gt": 20,
+            "matched": 2,
+            "precision": 0.2,
+            "predicted": 10,
+            "recall": 0.1
+          },
+          "invocations": 120,
+          "invocations_per_camera_minute": 120.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 36231,
+              "id_switches": 528,
+              "matches": 1823,
+              "misses": 34408
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 36231,
+              "id_switches": 396,
+              "matches": 1709,
+              "misses": 34522
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.6842223583791646,
+              "estimator_p50": 0.1882676664576276,
+              "n": 40,
+              "raw_projection": 0.6809288504087525,
+              "raw_projection_p50": 0.18825472710651098
+            },
+            "[10,20)": {
+              "estimator": 0.1805665072038612,
+              "estimator_p50": 0.1677273022499746,
+              "n": 149,
+              "raw_projection": 0.18247740965023376,
+              "raw_projection_p50": 0.16814163838648383
+            },
+            "[20,30)": {
+              "estimator": 0.15354136063373247,
+              "estimator_p50": 0.15665461268198,
+              "n": 34,
+              "raw_projection": 0.1539181010563895,
+              "raw_projection_p50": 0.15627761939099982
+            },
+            "[30,inf)": {
+              "estimator": 11.747147825952139,
+              "estimator_p50": 3.7087384608923992,
+              "n": 1486,
+              "raw_projection": 11.824968868726934,
+              "raw_projection_p50": 3.8237204515602334
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            589.0,
+            850.0499999999997
+          ],
+          "id_switches_baseline": [
+            796.0,
+            1134.0499999999997
+          ],
+          "precision": [
+            0.25,
+            0.7727272727272727
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.12121212121212122,
+            0.4400465116279067
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 96,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "Forklift": {
+            "covered": 15,
+            "objects": 15,
+            "share": 1.0,
+            "wilson95": [
+              0.7961166989641515,
+              1.0
+            ]
+          },
+          "PalletTruck": {
+            "covered": 5,
+            "objects": 5,
+            "share": 1.0,
+            "wilson95": [
+              0.5655175352168251,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 95,
+            "objects": 96,
+            "share": 0.9895833333333334,
+            "wilson95": [
+              0.9433338237728424,
+              0.9981588297831838
+            ]
+          }
+        },
+        "events": {
+          "gt": 54,
+          "matched": 15,
+          "precision": 0.5172413793103449,
+          "predicted": 29,
+          "recall": 0.2777777777777778
+        },
+        "invocations": 480,
+        "invocations_per_camera_minute": 120.0,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 73471,
+            "id_switches": 958,
+            "matches": 3803,
+            "misses": 69668
+          },
+          "pipeline": {
+            "false_positives": 1,
+            "gt": 73471,
+            "id_switches": 715,
+            "matches": 3592,
+            "misses": 69879
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 1.1512976874542589,
+            "estimator_p50": 0.30668014591830295,
+            "n": 108,
+            "raw_projection": 1.1513859614514401,
+            "raw_projection_p50": 0.29361140529231067
+          },
+          "[10,20)": {
+            "estimator": 0.345065227712566,
+            "estimator_p50": 0.15959879801608856,
+            "n": 287,
+            "raw_projection": 0.344469687852212,
+            "raw_projection_p50": 0.16575186478231901
+          },
+          "[20,30)": {
+            "estimator": 3.443187225208966,
+            "estimator_p50": 0.19939467549241244,
+            "n": 405,
+            "raw_projection": 3.4425370771973287,
+            "raw_projection_p50": 0.15379366447081963
+          },
+          "[30,inf)": {
+            "estimator": 11.33585945190431,
+            "estimator_p50": 1.0244378135555972,
+            "n": 2792,
+            "raw_projection": 11.432041324149365,
+            "raw_projection_p50": 0.675992640377549
+          }
+        }
+      }
+    },
+    "stride_6": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              26.0,
+              59.0
+            ],
+            "id_switches_baseline": [
+              33.0,
+              73.0
+            ],
+            "precision": [
+              0.5,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              27.0
+            ],
+            "recall": [
+              0.25,
+              0.6
+            ],
+            "recall_undefined_resamples": [
+              5.0
+            ]
+          },
+          "bootstrap_units": 18,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 18,
+              "objects": 18,
+              "share": 1.0,
+              "wilson95": [
+                0.8241207763533425,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 11,
+            "matched": 5,
+            "precision": 0.7142857142857143,
+            "predicted": 7,
+            "recall": 0.45454545454545453
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7133,
+              "id_switches": 52,
+              "matches": 1062,
+              "misses": 6071
+            },
+            "pipeline": {
+              "false_positives": 1,
+              "gt": 7133,
+              "id_switches": 41,
+              "matches": 1075,
+              "misses": 6058
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.9623104446539283,
+              "estimator_p50": 1.353603211827341,
+              "n": 108,
+              "raw_projection": 1.9639478976085674,
+              "raw_projection_p50": 1.3542704583327065
+            },
+            "[10,20)": {
+              "estimator": 0.2660009913401964,
+              "estimator_p50": 0.2574088359196263,
+              "n": 23,
+              "raw_projection": 0.28978454836156947,
+              "raw_projection_p50": 0.18611656896699505
+            },
+            "[20,30)": {
+              "estimator": 8.301288937761383,
+              "estimator_p50": 0.13300616588360545,
+              "n": 158,
+              "raw_projection": 8.307929704617312,
+              "raw_projection_p50": 0.1243370569996203
+            },
+            "[30,inf)": {
+              "estimator": 11.592071157489931,
+              "estimator_p50": 0.47764769465788093,
+              "n": 786,
+              "raw_projection": 11.93526547585051,
+              "raw_projection_p50": 0.39388834636783326
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              71.0,
+              154.0
+            ],
+            "id_switches_baseline": [
+              95.0,
+              225.0
+            ],
+            "precision": [
+              0.45,
+              0.9230769230769231
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.3157894736842105,
+              0.9285714285714286
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 27,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 6,
+              "objects": 6,
+              "share": 1.0,
+              "wilson95": [
+                0.6096657120978346,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 27,
+              "objects": 27,
+              "share": 1.0,
+              "wilson95": [
+                0.8754449702581327,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 22,
+            "matched": 14,
+            "precision": 0.7,
+            "predicted": 20,
+            "recall": 0.6363636363636364
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 22436,
+              "id_switches": 157,
+              "matches": 3294,
+              "misses": 19142
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 22436,
+              "id_switches": 109,
+              "matches": 3296,
+              "misses": 19140
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.4538687912605704,
+              "estimator_p50": 0.15327778127953565,
+              "n": 270,
+              "raw_projection": 0.8823228321380702,
+              "raw_projection_p50": 0.15071777173015233
+            },
+            "[20,30)": {
+              "estimator": 2.383026572910794,
+              "estimator_p50": 0.36999023871896336,
+              "n": 711,
+              "raw_projection": 2.447012430971555,
+              "raw_projection_p50": 0.22125940753872222
+            },
+            "[30,inf)": {
+              "estimator": 10.311544624268231,
+              "estimator_p50": 0.7760615032535993,
+              "n": 2315,
+              "raw_projection": 10.297151995411573,
+              "raw_projection_p50": 0.2916901593816382
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              12.0,
+              29.0
+            ],
+            "id_switches_baseline": [
+              18.0,
+              36.0
+            ],
+            "precision": [
+              0.0,
+              0.0
+            ],
+            "precision_undefined_resamples": [
+              194.0
+            ],
+            "recall": [
+              0.0,
+              0.0
+            ],
+            "recall_undefined_resamples": [
+              662.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 1,
+            "matched": 0,
+            "precision": 0.0,
+            "predicted": 3,
+            "recall": 0.0
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 7671,
+              "id_switches": 26,
+              "matches": 1227,
+              "misses": 6444
+            },
+            "pipeline": {
+              "false_positives": 1,
+              "gt": 7671,
+              "id_switches": 19,
+              "matches": 1224,
+              "misses": 6447
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 1.4851951522763316,
+              "estimator_p50": 0.3146337217188552,
+              "n": 138,
+              "raw_projection": 1.4878966485858391,
+              "raw_projection_p50": 0.3352098658784064
+            },
+            "[10,20)": {
+              "estimator": 0.17846813151065105,
+              "estimator_p50": 0.16051144297130326,
+              "n": 180,
+              "raw_projection": 0.2045691122987506,
+              "raw_projection_p50": 0.1655097298711355
+            },
+            "[20,30)": {
+              "estimator": 0.7498793550112255,
+              "estimator_p50": 0.22788916489750172,
+              "n": 273,
+              "raw_projection": 1.1041545058960782,
+              "raw_projection_p50": 0.14241858159322
+            },
+            "[30,inf)": {
+              "estimator": 14.459116026139794,
+              "estimator_p50": 0.7967687459750759,
+              "n": 633,
+              "raw_projection": 14.77487723478482,
+              "raw_projection_p50": 0.26705301362884115
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              150.0,
+              253.0
+            ],
+            "id_switches_baseline": [
+              262.0,
+              450.0
+            ],
+            "precision": [
+              0.1749353448275862,
+              0.807738095238095
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.2857142857142857,
+              0.9090909090909091
+            ],
+            "recall_undefined_resamples": [
+              2.0
+            ]
+          },
+          "bootstrap_units": 42,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Forklift": {
+              "covered": 5,
+              "objects": 5,
+              "share": 1.0,
+              "wilson95": [
+                0.5655175352168251,
+                1.0
+              ]
+            },
+            "PalletTruck": {
+              "covered": 3,
+              "objects": 3,
+              "share": 1.0,
+              "wilson95": [
+                0.43850296824495455,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 42,
+              "objects": 42,
+              "share": 1.0,
+              "wilson95": [
+                0.916201209134296,
+                0.9999999999999999
+              ]
+            }
+          },
+          "events": {
+            "gt": 20,
+            "matched": 12,
+            "precision": 0.46153846153846156,
+            "predicted": 26,
+            "recall": 0.6
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 36231,
+              "id_switches": 353,
+              "matches": 5324,
+              "misses": 30907
+            },
+            "pipeline": {
+              "false_positives": 3,
+              "gt": 36231,
+              "id_switches": 199,
+              "matches": 5394,
+              "misses": 30837
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.9680836664902056,
+              "estimator_p50": 0.21621160237101528,
+              "n": 117,
+              "raw_projection": 0.9681335582528283,
+              "raw_projection_p50": 0.19123925778402576
+            },
+            "[10,20)": {
+              "estimator": 0.4984897247415826,
+              "estimator_p50": 0.16010691750925798,
+              "n": 493,
+              "raw_projection": 0.569492527692674,
+              "raw_projection_p50": 0.15684811445424052
+            },
+            "[20,30)": {
+              "estimator": 0.5381744157266308,
+              "estimator_p50": 0.16085405035955136,
+              "n": 151,
+              "raw_projection": 1.3340610831817032,
+              "raw_projection_p50": 0.12228361934375462
+            },
+            "[30,inf)": {
+              "estimator": 11.420809880600302,
+              "estimator_p50": 3.840905210061989,
+              "n": 4633,
+              "raw_projection": 11.720931738503829,
+              "raw_projection_p50": 3.7098097200682023
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            299.0,
+            442.02499999999986
+          ],
+          "id_switches_baseline": [
+            470.975,
+            711.0249999999999
+          ],
+          "precision": [
+            0.3817965367965368,
+            0.7272727272727273
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.4042450900163666,
+            0.7391304347826086
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 96,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "Forklift": {
+            "covered": 15,
+            "objects": 15,
+            "share": 1.0,
+            "wilson95": [
+              0.7961166989641515,
+              1.0
+            ]
+          },
+          "PalletTruck": {
+            "covered": 5,
+            "objects": 5,
+            "share": 1.0,
+            "wilson95": [
+              0.5655175352168251,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 96,
+            "objects": 96,
+            "share": 1.0,
+            "wilson95": [
+              0.9615244121423243,
+              1.0
+            ]
+          }
+        },
+        "events": {
+          "gt": 54,
+          "matched": 31,
+          "precision": 0.5535714285714286,
+          "predicted": 56,
+          "recall": 0.5740740740740741
+        },
+        "invocations": 1200,
+        "invocations_per_camera_minute": 300.0,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 73471,
+            "id_switches": 588,
+            "matches": 10907,
+            "misses": 62564
+          },
+          "pipeline": {
+            "false_positives": 5,
+            "gt": 73471,
+            "id_switches": 368,
+            "matches": 10989,
+            "misses": 62482
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 1.512048331595255,
+            "estimator_p50": 0.3399779882912275,
+            "n": 363,
+            "raw_projection": 1.513699931444084,
+            "raw_projection_p50": 0.33978966950927414
+          },
+          "[10,20)": {
+            "estimator": 0.43819490656904714,
+            "estimator_p50": 0.15919246574918477,
+            "n": 966,
+            "raw_projection": 0.6268228447754491,
+            "raw_projection_p50": 0.15546878751300985
+          },
+          "[20,30)": {
+            "estimator": 3.419936804935263,
+            "estimator_p50": 0.23576781688846962,
+            "n": 1293,
+            "raw_projection": 3.49171717881763,
+            "raw_projection_p50": 0.1535811761977239
+          },
+          "[30,inf)": {
+            "estimator": 11.405435688247392,
+            "estimator_p50": 1.378782987284702,
+            "n": 8367,
+            "raw_projection": 11.632049310993066,
+            "raw_projection_p50": 0.7741060154057346
+          }
+        }
+      }
+    }
+  },
+  "decision_rule_applied": {
+    "chosen": "motion_adaptive",
+    "passing": [
+      "motion_adaptive",
+      "adaptive",
+      "stride_6",
+      "gate_default",
+      "gate_keepalive"
+    ],
+    "rule": "fewest invocations whose recall interval overlaps gate_off's"
+  },
+  "detections_from": "ground truth (oracle)",
+  "detector": "oracle",
+  "frames_per_camera": 1800,
+  "gate_check": null,
+  "gate_from": "decoded here (MotionGateConfig defaults)",
+  "ground_truth_sha256": "0c160199a14f04bcb95e2ece7c9c3be37f1ffa29a4b1fd1a390c607d21c28109",
+  "label": "lane S synthetic (NVIDIA PhysicalAI-SmartSpaces), calibration given; not evidence about real cameras",
+  "scene": "Warehouse_000",
+  "wall_s": 272.7,
+  "zones_file": "configs/zones/warehouse_000.yaml"
+}

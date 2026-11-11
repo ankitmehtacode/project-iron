@@ -288,12 +288,13 @@ def gt_trajectories(truth: CameraTruth, camera_id: str, fps: float) -> list[Traj
     return out
 
 
-def match_events(
+def match_event_pairs(
     predicted: Sequence[CompiledEvent],
     truth: Sequence[CompiledEvent],
     subject_of: dict[str, str],
-) -> dict[str, Any]:
-    """Greedy one-to-one by time gap; see the module docstring."""
+) -> list[tuple[int, int]]:
+    """``(predicted index, truth index)`` pairs: greedy one-to-one by time
+    gap; see the module docstring."""
     tol = int(EVENT_TOLERANCE_S * 1e9)
     candidates = []
     for i, p in enumerate(predicted):
@@ -308,10 +309,23 @@ def match_events(
                 candidates.append((gap, i, j))
     used_p: set[int] = set()
     used_g: set[int] = set()
+    pairs = []
     for _, i, j in sorted(candidates):
         if i not in used_p and j not in used_g:
             used_p.add(i)
             used_g.add(j)
+            pairs.append((i, j))
+    return pairs
+
+
+def match_events(
+    predicted: Sequence[CompiledEvent],
+    truth: Sequence[CompiledEvent],
+    subject_of: dict[str, str],
+) -> dict[str, Any]:
+    """Counts over :func:`match_event_pairs`, overall and by verb."""
+    pairs = match_event_pairs(predicted, truth, subject_of)
+    used_p = {i for i, _ in pairs}
     by_verb = {}
     for verb in (Verb.ENTERED, Verb.EXITED, Verb.DWELLED):
         np_ = sum(1 for i, p in enumerate(predicted) if p.verb == verb)

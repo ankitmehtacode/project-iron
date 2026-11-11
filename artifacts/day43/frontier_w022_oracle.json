@@ -1,0 +1,3526 @@
+{
+  "cameras": [
+    "Camera_0000",
+    "Camera_0001",
+    "Camera_0002",
+    "Camera_0003"
+  ],
+  "candidates": {
+    "adaptive": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              1.0,
+              9.0
+            ],
+            "id_switches_baseline": [
+              0.0,
+              5.0
+            ],
+            "precision": [
+              1.0,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              1.0,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 17,
+            "matched": 17,
+            "precision": 1.0,
+            "predicted": 17,
+            "recall": 1.0
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 2,
+              "matches": 847,
+              "misses": 4295
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 5,
+              "matches": 847,
+              "misses": 4295
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.7885047045628052,
+              "estimator_p50": 0.29080278871491416,
+              "n": 101,
+              "raw_projection": 0.7939938012353008,
+              "raw_projection_p50": 0.3092294778772001
+            },
+            "[10,20)": {
+              "estimator": 0.6740865817862871,
+              "estimator_p50": 0.17661192675590803,
+              "n": 393,
+              "raw_projection": 0.6714608425093708,
+              "raw_projection_p50": 0.15141080909418297
+            },
+            "[20,30)": {
+              "estimator": 0.2412405692496702,
+              "estimator_p50": 0.13008625909126945,
+              "n": 119,
+              "raw_projection": 0.13691358191131012,
+              "raw_projection_p50": 0.1007935993468555
+            },
+            "[30,inf)": {
+              "estimator": 0.40373943387355776,
+              "estimator_p50": 0.27123181217316006,
+              "n": 234,
+              "raw_projection": 0.19766087967401932,
+              "raw_projection_p50": 0.11939778207262428
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              6.0,
+              18.0
+            ],
+            "id_switches_baseline": [
+              0.0,
+              12.0
+            ],
+            "precision": [
+              0.8571428571428571,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.8571428571428571,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 12,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 11,
+              "objects": 12,
+              "share": 0.9166666666666666,
+              "wilson95": [
+                0.646120088858883,
+                0.9851349055950829
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 24,
+            "matched": 23,
+            "precision": 0.9583333333333334,
+            "predicted": 24,
+            "recall": 0.9583333333333334
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 6,
+              "matches": 1071,
+              "misses": 5460
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 12,
+              "matches": 1072,
+              "misses": 5459
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.5709988837996002,
+              "estimator_p50": 0.1882426295266945,
+              "n": 75,
+              "raw_projection": 0.5731205770979677,
+              "raw_projection_p50": 0.18190805540317845
+            },
+            "[10,20)": {
+              "estimator": 0.7601935998161503,
+              "estimator_p50": 0.19902444218862933,
+              "n": 122,
+              "raw_projection": 0.7603580912066422,
+              "raw_projection_p50": 0.19196936316111463
+            },
+            "[20,30)": {
+              "estimator": 1.2721431761082924,
+              "estimator_p50": 0.2471569580583164,
+              "n": 384,
+              "raw_projection": 1.2132401498934156,
+              "raw_projection_p50": 0.11486085589879505
+            },
+            "[30,inf)": {
+              "estimator": 0.5057130321176542,
+              "estimator_p50": 0.279794667445086,
+              "n": 491,
+              "raw_projection": 0.49613185487441663,
+              "raw_projection_p50": 0.11872394871757058
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              5.0,
+              15.0
+            ],
+            "id_switches_baseline": [
+              6.0,
+              18.0
+            ],
+            "precision": [
+              0.8055555555555556,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.7142857142857143,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 10,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 10,
+              "objects": 10,
+              "share": 1.0,
+              "wilson95": [
+                0.7224672001371107,
+                0.9999999999999999
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 32,
+            "matched": 28,
+            "precision": 0.9032258064516129,
+            "predicted": 31,
+            "recall": 0.875
+          },
+          "invocations": 296,
+          "invocations_per_camera_minute": 296.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 12,
+              "matches": 1102,
+              "misses": 5644
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 10,
+              "matches": 1101,
+              "misses": 5645
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.4546872737863135,
+              "estimator_p50": 0.16999870028472147,
+              "n": 420,
+              "raw_projection": 0.4380169404714327,
+              "raw_projection_p50": 0.15384956351080586
+            },
+            "[20,30)": {
+              "estimator": 0.4182484165072201,
+              "estimator_p50": 0.18460050590628618,
+              "n": 427,
+              "raw_projection": 0.31943116847523373,
+              "raw_projection_p50": 0.11829853737873916
+            },
+            "[30,inf)": {
+              "estimator": 0.8380691458712569,
+              "estimator_p50": 0.46621095340045327,
+              "n": 254,
+              "raw_projection": 0.6879260108117862,
+              "raw_projection_p50": 0.11875340535687284
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              0.0,
+              4.0
+            ],
+            "id_switches_baseline": [
+              0.0,
+              3.0
+            ],
+            "precision": [
+              0.4,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.4,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 6,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "NovaCarter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 6,
+              "objects": 6,
+              "share": 1.0,
+              "wilson95": [
+                0.6096657120978346,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 5,
+            "matched": 4,
+            "precision": 0.8,
+            "predicted": 5,
+            "recall": 0.8
+          },
+          "invocations": 281,
+          "invocations_per_camera_minute": 281.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 1,
+              "matches": 314,
+              "misses": 1682
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 2,
+              "matches": 315,
+              "misses": 1681
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.38905283198518875,
+              "estimator_p50": 0.16711312880510537,
+              "n": 167,
+              "raw_projection": 0.38970426985967715,
+              "raw_projection_p50": 0.15178240397009374
+            },
+            "[10,20)": {
+              "estimator": 0.17984181206281563,
+              "estimator_p50": 0.1344912344148937,
+              "n": 148,
+              "raw_projection": 0.17284861906412738,
+              "raw_projection_p50": 0.12896866565224208
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            20.0,
+            38.0
+          ],
+          "id_switches_baseline": [
+            12.0,
+            32.0
+          ],
+          "precision": [
+            0.873015873015873,
+            0.9868463773069036
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.8405797101449275,
+            0.9879518072289156
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 37,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "NovaCarter": {
+            "covered": 1,
+            "objects": 1,
+            "share": 1.0,
+            "wilson95": [
+              0.20654931437723745,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 36,
+            "objects": 37,
+            "share": 0.972972972972973,
+            "wilson95": [
+              0.861759301362695,
+              0.9952130255480596
+            ]
+          },
+          "Transporter": {
+            "covered": 2,
+            "objects": 2,
+            "share": 1.0,
+            "wilson95": [
+              0.34238022750665303,
+              1.0
+            ]
+          }
+        },
+        "events": {
+          "gt": 78,
+          "matched": 72,
+          "precision": 0.935064935064935,
+          "predicted": 77,
+          "recall": 0.9230769230769231
+        },
+        "invocations": 1177,
+        "invocations_per_camera_minute": 294.25,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 21,
+            "matches": 3334,
+            "misses": 17081
+          },
+          "pipeline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 29,
+            "matches": 3335,
+            "misses": 17080
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 0.5727692377286066,
+            "estimator_p50": 0.20813558133302892,
+            "n": 343,
+            "raw_projection": 0.5756737066914325,
+            "raw_projection_p50": 0.19397568372143015
+          },
+          "[10,20)": {
+            "estimator": 0.5608801594193791,
+            "estimator_p50": 0.17028730081069848,
+            "n": 1083,
+            "raw_projection": 0.5542781851545902,
+            "raw_projection_p50": 0.1537708974390907
+          },
+          "[20,30)": {
+            "estimator": 0.8694745840115677,
+            "estimator_p50": 0.1928002636194659,
+            "n": 930,
+            "raw_projection": 0.8105683788193171,
+            "raw_projection_p50": 0.11577677091442523
+          },
+          "[30,inf)": {
+            "estimator": 0.5911449317582262,
+            "estimator_p50": 0.3157462344394258,
+            "n": 979,
+            "raw_projection": 0.5055402392442697,
+            "raw_projection_p50": 0.11872394871757058
+          }
+        }
+      }
+    },
+    "gate_default": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              2.0,
+              13.0
+            ],
+            "id_switches_baseline": [
+              2.0,
+              13.0
+            ],
+            "precision": [
+              0.7777777777777778,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.5294117647058824,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 17,
+            "matched": 13,
+            "precision": 0.9285714285714286,
+            "predicted": 14,
+            "recall": 0.7647058823529411
+          },
+          "invocations": 1239,
+          "invocations_per_camera_minute": 1239.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 7,
+              "matches": 3844,
+              "misses": 1298
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 7,
+              "matches": 3846,
+              "misses": 1296
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.8713286135839252,
+              "estimator_p50": 0.31794117797236876,
+              "n": 630,
+              "raw_projection": 0.8746076385376599,
+              "raw_projection_p50": 0.3244430386741732
+            },
+            "[10,20)": {
+              "estimator": 0.5851848447298382,
+              "estimator_p50": 0.1908734922318824,
+              "n": 1619,
+              "raw_projection": 0.5780199971567104,
+              "raw_projection_p50": 0.15892108196760535
+            },
+            "[20,30)": {
+              "estimator": 0.23365258616961848,
+              "estimator_p50": 0.11609096228940169,
+              "n": 508,
+              "raw_projection": 0.13264531530779652,
+              "raw_projection_p50": 0.09629823360868375
+            },
+            "[30,inf)": {
+              "estimator": 0.5066519339761791,
+              "estimator_p50": 0.31891231935170544,
+              "n": 1089,
+              "raw_projection": 0.34693083097628236,
+              "raw_projection_p50": 0.11511140326886823
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              5.0,
+              18.0
+            ],
+            "id_switches_baseline": [
+              3.0,
+              20.0
+            ],
+            "precision": [
+              0.75,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              3.0
+            ],
+            "recall": [
+              0.1875,
+              0.5714285714285714
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 12,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 11,
+              "objects": 12,
+              "share": 0.9166666666666666,
+              "wilson95": [
+                0.646120088858883,
+                0.9851349055950829
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 24,
+            "matched": 9,
+            "precision": 0.9,
+            "predicted": 10,
+            "recall": 0.375
+          },
+          "invocations": 777,
+          "invocations_per_camera_minute": 777.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 11,
+              "matches": 3243,
+              "misses": 3288
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 11,
+              "matches": 3243,
+              "misses": 3288
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.633187903622323,
+              "estimator_p50": 0.22818151423075306,
+              "n": 425,
+              "raw_projection": 0.6270987564610007,
+              "raw_projection_p50": 0.18190805540317845
+            },
+            "[10,20)": {
+              "estimator": 0.9678355010200471,
+              "estimator_p50": 0.28002108856977853,
+              "n": 368,
+              "raw_projection": 0.9325421227146706,
+              "raw_projection_p50": 0.22779412719764763
+            },
+            "[20,30)": {
+              "estimator": 0.4983032596060878,
+              "estimator_p50": 0.2845201414313342,
+              "n": 686,
+              "raw_projection": 0.11749565770886623,
+              "raw_projection_p50": 0.08273013224763553
+            },
+            "[30,inf)": {
+              "estimator": 0.5470551244618468,
+              "estimator_p50": 0.24711876818821626,
+              "n": 1764,
+              "raw_projection": 0.5570394499032996,
+              "raw_projection_p50": 0.12368989620711539
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              10.0,
+              25.0
+            ],
+            "id_switches_baseline": [
+              10.0,
+              25.0
+            ],
+            "precision": [
+              0.6923076923076923,
+              0.95
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.5588235294117647,
+              0.782608695652174
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 10,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 10,
+              "objects": 10,
+              "share": 1.0,
+              "wilson95": [
+                0.7224672001371107,
+                0.9999999999999999
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 32,
+            "matched": 21,
+            "precision": 0.8076923076923077,
+            "predicted": 26,
+            "recall": 0.65625
+          },
+          "invocations": 1204,
+          "invocations_per_camera_minute": 1204.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 17,
+              "matches": 5084,
+              "misses": 1662
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 17,
+              "matches": 5086,
+              "misses": 1660
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.5957376807765667,
+              "estimator_p50": 0.21457080773811332,
+              "n": 1966,
+              "raw_projection": 0.5723207468539341,
+              "raw_projection_p50": 0.15116039203395926
+            },
+            "[20,30)": {
+              "estimator": 0.5417955892031594,
+              "estimator_p50": 0.19354643115448097,
+              "n": 1923,
+              "raw_projection": 0.4318186390399307,
+              "raw_projection_p50": 0.12542994981094116
+            },
+            "[30,inf)": {
+              "estimator": 0.7032406650498716,
+              "estimator_p50": 0.3692627801162981,
+              "n": 1197,
+              "raw_projection": 0.51864644369487,
+              "raw_projection_p50": 0.11897846729341306
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              0.0,
+              3.0
+            ],
+            "id_switches_baseline": [
+              0.0,
+              3.0
+            ],
+            "precision": [
+              0.4,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.4,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 6,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "NovaCarter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 5,
+              "objects": 6,
+              "share": 0.8333333333333334,
+              "wilson95": [
+                0.43649717781352987,
+                0.9699466302516935
+              ]
+            }
+          },
+          "events": {
+            "gt": 5,
+            "matched": 4,
+            "precision": 0.8,
+            "predicted": 5,
+            "recall": 0.8
+          },
+          "invocations": 952,
+          "invocations_per_camera_minute": 952.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 1,
+              "matches": 1615,
+              "misses": 381
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 1,
+              "matches": 1615,
+              "misses": 381
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.4653751814620887,
+              "estimator_p50": 0.18905914244659372,
+              "n": 854,
+              "raw_projection": 0.4624644926717008,
+              "raw_projection_p50": 0.15661560522877815
+            },
+            "[10,20)": {
+              "estimator": 0.20344810524575224,
+              "estimator_p50": 0.15040794159971477,
+              "n": 761,
+              "raw_projection": 0.17903588944837398,
+              "raw_projection_p50": 0.1379547043486436
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            23.975,
+            49.024999999999864
+          ],
+          "id_switches_baseline": [
+            23.0,
+            51.0
+          ],
+          "precision": [
+            0.7691964285714287,
+            0.9333333333333333
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.5,
+            0.7142857142857143
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 37,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "NovaCarter": {
+            "covered": 1,
+            "objects": 1,
+            "share": 1.0,
+            "wilson95": [
+              0.20654931437723745,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 35,
+            "objects": 37,
+            "share": 0.9459459459459459,
+            "wilson95": [
+              0.822953456491869,
+              0.9850490231668423
+            ]
+          },
+          "Transporter": {
+            "covered": 2,
+            "objects": 2,
+            "share": 1.0,
+            "wilson95": [
+              0.34238022750665303,
+              1.0
+            ]
+          }
+        },
+        "events": {
+          "gt": 78,
+          "matched": 47,
+          "precision": 0.8545454545454545,
+          "predicted": 55,
+          "recall": 0.6025641025641025
+        },
+        "invocations": 4172,
+        "invocations_per_camera_minute": 1043.0,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 36,
+            "matches": 13786,
+            "misses": 6629
+          },
+          "pipeline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 36,
+            "matches": 13790,
+            "misses": 6625
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 0.6608298062526684,
+            "estimator_p50": 0.2390709324306296,
+            "n": 1909,
+            "raw_projection": 0.6600520716312258,
+            "raw_projection_p50": 0.20837209383855548
+          },
+          "[10,20)": {
+            "estimator": 0.5877332570931535,
+            "estimator_p50": 0.19963606154483007,
+            "n": 4714,
+            "raw_projection": 0.569576458739994,
+            "raw_projection_p50": 0.15592464975057385
+          },
+          "[20,30)": {
+            "estimator": 0.49461445963721534,
+            "estimator_p50": 0.19580875189098632,
+            "n": 3117,
+            "raw_projection": 0.3477713197083351,
+            "raw_projection_p50": 0.10916615283963005
+          },
+          "[30,inf)": {
+            "estimator": 0.5878242958116786,
+            "estimator_p50": 0.2880624940916072,
+            "n": 4050,
+            "raw_projection": 0.49700730801055565,
+            "raw_projection_p50": 0.1200415100976269
+          }
+        }
+      }
+    },
+    "gate_keepalive": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              1.0,
+              7.0
+            ],
+            "id_switches_baseline": [
+              1.0,
+              7.0
+            ],
+            "precision": [
+              0.8,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.7647058823529411,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 17,
+            "matched": 15,
+            "precision": 0.9375,
+            "predicted": 16,
+            "recall": 0.8823529411764706
+          },
+          "invocations": 1678,
+          "invocations_per_camera_minute": 1678.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 4,
+              "matches": 4661,
+              "misses": 481
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 4,
+              "matches": 4665,
+              "misses": 477
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.8713559008215905,
+              "estimator_p50": 0.3179217120593685,
+              "n": 630,
+              "raw_projection": 0.8746076385376599,
+              "raw_projection_p50": 0.3244430386741732
+            },
+            "[10,20)": {
+              "estimator": 0.7111071943647834,
+              "estimator_p50": 0.19098089074937902,
+              "n": 2248,
+              "raw_projection": 0.705567594223526,
+              "raw_projection_p50": 0.15651226402842966
+            },
+            "[20,30)": {
+              "estimator": 0.26898224900542955,
+              "estimator_p50": 0.14597414283614962,
+              "n": 598,
+              "raw_projection": 0.135702144206751,
+              "raw_projection_p50": 0.09897925193717486
+            },
+            "[30,inf)": {
+              "estimator": 0.5737543182718593,
+              "estimator_p50": 0.3726626158504222,
+              "n": 1189,
+              "raw_projection": 0.3336509161712767,
+              "raw_projection_p50": 0.112618329401231
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              1.0,
+              11.0
+            ],
+            "id_switches_baseline": [
+              0.0,
+              10.0
+            ],
+            "precision": [
+              1.0,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.6153225806451613,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 12,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 12,
+              "objects": 12,
+              "share": 1.0,
+              "wilson95": [
+                0.7575059933447592,
+                1.0
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 24,
+            "matched": 20,
+            "precision": 1.0,
+            "predicted": 20,
+            "recall": 0.8333333333333334
+          },
+          "invocations": 1438,
+          "invocations_per_camera_minute": 1438.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 5,
+              "matches": 5560,
+              "misses": 971
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 6,
+              "matches": 5559,
+              "misses": 972
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.659326424163314,
+              "estimator_p50": 0.2138959675690923,
+              "n": 468,
+              "raw_projection": 0.6561806721156842,
+              "raw_projection_p50": 0.1891460316578757
+            },
+            "[10,20)": {
+              "estimator": 0.961635857065037,
+              "estimator_p50": 0.2512492722911665,
+              "n": 532,
+              "raw_projection": 0.9373295255175801,
+              "raw_projection_p50": 0.2236541946193712
+            },
+            "[20,30)": {
+              "estimator": 1.4464484380458276,
+              "estimator_p50": 0.2919826614392459,
+              "n": 1954,
+              "raw_projection": 1.3791956916936443,
+              "raw_projection_p50": 0.10320732023945128
+            },
+            "[30,inf)": {
+              "estimator": 0.5763691839582457,
+              "estimator_p50": 0.31167023812613237,
+              "n": 2605,
+              "raw_projection": 0.5584237574622668,
+              "raw_projection_p50": 0.12623769458780895
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              7.0,
+              24.0
+            ],
+            "id_switches_baseline": [
+              7.0,
+              24.0
+            ],
+            "precision": [
+              0.8378378378378378,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.8571428571428571,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 10,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 10,
+              "objects": 10,
+              "share": 1.0,
+              "wilson95": [
+                0.7224672001371107,
+                0.9999999999999999
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 32,
+            "matched": 30,
+            "precision": 0.9375,
+            "predicted": 32,
+            "recall": 0.9375
+          },
+          "invocations": 1730,
+          "invocations_per_camera_minute": 1730.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 14,
+              "matches": 6647,
+              "misses": 99
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 14,
+              "matches": 6649,
+              "misses": 97
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.566352834991228,
+              "estimator_p50": 0.208920235406649,
+              "n": 2570,
+              "raw_projection": 0.5390373251628826,
+              "raw_projection_p50": 0.15445467008747582
+            },
+            "[20,30)": {
+              "estimator": 0.5946285619181138,
+              "estimator_p50": 0.2155511878745574,
+              "n": 2581,
+              "raw_projection": 0.482012271051172,
+              "raw_projection_p50": 0.11719654890379201
+            },
+            "[30,inf)": {
+              "estimator": 0.9177829970818355,
+              "estimator_p50": 0.6431533224628834,
+              "n": 1498,
+              "raw_projection": 0.6629071608363435,
+              "raw_projection_p50": 0.1182010398523323
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              0.0,
+              9.0
+            ],
+            "id_switches_baseline": [
+              0.0,
+              6.0
+            ],
+            "precision": [
+              1.0,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              1.0,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 6,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "NovaCarter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 5,
+              "objects": 6,
+              "share": 0.8333333333333334,
+              "wilson95": [
+                0.43649717781352987,
+                0.9699466302516935
+              ]
+            }
+          },
+          "events": {
+            "gt": 5,
+            "matched": 5,
+            "precision": 1.0,
+            "predicted": 5,
+            "recall": 1.0
+          },
+          "invocations": 1215,
+          "invocations_per_camera_minute": 1215.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 2,
+              "matches": 1908,
+              "misses": 88
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 3,
+              "matches": 1907,
+              "misses": 89
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.4648002360974155,
+              "estimator_p50": 0.18085391648623814,
+              "n": 1032,
+              "raw_projection": 0.46138294044763134,
+              "raw_projection_p50": 0.15649052377566203
+            },
+            "[10,20)": {
+              "estimator": 0.1959821182089458,
+              "estimator_p50": 0.13486274994185382,
+              "n": 875,
+              "raw_projection": 0.17823932764467829,
+              "raw_projection_p50": 0.1294399781902933
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            15.0,
+            41.0
+          ],
+          "id_switches_baseline": [
+            14.0,
+            39.0
+          ],
+          "precision": [
+            0.9,
+            1.0
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.8222146118721461,
+            0.9649173806609547
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 37,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "NovaCarter": {
+            "covered": 1,
+            "objects": 1,
+            "share": 1.0,
+            "wilson95": [
+              0.20654931437723745,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 36,
+            "objects": 37,
+            "share": 0.972972972972973,
+            "wilson95": [
+              0.861759301362695,
+              0.9952130255480596
+            ]
+          },
+          "Transporter": {
+            "covered": 2,
+            "objects": 2,
+            "share": 1.0,
+            "wilson95": [
+              0.34238022750665303,
+              1.0
+            ]
+          }
+        },
+        "events": {
+          "gt": 78,
+          "matched": 70,
+          "precision": 0.958904109589041,
+          "predicted": 73,
+          "recall": 0.8974358974358975
+        },
+        "invocations": 6061,
+        "invocations_per_camera_minute": 1515.25,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 25,
+            "matches": 18776,
+            "misses": 1639
+          },
+          "pipeline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 27,
+            "matches": 18780,
+            "misses": 1635
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 0.6517336636738792,
+            "estimator_p50": 0.2318008710546851,
+            "n": 2130,
+            "raw_projection": 0.6511476542361768,
+            "raw_projection_p50": 0.2000873830963123
+          },
+          "[10,20)": {
+            "estimator": 0.6320321072710858,
+            "estimator_p50": 0.19705922873069776,
+            "n": 6225,
+            "raw_projection": 0.6158626810090512,
+            "raw_projection_p50": 0.1559011020637245
+          },
+          "[20,30)": {
+            "estimator": 0.9912974713118352,
+            "estimator_p50": 0.23149653649129492,
+            "n": 5133,
+            "raw_projection": 0.918194149408969,
+            "raw_projection_p50": 0.11214259428159677
+          },
+          "[30,inf)": {
+            "estimator": 0.6898738782073491,
+            "estimator_p50": 0.4269108987071756,
+            "n": 5292,
+            "raw_projection": 0.550370685120929,
+            "raw_projection_p50": 0.1206520864557298
+          }
+        }
+      }
+    },
+    "gate_off": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              1.0,
+              9.0
+            ],
+            "id_switches_baseline": [
+              1.0,
+              9.0
+            ],
+            "precision": [
+              0.8125,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              1.0,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 17,
+            "matched": 17,
+            "precision": 0.9444444444444444,
+            "predicted": 18,
+            "recall": 1.0
+          },
+          "invocations": 1800,
+          "invocations_per_camera_minute": 1800.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 5,
+              "matches": 5125,
+              "misses": 17
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 5,
+              "matches": 5129,
+              "misses": 13
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.8713559008215908,
+              "estimator_p50": 0.3179217120593685,
+              "n": 630,
+              "raw_projection": 0.8746076385376599,
+              "raw_projection_p50": 0.3244430386741732
+            },
+            "[10,20)": {
+              "estimator": 0.6944078821258687,
+              "estimator_p50": 0.19134432348361263,
+              "n": 2370,
+              "raw_projection": 0.6885211202175864,
+              "raw_projection_p50": 0.15780207089115228
+            },
+            "[20,30)": {
+              "estimator": 0.26276313463738726,
+              "estimator_p50": 0.15179454507954177,
+              "n": 720,
+              "raw_projection": 0.1409567092270882,
+              "raw_projection_p50": 0.10075770027600633
+            },
+            "[30,inf)": {
+              "estimator": 0.5343518882854933,
+              "estimator_p50": 0.3289731836843155,
+              "n": 1409,
+              "raw_projection": 0.3225412779416616,
+              "raw_projection_p50": 0.12167274695184596
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              2.0,
+              12.0
+            ],
+            "id_switches_baseline": [
+              1.0,
+              11.0
+            ],
+            "precision": [
+              1.0,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              1.0,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 12,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 12,
+              "objects": 12,
+              "share": 1.0,
+              "wilson95": [
+                0.7575059933447592,
+                1.0
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 24,
+            "matched": 24,
+            "precision": 1.0,
+            "predicted": 24,
+            "recall": 1.0
+          },
+          "invocations": 1800,
+          "invocations_per_camera_minute": 1800.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 6,
+              "matches": 6500,
+              "misses": 31
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 7,
+              "matches": 6499,
+              "misses": 32
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.6593264269122631,
+              "estimator_p50": 0.2138959675690923,
+              "n": 468,
+              "raw_projection": 0.6561806721156842,
+              "raw_projection_p50": 0.1891460316578757
+            },
+            "[10,20)": {
+              "estimator": 0.8155350646148016,
+              "estimator_p50": 0.2040284975441319,
+              "n": 748,
+              "raw_projection": 0.795374491506433,
+              "raw_projection_p50": 0.19536263230729312
+            },
+            "[20,30)": {
+              "estimator": 1.33528409146492,
+              "estimator_p50": 0.29291214993331277,
+              "n": 2316,
+              "raw_projection": 1.268576175908383,
+              "raw_projection_p50": 0.113659001556454
+            },
+            "[30,inf)": {
+              "estimator": 0.5772351066804647,
+              "estimator_p50": 0.3217408951824845,
+              "n": 2967,
+              "raw_projection": 0.5268354407393018,
+              "raw_projection_p50": 0.12231013953940888
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              8.0,
+              26.0
+            ],
+            "id_switches_baseline": [
+              8.0,
+              26.0
+            ],
+            "precision": [
+              0.8378378378378378,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.8571428571428571,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 10,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 10,
+              "objects": 10,
+              "share": 1.0,
+              "wilson95": [
+                0.7224672001371107,
+                0.9999999999999999
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 32,
+            "matched": 30,
+            "precision": 0.9375,
+            "predicted": 32,
+            "recall": 0.9375
+          },
+          "invocations": 1800,
+          "invocations_per_camera_minute": 1800.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 16,
+              "matches": 6705,
+              "misses": 41
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 16,
+              "matches": 6706,
+              "misses": 40
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.5758963667628328,
+              "estimator_p50": 0.20940508020264814,
+              "n": 2595,
+              "raw_projection": 0.5482483407883301,
+              "raw_projection_p50": 0.15444265250926292
+            },
+            "[20,30)": {
+              "estimator": 0.5946537350413115,
+              "estimator_p50": 0.2155511878745574,
+              "n": 2581,
+              "raw_projection": 0.482012271051172,
+              "raw_projection_p50": 0.11719654890379201
+            },
+            "[30,inf)": {
+              "estimator": 0.9259320241573186,
+              "estimator_p50": 0.6399582283380545,
+              "n": 1530,
+              "raw_projection": 0.6690667557318922,
+              "raw_projection_p50": 0.1190441208862745
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              0.0,
+              18.0
+            ],
+            "id_switches_baseline": [
+              0.0,
+              15.0
+            ],
+            "precision": [
+              1.0,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              1.0,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 6,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "NovaCarter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 6,
+              "objects": 6,
+              "share": 1.0,
+              "wilson95": [
+                0.6096657120978346,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 5,
+            "matched": 5,
+            "precision": 1.0,
+            "predicted": 5,
+            "recall": 1.0
+          },
+          "invocations": 1800,
+          "invocations_per_camera_minute": 1800.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 5,
+              "matches": 1983,
+              "misses": 13
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 6,
+              "matches": 1982,
+              "misses": 14
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.47223204442929984,
+              "estimator_p50": 0.1809445537011551,
+              "n": 1049,
+              "raw_projection": 0.46873312195027617,
+              "raw_projection_p50": 0.15849139280283334
+            },
+            "[10,20)": {
+              "estimator": 0.1940869503564245,
+              "estimator_p50": 0.13507556040377988,
+              "n": 915,
+              "raw_projection": 0.1794586262565755,
+              "raw_projection_p50": 0.13072406686925098
+            },
+            "[20,30)": {
+              "estimator": 0.25114864872348613,
+              "estimator_p50": 0.17035924325504614,
+              "n": 18,
+              "raw_projection": 0.25837902152629594,
+              "raw_projection_p50": 0.15568274998890533
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            19.975,
+            51.0
+          ],
+          "id_switches_baseline": [
+            18.0,
+            48.0
+          ],
+          "precision": [
+            0.9075591347650172,
+            1.0
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.9382716049382716,
+            1.0
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 37,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "NovaCarter": {
+            "covered": 1,
+            "objects": 1,
+            "share": 1.0,
+            "wilson95": [
+              0.20654931437723745,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 37,
+            "objects": 37,
+            "share": 1.0,
+            "wilson95": [
+              0.9059421741627975,
+              1.0
+            ]
+          },
+          "Transporter": {
+            "covered": 2,
+            "objects": 2,
+            "share": 1.0,
+            "wilson95": [
+              0.34238022750665303,
+              1.0
+            ]
+          }
+        },
+        "events": {
+          "gt": 78,
+          "matched": 76,
+          "precision": 0.9620253164556962,
+          "predicted": 79,
+          "recall": 0.9743589743589743
+        },
+        "invocations": 7200,
+        "invocations_per_camera_minute": 1800.0,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 32,
+            "matches": 20313,
+            "misses": 102
+          },
+          "pipeline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 34,
+            "matches": 20316,
+            "misses": 99
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 0.6530747235251492,
+            "estimator_p50": 0.23145300667778898,
+            "n": 2147,
+            "raw_projection": 0.6524276735404596,
+            "raw_projection_p50": 0.19945200051721373
+          },
+          "[10,20)": {
+            "estimator": 0.6184925694988176,
+            "estimator_p50": 0.19322091647911627,
+            "n": 6628,
+            "raw_projection": 0.602522965130733,
+            "raw_projection_p50": 0.1559045664937354
+          },
+          "[20,30)": {
+            "estimator": 0.9506839386503145,
+            "estimator_p50": 0.2332409822495818,
+            "n": 5635,
+            "raw_projection": 0.8778322126695709,
+            "raw_projection_p50": 0.11435355445200854
+          },
+          "[30,inf)": {
+            "estimator": 0.6764714018379347,
+            "estimator_p50": 0.4149092163829593,
+            "n": 5906,
+            "raw_projection": 0.5293605660442543,
+            "raw_projection_p50": 0.12147596978006489
+          }
+        }
+      }
+    },
+    "motion_adaptive": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              1.0,
+              12.0
+            ],
+            "id_switches_baseline": [
+              0.0,
+              10.0
+            ],
+            "precision": [
+              0.7692307692307693,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.4284340659340659,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 8,
+              "objects": 9,
+              "share": 0.8888888888888888,
+              "wilson95": [
+                0.565000294423344,
+                0.980109112361455
+              ]
+            }
+          },
+          "events": {
+            "gt": 17,
+            "matched": 12,
+            "precision": 0.9230769230769231,
+            "predicted": 13,
+            "recall": 0.7058823529411765
+          },
+          "invocations": 208,
+          "invocations_per_camera_minute": 208.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 4,
+              "matches": 635,
+              "misses": 4507
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 6,
+              "matches": 635,
+              "misses": 4507
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.8007438342278822,
+              "estimator_p50": 0.3075483673577427,
+              "n": 101,
+              "raw_projection": 0.8057361902421564,
+              "raw_projection_p50": 0.3186136476066644
+            },
+            "[10,20)": {
+              "estimator": 0.5770737288823529,
+              "estimator_p50": 0.19153987646220558,
+              "n": 271,
+              "raw_projection": 0.5737781880238583,
+              "raw_projection_p50": 0.16507815381051213
+            },
+            "[20,30)": {
+              "estimator": 0.21845078528701167,
+              "estimator_p50": 0.1097075521860884,
+              "n": 85,
+              "raw_projection": 0.12983772987771622,
+              "raw_projection_p50": 0.10161845689651994
+            },
+            "[30,inf)": {
+              "estimator": 0.3935403811124628,
+              "estimator_p50": 0.26953323302512266,
+              "n": 178,
+              "raw_projection": 0.22127648386231247,
+              "raw_projection_p50": 0.12485659467442578
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              6.0,
+              16.0
+            ],
+            "id_switches_baseline": [
+              6.0,
+              23.0
+            ],
+            "precision": [
+              1.0,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              3.0
+            ],
+            "recall": [
+              0.1875,
+              0.5714285714285714
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 12,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 10,
+              "objects": 12,
+              "share": 0.8333333333333334,
+              "wilson95": [
+                0.5519691377470267,
+                0.9530348578161462
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 24,
+            "matched": 9,
+            "precision": 1.0,
+            "predicted": 9,
+            "recall": 0.375
+          },
+          "invocations": 132,
+          "invocations_per_camera_minute": 132.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 14,
+              "matches": 539,
+              "misses": 5992
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 11,
+              "matches": 538,
+              "misses": 5993
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.560521287406984,
+              "estimator_p50": 0.1959330422602074,
+              "n": 70,
+              "raw_projection": 0.5603795610050007,
+              "raw_projection_p50": 0.18219294125023683
+            },
+            "[10,20)": {
+              "estimator": 0.8746455012307857,
+              "estimator_p50": 0.2182814682555203,
+              "n": 57,
+              "raw_projection": 0.8715795854451466,
+              "raw_projection_p50": 0.21096155007557132
+            },
+            "[20,30)": {
+              "estimator": 0.45533245830435237,
+              "estimator_p50": 0.23843604484565728,
+              "n": 118,
+              "raw_projection": 0.1184837588870359,
+              "raw_projection_p50": 0.08336434976387254
+            },
+            "[30,inf)": {
+              "estimator": 0.4950081196723664,
+              "estimator_p50": 0.23448158696454643,
+              "n": 293,
+              "raw_projection": 0.5482991154865147,
+              "raw_projection_p50": 0.1267258844294866
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              7.0,
+              22.0
+            ],
+            "id_switches_baseline": [
+              13.0,
+              31.0
+            ],
+            "precision": [
+              0.75,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.46869791666666666,
+              0.7742831541218633
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 10,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 10,
+              "objects": 10,
+              "share": 1.0,
+              "wilson95": [
+                0.7224672001371107,
+                0.9999999999999999
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 32,
+            "matched": 20,
+            "precision": 0.8695652173913043,
+            "predicted": 23,
+            "recall": 0.625
+          },
+          "invocations": 204,
+          "invocations_per_camera_minute": 204.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 22,
+              "matches": 851,
+              "misses": 5895
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 14,
+              "matches": 845,
+              "misses": 5901
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.42490887238936853,
+              "estimator_p50": 0.1793733031172745,
+              "n": 318,
+              "raw_projection": 0.40092964307739776,
+              "raw_projection_p50": 0.14612268662955902
+            },
+            "[20,30)": {
+              "estimator": 0.42407430796232487,
+              "estimator_p50": 0.17645496729309987,
+              "n": 323,
+              "raw_projection": 0.33639836209117513,
+              "raw_projection_p50": 0.1220890656479345
+            },
+            "[30,inf)": {
+              "estimator": 0.678309026053728,
+              "estimator_p50": 0.37444754586144213,
+              "n": 204,
+              "raw_projection": 0.4475772091859816,
+              "raw_projection_p50": 0.11924162564108762
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              0.0,
+              4.0
+            ],
+            "id_switches_baseline": [
+              0.0,
+              3.0
+            ],
+            "precision": [
+              0.0,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              1.0
+            ],
+            "recall": [
+              0.0,
+              0.8333333333333334
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 6,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "NovaCarter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 5,
+              "objects": 6,
+              "share": 0.8333333333333334,
+              "wilson95": [
+                0.43649717781352987,
+                0.9699466302516935
+              ]
+            }
+          },
+          "events": {
+            "gt": 5,
+            "matched": 2,
+            "precision": 0.5,
+            "predicted": 4,
+            "recall": 0.4
+          },
+          "invocations": 162,
+          "invocations_per_camera_minute": 162.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 1,
+              "matches": 266,
+              "misses": 1730
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 2,
+              "matches": 268,
+              "misses": 1728
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.4139502316735985,
+              "estimator_p50": 0.16915360365931628,
+              "n": 139,
+              "raw_projection": 0.41522875145471505,
+              "raw_projection_p50": 0.1567078836636873
+            },
+            "[10,20)": {
+              "estimator": 0.19026643204554586,
+              "estimator_p50": 0.15188461933130232,
+              "n": 129,
+              "raw_projection": 0.18085607358166764,
+              "raw_projection_p50": 0.14177721383109154
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            22.0,
+            45.0
+          ],
+          "id_switches_baseline": [
+            25.0,
+            59.0
+          ],
+          "precision": [
+            0.7837837837837838,
+            0.9574468085106383
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.4374779929577465,
+            0.6716476212686567
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 37,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "NovaCarter": {
+            "covered": 1,
+            "objects": 1,
+            "share": 1.0,
+            "wilson95": [
+              0.20654931437723745,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 33,
+            "objects": 37,
+            "share": 0.8918918918918919,
+            "wilson95": [
+              0.7529146845587398,
+              0.9571481005958853
+            ]
+          },
+          "Transporter": {
+            "covered": 2,
+            "objects": 2,
+            "share": 1.0,
+            "wilson95": [
+              0.34238022750665303,
+              1.0
+            ]
+          }
+        },
+        "events": {
+          "gt": 78,
+          "matched": 43,
+          "precision": 0.8775510204081632,
+          "predicted": 49,
+          "recall": 0.5512820512820513
+        },
+        "invocations": 706,
+        "invocations_per_camera_minute": 176.5,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 41,
+            "matches": 2291,
+            "misses": 18124
+          },
+          "pipeline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 33,
+            "matches": 2286,
+            "misses": 18129
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 0.597228717888859,
+            "estimator_p50": 0.22218437260939203,
+            "n": 310,
+            "raw_projection": 0.5997788103882388,
+            "raw_projection_p50": 0.19980608749938716
+          },
+          "[10,20)": {
+            "estimator": 0.5028129638999393,
+            "estimator_p50": 0.1809847243670471,
+            "n": 775,
+            "raw_projection": 0.49233523063970086,
+            "raw_projection_p50": 0.15419763770969655
+          },
+          "[20,30)": {
+            "estimator": 0.4057779666478349,
+            "estimator_p50": 0.17654899451256068,
+            "n": 526,
+            "raw_projection": 0.2745247311690744,
+            "raw_projection_p50": 0.11196737233480061
+          },
+          "[30,inf)": {
+            "estimator": 0.5350296598437486,
+            "estimator_p50": 0.28795135116018694,
+            "n": 675,
+            "raw_projection": 0.4516094508954683,
+            "raw_projection_p50": 0.12355685543403885
+          }
+        }
+      }
+    },
+    "stride_15": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              11.0,
+              43.0
+            ],
+            "id_switches_baseline": [
+              10.0,
+              46.0
+            ],
+            "precision": [
+              0.6814393939393939,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.41147058823529414,
+              0.9333333333333333
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 17,
+            "matched": 11,
+            "precision": 0.8461538461538461,
+            "predicted": 13,
+            "recall": 0.6470588235294118
+          },
+          "invocations": 120,
+          "invocations_per_camera_minute": 120.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 27,
+              "matches": 304,
+              "misses": 4838
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 26,
+              "matches": 304,
+              "misses": 4838
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.7554869828531584,
+              "estimator_p50": 0.28077244583051697,
+              "n": 40,
+              "raw_projection": 0.7619495912345206,
+              "raw_projection_p50": 0.31500051543654695
+            },
+            "[10,20)": {
+              "estimator": 0.6888634473050849,
+              "estimator_p50": 0.16188687961660897,
+              "n": 150,
+              "raw_projection": 0.6886609698636639,
+              "raw_projection_p50": 0.1676637070822174
+            },
+            "[20,30)": {
+              "estimator": 0.15771096321501313,
+              "estimator_p50": 0.12334000134577516,
+              "n": 43,
+              "raw_projection": 0.12879868418808244,
+              "raw_projection_p50": 0.10161845689651994
+            },
+            "[30,inf)": {
+              "estimator": 0.28289482751722406,
+              "estimator_p50": 0.14655469978142305,
+              "n": 71,
+              "raw_projection": 0.19933044050314014,
+              "raw_projection_p50": 0.08742097396309752
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              18.0,
+              69.0
+            ],
+            "id_switches_baseline": [
+              23.0,
+              80.0
+            ],
+            "precision": [
+              0.7777777777777778,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.6666666666666666,
+              0.8387096774193549
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 12,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 11,
+              "objects": 12,
+              "share": 0.9166666666666666,
+              "wilson95": [
+                0.646120088858883,
+                0.9851349055950829
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 24,
+            "matched": 18,
+            "precision": 0.9,
+            "predicted": 20,
+            "recall": 0.75
+          },
+          "invocations": 120,
+          "invocations_per_camera_minute": 120.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 51,
+              "matches": 403,
+              "misses": 6128
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 43,
+              "matches": 400,
+              "misses": 6131
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.6552271451667365,
+              "estimator_p50": 0.1916554203058548,
+              "n": 19,
+              "raw_projection": 0.6622289151312406,
+              "raw_projection_p50": 0.19165667832317482
+            },
+            "[10,20)": {
+              "estimator": 0.8238404590571857,
+              "estimator_p50": 0.19545128765760728,
+              "n": 45,
+              "raw_projection": 0.8235644346623661,
+              "raw_projection_p50": 0.1899377392126144
+            },
+            "[20,30)": {
+              "estimator": 1.3019343457051,
+              "estimator_p50": 0.16861441156382184,
+              "n": 150,
+              "raw_projection": 1.197954738339212,
+              "raw_projection_p50": 0.11406452581857844
+            },
+            "[30,inf)": {
+              "estimator": 0.4402348232440471,
+              "estimator_p50": 0.20172036724115497,
+              "n": 186,
+              "raw_projection": 0.3787399082993043,
+              "raw_projection_p50": 0.11280062998565638
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              30.0,
+              70.0
+            ],
+            "id_switches_baseline": [
+              33.0,
+              82.0
+            ],
+            "precision": [
+              0.5625,
+              0.9047619047619048
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.3181818181818182,
+              0.6428571428571429
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 10,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 10,
+              "objects": 10,
+              "share": 1.0,
+              "wilson95": [
+                0.7224672001371107,
+                0.9999999999999999
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 32,
+            "matched": 16,
+            "precision": 0.7619047619047619,
+            "predicted": 21,
+            "recall": 0.5
+          },
+          "invocations": 120,
+          "invocations_per_camera_minute": 120.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 57,
+              "matches": 392,
+              "misses": 6354
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 49,
+              "matches": 385,
+              "misses": 6361
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.42033416785884975,
+              "estimator_p50": 0.16828157156731607,
+              "n": 134,
+              "raw_projection": 0.4173289949175008,
+              "raw_projection_p50": 0.16148397927643776
+            },
+            "[20,30)": {
+              "estimator": 0.3876709924582299,
+              "estimator_p50": 0.15491608379022342,
+              "n": 162,
+              "raw_projection": 0.1799391624208037,
+              "raw_projection_p50": 0.11325836498115946
+            },
+            "[30,inf)": {
+              "estimator": 0.29168807579879064,
+              "estimator_p50": 0.1472449800983528,
+              "n": 89,
+              "raw_projection": 0.14543566866508517,
+              "raw_projection_p50": 0.11069580645368375
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              2.0,
+              8.0
+            ],
+            "id_switches_baseline": [
+              1.0,
+              5.0
+            ],
+            "precision": [
+              0.5,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              32.0
+            ],
+            "recall": [
+              0.16666666666666666,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 6,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "NovaCarter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 5,
+              "objects": 6,
+              "share": 0.8333333333333334,
+              "wilson95": [
+                0.43649717781352987,
+                0.9699466302516935
+              ]
+            }
+          },
+          "events": {
+            "gt": 5,
+            "matched": 3,
+            "precision": 0.75,
+            "predicted": 4,
+            "recall": 0.6
+          },
+          "invocations": 120,
+          "invocations_per_camera_minute": 120.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 3,
+              "matches": 98,
+              "misses": 1898
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 5,
+              "matches": 96,
+              "misses": 1900
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.2988203179429371,
+              "estimator_p50": 0.15557237193122037,
+              "n": 43,
+              "raw_projection": 0.30100555171611165,
+              "raw_projection_p50": 0.15696201237965232
+            },
+            "[10,20)": {
+              "estimator": 0.17953828195638924,
+              "estimator_p50": 0.13048734457590488,
+              "n": 53,
+              "raw_projection": 0.17765165931843957,
+              "raw_projection_p50": 0.13531064833821413
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            83.0,
+            166.0
+          ],
+          "id_switches_baseline": [
+            93.0,
+            186.0
+          ],
+          "precision": [
+            0.738452380952381,
+            0.9038461538461539
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.507457278823275,
+            0.7108433734939759
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 37,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "NovaCarter": {
+            "covered": 1,
+            "objects": 1,
+            "share": 1.0,
+            "wilson95": [
+              0.20654931437723745,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 35,
+            "objects": 37,
+            "share": 0.9459459459459459,
+            "wilson95": [
+              0.822953456491869,
+              0.9850490231668423
+            ]
+          },
+          "Transporter": {
+            "covered": 2,
+            "objects": 2,
+            "share": 1.0,
+            "wilson95": [
+              0.34238022750665303,
+              1.0
+            ]
+          }
+        },
+        "events": {
+          "gt": 78,
+          "matched": 48,
+          "precision": 0.8275862068965517,
+          "predicted": 58,
+          "recall": 0.6153846153846154
+        },
+        "invocations": 480,
+        "invocations_per_camera_minute": 120.0,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 138,
+            "matches": 1197,
+            "misses": 19218
+          },
+          "pipeline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 123,
+            "matches": 1185,
+            "misses": 19230
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 0.5843311654864574,
+            "estimator_p50": 0.22609814237830927,
+            "n": 102,
+            "raw_projection": 0.5895417752084824,
+            "raw_projection_p50": 0.23595732179546014
+          },
+          "[10,20)": {
+            "estimator": 0.5768338558701788,
+            "estimator_p50": 0.16216327695402247,
+            "n": 382,
+            "raw_projection": 0.5758451797159936,
+            "raw_projection_p50": 0.16385895405410372
+          },
+          "[20,30)": {
+            "estimator": 0.8875845836769076,
+            "estimator_p50": 0.15084368779521926,
+            "n": 355,
+            "raw_projection": 0.78940683233638,
+            "raw_projection_p50": 0.11199575888368368
+          },
+          "[30,inf)": {
+            "estimator": 0.3774818892262845,
+            "estimator_p50": 0.16857639344482203,
+            "n": 346,
+            "raw_projection": 0.30117338742383426,
+            "raw_projection_p50": 0.1084754320203756
+          }
+        }
+      }
+    },
+    "stride_6": {
+      "cameras": {
+        "Camera_0000": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              1.0,
+              9.0
+            ],
+            "id_switches_baseline": [
+              0.0,
+              5.0
+            ],
+            "precision": [
+              1.0,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              1.0,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 9,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 9,
+              "objects": 9,
+              "share": 1.0,
+              "wilson95": [
+                0.7008549515804559,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 17,
+            "matched": 17,
+            "precision": 1.0,
+            "predicted": 17,
+            "recall": 1.0
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 2,
+              "matches": 847,
+              "misses": 4295
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 5142,
+              "id_switches": 5,
+              "matches": 847,
+              "misses": 4295
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.7885047045628052,
+              "estimator_p50": 0.29080278871491416,
+              "n": 101,
+              "raw_projection": 0.7939938012353008,
+              "raw_projection_p50": 0.3092294778772001
+            },
+            "[10,20)": {
+              "estimator": 0.6740865817862871,
+              "estimator_p50": 0.17661192675590803,
+              "n": 393,
+              "raw_projection": 0.6714608425093708,
+              "raw_projection_p50": 0.15141080909418297
+            },
+            "[20,30)": {
+              "estimator": 0.2412405692496702,
+              "estimator_p50": 0.13008625909126945,
+              "n": 119,
+              "raw_projection": 0.13691358191131012,
+              "raw_projection_p50": 0.1007935993468555
+            },
+            "[30,inf)": {
+              "estimator": 0.40373943387355776,
+              "estimator_p50": 0.27123181217316006,
+              "n": 234,
+              "raw_projection": 0.19766087967401932,
+              "raw_projection_p50": 0.11939778207262428
+            }
+          }
+        },
+        "Camera_0001": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              6.0,
+              18.0
+            ],
+            "id_switches_baseline": [
+              0.0,
+              12.0
+            ],
+            "precision": [
+              0.8571428571428571,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.8571428571428571,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 12,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 11,
+              "objects": 12,
+              "share": 0.9166666666666666,
+              "wilson95": [
+                0.646120088858883,
+                0.9851349055950829
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 24,
+            "matched": 23,
+            "precision": 0.9583333333333334,
+            "predicted": 24,
+            "recall": 0.9583333333333334
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 6,
+              "matches": 1071,
+              "misses": 5460
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6531,
+              "id_switches": 12,
+              "matches": 1072,
+              "misses": 5459
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.5709988837996002,
+              "estimator_p50": 0.1882426295266945,
+              "n": 75,
+              "raw_projection": 0.5731205770979677,
+              "raw_projection_p50": 0.18190805540317845
+            },
+            "[10,20)": {
+              "estimator": 0.7601935998161503,
+              "estimator_p50": 0.19902444218862933,
+              "n": 122,
+              "raw_projection": 0.7603580912066422,
+              "raw_projection_p50": 0.19196936316111463
+            },
+            "[20,30)": {
+              "estimator": 1.2721431761082924,
+              "estimator_p50": 0.2471569580583164,
+              "n": 384,
+              "raw_projection": 1.2132401498934156,
+              "raw_projection_p50": 0.11486085589879505
+            },
+            "[30,inf)": {
+              "estimator": 0.5057130321176542,
+              "estimator_p50": 0.279794667445086,
+              "n": 491,
+              "raw_projection": 0.49613185487441663,
+              "raw_projection_p50": 0.11872394871757058
+            }
+          }
+        },
+        "Camera_0002": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              5.0,
+              16.0
+            ],
+            "id_switches_baseline": [
+              3.0,
+              20.0
+            ],
+            "precision": [
+              0.8055555555555556,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.7142857142857143,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 10,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "Person": {
+              "covered": 10,
+              "objects": 10,
+              "share": 1.0,
+              "wilson95": [
+                0.7224672001371107,
+                0.9999999999999999
+              ]
+            },
+            "Transporter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 32,
+            "matched": 28,
+            "precision": 0.9032258064516129,
+            "predicted": 31,
+            "recall": 0.875
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 11,
+              "matches": 1103,
+              "misses": 5643
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 6746,
+              "id_switches": 10,
+              "matches": 1099,
+              "misses": 5647
+            }
+          },
+          "rmse_m_by_distance": {
+            "[10,20)": {
+              "estimator": 0.44546119825133174,
+              "estimator_p50": 0.17667000246930634,
+              "n": 418,
+              "raw_projection": 0.4322366196009083,
+              "raw_projection_p50": 0.15265393486682174
+            },
+            "[20,30)": {
+              "estimator": 0.43345526528529954,
+              "estimator_p50": 0.18829204729731766,
+              "n": 425,
+              "raw_projection": 0.3172652765166867,
+              "raw_projection_p50": 0.11666476596372159
+            },
+            "[30,inf)": {
+              "estimator": 0.8526850574521032,
+              "estimator_p50": 0.524853893295095,
+              "n": 256,
+              "raw_projection": 0.6890885797145474,
+              "raw_projection_p50": 0.12273878569526372
+            }
+          }
+        },
+        "Camera_0003": {
+          "bootstrap95_over_gt_tracks": {
+            "id_switches": [
+              0.0,
+              4.0
+            ],
+            "id_switches_baseline": [
+              0.0,
+              3.0
+            ],
+            "precision": [
+              0.4,
+              1.0
+            ],
+            "precision_undefined_resamples": [
+              0.0
+            ],
+            "recall": [
+              0.4,
+              1.0
+            ],
+            "recall_undefined_resamples": [
+              0.0
+            ]
+          },
+          "bootstrap_units": 6,
+          "camera_minutes": 1.0,
+          "class_coverage": {
+            "NovaCarter": {
+              "covered": 1,
+              "objects": 1,
+              "share": 1.0,
+              "wilson95": [
+                0.20654931437723745,
+                1.0
+              ]
+            },
+            "Person": {
+              "covered": 6,
+              "objects": 6,
+              "share": 1.0,
+              "wilson95": [
+                0.6096657120978346,
+                1.0
+              ]
+            }
+          },
+          "events": {
+            "gt": 5,
+            "matched": 4,
+            "precision": 0.8,
+            "predicted": 5,
+            "recall": 0.8
+          },
+          "invocations": 300,
+          "invocations_per_camera_minute": 300.0,
+          "mot": {
+            "iou_only_baseline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 1,
+              "matches": 314,
+              "misses": 1682
+            },
+            "pipeline": {
+              "false_positives": 0,
+              "gt": 1996,
+              "id_switches": 2,
+              "matches": 315,
+              "misses": 1681
+            }
+          },
+          "rmse_m_by_distance": {
+            "[0,10)": {
+              "estimator": 0.38869064369136486,
+              "estimator_p50": 0.17011127326698747,
+              "n": 167,
+              "raw_projection": 0.38974357284687783,
+              "raw_projection_p50": 0.15178240397009374
+            },
+            "[10,20)": {
+              "estimator": 0.17984181206281563,
+              "estimator_p50": 0.1344912344148937,
+              "n": 148,
+              "raw_projection": 0.17284861906412738,
+              "raw_projection_p50": 0.12896866565224208
+            }
+          }
+        }
+      },
+      "pooled": {
+        "bootstrap95_over_gt_tracks": {
+          "id_switches": [
+            19.975,
+            39.0
+          ],
+          "id_switches_baseline": [
+            9.0,
+            32.0
+          ],
+          "precision": [
+            0.873015873015873,
+            0.9868463773069036
+          ],
+          "precision_undefined_resamples": [
+            0.0
+          ],
+          "recall": [
+            0.8405797101449275,
+            0.9879518072289156
+          ],
+          "recall_undefined_resamples": [
+            0.0
+          ]
+        },
+        "bootstrap_units": 37,
+        "camera_minutes": 4.0,
+        "class_coverage": {
+          "NovaCarter": {
+            "covered": 1,
+            "objects": 1,
+            "share": 1.0,
+            "wilson95": [
+              0.20654931437723745,
+              1.0
+            ]
+          },
+          "Person": {
+            "covered": 36,
+            "objects": 37,
+            "share": 0.972972972972973,
+            "wilson95": [
+              0.861759301362695,
+              0.9952130255480596
+            ]
+          },
+          "Transporter": {
+            "covered": 2,
+            "objects": 2,
+            "share": 1.0,
+            "wilson95": [
+              0.34238022750665303,
+              1.0
+            ]
+          }
+        },
+        "events": {
+          "gt": 78,
+          "matched": 72,
+          "precision": 0.935064935064935,
+          "predicted": 77,
+          "recall": 0.9230769230769231
+        },
+        "invocations": 1200,
+        "invocations_per_camera_minute": 300.0,
+        "mot": {
+          "iou_only_baseline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 20,
+            "matches": 3335,
+            "misses": 17080
+          },
+          "pipeline": {
+            "false_positives": 0,
+            "gt": 20415,
+            "id_switches": 29,
+            "matches": 3333,
+            "misses": 17082
+          }
+        },
+        "rmse_m_by_distance": {
+          "[0,10)": {
+            "estimator": 0.5726495005960338,
+            "estimator_p50": 0.20813558133302892,
+            "n": 343,
+            "raw_projection": 0.5756866612820808,
+            "raw_projection_p50": 0.19397568372143015
+          },
+          "[10,20)": {
+            "estimator": 0.5581888363094573,
+            "estimator_p50": 0.1717049679699519,
+            "n": 1081,
+            "raw_projection": 0.5527138680651391,
+            "raw_projection_p50": 0.1527997205141018
+          },
+          "[20,30)": {
+            "estimator": 0.8735959486153885,
+            "estimator_p50": 0.19320160233189196,
+            "n": 928,
+            "raw_projection": 0.8109165377499391,
+            "raw_projection_p50": 0.11498895910805429
+          },
+          "[30,inf)": {
+            "estimator": 0.597177186785886,
+            "estimator_p50": 0.32727228860345225,
+            "n": 981,
+            "raw_projection": 0.5063916162688985,
+            "raw_projection_p50": 0.12007421365462939
+          }
+        }
+      }
+    }
+  },
+  "decision_rule_applied": {
+    "chosen": "adaptive",
+    "passing": [
+      "adaptive",
+      "stride_6",
+      "gate_keepalive"
+    ],
+    "rule": "fewest invocations whose recall interval overlaps gate_off's"
+  },
+  "detections_from": "outputs/runs/day43-7ed3392/oracle_gate-off",
+  "detector": "oracle",
+  "frames_per_camera": 1800,
+  "gate_check": {
+    "camera": "Camera_0000",
+    "frames": 1800,
+    "frames_differing": 0
+  },
+  "gate_from": "outputs/runs/day43-7ed3392/oracle_gate-default",
+  "ground_truth_sha256": "9d179e36c180b2dbbb475ae4187602b4cf22db7fc611d08c51105888aa8fa906",
+  "label": "lane S synthetic (NVIDIA PhysicalAI-SmartSpaces), calibration given; not evidence about real cameras",
+  "scene": "Warehouse_022",
+  "wall_s": 60.7,
+  "zones_file": "configs/zones/warehouse_022.yaml"
+}
