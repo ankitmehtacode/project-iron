@@ -44,18 +44,21 @@
 
 - id: dataset-license-and-consent-verification
   description: >-
-    All 63 datasets registered in configs/datasets.yaml have
-    license_snapshot: null (verified directly today: `grep -c
-    "license_snapshot:" configs/datasets.yaml` returns 0 — the key never
-    appears with a value, only ever as the pydantic field's implicit null
-    default) — zero have ever had a human read, hash, and record the
-    license text that would let the registry admit them past lane R
-    (eval/model-selection only). MEVA specifically has had this restated
-    as "still pending" 52 times across 34 FOUNDATION_REPORT.md
+    Most datasets registered in configs/datasets.yaml have no
+    license_snapshot: no human has read, hashed and recorded the license
+    text that would let the registry admit them past lane R
+    (eval/model-selection only). The counts are NOT written here: by Day 43
+    the hand-written count this entry carried since Day 37 was wrong on both
+    the total and the signed number (see git history of this file).
+    `python scripts/blocker_report.py` derives them from
+    configs/datasets.yaml every time it runs. CHIRLA is signed
+    (license_snapshot attested 2026-10-01, 76595ec, against the pinned raw
+    README) and is no longer part of this blocker; its separate
+    deployment-scope question stays open as
+    chirla-deployment-scope-legal-review. MEVA specifically had this
+    restated as "still pending" 52 times across 34 FOUNDATION_REPORT.md
     day-sections (Day 36, Objective 1) without a human ever opening the
-    license page it names. CHIRLA (Day 36) is the one entry with a
-    genuinely fast path: docs/chirla_verification_checklist.md is a
-    stated five-minute, four-item checklist, not a research assignment.
+    license page it names.
   category: human_verification
   first_recorded:
     sha: bf85e758686d6a73add76ef558702bd96417da31
@@ -73,11 +76,10 @@
     - "Clothing-change robustness specifically has no candidate dataset in
        this registry besides CHIRLA (lane R, eval-only)."
   estimated_human_effort: >-
-    CHIRLA: five minutes (docs/chirla_verification_checklist.md, four
-    checkboxes). MEVA and the remaining ~61 entries: unknown per-entry,
-    plausibly minutes-to-hours each depending on how each license is
-    published; nobody has attempted even one, so no real estimate exists
-    yet — reported as unknown rather than guessed.
+    MEVA and every other unsigned entry: unknown per-entry, plausibly
+    minutes-to-hours each depending on how each license is published;
+    only CHIRLA's has been done, so no general estimate exists yet —
+    reported as unknown rather than guessed.
 
 - id: consent-template-counsel-review
   description: >-

@@ -241,3 +241,29 @@ class TestReportOpensWithBlockers:
         body = fake_report[headings[0].end() :]
         assert _VERDICTS_HEADING.search(body) is not None
         assert _BLOCKERS_HEADING.search(body) is None
+
+
+class TestLicenseCountsAreDerived:
+    """Day 43: the umbrella licence entry's Day-37 text said "all 63 ...
+    null" long after 68 were registered and 4 signed. Counts now come from
+    the registry at report time; the entry may not carry its own."""
+
+    def test_counts_match_the_registry_loader(self) -> None:
+        from src.data.registry import DatasetRegistry
+
+        registry = DatasetRegistry.load(br.REGISTRY_PATH)
+        total, signed = br.license_counts()
+        assert total == len(registry.entries())
+        assert sorted(signed) == sorted(
+            e.name for e in registry.entries() if e.license_snapshot is not None
+        )
+
+    def test_the_entry_states_no_count_of_its_own(self) -> None:
+        entry = next(e for e in br.load_ledger() if e.id == br.LICENSE_ENTRY_ID)
+        stated = re.findall(r"\ball \d+\b|\b\d+ datasets\b", entry.description, re.I)
+        assert stated == [], f"hand-written counts drift; found {stated}"
+
+    def test_the_report_prints_the_derived_counts(self) -> None:
+        line = br.render_license_counts(br.load_ledger())
+        total, signed = br.license_counts()
+        assert f"{total} registered, {len(signed)} with a license_snapshot" in line

@@ -42,6 +42,8 @@ import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 LEDGER_PATH = REPO_ROOT / "docs" / "blocker_ledger.yaml"
+REGISTRY_PATH = REPO_ROOT / "configs" / "datasets.yaml"
+LICENSE_ENTRY_ID = "dataset-license-and-consent-verification"
 
 VALID_CATEGORIES = frozenset(
     {"human_verification", "human_capture", "human_procurement", "human_decision"}
@@ -202,6 +204,30 @@ def render_table(entries: list[BlockerEntry], as_of: date) -> str:
     return "\n".join(lines)
 
 
+def license_counts(path: Path = REGISTRY_PATH) -> tuple[int, list[str]]:
+    """``(registered datasets, names with a license_snapshot)``, read from
+    the registry at call time. The umbrella licence entry carries no counts
+    of its own: Day 43 found its Day-37 text still saying "all 63 ... null"
+    when 68 were registered and 4 signed, CHIRLA among them since Day 40."""
+    payload: Any = yaml.safe_load(path.read_text()) or {}
+    entries = payload.get("datasets", [])
+    if not isinstance(entries, list):
+        raise LedgerError(f"{path}: 'datasets' must be a list")
+    signed = [str(e["name"]) for e in entries if e.get("license_snapshot")]
+    return len(entries), signed
+
+
+def render_license_counts(entries: list[BlockerEntry]) -> str:
+    if not any(e.id == LICENSE_ENTRY_ID for e in entries):
+        return ""
+    total, signed = license_counts()
+    return (
+        f"`{LICENSE_ENTRY_ID}`, derived now from configs/datasets.yaml: "
+        f"{total} registered, {len(signed)} with a license_snapshot "
+        f"({', '.join(signed) or 'none'}), {total - len(signed)} without."
+    )
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -227,6 +253,9 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     print(render_table(entries, as_of))
+    counts = render_license_counts(entries)
+    if counts:
+        print("\n" + counts)
     return 0
 
 
