@@ -77,6 +77,14 @@ class OracleDetector:
     def vocabulary(self) -> ClassVocabulary:
         return self._vocabulary
 
+    @property
+    def producer(self) -> ProducerShas:
+        return self._producer
+
+    @property
+    def input_hw(self) -> tuple[int, int] | None:
+        return None
+
     def detect(self, frame: FrameInput) -> DetectionSet:
         boxes = np.asarray(
             self._truth.boxes.get(frame.frame_index, np.zeros((0, 4))), np.float64
@@ -147,6 +155,14 @@ class MotionBlobDetector:
     @property
     def vocabulary(self) -> ClassVocabulary:
         return MOTION_BLOB_VOCABULARY
+
+    @property
+    def producer(self) -> ProducerShas:
+        return self._producer
+
+    @property
+    def input_hw(self) -> tuple[int, int] | None:
+        return None
 
     def detect(self, frame: FrameInput) -> DetectionSet:
         import cv2
@@ -294,6 +310,14 @@ class PretrainedDetector:
     @property
     def spec(self) -> DetectorPreprocessSpec:
         return self._spec
+
+    @property
+    def producer(self) -> ProducerShas:
+        return self._producer
+
+    @property
+    def input_hw(self) -> tuple[int, int] | None:
+        return self._spec.input_hw
 
     def detect(self, frame: FrameInput) -> DetectionSet:
         torch = self._torch

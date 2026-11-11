@@ -190,6 +190,11 @@ class Tracker:
         self._next_id = 1
         self._last_frame = -1
 
+    @property
+    def live_tracks(self) -> int:
+        """Tracks not yet ended, tentative ones included."""
+        return len(self._live)
+
     def step(
         self, frame_index: int, boxes_xyxy: FloatArray, scores: FloatArray
     ) -> None:

@@ -32,7 +32,7 @@ def _camera_id(video: Path, explicit: str | None) -> str:
 def _cmd_run(args: argparse.Namespace) -> int:
     from src.pipeline.events import load_zone_config
     from src.pipeline.floor import load_projector
-    from src.pipeline.run import CameraInput, run
+    from src.pipeline.run import CameraInput, DirtyTreeError, run
 
     if args.camera and len(args.video) != 1:
         print("--camera names the camera of a single --video", file=sys.stderr)
@@ -72,16 +72,22 @@ def _cmd_run(args: argparse.Namespace) -> int:
             return shared[0]
 
     started = time.perf_counter()
-    manifest = run(
-        cameras,
-        factory,
-        PERSON_LABEL[args.detector],
-        zones,
-        args.out,
-        max_seconds=args.seconds or None,
-        gate=args.gate == "default",
-        extra_manifest={"zones_file": str(args.zones)},
-    )
+    try:
+        manifest = run(
+            cameras,
+            factory,
+            PERSON_LABEL[args.detector],
+            zones,
+            args.out,
+            max_seconds=args.seconds or None,
+            progress=lambda message: print(message, flush=True),
+            extra_manifest={"zones_file": str(args.zones)},
+            gate_mode=args.gate,
+            allow_dirty=args.allow_dirty,
+        )
+    except DirtyTreeError as exc:
+        print(exc, file=sys.stderr)
+        return 2
     print(
         f"wrote {args.out}: {manifest['events']} events "
         f"{manifest['events_by_verb']}, {time.perf_counter() - started:.0f}s"
@@ -160,9 +166,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     p_run.add_argument(
         "--gate",
-        choices=("default", "off"),
+        choices=("default", "off", "keepalive"),
         default="default",
-        help="off = detector on every frame (the gate-cost reference)",
+        help=(
+            "off = every frame (the gate-cost reference); keepalive = the "
+            "gate plus every frame on which a track is alive"
+        ),
+    )
+    p_run.add_argument(
+        "--allow-dirty",
+        action="store_true",
+        help="run on uncommitted changes; the manifest records git_dirty",
     )
     p_run.add_argument(
         "--seconds",

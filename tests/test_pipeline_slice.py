@@ -199,24 +199,26 @@ def test_a_long_gap_resets_state() -> None:
 # --- one run, end to end ----------------------------------------------------
 
 
-def test_run_end_to_end_on_a_synthetic_video(tmp_path: Path) -> None:
+def _synthetic(  # type: ignore[no-untyped-def]
+    tmp_path: Path, n: int = 30, still_from: int | None = None
+):
+    """A box walks left to right across a 320x240 frame at 10 fps. From
+    ``still_from`` on it stands still: no pixel changes, so the motion gate
+    falls asleep while the oracle still reports the person."""
     import cv2
-    import pyarrow.parquet as pq
 
     from src.detect.backends import GroundTruthBoxes, OracleDetector
     from src.detect.contract import ClassVocabulary
-    from src.model.events import read_events_v2_parquet
     from src.pipeline.events import ZoneConfig
-    from src.pipeline.run import CameraInput, run
+    from src.pipeline.run import CameraInput
 
-    # A box walks left to right across a 320x240 frame for 3 s at 10 fps.
-    fps, n, w, h = 10.0, 30, 320, 240
+    fps, w, h = 10.0, 320, 240
     video = tmp_path / "cam.avi"
     writer = cv2.VideoWriter(str(video), cv2.VideoWriter_fourcc(*"MJPG"), fps, (w, h))
     boxes: dict[int, np.ndarray] = {}
     for f in range(n):
         frame = np.zeros((h, w, 3), np.uint8)
-        x = 10 + 9 * f
+        x = 10 + 9 * (f if still_from is None else min(f, still_from))
         boxes[f] = np.array([[x, 100, x + 20, 180]], dtype=float)
         frame[100:180, x : x + 20] = 255
         writer.write(frame)
@@ -244,16 +246,29 @@ def test_run_end_to_end_on_a_synthetic_video(tmp_path: Path) -> None:
         zones=(Zone("right", ((16.0, 0.0), (40.0, 0.0), (40.0, 24.0), (16.0, 24.0))),),
         rules=EventRules(min_presence_s=0.3, dwell_s=0.5, max_gap_s=2.0),
     )
+    return camera, lambda _c: OracleDetector(truth, vocab), zones
+
+
+def test_run_end_to_end_on_a_synthetic_video(tmp_path: Path) -> None:
+    import pyarrow.parquet as pq
+
+    from src.model.events import read_events_v2_parquet
+    from src.pipeline.run import run
+
+    n = 30
+    camera, factory, zones = _synthetic(tmp_path, n)
     out = tmp_path / "run"
     manifest = run(
         [camera],
-        lambda _c: OracleDetector(truth, vocab),
+        factory,
         "Person",
         zones,
         out,
         max_seconds=None,
         progress=lambda _m: None,
-        gate=False,
+        gate_mode="off",
+        cache_root=tmp_path / "cache",
+        allow_dirty=True,
     )
 
     tracks = pq.read_table(out / "tracks.parquet").to_pylist()
@@ -265,17 +280,138 @@ def test_run_end_to_end_on_a_synthetic_video(tmp_path: Path) -> None:
     assert [e.verb for e in events] == [Verb.ENTERED, Verb.DWELLED]
     assert all(e.manifest_sha == manifest["manifest_sha"] for e in events)
     assert manifest["cameras"]["cam"]["detector_runs"] == n
+    assert "git_dirty" in manifest["identity"]
 
     with pytest.raises(FileExistsError):
         run(
             [camera],
-            lambda _c: OracleDetector(truth, vocab),
+            factory,
             "Person",
             zones,
             out,
             max_seconds=None,
             progress=lambda _m: None,
+            cache_root=tmp_path / "cache",
+            allow_dirty=True,
         )
+
+
+def _run_mode(  # type: ignore[no-untyped-def]
+    tmp_path: Path, camera, factory, zones, mode: str
+):
+    from src.pipeline.run import Detections, run
+
+    out = tmp_path / f"run_{mode}"
+    manifest = run(
+        [camera],
+        factory,
+        "Person",
+        zones,
+        out,
+        max_seconds=None,
+        progress=lambda _m: None,
+        gate_mode=mode,
+        cache_root=tmp_path / "cache",
+        allow_dirty=True,
+    )
+    return manifest, Detections.load(out / "cam" / "detections.npz")
+
+
+def test_gate_default_is_all_frame_detections_masked_by_the_gate(
+    tmp_path: Path,
+) -> None:
+    from src.cascade.motion import MotionGate, MotionGateConfig
+    from src.cascade.stage import StageContext
+
+    import cv2
+
+    camera, factory, zones = _synthetic(tmp_path, n=60, still_from=30)
+    m_off, off = _run_mode(tmp_path, camera, factory, zones, "off")
+    m_def, gated = _run_mode(tmp_path, camera, factory, zones, "default")
+
+    # The detector ran once per frame, on the first run only.
+    assert m_off["cameras"]["cam"]["detection_cache"]["cache_misses"] == 60
+    assert m_def["cameras"]["cam"]["detection_cache"]["cache_misses"] == 0
+    assert m_def["cameras"]["cam"]["detection_cache"]["cache_hits"] == 60
+
+    # The kept frames are exactly the frames a standalone gate wakes on.
+    gate = MotionGate(MotionGateConfig())
+    capture = cv2.VideoCapture(str(camera.video))
+    awake = []
+    for i in range(60):
+        ok, image = capture.read()
+        assert ok
+        out = gate.process(image[None], StageContext(frame_index=i, ts_ns=0))
+        if gate.should_wake_next(out):
+            awake.append(i)
+    assert gated.run_frames.tolist() == awake
+    assert 0 < len(awake) < 60  # the gate sleeps once the box stands still
+
+    # And on those frames the boxes are the all-frame boxes.
+    sel = np.isin(off.frame, gated.run_frames)
+    np.testing.assert_array_equal(gated.boxes, off.boxes[sel])
+    np.testing.assert_array_equal(gated.frame, off.frame[sel])
+
+
+def test_keepalive_keeps_frames_while_a_track_lives(tmp_path: Path) -> None:
+    camera, factory, zones = _synthetic(tmp_path, n=60, still_from=30)
+    _, gated = _run_mode(tmp_path, camera, factory, zones, "default")
+    _, kept = _run_mode(tmp_path, camera, factory, zones, "keepalive")
+    assert set(gated.run_frames) <= set(kept.run_frames)
+    # The person never leaves, so once tracked every later frame is kept.
+    first = int(kept.run_frames[0])
+    assert kept.run_frames.tolist() == list(range(first, 60))
+    assert len(kept.run_frames) > len(gated.run_frames)
+
+
+def test_dirty_paths_counts_tracked_changes_and_untracked_code() -> None:
+    from src.pipeline.run import dirty_paths
+
+    porcelain = "\n".join(
+        [
+            " M README.md",
+            "A  docs/new.md",
+            "?? src/pipeline/new_module.py",
+            "?? configs/zones/x.yaml",
+            "?? artifacts/pytest/run.log",
+            "?? .cache/thing.npz",
+        ]
+    )
+    assert dirty_paths(porcelain) == [
+        "README.md",
+        "docs/new.md",
+        "src/pipeline/new_module.py",
+        "configs/zones/x.yaml",
+    ]
+    assert dirty_paths("?? notes.txt\n") == []
+
+
+@pytest.mark.parametrize("dirty", [True, None])
+def test_run_refuses_a_dirty_tree_without_allow_dirty(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, dirty: bool | None
+) -> None:
+    import src.pipeline.run as run_module
+
+    monkeypatch.setattr(
+        run_module,
+        "git_state",
+        lambda _root: {"commit": "c0ffee", "dirty": dirty, "dirty_paths": ["x.py"]},
+    )
+    camera, factory, zones = _synthetic(tmp_path, n=5)
+    kwargs = dict(
+        max_seconds=None,
+        progress=lambda _m: None,
+        gate_mode="off",
+        cache_root=tmp_path / "cache",
+    )
+    with pytest.raises(run_module.DirtyTreeError):
+        run_module.run([camera], factory, "Person", zones, tmp_path / "a", **kwargs)
+    assert not (tmp_path / "a").exists()
+    manifest = run_module.run(
+        [camera], factory, "Person", zones, tmp_path / "b", allow_dirty=True, **kwargs
+    )
+    assert manifest["identity"]["git_dirty"] is dirty
+    assert manifest["git_dirty_paths"] == ["x.py"]
 
 
 def test_cli_help_runs() -> None:

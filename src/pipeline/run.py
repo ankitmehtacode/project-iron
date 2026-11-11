@@ -6,10 +6,22 @@ Per camera::
           -> Tracker (two-stage IoU/Kalman) -> FloorProjector (bottom-centre)
           -> estimator config A per track -> event compiler -> events
 
-The gate and detector run through :class:`~src.cascade.runner.CascadeRunner`,
-so the wake accounting is the product's own. Detections are written to
-``<out>/<camera>/detections.npz`` before tracking, so evaluation can re-run
-the tracker variants (the IoU-only baseline) without re-running the detector.
+The detector runs once on every frame through the per-frame detection cache
+(:mod:`src.pipeline.detcache`); the gate decides which of those frames the
+tracker sees. That is exact, not an approximation: the gate's decision is a
+function of pixels alone (motion fraction and hysteresis), and the detector
+is stateless per frame, so masking all-frame detections with the gate's wake
+decisions gives what a gated detector would have produced. Gate modes:
+
+- ``default``: frames the motion gate is awake on.
+- ``off``: every frame (the reference that measures what gating costs).
+- ``keepalive``: the gate, plus every frame on which any track is alive.
+
+The detections the tracker saw are written to ``<out>/<camera>/detections.npz``
+so evaluation can re-run the tracker variants (the IoU-only baseline).
+
+A run refuses a dirty working tree unless ``allow_dirty``: a run is evidence
+only if the commit it names is the code that ran.
 
 Output layout (``--out DIR``; the run refuses a DIR that already holds a
 manifest, it never overwrites a run)::
@@ -17,8 +29,8 @@ manifest, it never overwrites a run)::
     DIR/manifest.json            what ran, on what, with which shas
     DIR/events.parquet           every camera's events, schema v2
     DIR/tracks.parquet           one row per (track, detector run)
-    DIR/<camera>/detections.npz  the detector's raw output, gate-aware
-    DIR/<camera>/cascade.jsonl   per-stage wake/latency accounting
+    DIR/<camera>/detections.npz  detector output on the frames the tracker saw
+    DIR/<camera>/cascade.jsonl   gate and detector wake/latency accounting
 
 Scope stated: per-camera only. Track ids are per camera; the same person seen
 by two cameras is two subjects. Cross-camera association is not built.
@@ -41,11 +53,9 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 
 from src.cascade.motion import MotionGate, MotionGateConfig
-from src.cascade.runner import CascadeRunner, JsonlStatsSink
-from src.cascade.stage import Stage, StageContext
-from src.cascade.stages import DetectionWakePolicy, DetectorStage
+from src.cascade.stage import StageAccounting, StageContext
 from src.contracts.frames import AffineTransform, FrameGeometry
-from src.detect.contract import Detector, DetectionSet
+from src.detect.contract import Detector, FrameInput
 from src.estimator.filter import run_single_entity_filter
 from src.estimator.measurement_model import measurement_model_for
 from src.estimator.motion_model import motion_model_for
@@ -56,6 +66,7 @@ from src.model.measurement import WorldPositionMeasurement
 from src.model.observation import Observation
 from src.model.ulid import generate_ulid
 from src.model.uncertainty import Uncertainty
+from src.pipeline.detcache import CacheKey, DetectionCache, FrameRecord
 from src.pipeline.events import Trajectory, ZoneConfig, compile_events
 from src.pipeline.floor import FloorProjector
 from src.pipeline.tracker import Assignment, Tracker, TrackerConfig
@@ -64,6 +75,15 @@ FloatArray = npt.NDArray[np.float64]
 
 ESTIMATOR_CONFIG = "A"
 """ADR 0010: single constant-velocity model, velocity floor disabled."""
+
+GATE_MODES = ("default", "off", "keepalive")
+
+CODE_PATHS = ("src/", "iron/", "configs/")
+"""Untracked files here can change what runs; elsewhere they cannot."""
+
+
+class DirtyTreeError(RuntimeError):
+    """The working tree differs from the commit a run would name."""
 
 
 @dataclass(frozen=True)
@@ -140,18 +160,22 @@ def frame_ts_ns(frame_index: int, fps: float) -> int:
 def detect_camera(
     camera: CameraInput,
     detector: Detector,
-    person_label: str,
+    video_sha256: str,
+    cache_root: Path,
     max_seconds: float | None,
-    min_score: float,
     stats_path: Path,
+    gate_mode: str = "default",
+    person_label: str = "",
+    tracker_config: TrackerConfig | None = None,
     progress: Callable[[str], None] = print,
-    gate: bool = True,
-) -> Detections:
-    """Decode the video and run gate -> detector on every frame. ``gate=
-    False`` runs the detector on every frame: the reference that measures
-    what the gate's sleeping costs."""
+) -> tuple[Detections, dict[str, Any]]:
+    """Decode the video; run the gate on every frame and the detector on
+    every frame (through the cache); keep the frames ``gate_mode`` selects.
+    Returns the detections and the cache/accounting summary."""
     import cv2
 
+    if gate_mode not in GATE_MODES:
+        raise ValueError(f"gate_mode {gate_mode!r} not in {GATE_MODES}")
     capture = cv2.VideoCapture(str(camera.video))
     if not capture.isOpened():
         raise RuntimeError(f"cannot open {camera.video}")
@@ -159,63 +183,128 @@ def detect_camera(
     if not fps > 0:
         raise RuntimeError(f"{camera.video} reports no frame rate")
     max_frames = int(round(max_seconds * fps)) if max_seconds else 2**62
-    stats_path.parent.mkdir(parents=True, exist_ok=True)
-    stage = DetectorStage(
-        detector,
-        DetectionWakePolicy(classes=frozenset({person_label}), min_score=min_score),
+    ok, image = capture.read()
+    if not ok:
+        raise RuntimeError(f"{camera.video} decoded no frames")
+    height, width = image.shape[:2]
+    producer = detector.producer
+    key = CacheKey(
+        video_sha256=video_sha256,
+        model_sha=producer.model_sha,
+        preprocess_sha=producer.preprocess_sha,
+        input_hw=detector.input_hw,
     )
+    labels_vocab = detector.vocabulary.labels
+    gate = MotionGate(MotionGateConfig()) if gate_mode != "off" else None
+    shadow = Tracker(tracker_config) if gate_mode == "keepalive" else None
+    gate_acc = StageAccounting("motion_gate")
+    det_acc = StageAccounting("detector")
+    geometry = FrameGeometry(width=width, height=height)
     run_frames: list[int] = []
     frames: list[npt.NDArray[np.int64]] = []
     boxes: list[FloatArray] = []
     scores: list[FloatArray] = []
     labels: list[str] = []
-    producer: tuple[str, str, str] | None = None
-    width = height = 0
+    hits = misses = 0
     index = 0
     started = time.perf_counter()
-    with open(stats_path, "w") as sink:
-        stages: list[Stage] = (
-            [MotionGate(MotionGateConfig()), stage] if gate else [stage]
-        )
-        runner = CascadeRunner(stages, stats_interval_s=60.0, sink=JsonlStatsSink(sink))
+    with DetectionCache.open(
+        cache_root, key, producer.config_sha, labels_vocab, (height, width)
+    ) as cache:
+        resumed_from = len(cache)
         while index < max_frames:
-            ok, image = capture.read()
-            if not ok:
-                break
-            height, width = image.shape[:2]
+            if index > 0:
+                ok, image = capture.read()
+                if not ok:
+                    break
             ctx = StageContext(frame_index=index, ts_ns=frame_ts_ns(index, fps))
-            runner.process_frame(image[None], ctx)
-            found: DetectionSet | None = ctx.payload.get("detections")
-            if found is not None:
-                run_frames.append(index)
-                producer = found.producer.as_tuple()
-                frames.append(np.full(len(found), index, dtype=np.int64))
-                boxes.append(found.boxes_xyxy)
-                scores.append(found.score_array())
-                labels.extend(found.labels())
-            index += 1
-            if index % 300 == 0:
-                progress(
-                    f"  {camera.camera_id}: frame {index}, detector ran on "
-                    f"{len(run_frames)}, {time.perf_counter() - started:.0f}s"
+            awake = True
+            if gate is not None:
+                with gate_acc.time_wake():
+                    output = gate.process(image[None], ctx)
+                awake = gate.should_wake_next(output)
+                gate_acc.observe(woke=True, woke_next=awake)
+            record = cache.get(index)
+            if record is None:
+                with det_acc.time_wake():
+                    found = detector.detect(
+                        FrameInput(
+                            image_bgr=image,
+                            ts_ns=ctx.ts_ns,
+                            frame_index=index,
+                            geometry=geometry,
+                        )
+                    )
+                det_acc.observe(woke=True, woke_next=True)
+                record = FrameRecord(
+                    boxes_xyxy=np.asarray(found.boxes_xyxy, np.float64).reshape(-1, 4),
+                    scores=found.score_array(),
+                    class_ids=np.asarray(found.class_ids, np.int64),
                 )
-        runner.flush()
+                cache.append(index, record)
+                misses += 1
+            else:
+                hits += 1
+            if shadow is not None and not awake and shadow.live_tracks > 0:
+                awake = True
+            if awake:
+                frame_labels = [labels_vocab[int(c)] for c in record.class_ids]
+                run_frames.append(index)
+                frames.append(np.full(len(frame_labels), index, dtype=np.int64))
+                boxes.append(record.boxes_xyxy)
+                scores.append(record.scores)
+                labels.extend(frame_labels)
+                if shadow is not None:
+                    keep = np.array([lb == person_label for lb in frame_labels], bool)
+                    shadow.step(index, record.boxes_xyxy[keep], record.scores[keep])
+            index += 1
+            if index % 60 == 0:
+                progress(
+                    f"  {camera.camera_id}: frame {index}, kept {len(run_frames)}, "
+                    f"detected {misses}, cached {hits}, "
+                    f"{time.perf_counter() - started:.0f}s"
+                )
     capture.release()
-    if index == 0:
-        raise RuntimeError(f"{camera.video} decoded no frames")
-    return Detections(
-        camera_id=camera.camera_id,
-        fps=fps,
-        n_frames=index,
-        width=width,
-        height=height,
-        run_frames=np.array(run_frames, dtype=np.int64),
-        frame=np.concatenate(frames) if frames else np.zeros(0, np.int64),
-        boxes=np.concatenate(boxes) if boxes else np.zeros((0, 4)),
-        scores=np.concatenate(scores) if scores else np.zeros(0),
-        labels=np.array(labels, dtype=str),
-        producer=producer or ("none", "none", "none"),
-        backend=detector.name,
+    summary = {
+        "cache_file": str(cache.path),
+        "cache_key": key.as_dict(),
+        "cache_hits": hits,
+        "cache_misses": misses,
+        "cache_resumed_from_frame": resumed_from,
+        "gate_mode": gate_mode,
+    }
+    stats_path.parent.mkdir(parents=True, exist_ok=True)
+    stats_path.write_text(
+        json.dumps(
+            {
+                **summary,
+                "frames": index,
+                "kept_frames": len(run_frames),
+                "stages": [
+                    acc.snapshot().as_dict()
+                    for acc in ((gate_acc,) if gate is not None else ()) + (det_acc,)
+                ],
+            },
+            sort_keys=True,
+        )
+        + "\n"
+    )
+    return (
+        Detections(
+            camera_id=camera.camera_id,
+            fps=fps,
+            n_frames=index,
+            width=width,
+            height=height,
+            run_frames=np.array(run_frames, dtype=np.int64),
+            frame=np.concatenate(frames) if frames else np.zeros(0, np.int64),
+            boxes=np.concatenate(boxes) if boxes else np.zeros((0, 4)),
+            scores=np.concatenate(scores) if scores else np.zeros(0),
+            labels=np.array(labels, dtype=str),
+            producer=producer.as_tuple(),
+            backend=detector.name,
+        ),
+        summary,
     )
 
 
@@ -405,17 +494,53 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
-def _git_commit(root: Path) -> str:
+def dirty_paths(porcelain: str) -> list[str]:
+    """Paths in ``git status --porcelain`` output that make a run's commit a
+    lie: any change to a tracked file, and untracked files under
+    :data:`CODE_PATHS`. Untracked files elsewhere (logs, scratch) cannot
+    change what runs."""
+    out = []
+    for line in porcelain.splitlines():
+        if len(line) < 4:
+            continue
+        status, path = line[:2], line[3:]
+        if status == "??" and not path.startswith(CODE_PATHS):
+            continue
+        out.append(path)
+    return out
+
+
+def git_state(root: Path) -> dict[str, Any]:
+    """``{"commit", "dirty", "dirty_paths"}``. ``dirty`` is ``None`` when git
+    cannot answer, which a run treats as dirty: it cannot prove it is clean."""
     try:
-        out = subprocess.run(
+        commit = subprocess.run(
             ["git", "-C", str(root), "rev-parse", "HEAD"],
             capture_output=True,
             text=True,
             check=True,
-        )
+        ).stdout.strip()
+        status = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(root),
+                "status",
+                "--porcelain=v1",
+                "--untracked-files=all",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
     except (OSError, subprocess.CalledProcessError) as exc:
-        return f"unknown ({exc.__class__.__name__})"
-    return out.stdout.strip()
+        return {
+            "commit": f"unknown ({exc.__class__.__name__})",
+            "dirty": None,
+            "dirty_paths": [],
+        }
+    paths = dirty_paths(status)
+    return {"commit": commit, "dirty": bool(paths), "dirty_paths": paths}
 
 
 def run(
@@ -428,20 +553,50 @@ def run(
     tracker_config: TrackerConfig | None = None,
     progress: Callable[[str], None] = print,
     extra_manifest: dict[str, Any] | None = None,
-    gate: bool = True,
+    gate_mode: str = "default",
+    cache_root: Path | None = None,
+    allow_dirty: bool = False,
+    repo_root: Path | None = None,
 ) -> dict[str, Any]:
     """Run the slice on every camera and write ``out_dir``. Returns the manifest."""
+    if gate_mode not in GATE_MODES:
+        raise ValueError(f"gate_mode {gate_mode!r} not in {GATE_MODES}")
     if (out_dir / "manifest.json").exists():
         raise FileExistsError(
             f"{out_dir} already holds a run (manifest.json); runs are never "
             "overwritten, pass a new --out"
         )
+    root = repo_root or Path(__file__).resolve().parent.parent.parent
+    git = git_state(root)
+    if git["dirty"] is not False and not allow_dirty:
+        what = (
+            "git could not report the tree's state"
+            if git["dirty"] is None
+            else "uncommitted changes: " + ", ".join(git["dirty_paths"][:10])
+        )
+        raise DirtyTreeError(
+            f"refusing to run on a dirty tree ({what}); commit first, or pass "
+            "--allow-dirty and the manifest records git_dirty"
+        )
+    if cache_root is None:
+        from src.config import IronConfig
+
+        cache_root = (
+            IronConfig.load().paths.resolved_data_dir / "derived" / "detections"
+        )
     out_dir.mkdir(parents=True, exist_ok=True)
     tracker_config = tracker_config or TrackerConfig()
-    root = Path(__file__).resolve().parent.parent.parent
     video_shas = {c.camera_id: _sha256_file(c.video) for c in cameras}
+    gate_identity: Any = (
+        "off"
+        if gate_mode == "off"
+        else asdict(MotionGateConfig())
+        if gate_mode == "default"
+        else {"keepalive": "any live track", **asdict(MotionGateConfig())}
+    )
     identity = {
-        "git_commit": _git_commit(root),
+        "git_commit": git["commit"],
+        "git_dirty": git["dirty"],
         "videos": video_shas,
         "twin_revs": {c.camera_id: c.projector.twin_rev for c in cameras},
         "tracker": asdict(tracker_config),
@@ -449,7 +604,7 @@ def run(
         "estimator_config": ESTIMATOR_CONFIG,
         "max_seconds": max_seconds,
         "person_label": person_label,
-        "motion_gate": asdict(MotionGateConfig()) if gate else "off",
+        "motion_gate": gate_identity,
     }
     manifest_sha = hashlib.sha256(
         json.dumps(identity, sort_keys=True).encode()
@@ -463,15 +618,17 @@ def run(
         started = time.perf_counter()
         detector = detector_factory(camera)
         detector_name = detector.name
-        detections = detect_camera(
+        detections, cache_summary = detect_camera(
             camera,
             detector,
-            person_label,
+            video_shas[camera.camera_id],
+            cache_root,
             max_seconds,
-            tracker_config.low_score,
             out_dir / camera.camera_id / "cascade.jsonl",
-            progress,
-            gate,
+            gate_mode=gate_mode,
+            person_label=person_label,
+            tracker_config=tracker_config,
+            progress=progress,
         )
         detections.save(out_dir / camera.camera_id / "detections.npz")
         detect_s = time.perf_counter() - started
@@ -499,6 +656,7 @@ def run(
             "camera_xyz_m": list(camera.projector.camera_xyz_m),
             "detector_producer_shas": list(detections.producer),
             "wall_s_gate_and_detector": round(detect_s, 1),
+            "detection_cache": cache_summary,
         }
         progress(
             f"{camera.camera_id}: {per_camera[camera.camera_id]['tracks']} tracks, "
@@ -516,6 +674,7 @@ def run(
         "manifest_sha": manifest_sha,
         "identity": identity,
         "detector": detector_name,
+        "git_dirty_paths": git["dirty_paths"],
         "cameras": per_camera,
         "events": len(events),
         "events_by_verb": {

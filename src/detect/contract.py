@@ -252,5 +252,16 @@ class Detector(Protocol):
     def vocabulary(self) -> ClassVocabulary:
         ...
 
+    @property
+    def producer(self) -> ProducerShas:
+        """The shas every :class:`DetectionSet` from this backend carries."""
+        ...
+
+    @property
+    def input_hw(self) -> tuple[int, int] | None:
+        """Model input ``(height, width)``; ``None`` = the native frame size.
+        Part of the detection cache key (:mod:`src.pipeline.detcache`)."""
+        ...
+
     def detect(self, frame: FrameInput) -> DetectionSet:
         ...

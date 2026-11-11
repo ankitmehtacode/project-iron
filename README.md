@@ -58,9 +58,20 @@ python -m iron inspect --run outputs/runs/my-run      # http://127.0.0.1:8899
 ```
 
 `--video` repeats for several cameras. `--detector oracle --ground-truth GT`
-swaps in ground-truth boxes. `--gate off` runs the detector on every frame,
-the reference for what the gate's sleeping costs. Zones default to
+swaps in ground-truth boxes. Zones default to
 `configs/zones/warehouse_022.yaml`. A run directory is never overwritten.
+
+The detector runs once per frame into a resumable per-frame cache under
+`data/derived/detections/`, keyed by (video sha256, frame, model sha,
+preprocess sha, input size); an interrupted run resumes where it stopped and
+a second run on the same video detects nothing. `--gate` picks which of those
+frames the tracker sees: `default` (motion gate awake), `off` (every frame,
+the reference for what the gate's sleeping costs) or `keepalive` (the gate,
+plus every frame on which a track is alive).
+
+`run` refuses a working tree with uncommitted changes, so the commit in the
+manifest is the code that ran; `--allow-dirty` overrides and the manifest
+records `git_dirty`.
 
 Outputs: `manifest.json` (what ran, every sha), `tracks.parquet`,
 `events.parquet` (event schema v2), and per camera `detections.npz` and
@@ -447,6 +458,7 @@ project-iron/
 │   │   ├── preprocess.py
 │   │   └── vjepa_wrapper.py
 │   ├── pipeline/
+│   │   ├── detcache.py
 │   │   ├── evaluate.py
 │   │   ├── events.py
 │   │   ├── floor.py
@@ -502,6 +514,7 @@ project-iron/
 │   ├── test_data_registry.py
 │   ├── test_dav2_depthfield.py
 │   ├── test_depth_honesty.py
+│   ├── test_detcache.py
 │   ├── test_detect_contract.py
 │   ├── test_detect_envelope.py
 │   ├── test_detect_pretrained.py
