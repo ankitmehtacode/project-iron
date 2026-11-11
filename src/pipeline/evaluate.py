@@ -9,6 +9,12 @@ its baseline, per camera and pooled:
    two-stage IoU/Kalman tracker; baseline = IoU-only tracker
    (:data:`~src.pipeline.tracker.IOU_ONLY`) re-run on the same cached
    detections.
+   Beside it, per bucket: velocity RMSE (m/s) against GT velocity (central
+   difference of the GT floor positions), estimator = the filter's velocity
+   state, baseline = the finite difference of consecutive raw projections in
+   the same track; and coverage = the share of GT person-frames in the
+   bucket that a track point matched (identical for both, since the
+   estimator outputs wherever a projection exists).
 3. Event precision/recall against events the same compiler derives from
    each GT person's floor trajectory over the frames that person is visible
    on that camera. A predicted event matches a GT event with the same verb
@@ -172,6 +178,98 @@ def position_errors(
     return out
 
 
+def gt_velocity(truth: CameraTruth, fps: float) -> FloatArray:
+    """``[n_rows, 2]`` GT floor velocity (m/s): central difference over the
+    neighbouring frames of the same object, one-sided at an end, NaN for an
+    object seen on one frame only."""
+    out = np.full((truth.frame.size, 2), np.nan)
+    row_of = {
+        (int(g), int(f)): i
+        for i, (g, f) in enumerate(zip(truth.object_id, truth.frame))
+    }
+    for i, (g, f) in enumerate(zip(truth.object_id, truth.frame)):
+        prev = row_of.get((int(g), int(f) - 1))
+        nxt = row_of.get((int(g), int(f) + 1))
+        if prev is not None and nxt is not None:
+            out[i] = (truth.floor_xy[nxt] - truth.floor_xy[prev]) * fps / 2
+        elif nxt is not None:
+            out[i] = (truth.floor_xy[nxt] - truth.floor_xy[i]) * fps
+        elif prev is not None:
+            out[i] = (truth.floor_xy[i] - truth.floor_xy[prev]) * fps
+    return out
+
+
+def raw_velocity(points: Sequence[TrackPoint], fps: float) -> FloatArray:
+    """``[n_points, 2]``: the backward finite difference of the raw floor
+    projection within each track, over the real frame gap; NaN on a track's
+    first point."""
+    out = np.full((len(points), 2), np.nan)
+    last: dict[int, int] = {}
+    for i in sorted(range(len(points)), key=lambda k: points[k].frame_index):
+        p = points[i]
+        j = last.get(p.track_id)
+        if j is not None:
+            q = points[j]
+            dt = (p.frame_index - q.frame_index) / fps
+            out[i] = (np.array(p.raw_xy) - np.array(q.raw_xy)) / dt
+        last[p.track_id] = i
+    return out
+
+
+def velocity_errors(
+    truth: CameraTruth,
+    points: Sequence[TrackPoint],
+    matches: Sequence[tuple[int, int, int, int]],
+    camera_xy: FloatArray,
+    fps: float,
+) -> dict[str, dict[str, list[float]]] | None:
+    """Speed-vector errors (m/s) by bucket, on matches where GT, estimator and
+    raw velocities all exist. ``None`` when the run predates ``est_v``."""
+    if any(p.est_v is None for p in points):
+        return None
+    gt_v = gt_velocity(truth, fps)
+    raw_v = raw_velocity(points, fps)
+    out: dict[str, dict[str, list[float]]] = {}
+    for _, gt_row, _, hyp_row in matches:
+        est = points[hyp_row].est_v
+        if est is None or np.isnan(gt_v[gt_row]).any():
+            continue
+        if np.isnan(raw_v[hyp_row]).any():
+            continue
+        bucket = out.setdefault(
+            _bucket(float(np.linalg.norm(truth.floor_xy[gt_row] - camera_xy))),
+            {"estimator": [], "raw_projection": []},
+        )
+        bucket["estimator"].append(float(np.linalg.norm(np.array(est) - gt_v[gt_row])))
+        bucket["raw_projection"].append(
+            float(np.linalg.norm(raw_v[hyp_row] - gt_v[gt_row]))
+        )
+    return out
+
+
+def coverage_counts(
+    truth: CameraTruth,
+    matches: Sequence[tuple[int, int, int, int]],
+    camera_xy: FloatArray,
+) -> dict[str, list[int]]:
+    """``bucket -> [gt person-frames, matched]``, bucketed by GT distance."""
+    out: dict[str, list[int]] = {}
+    distance = np.linalg.norm(truth.floor_xy - camera_xy, axis=1)
+    for d in distance:
+        out.setdefault(_bucket(float(d)), [0, 0])[0] += 1
+    for _, gt_row, _, _ in matches:
+        out[_bucket(float(distance[gt_row]))][1] += 1
+    return out
+
+
+def _coverage_row(c: list[int]) -> dict[str, float | int | None]:
+    return {"gt": c[0], "matched": c[1], "coverage": c[1] / c[0] if c[0] else None}
+
+
+def _bucket_order(kv: tuple[str, Any]) -> float:
+    return float(kv[0][1:].split(",")[0])
+
+
 def gt_trajectories(truth: CameraTruth, camera_id: str, fps: float) -> list[Trajectory]:
     out = []
     for gid in np.unique(truth.object_id):
@@ -264,6 +362,8 @@ def evaluate_run(run_dir: Path, gt_path: Path) -> dict[str, Any]:
         "cameras": {},
     }
     pooled_err: dict[str, dict[str, list[float]]] = {}
+    pooled_vel: dict[str, dict[str, list[float]]] | None = {}
+    pooled_cov: dict[str, list[int]] = {}
     pooled_mot = {"pipeline": MotCounts(), "iou_only_baseline": MotCounts()}
     pooled_events = {"estimator": [0, 0, 0], "raw_projection": [0, 0, 0]}
     for camera_id, cam in manifest["cameras"].items():
@@ -285,9 +385,23 @@ def evaluate_run(run_dir: Path, gt_path: Path) -> dict[str, Any]:
             np.array([a.box_xyxy for a in baseline]).reshape(-1, 4),
             detections.n_frames,
         )
-        errors = position_errors(
-            truth, points, matches, np.array(cam["camera_xyz_m"][:2])
-        )
+        camera_xy = np.array(cam["camera_xyz_m"][:2])
+        errors = position_errors(truth, points, matches, camera_xy)
+        velocity = velocity_errors(truth, points, matches, camera_xy, detections.fps)
+        coverage = coverage_counts(truth, matches, camera_xy)
+        for b, (n_gt, n_m) in coverage.items():
+            slot_c = pooled_cov.setdefault(b, [0, 0])
+            slot_c[0] += n_gt
+            slot_c[1] += n_m
+        if velocity is None:
+            pooled_vel = None
+        elif pooled_vel is not None:
+            for b, e in velocity.items():
+                slot_v = pooled_vel.setdefault(
+                    b, {"estimator": [], "raw_projection": []}
+                )
+                for k in slot_v:
+                    slot_v[k].extend(e[k])
         majority: dict[str, str] = {}
         votes: dict[int, Counter[int]] = {}
         for _, gt_row, tid, _ in matches:
@@ -331,14 +445,31 @@ def evaluate_run(run_dir: Path, gt_path: Path) -> dict[str, Any]:
                 "iou_only_baseline": base_counts.as_dict(),
             },
             "rmse_m_by_distance": {b: _error_row(e) for b, e in sorted(errors.items())},
+            "velocity_rmse_mps_by_distance": (
+                None
+                if velocity is None
+                else {b: _error_row(e) for b, e in sorted(velocity.items())}
+            ),
+            "coverage_by_distance": {
+                b: _coverage_row(c) for b, c in sorted(coverage.items())
+            },
             "events": event_blocks,
         }
     result["pooled"] = {
         "rmse_m_by_distance": {
-            b: _error_row(e)
-            for b, e in sorted(
-                pooled_err.items(), key=lambda kv: float(kv[0][1:].split(",")[0])
-            )
+            b: _error_row(e) for b, e in sorted(pooled_err.items(), key=_bucket_order)
+        },
+        "velocity_rmse_mps_by_distance": (
+            None
+            if pooled_vel is None
+            else {
+                b: _error_row(e)
+                for b, e in sorted(pooled_vel.items(), key=_bucket_order)
+            }
+        ),
+        "coverage_by_distance": {
+            b: _coverage_row(c)
+            for b, c in sorted(pooled_cov.items(), key=_bucket_order)
         },
         "mot": {k: v.as_dict() for k, v in pooled_mot.items()},
         "events": {

@@ -332,6 +332,9 @@ class TrackPoint:
     est_xy: tuple[float, float]
     est_sigma_m: float
     """sqrt of the larger floor-axis posterior variance."""
+    est_v: tuple[float, float] | None = None
+    """The filter's floor velocity (m/s); ``None`` in runs written before it
+    was recorded."""
 
 
 def estimate_tracks(
@@ -419,6 +422,7 @@ def estimate_tracks(
                     raw_xy=(float(p[0]), float(p[1])),
                     est_xy=(float(mean[0]), float(mean[1])),
                     est_sigma_m=float(np.sqrt(max(cov[0, 0], cov[1, 1]))),
+                    est_v=(float(mean[3]), float(mean[4])),
                 )
             )
     return points, unprojectable
@@ -464,6 +468,8 @@ def points_table(points: Sequence[TrackPoint]) -> pa.Table:
             "est_x": [p.est_xy[0] for p in points],
             "est_y": [p.est_xy[1] for p in points],
             "est_sigma_m": [p.est_sigma_m for p in points],
+            "est_vx": [p.est_v[0] if p.est_v else None for p in points],
+            "est_vy": [p.est_v[1] if p.est_v else None for p in points],
         }
     )
 
@@ -481,6 +487,11 @@ def read_points(path: Path) -> list[TrackPoint]:
             raw_xy=(r["raw_x"], r["raw_y"]),
             est_xy=(r["est_x"], r["est_y"]),
             est_sigma_m=r["est_sigma_m"],
+            est_v=(
+                (r["est_vx"], r["est_vy"])
+                if r.get("est_vx") is not None and r.get("est_vy") is not None
+                else None
+            ),
         )
         for r in rows
     ]

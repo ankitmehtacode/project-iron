@@ -117,6 +117,20 @@ def _cmd_eval(args: argparse.Namespace) -> int:
             f"  {bucket:>10}  {est:.3f} | {raw:.3f} | {row['n']}   "
             f"({row['estimator_p50']:.3f} | {row['raw_projection_p50']:.3f})"
         )
+    velocity = pooled["velocity_rmse_mps_by_distance"]
+    if velocity is None:
+        print("velocity: not recorded by this run (written before est_v)")
+    else:
+        print("velocity RMSE (m/s) by camera distance: estimator | raw | n")
+        for bucket, row in velocity.items():
+            print(
+                f"  {bucket:>10}  {row['estimator']:.3f} | "
+                f"{row['raw_projection']:.3f} | {row['n']}"
+            )
+    print("coverage (GT person-frames matched) by camera distance:")
+    for bucket, row in pooled["coverage_by_distance"].items():
+        cov = "n/a" if row["coverage"] is None else f"{row['coverage']:.3f}"
+        print(f"  {bucket:>10}  {cov} ({row['matched']}/{row['gt']})")
     ours, base = pooled["mot"]["pipeline"], pooled["mot"]["iou_only_baseline"]
     print(
         f"ID switches: pipeline {ours['id_switches']} | IoU-only "

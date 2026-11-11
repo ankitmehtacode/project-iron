@@ -420,3 +420,65 @@ def test_cli_help_runs() -> None:
     with pytest.raises(SystemExit) as exit_info:
         main(["--help"])
     assert exit_info.value.code == 0
+
+
+# --- evaluation: velocity and coverage ---------------------------------------
+
+
+def _truth_walking(n: int = 10, fps: float = 10.0):  # type: ignore[no-untyped-def]
+    """One person walking +x at 2 m/s, 15 m from a camera at the origin."""
+    from src.pipeline.truth import CameraTruth
+
+    frames = np.arange(n)
+    xy = np.c_[15.0 + 2.0 * frames / fps, np.zeros(n)]
+    return CameraTruth(
+        frame=frames.astype(np.int64),
+        object_id=np.zeros(n, np.int64),
+        box_xyxy=np.tile([0.0, 0.0, 10.0, 10.0], (n, 1)),
+        floor_xy=xy,
+    )
+
+
+def test_gt_velocity_is_the_central_difference() -> None:
+    from src.pipeline.evaluate import gt_velocity
+
+    v = gt_velocity(_truth_walking(), fps=10.0)
+    np.testing.assert_allclose(v, np.tile([2.0, 0.0], (10, 1)))
+
+
+def test_velocity_errors_and_coverage_on_a_gated_track() -> None:
+    from src.pipeline.evaluate import coverage_counts, raw_velocity, velocity_errors
+    from src.pipeline.run import TrackPoint
+
+    truth = _truth_walking()
+    # The tracker saw frames 0, 2, 3 and 7 (a gate that slept), the raw
+    # projection exact, the estimator velocity 0.5 m/s too slow.
+    kept = [0, 2, 3, 7]
+    points = [
+        TrackPoint(
+            camera_id="c",
+            track_id=1,
+            frame_index=f,
+            ts_ns=0,
+            box_xyxy=(0.0, 0.0, 10.0, 10.0),
+            score=1.0,
+            raw_xy=tuple(truth.floor_xy[f]),  # type: ignore[arg-type]
+            est_xy=tuple(truth.floor_xy[f]),  # type: ignore[arg-type]
+            est_sigma_m=0.1,
+            est_v=(1.5, 0.0),
+        )
+        for f in kept
+    ]
+    raw = raw_velocity(points, fps=10.0)
+    assert np.isnan(raw[0]).all()  # a track's first point has no difference
+    np.testing.assert_allclose(raw[1:], np.tile([2.0, 0.0], (3, 1)))
+
+    matches = [(f, f, 1, i) for i, f in enumerate(kept)]
+    errors = velocity_errors(truth, points, matches, np.zeros(2), fps=10.0)
+    assert errors is not None
+    assert errors["[10,20)"]["estimator"] == pytest.approx([0.5] * 3)
+    assert errors["[10,20)"]["raw_projection"] == pytest.approx([0.0] * 3)
+    assert coverage_counts(truth, matches, np.zeros(2)) == {"[10,20)": [10, 4]}
+
+    old = [TrackPoint(**{**p.__dict__, "est_v": None}) for p in points]
+    assert velocity_errors(truth, old, matches, np.zeros(2), fps=10.0) is None
