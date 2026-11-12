@@ -157,6 +157,38 @@ def from_floor_points(path: Path, camera_id: str) -> FloorProjector:
     )
 
 
+def write_floor_points(
+    path: Path,
+    camera_id: str,
+    image_points: FloatArray,
+    floor_points: FloatArray,
+    camera_xyz_m: tuple[float, float, float],
+    note: str = "",
+) -> FloorProjector:
+    """Write a floor-points calibration file and return it loaded back.
+
+    The file holds the clicked image points and the measured floor points;
+    :func:`from_floor_points` solves the homography (image -> floor metres)
+    from them on load, and the file's content hash is the ``twin_rev``, so
+    a re-click is a new revision because the bytes changed. Lens distortion
+    is NOT corrected: a homography maps straight lines to straight lines,
+    and a wide phone lens bends them; the residuals at the calibration marks
+    are the only evidence of how much that costs. ``note`` becomes a leading
+    ``#`` comment (the loader accepts exactly the four data keys)."""
+    image = np.asarray(image_points, dtype=np.float64).reshape(-1, 2)
+    floor = np.asarray(floor_points, dtype=np.float64).reshape(-1, 2)
+    body = {
+        "camera_id": camera_id,
+        "image_points": [[float(u), float(v)] for u, v in image],
+        "floor_points": [[float(x), float(y)] for x, y in floor],
+        "camera_xyz_m": [float(c) for c in camera_xyz_m],
+    }
+    header = "".join(f"# {line}\n" for line in note.splitlines() if line)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(header + yaml.safe_dump(body, sort_keys=False))
+    return from_floor_points(path, camera_id)
+
+
 def load_projector(path: Path, camera_id: str) -> FloorProjector:
     """Dispatch on the file's content, not its name."""
     text = path.read_text()

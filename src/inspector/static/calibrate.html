@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iron calibration</title>
+<style>
+  :root { --bg: #fafaf8; --fg: #1d1d1b; --muted: #6b6b66; --accent: #c2410c; --line: #d6d3cc; }
+  @media (prefers-color-scheme: dark) { :root { --bg: #161615; --fg: #ecebe6; --muted: #a3a29b; --accent: #fb923c; --line: #3a3936; } }
+  body { margin: 0; padding: 16px; background: var(--bg); color: var(--fg); font: 14px/1.45 system-ui, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p.note { color: var(--muted); margin: 0 0 12px; max-width: 70ch; }
+  .wrap { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; align-items: start; }
+  @media (max-width: 800px) { .wrap { grid-template-columns: 1fr; } }
+  canvas { width: 100%; height: auto; border: 1px solid var(--line); cursor: crosshair; }
+  ol { padding-left: 20px; } li.current { color: var(--accent); font-weight: 600; }
+  li.done::after { content: " ✓"; }
+  label { display: block; margin: 6px 0 2px; color: var(--muted); }
+  input { width: 100%; box-sizing: border-box; padding: 4px; background: transparent; color: var(--fg); border: 1px solid var(--line); }
+  button { margin-top: 10px; padding: 6px 12px; }
+  pre { white-space: pre-wrap; font-size: 12px; }
+</style>
+</head>
+<body>
+<h1>Floor calibration</h1>
+<p class="note">One frame of the EMPTY-room clip. Click each calibration mark in the order listed (click the
+point where the mark touches the floor). Type the camera's floor position and lens height from a tape
+measure. Lens distortion is not corrected; the residuals after saving are the only evidence of its cost.</p>
+<div class="wrap">
+  <canvas id="c"></canvas>
+  <div>
+    <ol id="marks"></ol>
+    <button id="undo">Undo last click</button>
+    <label>Camera x (m)</label><input id="cx" type="number" step="0.01">
+    <label>Camera y (m)</label><input id="cy" type="number" step="0.01">
+    <label>Camera lens height (m)</label><input id="cz" type="number" step="0.01">
+    <button id="save">Save calibration</button>
+    <pre id="out"></pre>
+  </div>
+</div>
+<script>
+const canvas = document.getElementById("c"), ctx = canvas.getContext("2d");
+const img = new Image(); let marks = [], clicks = {};
+function draw() {
+  ctx.drawImage(img, 0, 0);
+  ctx.lineWidth = 2; ctx.strokeStyle = "#f97316"; ctx.fillStyle = "#f97316"; ctx.font = "20px system-ui";
+  for (const [name, [u, v]] of Object.entries(clicks)) {
+    ctx.beginPath(); ctx.arc(u, v, 6, 0, 2 * Math.PI); ctx.stroke(); ctx.fillText(name, u + 9, v - 9);
+  }
+  const list = document.getElementById("marks"); list.innerHTML = "";
+  const next = marks.find(m => !(m.name in clicks));
+  for (const m of marks) {
+    const li = document.createElement("li");
+    li.textContent = `${m.name}  (${m.x_m}, ${m.y_m}) m`;
+    if (m.name in clicks) li.className = "done"; else if (next && m.name === next.name) li.className = "current";
+    list.appendChild(li);
+  }
+}
+canvas.addEventListener("click", e => {
+  const next = marks.find(m => !(m.name in clicks)); if (!next) return;
+  const r = canvas.getBoundingClientRect();
+  clicks[next.name] = [(e.clientX - r.left) * canvas.width / r.width, (e.clientY - r.top) * canvas.height / r.height];
+  draw();
+});
+document.getElementById("undo").onclick = () => {
+  const done = marks.filter(m => m.name in clicks); if (done.length) delete clicks[done[done.length - 1].name]; draw();
+};
+document.getElementById("save").onclick = async () => {
+  const xyz = ["cx", "cy", "cz"].map(id => parseFloat(document.getElementById(id).value));
+  const out = document.getElementById("out");
+  if (xyz.some(Number.isNaN)) { out.textContent = "Type the camera x, y and height first."; return; }
+  const res = await fetch("/api/calibration", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ points: clicks, camera_xyz_m: xyz }) });
+  out.textContent = JSON.stringify(await res.json(), null, 2);
+};
+fetch("/api/marks").then(r => r.json()).then(d => { marks = d.marks; img.src = "/api/frame.png"; });
+img.onload = () => { canvas.width = img.naturalWidth; canvas.height = img.naturalHeight; draw(); };
+</script>
+</body>
+</html>
