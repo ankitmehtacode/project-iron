@@ -346,6 +346,24 @@
     - "Day 43 detector fine-tuning on SmartSpaces."
   estimated_human_effort: "A yes/no from the user, plus redlines to the conditions or the stop rule if any."
 
+- id: adr-0014-detector-schedule-decision
+  description: >-
+    docs/adr/0014-detector-schedule.md is Proposed: by the decision rule
+    fixed before the pretrained numbers existed, the detector runs on the
+    adaptive schedule (stride 15 with no live track, stride 6 while one
+    lives), 289 invocations per camera-minute against gate-off's 1800, at a
+    paired event-recall cost of -0.077 [-0.159, +0.000] on Warehouse_022.
+    Claude Code must not change its status; the user accepts or rejects it
+    by editing the Status line.
+  category: human_decision
+  first_recorded:
+    sha: 41f5a30a8a1a7ecaaf0408bf603aa74cf57cad46
+    date: 2026-11-12
+  unblocks:
+    - "An adaptive gate mode in src/pipeline/run.py (the product run cannot
+       select it yet; the frontier only replays it)."
+  estimated_human_effort: "A yes/no from the user, plus redlines if any (for instance stride 6 instead, which is 3.7% more invocations and stateless)."
+
 - id: detector-base-training-data-licence
   description: >-
     RT-DETRv2-S-COCO and YOLOX-S-COCO are signed Apache-2.0 for their weights,

@@ -12671,3 +12671,121 @@ test passes in one and fails in the other.
 
 **No timing, throughput, CPU-percentage, memory-rate or latency claim is
 made anywhere in this section.**
+
+# Day 43
+
+**Lead finding: on pretrained detections the decision rule fixed in advance
+chooses the adaptive schedule — 289 detector invocations per camera-minute
+instead of 1800 — at a paired event-recall cost of −0.077 [−0.159, +0.000]
+against every-frame detection; the motion gate as built is the worst trade
+on the frontier.** Recorded as ADR 0014 (Proposed). Lane S synthetic
+(SmartSpaces Warehouse_022, 4 cameras x 60 s): not evidence about real
+cameras.
+
+## Verdicts
+
+- **Thin slice, oracle vs pretrained** (`artifacts/day43/comparison_oracle_vs_pretrained.md`,
+  every number read from the runs' own eval JSONs). Every frame: events
+  P/R oracle 76/79, 76/78; RT-DETRv2-S 65/87, 65/78. ID switches, pipeline
+  tracker / IoU-only baseline: oracle 34/32, **pretrained 453/93** — the
+  two-stage Kalman tracker is worse than its own baseline on real
+  detections. Estimator vs raw projection: velocity RMSE 0.66–1.19 vs
+  1.50–11.40 m/s (estimator better in every bucket); position RMSE about
+  equal under 20 m, estimator worse beyond (0.51 vs 0.44 m at 20–30 m,
+  1.15 vs 0.72 m past 30 m). Coverage
+  0.81–0.94 by distance bucket.
+- **Frontier** (seven schedules replayed over cached detections, no
+  detector runs; the replay reproduces all five official evals exactly).
+  Pretrained, invocations per camera-minute and recall: gate-off 1800,
+  65/78; keep-alive 1506, 59/78; default gate 1043, 42/78; stride 6 300,
+  60/78; **adaptive 289, 59/78**; motion+adaptive 176, 35/78; stride 15 120,
+  46/78. Tables with paired differences, both trackers' ID switches and
+  RMSE by bucket: `artifacts/day43/frontier_tables_{oracle,pretrained}.md`.
+- **Decision rule as fixed**: passing adaptive, stride 6, keep-alive;
+  chosen adaptive. It is stride 6 less 3.7% on this scene (someone is
+  nearly always in view). The overlap rule is weak where recall intervals
+  are wide: on Warehouse_020/000 (oracle) it would pass motion+adaptive.
+  The intervals resample per-camera person tracks, and four cameras see the
+  same people, so they are probably too narrow: the "95%" is nominal.
+- **Stride 15** (tolerance 2.0 s, same verb, zone and attributed person):
+  events are lost, not late. Oracle Warehouse_022: 28 missed against
+  gate-off — 16 absent, 6 fired within tolerance on a track attributed to
+  another person, 6 with the same person, zone and verb only 4.1–31.5 s away
+  (a different visit, more likely than a late event). Matched events are a
+  median 0.28 s late. Same shape on the other scenes and on pretrained
+  detections (`artifacts/day43/stride15_audit_*.json`).
+- **Two more source scenes** (Warehouse_020 val, Warehouse_000 train, 60 s,
+  oracle, zones by a stated rule): gate-off recall only 29/45 and 36/54.
+  Cause measured: on low cameras (2.9–5 m) hidden feet put ground-truth
+  boxes 8–75 m away at p90; the schedule is not the limit there.
+- **Foot/head anchor** (`artifacts/day43/anchor_audit_oracle.json`, cited
+  height range and priors, not tuned). The head fallback fires on 7.7%,
+  30.8%, 34.7% of person boxes (022, 020, 000) and cuts p90 error 0.35→0.30,
+  27.99→7.40, 23.86→7.28 m; p99 3.49→3.09, 97.1→17.7, 45.0→19.1 m. Event
+  recall 76→77/78, 29→32/45, 36→35/54: positions improve, events barely
+  move. **The per-detection uncertainty fails**: for all person boxes the
+  stated 95% ellipses cover 37–58% of errors (foot mode) and 54–59%
+  (fallback); per anchor-mode row 2.4–95.3%. The informativeness margin
+  against a fitted constant σ is negative in every row (−1.3 to −935.8
+  nats per detection). The anchor is recorded on every track point
+  (`foot_unchecked` where no check could run); the product stays in foot
+  mode.
+- **Power**: stage 2 died at 12:41 on 11 Nov when the battery emptied
+  (unplugged 12:00, booted 20:49 at 0%). Stage 3 stopped cleanly once on a
+  25-second AC drop (watchdog, SIGINT, rc 130) and resumed from the cache
+  at frame 1429. Gate-default is stamped `1507dc6`, gate-off `2cf9a30`;
+  only `scripts/` and `artifacts/` differ between them.
+- **CHIRLA** was signed on 2026-10-01 (`76595ec`); it was still listed only
+  because the umbrella licence entry's Day-37 text was never revisited. Its
+  counts are now derived from the registry: 68 registered, 4 signed.
+- **Suite**: working tree of this report's commit, `.venv-pinned`: gated
+  (`-m "not requires_weights"`) 1730 passed, 3 skipped, 10 deselected, 0
+  failed (`artifacts/pytest/day43_gated.xml`); full 1739 passed, 4 skipped,
+  0 failed (`artifacts/pytest/day43_full.xml`); reconciled 1733 + 10 =
+  1743 (`artifacts/pytest/day43_summary.json`). An earlier pass on the same
+  code failed exactly one test, the report lint for this section's missing
+  table, before the table below was pasted in.
+
+### Checks that did not run
+
+| skipped | reason | prerequisite found elsewhere on this machine |
+|---:|---|---|
+| 1 | no legacy artifacts under <tmp>; nothing to refuse | no |
+| 1 | only one golden set has been scored; nothing to mismatch | no |
+| 1 | this measurement has no unresolvable-to-resolvable boundary | no |
+
+No skip is a defect: none names a prerequisite present elsewhere on this machine.
+
+## Blockers
+
+Open on `docs/blocker_ledger.yaml` (`python scripts/blocker_report.py
+--verify-git`): `dataset-license-and-consent-verification`,
+`consent-template-counsel-review`, `reference-hardware-procurement`,
+`site-zero-capture`, `git-history-divergence`,
+`chirla-deployment-scope-legal-review`, `registry-deployment-scope-reaudit`,
+`component-cap-carrier-identity-type-change`,
+`smartspaces-nvidia-terms-of-service`, `smartspaces-smpl-provenance`,
+`adr-0012-acceptance`, `adr-0013-detector-fine-tuning-decision`,
+`adr-0014-detector-schedule-decision` (new today),
+`detector-base-training-data-licence`,
+`texture-floor-resolution-dependence`.
+
+## Not done, and next
+
+- `adaptive` is not a product gate mode yet; it waits on ADR 0014.
+- The tracker's ID-switch regression on real detections (453 vs 93) is
+  measured, not fixed; adaptive's live-track signal comes from that tracker.
+- The anchor is on `TrackPoint` and `tracks.parquet`, not on the
+  model-layer `Observation`, which has no field for it.
+- Per-detection covariance needs a measured error model, not 2 px of pixel
+  noise; no prior for forklifts or pallet trucks.
+- Only Warehouse_022 has pretrained detections; one CPU, one synthetic scene.
+
+Commits: `a4bfc7e` frontier · `26c9ec4` .gitignore · `e048c51` ledger counts
+· `7da9c77` comparison script · `2cf9a30` event log · `1507dc6` tables and
+stride-15 audit · `9031207` anchor · `41f5a30` ADR 0014 · `28cf0c8` anchor
+audit · `222d110` independent-review fixes (no correctness bug found; four
+labelling and reporting issues fixed) · then this report.
+
+**No timing, throughput, CPU-percentage, memory-rate or latency claim is
+made in this section.**
