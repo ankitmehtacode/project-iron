@@ -358,6 +358,48 @@ def test_gate_default_is_all_frame_detections_masked_by_the_gate(
     np.testing.assert_array_equal(gated.frame, off.frame[sel])
 
 
+def test_a_strided_detector_equals_the_every_frame_detector_on_its_frames(
+    tmp_path: Path,
+) -> None:
+    from src.pipeline.run import Detections, run
+
+    camera, factory, zones = _synthetic(tmp_path, n=60, still_from=30)
+    _, every = _run_mode(tmp_path, camera, factory, zones, "off")
+    for mode in ("off", "default"):
+        out = tmp_path / f"stride_{mode}"
+        manifest = run(
+            [camera],
+            factory,
+            "Person",
+            zones,
+            out,
+            max_seconds=None,
+            progress=lambda _m: None,
+            gate_mode=mode,
+            cache_root=tmp_path / "cache",
+            allow_dirty=True,
+            detector_step=6,
+        )
+        strided = Detections.load(out / "cam" / "detections.npz")
+        cache = manifest["cameras"]["cam"]["detection_cache"]
+        # Its own cache file: 10 detector frames, computed once.
+        assert cache["cache_key"]["frame_step"] == 6
+        assert cache["cache_misses"] + cache["cache_hits"] == 10
+        assert manifest["identity"]["detector_step"] == 6
+        assert set(strided.run_frames.tolist()) <= set(range(0, 60, 6))
+        if mode == "off":
+            assert strided.run_frames.tolist() == list(range(0, 60, 6))
+        sel = np.isin(every.frame, strided.run_frames)
+        np.testing.assert_array_equal(strided.boxes, every.boxes[sel])
+        np.testing.assert_array_equal(strided.frame, every.frame[sel])
+    # The gate's accounting still counts every decoded frame.
+    stats = json.loads(
+        (tmp_path / "stride_default" / "cam" / "cascade.jsonl").read_text()
+    )
+    gate = next(s for s in stats["stages"] if s["stage"] == "motion_gate")
+    assert gate["frames_seen"] == 60
+
+
 def test_keepalive_keeps_frames_while_a_track_lives(tmp_path: Path) -> None:
     camera, factory, zones = _synthetic(tmp_path, n=60, still_from=30)
     _, gated = _run_mode(tmp_path, camera, factory, zones, "default")

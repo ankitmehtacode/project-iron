@@ -23,6 +23,10 @@ File layout (JSON lines)::
     {"f": 1, ...}
 
 Frames are contiguous from 0, because the slice always decodes from the start.
+A strided cache (``frame_step`` k > 1, Day 45) holds frames 0, k, 2k, ... and
+is contiguous on that lattice; k is part of the key, so a strided cache never
+shares a file with an every-frame one, and ``frame_step`` 1 is left out of the
+key so every cache written before Day 45 keeps its path.
 A torn last line (the write the process died in) is truncated on open; any
 other damage raises.
 """
@@ -54,14 +58,23 @@ class CacheKey:
     preprocess_sha: str
     input_hw: tuple[int, int] | None
     """Model input ``(height, width)``; ``None`` = the native frame size."""
+    frame_step: int = 1
+    """The detector runs on frames 0, k, 2k, ...; 1 = every frame."""
+
+    def __post_init__(self) -> None:
+        if not (isinstance(self.frame_step, int) and self.frame_step >= 1):
+            raise ValueError(f"frame_step must be an int >= 1, got {self.frame_step}")
 
     def as_dict(self) -> dict[str, Any]:
-        return {
+        out: dict[str, Any] = {
             "video_sha256": self.video_sha256,
             "model_sha": self.model_sha,
             "preprocess_sha": self.preprocess_sha,
             "input_hw": list(self.input_hw) if self.input_hw else "native",
         }
+        if self.frame_step != 1:
+            out["frame_step"] = self.frame_step
+        return out
 
     def digest(self) -> str:
         return hashlib.sha256(
@@ -94,6 +107,7 @@ class DetectionCache:
         self.header = header
         self._records = records
         self._handle = handle
+        self.frame_step = int(header["key"].get("frame_step", 1))
 
     @classmethod
     def open(
@@ -129,6 +143,7 @@ class DetectionCache:
 
     @staticmethod
     def _load(path: Path, handle: IO[str], header: dict[str, Any]) -> list[FrameRecord]:
+        step = int(header["key"].get("frame_step", 1))
         handle.seek(0)
         raw = handle.read()
         if not raw:
@@ -172,10 +187,11 @@ class DetectionCache:
                         "changed detector config is a new cache, delete this one"
                     )
             else:
-                if item["f"] != len(records):
+                if item["f"] != len(records) * step:
                     raise DetectionCacheError(
-                        f"{path}: frame {item['f']} where {len(records)} was "
-                        "expected; frames must be contiguous from 0"
+                        f"{path}: frame {item['f']} where {len(records) * step} "
+                        f"was expected; frames must be contiguous from 0 in "
+                        f"steps of {step}"
                     )
                 records.append(
                     FrameRecord(
@@ -188,18 +204,27 @@ class DetectionCache:
         return records
 
     def __len__(self) -> int:
-        """Frames on disk; frame ``len(self)`` is the first miss."""
+        """Records on disk; frame ``len(self) * frame_step`` is the first miss."""
         return len(self._records)
 
+    def _slot(self, frame_index: int) -> int:
+        if frame_index % self.frame_step:
+            raise DetectionCacheError(
+                f"frame {frame_index} is off this cache's stride {self.frame_step}"
+            )
+        return frame_index // self.frame_step
+
     def get(self, frame_index: int) -> FrameRecord | None:
-        if frame_index < len(self._records):
-            return self._records[frame_index]
+        slot = self._slot(frame_index)
+        if slot < len(self._records):
+            return self._records[slot]
         return None
 
     def append(self, frame_index: int, record: FrameRecord) -> None:
-        if frame_index != len(self._records):
+        if self._slot(frame_index) != len(self._records):
             raise DetectionCacheError(
-                f"append frame {frame_index}, expected {len(self._records)}"
+                f"append frame {frame_index}, expected "
+                f"{len(self._records) * self.frame_step}"
             )
         line = json.dumps(
             {

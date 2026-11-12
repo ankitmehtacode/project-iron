@@ -111,6 +111,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
             gate_mode=args.gate,
             allow_dirty=args.allow_dirty,
             tracker_config=TRACKERS[args.tracker],
+            detector_step=args.detector_step,
         )
     except DirtyTreeError as exc:
         print(exc, file=sys.stderr)
@@ -221,6 +222,15 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "iou = the IoU-only tracker (the product default from Day 44); "
             "kalman = the two-stage Kalman tracker it replaced"
+        ),
+    )
+    p_run.add_argument(
+        "--detector-step",
+        type=int,
+        default=1,
+        help=(
+            "run the detector on frames 0, k, 2k, ... (the gate still sees "
+            "every frame); 1 = every frame"
         ),
     )
     p_run.add_argument(

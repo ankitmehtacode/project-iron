@@ -175,10 +175,12 @@ def detect_camera(
     person_label: str = "",
     tracker_config: TrackerConfig | None = None,
     progress: Callable[[str], None] = print,
+    detector_step: int = 1,
 ) -> tuple[Detections, dict[str, Any]]:
     """Decode the video; run the gate on every frame and the detector on
-    every frame (through the cache); keep the frames ``gate_mode`` selects.
-    Returns the detections and the cache/accounting summary."""
+    every ``detector_step``-th frame from 0 (through the cache); keep the
+    detector frames ``gate_mode`` selects. Returns the detections and the
+    cache/accounting summary."""
     import cv2
 
     if gate_mode not in GATE_MODES:
@@ -207,6 +209,7 @@ def detect_camera(
         model_sha=producer.model_sha,
         preprocess_sha=producer.preprocess_sha,
         input_hw=detector.input_hw,
+        frame_step=detector_step,
     )
     labels_vocab = detector.vocabulary.labels
     gate = MotionGate(MotionGateConfig()) if gate_mode != "off" else None
@@ -238,6 +241,11 @@ def detect_camera(
                     output = gate.process(image[None], ctx)
                 awake = gate.should_wake_next(output)
                 gate_acc.observe(woke=True, woke_next=awake)
+            if index % detector_step:
+                # Off the detector's stride: the gate ran (its accounting
+                # counts every frame), the detector does not, nothing kept.
+                index += 1
+                continue
             record = cache.get(index)
             if record is None:
                 with det_acc.time_wake():
@@ -286,6 +294,7 @@ def detect_camera(
         "cache_misses": misses,
         "cache_resumed_from_frame": resumed_from,
         "gate_mode": gate_mode,
+        "detector_step": detector_step,
     }
     stats_path.parent.mkdir(parents=True, exist_ok=True)
     stats_path.write_text(
@@ -617,6 +626,7 @@ def run(
     cache_root: Path | None = None,
     allow_dirty: bool = False,
     repo_root: Path | None = None,
+    detector_step: int = 1,
 ) -> dict[str, Any]:
     """Run the slice on every camera and write ``out_dir``. Returns the manifest."""
     if gate_mode not in GATE_MODES:
@@ -665,6 +675,7 @@ def run(
         "max_seconds": max_seconds,
         "person_label": person_label,
         "motion_gate": gate_identity,
+        **({"detector_step": detector_step} if detector_step != 1 else {}),
     }
     manifest_sha = hashlib.sha256(
         json.dumps(identity, sort_keys=True).encode()
@@ -689,6 +700,7 @@ def run(
             person_label=person_label,
             tracker_config=tracker_config,
             progress=progress,
+            detector_step=detector_step,
         )
         detections.save(out_dir / camera.camera_id / "detections.npz")
         detect_s = time.perf_counter() - started

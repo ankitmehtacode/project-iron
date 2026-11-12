@@ -96,6 +96,7 @@ def test_every_key_field_separates_caches(tmp_path: Path) -> None:
         CacheKey(KEY.video_sha256, KEY.model_sha, "q" * 64, KEY.input_hw),
         CacheKey(KEY.video_sha256, KEY.model_sha, KEY.preprocess_sha, (512, 512)),
         CacheKey(KEY.video_sha256, KEY.model_sha, KEY.preprocess_sha, None),
+        CacheKey(KEY.video_sha256, KEY.model_sha, KEY.preprocess_sha, (640, 640), 6),
     ]
     assert len({k.path(tmp_path) for k in variants}) == len(variants)
 
@@ -126,3 +127,40 @@ def test_a_torn_header_is_rewritten(tmp_path: Path, cut: float) -> None:
         cache.append(0, _record(0))
     with _open(tmp_path) as cache:
         assert len(cache) == 1
+
+
+def test_frame_step_one_keeps_the_pre_stride_path(tmp_path: Path) -> None:
+    # Caches written before Day 45 must not be orphaned by the new field.
+    assert "frame_step" not in KEY.as_dict()
+    assert (
+        KEY.digest()
+        == CacheKey(
+            KEY.video_sha256, KEY.model_sha, KEY.preprocess_sha, KEY.input_hw, 1
+        ).digest()
+    )
+
+
+def test_a_strided_cache_holds_its_lattice_and_resumes(tmp_path: Path) -> None:
+    key = CacheKey(KEY.video_sha256, KEY.model_sha, KEY.preprocess_sha, (640, 640), 6)
+
+    def opened() -> DetectionCache:
+        return DetectionCache.open(tmp_path, key, "c", LABELS, (1080, 1920))
+
+    with opened() as cache:
+        for f in (0, 6, 12):
+            cache.append(f, _record(f))
+        with pytest.raises(DetectionCacheError):
+            cache.append(19, _record(19))
+        with pytest.raises(DetectionCacheError, match="off this cache's stride"):
+            cache.get(7)
+    with opened() as cache:
+        assert len(cache) == 3
+        got = cache.get(12)
+        assert got is not None
+        np.testing.assert_array_equal(got.boxes_xyxy, _record(12).boxes_xyxy)
+        assert cache.get(18) is None
+
+
+def test_frame_step_must_be_a_positive_int() -> None:
+    with pytest.raises(ValueError):
+        CacheKey(KEY.video_sha256, KEY.model_sha, KEY.preprocess_sha, None, 0)
