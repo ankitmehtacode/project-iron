@@ -1,5 +1,17 @@
 {
   "run": "outputs/runs/day43-2cf9a30/rtdetr_v2_s_gate-off",
+  "dedup_ablation_id_switches": {
+    "nms_iou": 0.7,
+    "iou_only": 57,
+    "kalman_two_stage": 96
+  },
+  "duplicate_box_stats": {
+    "gt_boxes": 20415,
+    "gt_boxes_with_2plus": 13947,
+    "extra_low_score": 20781,
+    "extra_high_score": 120,
+    "note": "per GT person box, every frame: detections at IoU >= 0.5 beyond the highest-scoring one, split by score vs 0.5"
+  },
   "detector": "RT-DETRv2-S-COCO",
   "counted_on": "tracker assignments (boxes), before floor projection",
   "ablation_id_switches": {
@@ -34,8 +46,8 @@
         },
         "flags": {
           "gating": 36,
-          "low_score": 15,
           "duplicate": 37,
+          "low_score": 15,
           "a_ended": 2
         }
       },
@@ -49,9 +61,9 @@
           "fp_birth": 14
         },
         "flags": {
+          "duplicate": 177,
           "low_score": 87,
           "gating": 180,
-          "duplicate": 177,
           "a_ended": 3,
           "fp_birth": 14
         }
@@ -66,8 +78,8 @@
         },
         "flags": {
           "a_ended": 5,
-          "gating": 221,
           "duplicate": 214,
+          "gating": 221,
           "low_score": 114,
           "fp_birth": 1
         }
@@ -78,8 +90,8 @@
           "duplicate": 2
         },
         "flags": {
-          "gating": 1,
           "duplicate": 2,
+          "gating": 1,
           "a_ended": 1
         }
       }
@@ -92,12 +104,5 @@
     "gating",
     "a_ended",
     "other"
-  ],
-  "duplicate_box_stats": {
-    "gt_boxes": 20415,
-    "gt_boxes_with_2plus": 13947,
-    "dups_low": 20781,
-    "dups_high": 120,
-    "note": "per GT person box, every frame: detections at IoU>=0.5 beyond the highest-scoring one, split by score vs high_score 0.5"
-  }
+  ]
 }

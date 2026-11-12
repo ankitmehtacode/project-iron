@@ -94,8 +94,13 @@ def _ids_by_object(assignments, n_objects):  # type: ignore[no-untyped-def]
     return out
 
 
-def test_two_walkers_keep_their_ids() -> None:
-    tracker = Tracker()
+@pytest.mark.parametrize("name", ["iou", "kalman"])
+def test_two_walkers_keep_their_ids(name: str) -> None:
+    # Both trackers, explicitly: Tracker() now means the product tracker
+    # (IoU-only, Day 44), so a bare Tracker() no longer exercises Kalman.
+    from src.pipeline.tracker import TRACKERS
+
+    tracker = Tracker(TRACKERS[name])
     for f in range(40):
         boxes = np.array([_box(100 + 3 * f, 200), _box(400 - 3 * f, 260)])
         tracker.step(f, boxes, np.array([0.9, 0.9]))

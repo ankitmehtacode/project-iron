@@ -11,6 +11,9 @@ the floor, range R_foot). Position estimates:
 - single view: that camera's fallback anchor (src/pipeline/anchor.py);
   with several views, the one with the narrowest interval ("best single").
 - naive mean: the mean of the views' fallback anchors.
+- a view whose interval has no lower end (camera at or below H_max) is
+  kept as the segment camera-to-foot ([0, R_foot]); a view with no anchor
+  or no foot point is dropped, and both are counted.
 - interval fusion: the point minimising the summed squared distance to all
   the views' segments (averaged projections, 200 iterations from the mean
   of the segment midpoints; the objective is convex). With one view this
@@ -91,22 +94,29 @@ def stats(err: np.ndarray) -> dict[str, float | int]:
 def scene(scene_dir: Path, zones_path: Path, n: int) -> dict[str, Any]:
     gt = load_truth(scene_dir / "ground_truth.json")
     views: dict[tuple[int, int], list[dict[str, Any]]] = {}
+    dropped: dict[str, int] = {"no_anchor_or_no_foot": 0}
+    no_lower: dict[str, int] = {"views": 0}
     for cam in CAMERAS:
         camera = camera_from_smartspaces(scene_dir / "calibration.json", cam)
         b = person_boxes(gt, cam, n)
         a = anchor_boxes(camera, b["box"], ["Person"] * len(b["box"]), "fallback")
         ri = range_interval(camera, b["box"], PERSON_MAX_HEIGHT_M)
         for i in range(len(b["box"])):
-            if a.anchor[i] == "none" or not (
-                np.isfinite(ri.r_head[i]) and np.isfinite(ri.r_foot[i])
-            ):
+            if a.anchor[i] == "none" or not np.isfinite(ri.r_foot[i]):
+                dropped["no_anchor_or_no_foot"] += 1
                 continue
+            has_lower = bool(np.isfinite(ri.r_head[i]))
+            if not has_lower:
+                # No lower end (camera at or below H_max, or the head ray
+                # misses the plane): the interval is [0, R_foot], a segment
+                # from the camera to the foot point. Kept, not dropped.
+                no_lower["views"] += 1
             views.setdefault((int(b["object_id"][i]), int(b["frame"][i])), []).append(
                 {
                     "anchor_xy": a.xy[i],
-                    "head_xy": ri.head_xy[i],
+                    "head_xy": ri.head_xy[i] if has_lower else camera.centre[:2],
                     "foot_xy": ri.foot_xy[i],
-                    "width": float(ri.width_m[i]),
+                    "width": float(ri.width_m[i] if has_lower else ri.r_foot[i]),
                     "truth": b["floor"][i, :2],
                 }
             )
@@ -177,6 +187,8 @@ def scene(scene_dir: Path, zones_path: Path, n: int) -> dict[str, Any]:
     }
     return {
         "person_frames_by_views": counts,
+        "views_dropped": dropped,
+        "views_without_lower_end_kept_as_camera_to_foot": no_lower["views"],
         "position_error": {
             e: {k: stats(np.array(v)) for k, v in by.items()} for e, by in err.items()
         },

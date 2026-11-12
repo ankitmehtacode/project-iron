@@ -264,6 +264,7 @@ def anchor_boxes(
         sigma = fitted_sigma_m(rng, ri.width_m, anchor[person])
         cov[person] = np.eye(2)[None] * (sigma**2)[:, None, None]
         source[person] = "fitted_error_model_v1"
+        source[person & (anchor == "foot_flagged")] = "fitted_extrapolated"
     return Anchored(
         xy=xy,
         cov=cov,
@@ -354,11 +355,17 @@ log(estimated range) + log_width * log(interval width + 0.1) + width_missing
 * [no width] + anchor_head * [head anchor]. Fitted by maximum likelihood
 (scripts/day44_error_model.py) on oracle person boxes, fallback anchor,
 Warehouse_000/002/004/006 cams 0-3 x 60 s; held out on Warehouse_020/022 it
-beats a single fitted constant by +2.86 nats per detection [2.31, 3.40],
-95% region coverage 0.942 (artifacts/day44/error_model.json;
-tests/test_anchor.py checks these numbers equal the artifact's). NOT
-validated on detector boxes. ``foot_flagged`` had no training rows: it is
-not a term here and such detections get the foot-level sigma."""
+beats a single fitted constant by +2.86 nats per detection [2.31, 3.40]
+(artifacts/day44/error_model.json; tests/test_anchor.py checks these
+coefficients equal the artifact's). It is NOT calibrated: region coverage
+68% / 95% is 0.875 / 0.942 held out (020: 0.851 / 0.926; 022: 0.942 /
+0.988) and 0.804 / 0.885 on its own training data. The 68% region is too
+wide everywhere and the 95% region too narrow except on 022: heavy-tailed
+errors a Gaussian cannot fit. Better than a constant, not a calibrated
+interval. NOT validated on detector boxes. ``foot_flagged`` had no
+training rows: those detections get the foot-level sigma, the smallest the
+model gives, on exactly the boxes most likely to be wrong; their
+``cov_source`` says ``fitted_extrapolated``."""
 
 FITTED_ERROR_MODEL_WIDTH_FILL_M = 10.668501691278713
 """Training median interval width, used where a box has no width."""

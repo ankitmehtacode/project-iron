@@ -194,7 +194,7 @@ class Tracker:
     """One camera's tracks. Feed it every detector run in frame order."""
 
     def __init__(self, config: TrackerConfig | None = None) -> None:
-        self.config = config or TrackerConfig()
+        self.config = config or PRODUCT_TRACKER
         self._live: list[_Track] = []
         self._ended: list[_Track] = []
         self._next_id = 1

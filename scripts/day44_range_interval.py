@@ -77,6 +77,9 @@ def person_boxes(gt: Any, camera: str, n: int) -> dict[str, np.ndarray]:
         "top": top,
         "height": scale[:, MEASURED_GEOMETRY.height_scale_index].astype(np.float64),
         "half_diag": np.hypot(scale[:, 0], scale[:, 1]) / 2.0,
+        "half_x": scale[:, 0] / 2.0,
+        "half_y": scale[:, 1] / 2.0,
+        "yaw": gt.rotation[rows, 2].astype(np.float64),
         "object_id": gt.object_id[rows].astype(np.int64),
         "frame": gt.frame[rows].astype(np.int64),
     }
@@ -94,7 +97,8 @@ def pct(x: np.ndarray) -> dict[str, float | None]:
 
 def audit(scene_dir: Path, n: int, h_max: float) -> dict[str, Any]:
     gt = load_truth(scene_dir / "ground_truth.json")
-    total = inside = no_lower = 0
+    total = inside = no_lower = no_foot = inside_near = 0
+    near_upper_miss: list[float] = []
     widths, rel = [], []
     lower: Counter[str] = Counter()
     upper: Counter[str] = Counter()
@@ -108,9 +112,24 @@ def audit(scene_dir: Path, n: int, h_max: float) -> dict[str, Any]:
         ri = range_interval(camera, b["box"], h_max)
         r_true = np.linalg.norm(b["floor"][:, :2] - camera.centre[:2], axis=1)
         ok_foot = np.isfinite(ri.r_foot)
+        no_foot += int((~ok_foot).sum())
+        # Near edge of the footprint along the camera ray: the support of the
+        # yawed rectangle (yaw = rotation[2] about the vertical, measured Day 41,
+        # src.data.smartspaces.box_containment) in the camera direction.
+        u = b["floor"][:, :2] - camera.centre[:2]
+        u /= np.maximum(np.linalg.norm(u, axis=1, keepdims=True), 1e-9)
+        c, s_ = np.cos(b["yaw"]), np.sin(b["yaw"])
+        extent = b["half_x"] * np.abs(u[:, 0] * c + u[:, 1] * s_) + b[
+            "half_y"
+        ] * np.abs(-u[:, 0] * s_ + u[:, 1] * c)
+        r_near = r_true - extent
         lo = np.where(np.isfinite(ri.r_head), ri.r_head, 0.0)
         no_lower += int((~np.isfinite(ri.r_head) & ok_foot).sum())
         inn = ok_foot & (lo <= r_true) & (r_true <= ri.r_foot)
+        inn_near = ok_foot & (lo <= r_true) & (r_near <= ri.r_foot)
+        inside_near += int(inn_near.sum())
+        bad = ok_foot & (r_near > ri.r_foot)
+        near_upper_miss.extend((r_near[bad] - ri.r_foot[bad]).tolist())
         total += int(ok_foot.sum())
         inside += int(inn.sum())
         w = ri.width_m[ok_foot & np.isfinite(ri.r_head)]
@@ -153,6 +172,18 @@ def audit(scene_dir: Path, n: int, h_max: float) -> dict[str, Any]:
         "inside": inside,
         "coverage": inside / total if total else None,
         "boxes_without_lower_end": no_lower,
+        "boxes_excluded_foot_ray_misses_floor": no_foot,
+        "inside_near_edge_reference": inside_near,
+        "coverage_near_edge_reference": inside_near / total if total else None,
+        "upper_end_misses_vs_near_edge": len(near_upper_miss),
+        "upper_end_miss_vs_near_edge_m": pct(np.array(near_upper_miss)),
+        "reference_note": (
+            "coverage: true range = GT footprint CENTRE; "
+            "coverage_near_edge_reference: the upper end scored against the "
+            "footprint's near edge along the camera ray (the point a box "
+            "bottom on the near foot can reach), the lower end against the "
+            "centre; no excuse category"
+        ),
         "violations_lower_end": dict(lower.most_common()),
         "violations_upper_end": dict(upper.most_common()),
         "upper_end_crosstab": dict(upper_x.most_common()),

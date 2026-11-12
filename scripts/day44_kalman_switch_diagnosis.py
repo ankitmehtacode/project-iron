@@ -45,6 +45,7 @@ sys.path.insert(0, str(ROOT))
 from src.pipeline.evaluate import match_frames  # noqa: E402
 from src.pipeline.run import Detections, track_camera  # noqa: E402
 from src.pipeline.tracker import (  # noqa: E402
+    IOU_ONLY,
     KALMAN_TWO_STAGE,
     TrackerConfig,
     iou_matrix,
@@ -124,6 +125,60 @@ def diagnose(
     return primary, flags, counts.id_switches
 
 
+NMS_IOU = 0.7
+"""Greedy per-frame suppression threshold for the dedup ablation. A common
+default, stated before running, not tuned."""
+
+
+def nms_detections(dets: Detections, label: str, iou: float) -> Detections:
+    """Greedy per-frame NMS on the tracked class (highest score first); other
+    classes untouched. The dedup ablation's input."""
+    keep_rows: list[int] = []
+    for f in dets.run_frames:
+        rows = np.flatnonzero(dets.frame == f)
+        person = rows[dets.labels[rows] == label]
+        keep_rows.extend(rows[dets.labels[rows] != label].tolist())
+        order = person[np.argsort(-dets.scores[person], kind="stable")]
+        kept: list[int] = []
+        for r in order:
+            if (
+                not kept
+                or iou_matrix(dets.boxes[r][None], dets.boxes[np.array(kept)]).max()
+                < iou
+            ):
+                kept.append(int(r))
+        keep_rows.extend(kept)
+    k = np.array(sorted(keep_rows), dtype=np.int64)
+    return dataclasses.replace(
+        dets,
+        frame=dets.frame[k],
+        boxes=dets.boxes[k],
+        scores=dets.scores[k],
+        labels=dets.labels[k],
+    )
+
+
+def duplicate_stats(dets: Detections, truth: Any, label: str) -> Counter[str]:
+    """Per GT person box: detections at IoU >= 0.5 beyond the best-scoring
+    one, split by score against the default high_score (0.5)."""
+    out: Counter[str] = Counter()
+    runs = {f: (b, s) for f, b, s in dets.person_runs(label)}
+    for f in np.unique(truth.frame):
+        g = truth.box_xyxy[truth.frame == f]
+        b, s = runs.get(int(f), (np.zeros((0, 4)), np.zeros(0)))
+        out["gt_boxes"] += len(g)
+        if not len(b):
+            continue
+        for row in iou_matrix(g, b):
+            hit = np.flatnonzero(row >= 0.5)
+            if len(hit) >= 2:
+                out["gt_boxes_with_2plus"] += 1
+                extra = hit[np.argsort(-s[hit])][1:]
+                out["extra_low_score"] += int((s[extra] < 0.5).sum())
+                out["extra_high_score"] += int((s[extra] >= 0.5).sum())
+    return out
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     p.add_argument("--run", type=Path, required=True)
@@ -160,8 +215,33 @@ def main(argv: list[str] | None = None) -> int:
         flags.update(fl)
         total += n
         per_camera[cam] = {"switches": n, "primary": dict(pr), "flags": dict(fl)}
+    dedup = {}
+    dup: Counter[str] = Counter()
+    for name, cfg in (("iou_only", IOU_ONLY), ("kalman_two_stage", KALMAN_TWO_STAGE)):
+        total_nms = 0
+        for cam in cams:
+            dets = Detections.load(args.run / cam / "detections.npz")
+            truth = person_truth(gt, cam, dets.n_frames)
+            if name == "iou_only":
+                dup.update(duplicate_stats(dets, truth, label))
+            c, _ = switches(
+                truth,
+                track_camera(nms_detections(dets, label, NMS_IOU), label, cfg),
+                dets.n_frames,
+            )
+            total_nms += c.id_switches
+        dedup[name] = total_nms
+        print(f"NMS {NMS_IOU} then {name}: {total_nms} ID switches")
     out = {
         "run": str(args.run),
+        "dedup_ablation_id_switches": {"nms_iou": NMS_IOU, **dedup},
+        "duplicate_box_stats": {
+            **dict(dup),
+            "note": (
+                "per GT person box, every frame: detections at IoU >= 0.5 "
+                "beyond the highest-scoring one, split by score vs 0.5"
+            ),
+        },
         "detector": manifest["detector"],
         "counted_on": "tracker assignments (boxes), before floor projection",
         "ablation_id_switches": ablation,

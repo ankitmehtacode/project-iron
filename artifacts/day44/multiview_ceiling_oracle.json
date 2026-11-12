@@ -14,6 +14,10 @@
         "2": 3755,
         "3+": 0
       },
+      "views_dropped": {
+        "no_anchor_or_no_foot": 0
+      },
+      "views_without_lower_end_kept_as_camera_to_foot": 0,
       "position_error": {
         "best_single_view": {
           "1": {
@@ -97,6 +101,10 @@
         "2": 16123,
         "3+": 43
       },
+      "views_dropped": {
+        "no_anchor_or_no_foot": 0
+      },
+      "views_without_lower_end_kept_as_camera_to_foot": 0,
       "position_error": {
         "best_single_view": {
           "1": {

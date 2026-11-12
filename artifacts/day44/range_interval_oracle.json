@@ -17,6 +17,18 @@
         "inside": 6852,
         "coverage": 0.335635562086701,
         "boxes_without_lower_end": 0,
+        "boxes_excluded_foot_ray_misses_floor": 0,
+        "inside_near_edge_reference": 20414,
+        "coverage_near_edge_reference": 0.9999510164095028,
+        "upper_end_misses_vs_near_edge": 1,
+        "upper_end_miss_vs_near_edge_m": {
+          "n": 1,
+          "p10": 0.011459963037044218,
+          "p50": 0.011459963037044218,
+          "p90": 0.011459963037044218,
+          "p99": 0.011459963037044218
+        },
+        "reference_note": "coverage: true range = GT footprint CENTRE; coverage_near_edge_reference: the upper end scored against the footprint's near edge along the camera ray (the point a box bottom on the near foot can reach), the lower end against the centre; no excuse category",
         "violations_lower_end": {},
         "violations_upper_end": {
           "box_bottom_below_floor": 11942,
@@ -90,6 +102,18 @@
         "inside": 6852,
         "coverage": 0.335635562086701,
         "boxes_without_lower_end": 0,
+        "boxes_excluded_foot_ray_misses_floor": 0,
+        "inside_near_edge_reference": 20414,
+        "coverage_near_edge_reference": 0.9999510164095028,
+        "upper_end_misses_vs_near_edge": 1,
+        "upper_end_miss_vs_near_edge_m": {
+          "n": 1,
+          "p10": 0.011459963037044218,
+          "p50": 0.011459963037044218,
+          "p90": 0.011459963037044218,
+          "p99": 0.011459963037044218
+        },
+        "reference_note": "coverage: true range = GT footprint CENTRE; coverage_near_edge_reference: the upper end scored against the footprint's near edge along the camera ray (the point a box bottom on the near foot can reach), the lower end against the centre; no excuse category",
         "violations_lower_end": {},
         "violations_upper_end": {
           "box_bottom_below_floor": 11942,
@@ -165,6 +189,18 @@
         "inside": 38996,
         "coverage": 0.6707373707838112,
         "boxes_without_lower_end": 0,
+        "boxes_excluded_foot_ray_misses_floor": 0,
+        "inside_near_edge_reference": 58115,
+        "coverage_near_edge_reference": 0.999587196202205,
+        "upper_end_misses_vs_near_edge": 20,
+        "upper_end_miss_vs_near_edge_m": {
+          "n": 20,
+          "p10": 0.0022805781888142643,
+          "p50": 0.009112370772058842,
+          "p90": 0.014527843549921027,
+          "p99": 0.020143583638848696
+        },
+        "reference_note": "coverage: true range = GT footprint CENTRE; coverage_near_edge_reference: the upper end scored against the footprint's near edge along the camera ray (the point a box bottom on the near foot can reach), the lower end against the centre; no excuse category",
         "violations_lower_end": {
           "box_top_above_head": 4
         },
@@ -240,6 +276,18 @@
         "inside": 39000,
         "coverage": 0.670806171416777,
         "boxes_without_lower_end": 6840,
+        "boxes_excluded_foot_ray_misses_floor": 0,
+        "inside_near_edge_reference": 58119,
+        "coverage_near_edge_reference": 0.9996559968351709,
+        "upper_end_misses_vs_near_edge": 20,
+        "upper_end_miss_vs_near_edge_m": {
+          "n": 20,
+          "p10": 0.0022805781888142643,
+          "p50": 0.009112370772058842,
+          "p90": 0.014527843549921027,
+          "p99": 0.020143583638848696
+        },
+        "reference_note": "coverage: true range = GT footprint CENTRE; coverage_near_edge_reference: the upper end scored against the footprint's near edge along the camera ray (the point a box bottom on the near foot can reach), the lower end against the centre; no excuse category",
         "violations_lower_end": {},
         "violations_upper_end": {
           "reference_offset": 10435,
@@ -315,6 +363,18 @@
         "inside": 56672,
         "coverage": 0.7713519619986117,
         "boxes_without_lower_end": 0,
+        "boxes_excluded_foot_ray_misses_floor": 0,
+        "inside_near_edge_reference": 73460,
+        "coverage_near_edge_reference": 0.9998502810632767,
+        "upper_end_misses_vs_near_edge": 11,
+        "upper_end_miss_vs_near_edge_m": {
+          "n": 11,
+          "p10": 0.00470193621739412,
+          "p50": 0.011266924080860719,
+          "p90": 0.022361428334744637,
+          "p99": 0.0325458592479853
+        },
+        "reference_note": "coverage: true range = GT footprint CENTRE; coverage_near_edge_reference: the upper end scored against the footprint's near edge along the camera ray (the point a box bottom on the near foot can reach), the lower end against the centre; no excuse category",
         "violations_lower_end": {},
         "violations_upper_end": {
           "reference_offset": 10731,
@@ -388,6 +448,18 @@
         "inside": 56672,
         "coverage": 0.7713519619986117,
         "boxes_without_lower_end": 0,
+        "boxes_excluded_foot_ray_misses_floor": 0,
+        "inside_near_edge_reference": 73460,
+        "coverage_near_edge_reference": 0.9998502810632767,
+        "upper_end_misses_vs_near_edge": 11,
+        "upper_end_miss_vs_near_edge_m": {
+          "n": 11,
+          "p10": 0.00470193621739412,
+          "p50": 0.011266924080860719,
+          "p90": 0.022361428334744637,
+          "p99": 0.0325458592479853
+        },
+        "reference_note": "coverage: true range = GT footprint CENTRE; coverage_near_edge_reference: the upper end scored against the footprint's near edge along the camera ray (the point a box bottom on the near foot can reach), the lower end against the centre; no excuse category",
         "violations_lower_end": {},
         "violations_upper_end": {
           "reference_offset": 10731,
