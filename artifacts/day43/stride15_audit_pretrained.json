@@ -1,0 +1,213 @@
+{
+  "artifacts/day43/frontier_w022_pretrained.json": {
+    "tolerance_s": 2.0,
+    "counts": {
+      "shifted": 7,
+      "taken": 0,
+      "lost_identity": 6,
+      "lost_absent": 8
+    },
+    "shift_gaps_s": [
+      2.3,
+      3.933333333,
+      11.5,
+      11.5,
+      17.2,
+      23.433333333,
+      31.033333333
+    ],
+    "matched_signed_shift_s_p50": 0.5,
+    "matched_abs_shift_s_p90": 1.0,
+    "rows": [
+      {
+        "camera": "Camera_0000",
+        "subject": "gt/2",
+        "verb": "dwelled",
+        "zone": "junction",
+        "gt_ts_s": 5.0,
+        "kind": "shifted",
+        "nearest_same_event_gap_s": 11.5
+      },
+      {
+        "camera": "Camera_0000",
+        "subject": "gt/703",
+        "verb": "exited",
+        "zone": "junction",
+        "gt_ts_s": 12.766666667,
+        "kind": "lost_absent",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0000",
+        "subject": "gt/703",
+        "verb": "entered",
+        "zone": "aisle_west",
+        "gt_ts_s": 24.066666667,
+        "kind": "lost_absent",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0000",
+        "subject": "gt/703",
+        "verb": "dwelled",
+        "zone": "aisle_west",
+        "gt_ts_s": 29.066666667,
+        "kind": "lost_absent",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0001",
+        "subject": "gt/2",
+        "verb": "dwelled",
+        "zone": "junction",
+        "gt_ts_s": 5.0,
+        "kind": "shifted",
+        "nearest_same_event_gap_s": 11.5
+      },
+      {
+        "camera": "Camera_0001",
+        "subject": "gt/703",
+        "verb": "entered",
+        "zone": "aisle_west",
+        "gt_ts_s": 24.066666667,
+        "kind": "lost_identity",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0001",
+        "subject": "gt/703",
+        "verb": "dwelled",
+        "zone": "aisle_west",
+        "gt_ts_s": 29.066666667,
+        "kind": "lost_identity",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0001",
+        "subject": "gt/703",
+        "verb": "exited",
+        "zone": "aisle_west",
+        "gt_ts_s": 31.066666667,
+        "kind": "lost_identity",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0001",
+        "subject": "gt/2069",
+        "verb": "entered",
+        "zone": "aisle_west",
+        "gt_ts_s": 27.066666667,
+        "kind": "shifted",
+        "nearest_same_event_gap_s": 23.433333333
+      },
+      {
+        "camera": "Camera_0002",
+        "subject": "gt/2",
+        "verb": "dwelled",
+        "zone": "junction",
+        "gt_ts_s": 6.433333333,
+        "kind": "lost_absent",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0002",
+        "subject": "gt/702",
+        "verb": "dwelled",
+        "zone": "junction",
+        "gt_ts_s": 37.066666667,
+        "kind": "shifted",
+        "nearest_same_event_gap_s": 3.933333333
+      },
+      {
+        "camera": "Camera_0002",
+        "subject": "gt/704",
+        "verb": "exited",
+        "zone": "junction",
+        "gt_ts_s": 42.666666667,
+        "kind": "lost_absent",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0002",
+        "subject": "gt/707",
+        "verb": "exited",
+        "zone": "corridor_north",
+        "gt_ts_s": 12.3,
+        "kind": "shifted",
+        "nearest_same_event_gap_s": 17.2
+      },
+      {
+        "camera": "Camera_0002",
+        "subject": "gt/707",
+        "verb": "entered",
+        "zone": "corridor_north",
+        "gt_ts_s": 18.466666667,
+        "kind": "shifted",
+        "nearest_same_event_gap_s": 31.033333333
+      },
+      {
+        "camera": "Camera_0002",
+        "subject": "gt/708",
+        "verb": "exited",
+        "zone": "junction",
+        "gt_ts_s": 47.666666667,
+        "kind": "lost_identity",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0002",
+        "subject": "gt/710",
+        "verb": "exited",
+        "zone": "corridor_north",
+        "gt_ts_s": 44.233333333,
+        "kind": "lost_absent",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0002",
+        "subject": "gt/710",
+        "verb": "entered",
+        "zone": "corridor_north",
+        "gt_ts_s": 55.0,
+        "kind": "lost_identity",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0002",
+        "subject": "gt/1896",
+        "verb": "entered",
+        "zone": "junction",
+        "gt_ts_s": 53.833333333,
+        "kind": "lost_absent",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0003",
+        "subject": "gt/702",
+        "verb": "dwelled",
+        "zone": "junction",
+        "gt_ts_s": 36.4,
+        "kind": "lost_identity",
+        "nearest_same_event_gap_s": null
+      },
+      {
+        "camera": "Camera_0003",
+        "subject": "gt/704",
+        "verb": "dwelled",
+        "zone": "junction",
+        "gt_ts_s": 26.2,
+        "kind": "shifted",
+        "nearest_same_event_gap_s": 2.3
+      },
+      {
+        "camera": "Camera_0003",
+        "subject": "gt/706",
+        "verb": "dwelled",
+        "zone": "junction",
+        "gt_ts_s": 43.2,
+        "kind": "lost_absent",
+        "nearest_same_event_gap_s": null
+      }
+    ]
+  }
+}
