@@ -12800,3 +12800,123 @@ run at the same code had 1739 passed and 4 skipped
 (`artifacts/pytest/day43_full.xml`); the difference is the clone lacking
 `data/` and the signed weights, which the repository never ships, as on
 Day 42. No test fails in either.
+
+# Day 44
+
+**Lead finding: a second camera turns the per-detection range interval into
+a position.** Where two views see the same person (paired by ground-truth
+identity, oracle boxes, Warehouse_020/000), intersecting their intervals
+gives p99 position error 0.35–0.37 m against 13.7 m for the best single
+view. It does not reach events here: 93% and 72% of person-frames have one
+view. Everything replays existing caches; no detector ran. Lane S synthetic,
+not evidence about real cameras.
+
+## Verdicts
+
+- **Product tracker is now IoU-only** (`--tracker kalman` keeps the old
+  one). RT-DETRv2-S, Warehouse_022, every frame: ID switches 93 vs 453,
+  event precision 58/66 vs 65/87, **recall 58/78 vs 65/78**. Paired and
+  clustered by person, IoU-only minus Kalman: −0.090 [−0.185, −0.010] at
+  every frame, −0.038 [−0.146, +0.109] at the adaptive schedule. The switch
+  costs events at full rate; at the chosen schedule the cost is not
+  distinguishable from zero. An official
+  `python -m iron run` with the new default (all cache hits, 0 detector
+  calls; `outputs/runs/day44-c0aca5b/rtdetr_v2_s_gate-off_iou`) reproduces
+  the replay exactly: events 66/58/78, ID switches 93.
+- **Why Kalman made 453** (time-boxed, not fixed;
+  `artifacts/day44/kalman_switch_diagnosis.json`). Ablation: second stage
+  off 93 / 92 (Kalman off / on), on 439 / 453: the low-score second stage is
+  96% of the excess, the Kalman prediction none. **Duplicate boxes are the
+  mechanism, tested**: NMS at IoU 0.7 before tracking takes Kalman 453 → 96
+  and IoU-only 93 → 57. RT-DETR boxes 68.3% of person boxes two or more
+  times; 99.4% of the extra boxes score under 0.5, which only stage 2 sees.
+  (The per-switch flags fire near the base rate and prove nothing alone.)
+  Options, not taken: NMS before tracking (event cost unmeasured), or drop
+  stage 2.
+- **Frontier, both trackers, intervals clustered by person** (17 clusters;
+  `artifacts/day44/frontier_tables_pretrained_{iou,kalman}.md`). The rule
+  chooses **adaptive under both**. With IoU-only, adaptive 56/78 vs gate-off
+  58/78, paired −0.026 [−0.118, +0.078]. ADR 0014 updated (appended), still
+  Proposed.
+- **Range interval** (`artifacts/day44/range_interval_oracle.json`, H_max
+  2.058 m = tallest national mean + 3 SD; 2.72 m record as sensitivity).
+  Assumptions: upright, flat floor, box bottom at or above the feet, box top
+  at or below the head, head ≤ H_max, camera above H_max. **R_foot bounds the
+  near edge of the person's footprint, not its centre.** Scored against the
+  near edge along the camera ray (no excuse category), the interval holds
+  for 151,989 of 152,025 person boxes: 4 lower-end breaks (2-D box top above
+  the GT box), 32 upper-end misses of at most 0.033 m; 0 boxes excluded.
+  Against the footprint centre it holds for 0.336 / 0.671 / 0.771 (022 /
+  020 / 000). Width p50 1.41 / 6.96 / 7.17 m, p90 3.86 / 37.68 / 35.52 m.
+- **Error model** (`artifacts/day44/error_model.json`): log σ linear in log
+  range, log interval width and anchor mode, fitted on Warehouse_000/002/004/
+  006, held out on 020/022. Margin over a fitted constant, clustered by
+  person: **+2.86 nats per detection [2.31, 3.40]**; the analytic ellipse
+  −44.80 [−88.03, −16.93]. By the rule it **replaces** the ellipse for
+  persons (`Anchored.cov`; the ray covariance stays as `ray_cov`); positions
+  unchanged. **It is not calibrated**: 68% / 95% region coverage 0.875 /
+  0.942 held out (020 0.851 / 0.926, 022 0.942 / 0.988) and 0.804 / 0.885
+  on its own training data. The 68% region is too wide everywhere, the 95%
+  too narrow except on 022: heavy tails. The constant (σ 7.2 m) covers
+  0.966 / 0.993 by being uninformative. `foot_flagged` had no training rows
+  and gets the smallest σ, flagged `fitted_extrapolated`. Nothing in the
+  product consumes the covariance yet. Not validated on detector boxes.
+- **Multi-camera ceiling** (`artifacts/day44/multiview_ceiling_oracle.json`):
+  2 views, median / p90 / p99 — best single view 0.21/2.89/13.72 (020) and
+  0.18/3.41/13.73 (000); naive mean of anchors 1.85/4.93/9.83 (020), worse
+  than one view; interval fusion 0.10/0.20/0.35 and 0.10/0.20/0.37. 3+ views
+  (000, 43 person-frames): 0.12/0.17/0.18. Scene-level events with GT
+  identity: fusion equals best single view (32/39, 30/33). No view was
+  dropped and none lacked a lower end. Nothing here supports a claim about
+  3+ views on 020 (none) or beyond 43 person-frames on 000.
+- **Suite**: working tree of this report's commit, `.venv-pinned`: gated
+  (`-m "not requires_weights"`) 1739 passed, 3 skipped, 10 deselected, 0
+  failed (`artifacts/pytest/day44_gated.xml`); full 1748 passed, 4 skipped,
+  0 failed (`artifacts/pytest/day44_full.xml`); reconciled 1742 + 10 = 1752
+  (`artifacts/pytest/day44_summary.json`). An earlier pass on the same code
+  failed only this section's missing-table lint, before the table was
+  pasted in.
+
+### Checks that did not run
+
+| skipped | reason | prerequisite found elsewhere on this machine |
+|---:|---|---|
+| 1 | no legacy artifacts under <tmp>; nothing to refuse | no |
+| 1 | only one golden set has been scored; nothing to mismatch | no |
+| 1 | this measurement has no unresolvable-to-resolvable boundary | no |
+
+No skip is a defect: none names a prerequisite present elsewhere on this machine.
+
+## Blockers
+
+Open on `docs/blocker_ledger.yaml` (`python scripts/blocker_report.py
+--verify-git`): `dataset-license-and-consent-verification`,
+`consent-template-counsel-review`, `reference-hardware-procurement`,
+`site-zero-capture`, `git-history-divergence`,
+`chirla-deployment-scope-legal-review`, `registry-deployment-scope-reaudit`,
+`component-cap-carrier-identity-type-change`,
+`smartspaces-nvidia-terms-of-service`, `smartspaces-smpl-provenance`,
+`adr-0012-acceptance`, `adr-0013-detector-fine-tuning-decision`,
+`adr-0014-detector-schedule-decision`, `detector-base-training-data-licence`,
+`texture-floor-resolution-dependence`. None added today.
+
+## Not done, and next
+
+- The Kalman tracker's duplicate-box problem is diagnosed, not fixed.
+- Cross-camera association does not exist; the multi-camera numbers are a
+  ceiling with ground-truth identity. The cameras here mostly do not
+  overlap, so the gain would reach few person-frames.
+- The fitted error model is trained on oracle boxes; detector boxes are
+  untested. The estimator still uses its own range-dependent noise model,
+  not this one.
+- `adaptive` is still not a product gate mode (ADR 0014 is Proposed).
+
+Commits: `a5eae49` IoU-only product tracker and both-tracker frontier ·
+`3e573e7` Kalman diagnosis · `5a6b220` ADR 0014 update · `a1309c0` range
+interval · `519b9cb` error model · `c0aca5b` multi-camera ceiling · `cc99274`
+independent-review fixes (no bug in shipped numbers; one circular audit
+replaced, one cause claim tested, coverage stated in full, a tracker
+default) · then this report.
+
+**No timing, throughput, CPU-percentage, memory-rate or latency claim is
+made in this section.**
