@@ -223,6 +223,12 @@ class CameraResult:
     errors: dict[str, dict[str, list[float]]]
     units: list[Unit]
     class_coverage: dict[str, list[int]] = field(default_factory=dict)
+    event_log: dict[str, list[list[Any]]] = field(default_factory=dict)
+    """``gt``: ``[subject, verb, zone, ts_ns]`` per GT event; ``predicted``:
+    ``[track, attributed GT subject or None, verb, zone, ts_ns]``; ``pairs``:
+    ``[predicted index, gt index]`` as :func:`match_event_pairs` made them.
+    Lets a reader pair candidates event by event and tell a lost event from
+    one shifted past the tolerance."""
 
 
 def evaluate_schedule(
@@ -322,6 +328,20 @@ def evaluate_schedule(
         errors=errors,
         units=list(units.values()),
         class_coverage=class_coverage,
+        event_log={
+            "gt": [[g.subject_id, g.verb.value, g.zone, g.ts_ns] for g in gt_events],
+            "predicted": [
+                [
+                    p.subject_id,
+                    subject_of.get(p.subject_id),
+                    p.verb.value,
+                    p.zone,
+                    p.ts_ns,
+                ]
+                for p in predicted
+            ],
+            "pairs": [[i, j] for i, j in pairs],
+        },
     )
 
 
@@ -435,7 +455,7 @@ def frontier(
             runs = schedule(name, s.frames, s.gate_awake, person_label)
             r = evaluate_schedule(s, runs, person_label, zones, backend)
             results.append(r)
-            per_camera[s.camera_id] = summarise([r])
+            per_camera[s.camera_id] = {**summarise([r]), "event_log": r.event_log}
         out[name] = {"pooled": summarise(results), "cameras": per_camera}
         p = out[name]["pooled"]
         progress(
