@@ -116,3 +116,44 @@ Run the detector on the `adaptive` schedule.
   stride 6 separates), the tracker's ID-switch regression is fixed (the
   live-track signal adaptive reads comes from that tracker), or a real
   camera exists.
+
+## Day 44 update (appended; the text above is left as written)
+
+Two things changed under this decision: the product tracker is now the
+IoU-only tracker (Kalman behind `--tracker kalman`), and the bootstrap is
+clustered by GT person (scene-wide object id, summed across the four
+cameras; 17 clusters) instead of per-camera tracks. The intervals above are
+the per-camera ones; the ones below supersede them. Same cache, same
+schedules, same rule (`artifacts/day44/frontier_w022_pretrained_{iou,kalman}.json`,
+`frontier_tables_pretrained_{iou,kalman}.md`).
+
+| candidate | invocations (per cam-min) | IoU-only: recall [95%] | IoU-only: paired vs gate-off | Kalman: recall [95%] | Kalman: paired vs gate-off |
+|---|---|---|---|---|---|
+| gate_off | 7200 (1800) | 58/78 [0.630, 0.836] | reference | 65/78 [0.774, 0.886] | reference |
+| gate_keepalive | 6011 / 6022 | 53/78 [0.560, 0.800] | +0/−5, −0.064 [−0.129, +0.000] | 59/78 [0.697, 0.825] | +0/−6, −0.077 [−0.158, +0.000] |
+| gate_default | 4172 (1043) | 36/78 [0.371, 0.567] | +1/−23, −0.282 [−0.359, −0.182] | 42/78 [0.465, 0.639] | +0/−23, −0.295 [−0.392, −0.182] |
+| stride_6 | 1200 (300) | 55/78 [0.643, 0.773] | +7/−10, −0.038 [−0.110, +0.055] | 60/78 [0.628, 0.861] | +2/−7, −0.064 [−0.170, +0.000] |
+| **adaptive** | **1154 / 1156 (288 / 289)** | **56/78 [0.640, 0.793]** | **+8/−10, −0.026 [−0.118, +0.078]** | **59/78 [0.610, 0.854]** | **+1/−7, −0.077 [−0.192, +0.000]** |
+| motion_adaptive | 705 (176) | 32/78 [0.337, 0.500] | +4/−30, −0.333 [−0.434, −0.203] | 35/78 [0.356, 0.562] | +1/−31, −0.385 [−0.489, −0.263] |
+| stride_15 | 480 (120) | 40/78 [0.389, 0.610] | +4/−22, −0.231 [−0.329, −0.148] | 46/78 [0.458, 0.733] | +2/−21, −0.244 [−0.366, −0.107] |
+
+**The rule chooses `adaptive` under both trackers** (passing under both:
+adaptive, stride_6, gate_keepalive). The decision above stands.
+
+What changed in the evidence:
+
+- **With the IoU-only tracker adaptive is indistinguishable from gate-off**
+  (paired −0.026 [−0.118, +0.078]); with Kalman it was likelier a loss.
+- **The tracker switch costs events at every frame.** Paired, IoU-only minus
+  Kalman: gate-off −0.090 [−0.185, −0.010] (58 vs 65 of 78); at adaptive
+  −0.038 [−0.146, +0.109], not distinguishable
+  (`artifacts/day44/paired_iou_vs_kalman_pretrained.json`). It buys ID
+  switches 93 vs 453 at every frame, 40 vs 83 at adaptive, and precision
+  58/66 vs 65/87.
+- The Kalman tracker's excess switches come from its low-score second stage
+  meeting RT-DETR's duplicate boxes, not from the Kalman prediction
+  (`artifacts/day44/kalman_switch_diagnosis.json`). A tracker that keeps the
+  Kalman prediction without the second stage (92 switches) was measured in
+  that ablation but not on events; it is not a candidate here.
+- 17 clusters is a small sample: the intervals are wide, and the overlap
+  rule passes candidates it cannot tell apart.

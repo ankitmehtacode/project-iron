@@ -351,8 +351,9 @@
     docs/adr/0014-detector-schedule.md is Proposed: by the decision rule
     fixed before the pretrained numbers existed, the detector runs on the
     adaptive schedule (stride 15 with no live track, stride 6 while one
-    lives), 289 invocations per camera-minute against gate-off's 1800, at a
-    paired event-recall cost of -0.077 [-0.159, +0.000] on Warehouse_022.
+    lives), about 290 invocations per camera-minute against gate-off's
+    1800 on Warehouse_022; chosen again on Day 44 under the IoU-only product
+    tracker with person-clustered intervals (the ADR carries both results).
     Claude Code must not change its status; the user accepts or rejects it
     by editing the Status line.
   category: human_decision
