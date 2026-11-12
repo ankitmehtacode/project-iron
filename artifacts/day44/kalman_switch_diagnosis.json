@@ -1,0 +1,103 @@
+{
+  "run": "outputs/runs/day43-2cf9a30/rtdetr_v2_s_gate-off",
+  "detector": "RT-DETRv2-S-COCO",
+  "counted_on": "tracker assignments (boxes), before floor projection",
+  "ablation_id_switches": {
+    "kalman=False,second_stage=False": 93,
+    "kalman=False,second_stage=True": 439,
+    "kalman=True,second_stage=False": 92,
+    "kalman=True,second_stage=True": 453
+  },
+  "kalman_two_stage": {
+    "switches": 453,
+    "primary_cause": {
+      "duplicate": 415,
+      "gating": 16,
+      "fp_birth": 15,
+      "low_score": 3,
+      "a_ended": 3,
+      "other": 1
+    },
+    "flags_not_exclusive": {
+      "gating": 438,
+      "duplicate": 430,
+      "low_score": 216,
+      "fp_birth": 15,
+      "a_ended": 11
+    },
+    "per_camera": {
+      "Camera_0000": {
+        "switches": 38,
+        "primary": {
+          "gating": 1,
+          "duplicate": 37
+        },
+        "flags": {
+          "gating": 36,
+          "low_score": 15,
+          "duplicate": 37,
+          "a_ended": 2
+        }
+      },
+      "Camera_0001": {
+        "switches": 186,
+        "primary": {
+          "duplicate": 163,
+          "gating": 5,
+          "low_score": 3,
+          "other": 1,
+          "fp_birth": 14
+        },
+        "flags": {
+          "low_score": 87,
+          "gating": 180,
+          "duplicate": 177,
+          "a_ended": 3,
+          "fp_birth": 14
+        }
+      },
+      "Camera_0002": {
+        "switches": 227,
+        "primary": {
+          "a_ended": 3,
+          "duplicate": 213,
+          "gating": 10,
+          "fp_birth": 1
+        },
+        "flags": {
+          "a_ended": 5,
+          "gating": 221,
+          "duplicate": 214,
+          "low_score": 114,
+          "fp_birth": 1
+        }
+      },
+      "Camera_0003": {
+        "switches": 2,
+        "primary": {
+          "duplicate": 2
+        },
+        "flags": {
+          "gating": 1,
+          "duplicate": 2,
+          "a_ended": 1
+        }
+      }
+    }
+  },
+  "cause_order": [
+    "fp_birth",
+    "duplicate",
+    "low_score",
+    "gating",
+    "a_ended",
+    "other"
+  ],
+  "duplicate_box_stats": {
+    "gt_boxes": 20415,
+    "gt_boxes_with_2plus": 13947,
+    "dups_low": 20781,
+    "dups_high": 120,
+    "note": "per GT person box, every frame: detections at IoU>=0.5 beyond the highest-scoring one, split by score vs high_score 0.5"
+  }
+}
