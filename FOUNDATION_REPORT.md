@@ -12920,3 +12920,13 @@ default) · then this report.
 
 **No timing, throughput, CPU-percentage, memory-rate or latency claim is
 made in this section.**
+
+## Fresh clone at the report commit
+
+`scripts/fresh_clone_check.sh ddadaf5` (the commit carrying this report and
+every Day-44 code change): **1692 passed, 0 failed, 0 errors, 16 skipped**,
+pip freeze matching all 38 lockfile pins
+(`artifacts/pytest/fresh_clone_ddadaf5bcd1f.xml`). The checkout's full run
+at the same code: 1748 passed, 4 skipped (`artifacts/pytest/day44_full.xml`);
+the difference is the clone lacking `data/` and the signed weights, as on
+Days 42 and 43. No test fails in either.

@@ -1,0 +1,51 @@
+........................................................................ [  4%]
+........................................................................ [  8%]
+........................................................................ [ 12%]
+........................................................................ [ 16%]
+........................................................................ [ 21%]
+................................sss..................................... [ 25%]
+.........................s.............................................. [ 29%]
+........................................................................ [ 33%]
+........................................................................ [ 37%]
+........................................................................ [ 42%]
+........................................................................ [ 46%]
+........................................................................ [ 50%]
+........................................................................ [ 54%]
+...........................................................ssss......... [ 59%]
+........................................................................ [ 63%]
+..........s..............................ss............................. [ 67%]
+........................................................................ [ 71%]
+........................................................................ [ 75%]
+........................................................................ [ 80%]
+........................................................................ [ 84%]
+.................................................s...................... [ 88%]
+.......s................................................................ [ 92%]
+............................................sss......................... [ 96%]
+....................................................                     [100%]
+=============================== warnings summary ===============================
+tests/test_golden_vectors.py::test_openvino_matches_pytorch_reference[real_test_video]
+tests/test_golden_vectors.py::test_openvino_matches_pytorch_reference[synthetic_seeded_noise]
+tests/test_golden_vectors.py::test_openvino_matches_pytorch_reference[synthetic_spatial_gradient]
+tests/test_golden_vectors.py::test_openvino_matches_pytorch_reference[synthetic_tubelet_probe]
+  tests/test_golden_vectors.py:186: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.requires_weights
+
+tests/test_known_bugs.py::test_vjepa_token_count_matches_tubelet
+  tests/test_known_bugs.py:127: PytestWarning: record_property is incompatible with junit_family 'xunit2' (use 'legacy' or 'xunit1')
+    @pytest.mark.known_bug
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+- generated xml file: /private/tmp/claude-501/-Users-manishmehta/5f82ecec-4166-4be3-8405-9e63f6f09e9d/scratchpad/fresh44/junit.xml -
+=========================== short test summary info ============================
+SKIPPED [1] tests/test_detect_pretrained.py:38: RT-DETRv2-S weights not fetched: /private/tmp/claude-501/-Users-manishmehta/5f82ecec-4166-4be3-8405-9e63f6f09e9d/scratchpad/fresh44/clone/models/weights/RT-DETRv2-S-COCO/5650961749fa93567c0d46fc7f43ea4f9e914107/config.json missing; fetch it through the registry
+SKIPPED [1] tests/test_detect_pretrained.py:64: RT-DETRv2-S weights not fetched: /private/tmp/claude-501/-Users-manishmehta/5f82ecec-4166-4be3-8405-9e63f6f09e9d/scratchpad/fresh44/clone/models/weights/RT-DETRv2-S-COCO/5650961749fa93567c0d46fc7f43ea4f9e914107/config.json missing; fetch it through the registry
+SKIPPED [1] tests/test_detect_pretrained.py:72: RT-DETRv2-S weights not fetched: /private/tmp/claude-501/-Users-manishmehta/5f82ecec-4166-4be3-8405-9e63f6f09e9d/scratchpad/fresh44/clone/models/weights/RT-DETRv2-S-COCO/5650961749fa93567c0d46fc7f43ea4f9e914107/config.json missing; fetch it through the registry
+SKIPPED [1] tests/test_envelope.py:195: this measurement has no unresolvable-to-resolvable boundary
+SKIPPED [4] tests/test_golden_vectors.py:177: 1 unmet prerequisite(s): V-JEPA2 OpenVINO IR (paths.current_ir) not found at /private/tmp/claude-501/-Users-manishmehta/5f82ecec-4166-4be3-8405-9e63f6f09e9d/scratchpad/fresh44/clone/models/export/2026-07-31/vjepa2_vitl_fp32.xml
+SKIPPED [1] tests/test_inspector.py:200: only one golden set has been scored; nothing to mismatch
+SKIPPED [1] tests/test_known_bugs.py:66: 1 unmet prerequisite(s): V-JEPA2 OpenVINO IR (paths.current_ir) not found at /private/tmp/claude-501/-Users-manishmehta/5f82ecec-4166-4be3-8405-9e63f6f09e9d/scratchpad/fresh44/clone/models/export/2026-07-31/vjepa2_vitl_fp32.xml. Install locking-requirements.txt and fetch weights with scripts/fetch_weights.py, then export/quantize per scripts/.
+SKIPPED [1] tests/test_known_bugs.py:66: 2 unmet prerequisite(s): V-JEPA2 OpenVINO IR (paths.current_ir) not found at /private/tmp/claude-501/-Users-manishmehta/5f82ecec-4166-4be3-8405-9e63f6f09e9d/scratchpad/fresh44/clone/models/export/2026-07-31/vjepa2_vitl_fp32.xml; CoTracker3 checkpoint not found at /private/tmp/claude-501/-Users-manishmehta/5f82ecec-4166-4be3-8405-9e63f6f09e9d/scratchpad/fresh44/clone/models/weights/cotracker3/scaled_offline.pth. Install locking-requirements.txt and fetch weights with scripts/fetch_weights.py, then export/quantize per scripts/.
+SKIPPED [1] tests/test_preprocess_spec.py:435: no legacy artifacts under /private/var/folders/rj/n0gzw7d95rjfkmd25k00h4gm0000gn/T/pytest-of-manishmehta/pytest-23/outputs0; nothing to refuse
+SKIPPED [1] tests/test_provenance.py:435: Day-3 export artifact not present in this checkout
+SKIPPED [3] tests/test_smartspaces_reprojection.py:111: PhysicalAI-SmartSpaces is not fetched at /private/tmp/claude-501/-Users-manishmehta/5f82ecec-4166-4be3-8405-9e63f6f09e9d/scratchpad/fresh44/clone/data/raw/PhysicalAI-SmartSpaces/2cbe9563cbe9f47f846e5c871ee994572bbbc60e/paths-0deaa0fe541fbaf1/MTMC_Tracking_2026; run scripts/fetch_dataset.py (see configs/datasets.yaml)
+1692 passed, 16 skipped, 5 warnings in 1793.13s (0:29:53)
