@@ -77,7 +77,7 @@ Run the detector on the `adaptive` schedule.
   overlap, which is weaker than a paired test; that is the rule as fixed,
   recorded rather than re-argued here.
 - **The motion gate as built is the worst trade on the frontier.** It
-  spends 1043 invocations per camera-minute (3.5x adaptive) and loses 23
+  spends 1043 invocations per camera-minute (3.6x adaptive) and loses 23
   events: on oracle boxes it lost 29 of 76, on all three scenes measured.
   Keep-alive recovers most of that at 1506 per camera-minute.
 - **Interval overlap is weak where recall is low.** On the two other scenes
@@ -88,8 +88,14 @@ Run the detector on the `adaptive` schedule.
   and carry no pretrained run.
 - **Stride 15 loses events rather than delaying them.** Against gate-off it
   misses 21 (pretrained) to 28 (oracle) GT events on Warehouse_022; of the
-  oracle misses 16 are absent, 6 fire on a track attributed to another
-  person, 6 fire more than the 2.0 s tolerance late.
+  oracle misses 16 are absent, 6 fire within the 2.0 s tolerance on a track
+  attributed to another person, and for 6 the same person, zone and verb
+  fire only 4.1–31.5 s away, which reads as a different visit more than as
+  a late event. Events stride 15 does match are a median 0.28 s late.
+- **The intervals are probably too narrow.** The bootstrap resamples GT
+  person tracks per camera; four cameras watch the same 60 s of one scene,
+  so one person can be up to four units. That makes passing the overlap
+  rule harder, not easier, but the "95%" is nominal.
 - **Tracker finding, not decided here:** on pretrained detections at every
   frame the two-stage Kalman tracker makes 453 ID switches against the
   IoU-only baseline's 93; at adaptive's cadence 83 against 40. The pipeline

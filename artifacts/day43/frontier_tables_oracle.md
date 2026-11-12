@@ -16,7 +16,7 @@ Source: `artifacts/day43/frontier_w022_oracle.json`
 | stride_15 | 480 (120) | 48/58 | 48/78 | +0 / -28, -0.359 [-0.457, -0.276] | 123 [83, 166] | 138 [93, 186] | 0.584 / 0.590 (102) | 0.577 / 0.576 (382) | 0.888 / 0.789 (355) | 0.377 / 0.301 (346) |
 | stride_6 | 1200 (300) | 72/77 | 72/78 | +0 / -4, -0.051 [-0.104, -0.012] | 29 [20, 39] | 20 [9, 32] | 0.573 / 0.576 (343) | 0.558 / 0.553 (1081) | 0.874 / 0.811 (928) | 0.597 / 0.506 (981) |
 
-Stride 15 vs gate-off, GT events gate-off matched and stride 15 did not: lost 22 (6 fired within tolerance on a track attributed to another GT subject or none, 16 with no such event at all), shifted beyond 2.0 s 6 (gaps s: 4.07, 4.43, 5.03, 11.00, 17.17, 31.53), taken by another GT event 0. Matched events: signed time shift p50 0.283 s, |shift| p90 0.867 s.
+Stride 15 vs gate-off, GT events gate-off matched and stride 15 did not: lost 22 (6 fired within tolerance on a track attributed to another GT subject or none, 16 with no such event at all); 6 with the same person, zone and verb only more than 2.0 s away (gaps s: 4.07, 4.43, 5.03, 11.00, 17.17, 31.53; a different visit is the likelier reading than a late event); taken by another GT event 0. Matched events: signed time shift p50 0.283 s, |shift| p90 0.867 s.
 
 ## Warehouse_020, oracle, 4 cameras x 1800 frames
 
@@ -32,7 +32,7 @@ Source: `artifacts/day43/frontier_020_oracle.json`
 | stride_15 | 480 (120) | 9/16 | 9/45 | +0 / -20, -0.444 [-0.632, -0.268] | 609 [469, 752] | 765 [601, 935] | 0.716 / 0.716 (250) | 2.979 / 3.012 (565) | 2.783 / 3.190 (409) | 20.520 / 20.526 (1826) |
 | stride_6 | 1200 (300) | 27/36 | 27/45 | +0 / -2, -0.044 [-0.109, +0.000] | 254 [196, 319] | 390 [295, 493] | 0.858 / 0.860 (779) | 2.961 / 2.996 (1707) | 2.756 / 3.200 (1132) | 20.392 / 20.382 (5414) |
 
-Stride 15 vs gate-off, GT events gate-off matched and stride 15 did not: lost 14 (1 fired within tolerance on a track attributed to another GT subject or none, 13 with no such event at all), shifted beyond 2.0 s 6 (gaps s: 2.73, 3.50, 4.10, 5.43, 26.60, 46.27), taken by another GT event 0. Matched events: signed time shift p50 0.500 s, |shift| p90 1.547 s.
+Stride 15 vs gate-off, GT events gate-off matched and stride 15 did not: lost 14 (1 fired within tolerance on a track attributed to another GT subject or none, 13 with no such event at all); 6 with the same person, zone and verb only more than 2.0 s away (gaps s: 2.73, 3.50, 4.10, 5.43, 26.60, 46.27; a different visit is the likelier reading than a late event); taken by another GT event 0. Matched events: signed time shift p50 0.500 s, |shift| p90 1.547 s.
 
 ## Warehouse_000, oracle, 4 cameras x 1800 frames
 
@@ -48,4 +48,4 @@ Source: `artifacts/day43/frontier_000_oracle.json`
 | stride_15 | 480 (120) | 15/29 | 15/54 | +0 / -21, -0.389 [-0.483, -0.283] | 715 [589, 850] | 958 [796, 1134] | 1.151 / 1.151 (108) | 0.345 / 0.344 (287) | 3.443 / 3.443 (405) | 11.336 / 11.432 (2792) |
 | stride_6 | 1200 (300) | 31/56 | 31/54 | +5 / -10, -0.093 [-0.200, +0.019] | 368 [299, 442] | 588 [471, 711] | 1.512 / 1.514 (363) | 0.438 / 0.627 (966) | 3.420 / 3.492 (1293) | 11.405 / 11.632 (8367) |
 
-Stride 15 vs gate-off, GT events gate-off matched and stride 15 did not: lost 15 (0 fired within tolerance on a track attributed to another GT subject or none, 15 with no such event at all), shifted beyond 2.0 s 6 (gaps s: 2.97, 3.73, 10.70, 33.00, 34.53, 51.50), taken by another GT event 0. Matched events: signed time shift p50 0.233 s, |shift| p90 0.927 s.
+Stride 15 vs gate-off, GT events gate-off matched and stride 15 did not: lost 15 (0 fired within tolerance on a track attributed to another GT subject or none, 15 with no such event at all); 6 with the same person, zone and verb only more than 2.0 s away (gaps s: 2.97, 3.73, 10.70, 33.00, 34.53, 51.50; a different visit is the likelier reading than a late event); taken by another GT event 0. Matched events: signed time shift p50 0.233 s, |shift| p90 0.927 s.

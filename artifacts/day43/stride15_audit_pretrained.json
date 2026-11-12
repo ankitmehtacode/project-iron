@@ -2,12 +2,12 @@
   "artifacts/day43/frontier_w022_pretrained.json": {
     "tolerance_s": 2.0,
     "counts": {
-      "shifted": 7,
+      "elsewhere_in_time": 7,
       "taken": 0,
       "lost_identity": 6,
       "lost_absent": 8
     },
-    "shift_gaps_s": [
+    "elsewhere_gaps_s": [
       2.3,
       3.933333333,
       11.5,
@@ -25,7 +25,7 @@
         "verb": "dwelled",
         "zone": "junction",
         "gt_ts_s": 5.0,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 11.5
       },
       {
@@ -61,7 +61,7 @@
         "verb": "dwelled",
         "zone": "junction",
         "gt_ts_s": 5.0,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 11.5
       },
       {
@@ -97,7 +97,7 @@
         "verb": "entered",
         "zone": "aisle_west",
         "gt_ts_s": 27.066666667,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 23.433333333
       },
       {
@@ -115,7 +115,7 @@
         "verb": "dwelled",
         "zone": "junction",
         "gt_ts_s": 37.066666667,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 3.933333333
       },
       {
@@ -133,7 +133,7 @@
         "verb": "exited",
         "zone": "corridor_north",
         "gt_ts_s": 12.3,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 17.2
       },
       {
@@ -142,7 +142,7 @@
         "verb": "entered",
         "zone": "corridor_north",
         "gt_ts_s": 18.466666667,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 31.033333333
       },
       {
@@ -196,7 +196,7 @@
         "verb": "dwelled",
         "zone": "junction",
         "gt_ts_s": 26.2,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 2.3
       },
       {

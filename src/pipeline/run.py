@@ -349,10 +349,11 @@ class TrackPoint:
     est_v: tuple[float, float] | None = None
     """The filter's floor velocity (m/s); ``None`` in runs written before it
     was recorded."""
-    anchor: str = "foot"
+    anchor: str = "foot_unchecked"
     """Which point of the box was put on the floor (:data:`src.pipeline.
-    anchor.ANCHORS`). Runs written before Day 43's anchor work used the
-    foot anchor unchecked, and read back as ``"foot"``."""
+    anchor.ANCHORS`). ``"foot"`` only when the implied-height check ran and
+    passed; without a full camera (floor-points calibration), and in runs
+    written before Day 43, it is ``"foot_unchecked"``."""
 
 
 def estimate_tracks(
@@ -370,7 +371,8 @@ def estimate_tracks(
     (no anchor's ray meets its plane in front of the camera).
 
     Without ``anchor_camera`` every box is put on the floor at its
-    bottom-centre by ``projector`` and recorded as ``"foot"``. With it, the
+    bottom-centre by ``projector`` and recorded as ``"foot_unchecked"``
+    (no camera, no implied-height check). With it, the
     anchor module decides and records the anchor; ``anchor_mode="foot"``
     gives positions identical to ``projector`` (checked, Day 43) and only
     adds the record, ``"fallback"`` uses the head anchor where the foot
@@ -392,7 +394,7 @@ def estimate_tracks(
         boxes = np.array([a.box_xyxy for a in items])
         if anchor_camera is None:
             xy, valid = projector.project_boxes(boxes)
-            anchors = np.full(len(items), "foot")
+            anchors = np.full(len(items), "foot_unchecked")
         else:
             anchored = anchor_boxes(
                 anchor_camera, boxes, [label] * len(items), mode=anchor_mode
@@ -532,7 +534,7 @@ def read_points(path: Path) -> list[TrackPoint]:
                 if r.get("est_vx") is not None and r.get("est_vy") is not None
                 else None
             ),
-            anchor=r.get("anchor") or "foot",
+            anchor=r.get("anchor") or "foot_unchecked",
         )
         for r in rows
     ]

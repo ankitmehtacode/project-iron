@@ -115,6 +115,22 @@ def gate_from_video(video: Path, n: int) -> np.ndarray:
     return awake
 
 
+def video_props(video: Path) -> tuple[float, int, int]:
+    """``(fps, width, height)`` read from the container, not assumed."""
+    import cv2
+
+    cap = cv2.VideoCapture(str(video))
+    if not cap.isOpened():
+        raise SystemExit(f"cannot open {video}")
+    fps = float(cap.get(cv2.CAP_PROP_FPS))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    cap.release()
+    if not fps > 0 or width <= 0 or height <= 0:
+        raise SystemExit(f"{video} reports fps={fps}, size={width}x{height}")
+    return fps, width, height
+
+
 def gate_from_run(run: Path, camera: str, n: int) -> np.ndarray:
     d = Detections.load(run / camera / "detections.npz")
     if d.n_frames < n:
@@ -210,7 +226,13 @@ def main(argv: list[str] | None = None) -> int:
     scene = args.scene_dir.name
     cameras = args.cameras.split(",")
     gt = load_truth(args.scene_dir / "ground_truth.json")
-    fps = 30.0
+    props = {
+        cam: video_props(args.scene_dir / "videos" / f"{cam}.mp4") for cam in cameras
+    }
+    rates = {round(v[0], 6) for v in props.values()}
+    if len(rates) != 1:
+        raise SystemExit(f"cameras disagree on frame rate: {props}")
+    fps = props[cameras[0]][0]
     n = int(round(args.seconds * fps))
     zones_path = args.zones or auto_zones(gt, cameras, n, scene, args.auto_zones)
     zones = load_zone_config(zones_path)
@@ -225,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.detections_from_run:
             info = manifest["cameras"][cam]
             if abs(float(info["fps"]) - fps) > 1e-6:
-                raise SystemExit(f"{cam} fps {info['fps']} != {fps}")
+                raise SystemExit(f"{cam}: run fps {info['fps']} != video fps {fps}")
             frames = read_cache(Path(info["detection_cache"]["cache_file"]), n)
         else:
             frames = oracle_frames(gt, cam, n)
@@ -244,8 +266,8 @@ def main(argv: list[str] | None = None) -> int:
             CameraSource(
                 camera_id=cam,
                 fps=fps,
-                width=1920,
-                height=1080,
+                width=props[cam][1],
+                height=props[cam][2],
                 frames=frames,
                 gate_awake=awake,
                 projector=load_projector(args.scene_dir / "calibration.json", cam),

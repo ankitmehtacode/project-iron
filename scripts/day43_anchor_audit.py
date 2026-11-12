@@ -44,7 +44,11 @@ from src.pipeline.frontier import CameraSource, evaluate_schedule  # noqa: E402
 from src.pipeline.truth import load_truth, person_truth  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
-from cascade_frontier import objects_by_class, oracle_frames  # noqa: E402
+from cascade_frontier import (  # noqa: E402
+    objects_by_class,
+    oracle_frames,
+    video_props,
+)
 
 CAMERAS = ("Camera_0000", "Camera_0001", "Camera_0002", "Camera_0003")
 
@@ -144,15 +148,19 @@ def event_audit(scene_dir: Path, zones_path: Path, n: int) -> dict[str, Any]:
     gt = load_truth(scene_dir / "ground_truth.json")
     zones = load_zone_config(zones_path)
     out: dict[str, Any] = {}
+    props = {c: video_props(scene_dir / "videos" / f"{c}.mp4") for c in CAMERAS}
     for mode in ("foot", "fallback"):
         totals = {"predicted": 0, "gt": 0, "matched": 0}
         anchors: dict[str, int] = {}
         for cam in CAMERAS:
+            fps, width, height = props[cam]
+            if int(round(n / fps * 30)) != n:
+                raise SystemExit(f"{cam}: {fps} fps; --seconds assumes 30")
             source = CameraSource(
                 camera_id=cam,
-                fps=30.0,
-                width=1920,
-                height=1080,
+                fps=fps,
+                width=width,
+                height=height,
                 frames=oracle_frames(gt, cam, n),
                 gate_awake=np.ones(n, dtype=bool),
                 projector=load_projector(scene_dir / "calibration.json", cam),

@@ -95,7 +95,10 @@ HEIGHT_PRIORS: dict[str, HeightPrior] = {
 ANCHORS = ("foot", "head", "foot_flagged", "foot_unchecked", "none")
 """``foot``: implied height in range. ``head``: fallback used.
 ``foot_flagged``: out of range, no usable fallback (cut-off head, or head ray
-misses the prior plane). ``foot_unchecked``: class has no prior.
+misses the prior plane). ``foot_unchecked``: the check did not run — the
+class has no prior, or there was no full camera to run it with
+(``src.pipeline.run.estimate_tracks`` without ``anchor_camera``, and runs
+written before Day 43).
 ``none``: neither ray meets its plane in front of the camera."""
 
 

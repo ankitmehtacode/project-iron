@@ -117,3 +117,18 @@ def test_decision_rule_picks_fewest_overlapping_else_stride_6() -> None:
     assert decide(result)["chosen"] == "adaptive"
     none_pass = {"gate_off": _block(100, 0.9, 1.0), "stride_15": _block(8, 0.5, 0.7)}
     assert decide(none_pass)["chosen"] == "stride_6"
+
+
+def test_keepalive_reads_live_tracks_before_the_frame_and_steps_only_on_runs() -> None:
+    # detect_camera's order: gate decides, then a live track (as it stood
+    # BEFORE this frame) keeps the detector awake, and the shadow tracker
+    # steps only on frames the detector ran on. A person at frame 45, while
+    # the gate sleeps and no track lives, is therefore never seen; any
+    # ordering that stepped the tracker on non-run frames would see it and
+    # keep running after it.
+    frames = [person()] * 3 + [EMPTY] * 42 + [person()] + [EMPTY] * 30
+    gate = np.zeros(len(frames), dtype=bool)
+    gate[[0, 1, 2, 60, 61, 62]] = True
+    runs = schedule("gate_keepalive", frames, gate, "person").tolist()
+    # Track born at 0, matched at 1-2, ends after 30 missed runs (3..32).
+    assert runs == list(range(33)) + [60, 61, 62]

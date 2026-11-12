@@ -2,12 +2,12 @@
   "artifacts/day43/frontier_w022_oracle.json": {
     "tolerance_s": 2.0,
     "counts": {
-      "shifted": 6,
+      "elsewhere_in_time": 6,
       "taken": 0,
       "lost_identity": 6,
       "lost_absent": 16
     },
-    "shift_gaps_s": [
+    "elsewhere_gaps_s": [
       4.066666667,
       4.433333333,
       5.033333333,
@@ -78,7 +78,7 @@
         "verb": "dwelled",
         "zone": "aisle_west",
         "gt_ts_s": 30.333333333,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 17.166666667
       },
       {
@@ -87,7 +87,7 @@
         "verb": "dwelled",
         "zone": "junction",
         "gt_ts_s": 5.0,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 11.0
       },
       {
@@ -132,7 +132,7 @@
         "verb": "dwelled",
         "zone": "junction",
         "gt_ts_s": 6.433333333,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 4.066666667
       },
       {
@@ -141,7 +141,7 @@
         "verb": "dwelled",
         "zone": "junction",
         "gt_ts_s": 37.066666667,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 4.433333333
       },
       {
@@ -195,7 +195,7 @@
         "verb": "entered",
         "zone": "corridor_north",
         "gt_ts_s": 18.466666667,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 31.533333333
       },
       {
@@ -204,7 +204,7 @@
         "verb": "dwelled",
         "zone": "corridor_north",
         "gt_ts_s": 23.466666667,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 5.033333333
       },
       {
@@ -275,12 +275,12 @@
   "artifacts/day43/frontier_020_oracle.json": {
     "tolerance_s": 2.0,
     "counts": {
-      "shifted": 6,
+      "elsewhere_in_time": 6,
       "taken": 0,
       "lost_identity": 1,
       "lost_absent": 13
     },
-    "shift_gaps_s": [
+    "elsewhere_gaps_s": [
       2.733333333,
       3.5,
       4.1,
@@ -315,7 +315,7 @@
         "verb": "dwelled",
         "zone": "cell_0",
         "gt_ts_s": 18.266666667,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 2.733333333
       },
       {
@@ -324,7 +324,7 @@
         "verb": "dwelled",
         "zone": "cell_0",
         "gt_ts_s": 18.4,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 26.6
       },
       {
@@ -333,7 +333,7 @@
         "verb": "dwelled",
         "zone": "cell_0",
         "gt_ts_s": 41.5,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 3.5
       },
       {
@@ -342,7 +342,7 @@
         "verb": "dwelled",
         "zone": "cell_0",
         "gt_ts_s": 32.9,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 4.1
       },
       {
@@ -432,7 +432,7 @@
         "verb": "exited",
         "zone": "cell_2",
         "gt_ts_s": 52.766666667,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 46.266666667
       },
       {
@@ -441,7 +441,7 @@
         "verb": "entered",
         "zone": "cell_2",
         "gt_ts_s": 33.566666667,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 5.433333333
       },
       {
@@ -476,12 +476,12 @@
   "artifacts/day43/frontier_000_oracle.json": {
     "tolerance_s": 2.0,
     "counts": {
-      "shifted": 6,
+      "elsewhere_in_time": 6,
       "taken": 0,
       "lost_identity": 0,
       "lost_absent": 15
     },
-    "shift_gaps_s": [
+    "elsewhere_gaps_s": [
       2.966666667,
       3.733333333,
       10.7,
@@ -525,7 +525,7 @@
         "verb": "dwelled",
         "zone": "cell_0",
         "gt_ts_s": 25.766666667,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 3.733333333
       },
       {
@@ -552,7 +552,7 @@
         "verb": "entered",
         "zone": "cell_1",
         "gt_ts_s": 47.3,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 10.7
       },
       {
@@ -579,7 +579,7 @@
         "verb": "dwelled",
         "zone": "cell_0",
         "gt_ts_s": 5.0,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 33.0
       },
       {
@@ -588,7 +588,7 @@
         "verb": "exited",
         "zone": "cell_0",
         "gt_ts_s": 46.533333333,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 34.533333333
       },
       {
@@ -633,7 +633,7 @@
         "verb": "dwelled",
         "zone": "cell_1",
         "gt_ts_s": 5.0,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 51.5
       },
       {
@@ -651,7 +651,7 @@
         "verb": "dwelled",
         "zone": "cell_1",
         "gt_ts_s": 38.533333333,
-        "kind": "shifted",
+        "kind": "elsewhere_in_time",
         "nearest_same_event_gap_s": 2.966666667
       },
       {

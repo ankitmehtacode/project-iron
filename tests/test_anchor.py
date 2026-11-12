@@ -146,7 +146,7 @@ def test_estimate_tracks_records_the_anchor_without_moving_foot_points() -> None
     new, _ = estimate_tracks(
         items, projector, 30.0, geometry, "t", anchor_camera=cam, label="person"
     )
-    assert [p.anchor for p in old] == ["foot"] * 10
+    assert [p.anchor for p in old] == ["foot_unchecked"] * 10
     assert [p.anchor for p in new] == ["foot"] * 5 + ["foot_flagged"] + ["foot"] * 4
     np.testing.assert_allclose(
         [p.raw_xy for p in new], [p.raw_xy for p in old], atol=1e-9

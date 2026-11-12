@@ -15,8 +15,11 @@ writes one markdown file. Nothing is recomputed except pairing:
 
 Stride-15 audit: every GT event gate-off matched and stride 15 did not is
 classified as
-  * shifted: stride 15 predicted an event of the same verb, zone and
-    attributed GT subject, but more than the tolerance away in time;
+  * elsewhere_in_time: stride 15 predicted an event of the same verb, zone
+    and attributed GT subject, but only more than the tolerance away. The
+    gap is reported; a gap of many seconds is most likely the same person's
+    different visit, not a late copy of this event, so this bucket is NOT
+    "the event fired late";
   * taken: such an event exists within tolerance but the greedy one-to-one
     matching gave it to another GT event;
   * lost, identity: no such event for that subject, but stride 15 did
@@ -91,7 +94,12 @@ def paired(result: dict[str, Any], name: str) -> dict[str, Any]:
 
 def stride15_audit(result: dict[str, Any]) -> dict[str, Any]:
     tol = int(EVENT_TOLERANCE_S * 1e9)
-    counts = {"shifted": 0, "taken": 0, "lost_identity": 0, "lost_absent": 0}
+    counts = {
+        "elsewhere_in_time": 0,
+        "taken": 0,
+        "lost_identity": 0,
+        "lost_absent": 0,
+    }
     shifts_s: list[float] = []
     matched_shift_s: list[float] = []
     rows = []
@@ -119,7 +127,7 @@ def stride15_audit(result: dict[str, Any]) -> dict[str, Any]:
             elif min(gaps) <= tol:
                 kind = "taken"
             else:
-                kind = "shifted"
+                kind = "elsewhere_in_time"
                 shifts_s.append(min(gaps) / 1e9)
             counts[kind] += 1
             rows.append(
@@ -136,7 +144,7 @@ def stride15_audit(result: dict[str, Any]) -> dict[str, Any]:
     return {
         "tolerance_s": EVENT_TOLERANCE_S,
         "counts": counts,
-        "shift_gaps_s": sorted(shifts_s),
+        "elsewhere_gaps_s": sorted(shifts_s),
         "matched_signed_shift_s_p50": (
             float(np.median(matched_shift_s)) if matched_shift_s else None
         ),
@@ -229,9 +237,11 @@ def main(argv: list[str] | None = None) -> int:
                 f"did not: lost {c['lost_identity'] + c['lost_absent']} "
                 f"({c['lost_identity']} fired within tolerance on a track "
                 f"attributed to another GT subject or none, "
-                f"{c['lost_absent']} with no such event at all), shifted beyond "
-                f"{a['tolerance_s']} s {a['counts']['shifted']} (gaps s: "
-                f"{', '.join(f'{g:.2f}' for g in a['shift_gaps_s']) or 'none'}), "
+                f"{c['lost_absent']} with no such event at all); "
+                f"{c['elsewhere_in_time']} with the same person, zone and verb "
+                f"only more than {a['tolerance_s']} s away (gaps s: "
+                f"{', '.join(f'{g:.2f}' for g in a['elsewhere_gaps_s']) or 'none'}; "
+                "a different visit is the likelier reading than a late event); "
                 f"taken by another GT event {a['counts']['taken']}. Matched events: "
                 f"signed time shift p50 {f3(a['matched_signed_shift_s_p50'])} s, "
                 f"|shift| p90 {f3(a['matched_abs_shift_s_p90'])} s.",
