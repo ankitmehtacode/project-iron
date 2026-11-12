@@ -17,8 +17,13 @@ person standing still absorbs into the background model and the gate sleeps;
 treating that as "detector saw nothing" would end every stationary track and
 fire a false ``exited``.
 
-``use_kalman=False, second_stage=False`` is the IoU-only baseline the ID
-switch number is reported against: last box as the prediction, one stage.
+``use_kalman=False, second_stage=False`` is the IoU-only tracker: last box
+as the prediction, one stage. It is the PRODUCT tracker from Day 44
+(:data:`PRODUCT_TRACKER`): on RT-DETRv2-S detections at every frame it made
+93 ID switches where the two-stage Kalman tracker made 453 (Warehouse_022,
+Day 43). The Kalman tracker stays available as :data:`KALMAN_TWO_STAGE`
+(``python -m iron run --tracker kalman``); evaluation keeps reporting the
+IoU-only tracker as the baseline, so a Kalman run is still scored against it.
 
 Tracks with fewer than ``min_hits`` associated detections are dropped at
 :meth:`finish` (a batch run: the whole video is seen before output).
@@ -66,6 +71,11 @@ class TrackerConfig:
 
 
 IOU_ONLY = TrackerConfig(use_kalman=False, second_stage=False)
+KALMAN_TWO_STAGE = TrackerConfig()
+"""The Day-43 product tracker, kept behind ``--tracker kalman``."""
+PRODUCT_TRACKER = IOU_ONLY
+"""What a run uses unless told otherwise (Day 44)."""
+TRACKERS = {"iou": IOU_ONLY, "kalman": KALMAN_TWO_STAGE}
 
 
 @dataclass(frozen=True)

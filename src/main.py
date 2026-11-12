@@ -54,6 +54,7 @@ def _camera_input(video: Path, calibration: Path, camera_id: str) -> Any:
 def _cmd_run(args: argparse.Namespace) -> int:
     from src.pipeline.events import load_zone_config
     from src.pipeline.run import CameraInput, DirtyTreeError, run
+    from src.pipeline.tracker import TRACKERS
 
     if args.camera and len(args.video) != 1:
         print("--camera names the camera of a single --video", file=sys.stderr)
@@ -101,6 +102,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
             extra_manifest={"zones_file": str(args.zones)},
             gate_mode=args.gate,
             allow_dirty=args.allow_dirty,
+            tracker_config=TRACKERS[args.tracker],
         )
     except DirtyTreeError as exc:
         print(exc, file=sys.stderr)
@@ -202,6 +204,15 @@ def main(argv: list[str] | None = None) -> int:
         help=(
             "off = every frame (the gate-cost reference); keepalive = the "
             "gate plus every frame on which a track is alive"
+        ),
+    )
+    p_run.add_argument(
+        "--tracker",
+        choices=("iou", "kalman"),
+        default="iou",
+        help=(
+            "iou = the IoU-only tracker (the product default from Day 44); "
+            "kalman = the two-stage Kalman tracker it replaced"
         ),
     )
     p_run.add_argument(

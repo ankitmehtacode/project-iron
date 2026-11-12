@@ -32,6 +32,7 @@ Usage::
 from __future__ import annotations
 
 import argparse
+import dataclasses
 import json
 import sys
 import time
@@ -58,6 +59,7 @@ from src.pipeline.frontier import (  # noqa: E402
     write_json,
 )
 from src.pipeline.run import Detections, frame_ts_ns  # noqa: E402
+from src.pipeline.tracker import TRACKERS  # noqa: E402
 from src.pipeline.truth import load_truth, oracle_boxes, person_truth  # noqa: E402
 
 PERSON_LABEL = {"oracle": "Person", "pretrained": "person"}
@@ -220,6 +222,12 @@ def main(argv: list[str] | None = None) -> int:
     z.add_argument("--zones", type=Path)
     z.add_argument("--auto-zones", type=Path)
     p.add_argument("--out", type=Path, required=True)
+    p.add_argument(
+        "--tracker",
+        choices=sorted(TRACKERS),
+        default="iou",
+        help="tracker scored and read by the shadow schedules (default: product)",
+    )
     args = p.parse_args(argv)
 
     started = time.perf_counter()
@@ -276,6 +284,7 @@ def main(argv: list[str] | None = None) -> int:
             )
         )
         print(f"{cam}: {n} frames loaded, gate awake {int(awake.sum())}", flush=True)
+    tracker = TRACKERS[args.tracker]
     result = frontier(
         sources,
         label,
@@ -283,8 +292,10 @@ def main(argv: list[str] | None = None) -> int:
         args.detector,
         CANDIDATES,
         progress=lambda m: print(m, flush=True),
+        tracker_config=tracker,
     )
     payload = {
+        "tracker": {"name": args.tracker, **dataclasses.asdict(tracker)},
         "label": (
             "lane S synthetic (NVIDIA PhysicalAI-SmartSpaces), calibration "
             "given; not evidence about real cameras"

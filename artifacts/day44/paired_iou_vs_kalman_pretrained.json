@@ -1,0 +1,79 @@
+{
+  "adaptive": {
+    "iou_matched": 56,
+    "kalman_matched": 59,
+    "gt": 78,
+    "delta_recall_iou_minus_kalman": -0.038461538461538464,
+    "ci95": [
+      -0.14584603658536585,
+      0.10941840277777753
+    ],
+    "person_clusters": 12
+  },
+  "gate_default": {
+    "iou_matched": 36,
+    "kalman_matched": 42,
+    "gt": 78,
+    "delta_recall_iou_minus_kalman": -0.07692307692307693,
+    "ci95": [
+      -0.1466764705882353,
+      -0.02564102564102564
+    ],
+    "person_clusters": 12
+  },
+  "gate_keepalive": {
+    "iou_matched": 53,
+    "kalman_matched": 59,
+    "gt": 78,
+    "delta_recall_iou_minus_kalman": -0.07692307692307693,
+    "ci95": [
+      -0.1724512743628186,
+      0.0
+    ],
+    "person_clusters": 12
+  },
+  "gate_off": {
+    "iou_matched": 58,
+    "kalman_matched": 65,
+    "gt": 78,
+    "delta_recall_iou_minus_kalman": -0.08974358974358974,
+    "ci95": [
+      -0.1851984126984127,
+      -0.010309278350515464
+    ],
+    "person_clusters": 12
+  },
+  "motion_adaptive": {
+    "iou_matched": 32,
+    "kalman_matched": 35,
+    "gt": 78,
+    "delta_recall_iou_minus_kalman": -0.038461538461538464,
+    "ci95": [
+      -0.10417444029850746,
+      0.01980693069306928
+    ],
+    "person_clusters": 12
+  },
+  "stride_15": {
+    "iou_matched": 40,
+    "kalman_matched": 46,
+    "gt": 78,
+    "delta_recall_iou_minus_kalman": -0.07692307692307693,
+    "ci95": [
+      -0.2,
+      0.038854176679803794
+    ],
+    "person_clusters": 12
+  },
+  "stride_6": {
+    "iou_matched": 55,
+    "kalman_matched": 60,
+    "gt": 78,
+    "delta_recall_iou_minus_kalman": -0.0641025641025641,
+    "ci95": [
+      -0.15386363636363637,
+      0.0635441061670567
+    ],
+    "person_clusters": 12
+  }
+}

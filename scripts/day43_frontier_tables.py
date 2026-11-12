@@ -58,8 +58,9 @@ def matched_gt(log: dict[str, Any]) -> set[int]:
 
 def paired(result: dict[str, Any], name: str) -> dict[str, Any]:
     """Gained/lost GT events vs gate-off and a paired bootstrap of the
-    recall difference over GT person tracks (camera, subject)."""
-    units: dict[tuple[str, str], list[int]] = {}
+    recall difference clustered by GT person (scene-wide subject id, summed
+    across cameras; Day 44, was per camera)."""
+    units: dict[str, list[int]] = {}
     gained = lost = 0
     for cam, block in result[name]["cameras"].items():
         log, ref = block["event_log"], result[REF]["cameras"][cam]["event_log"]
@@ -69,7 +70,7 @@ def paired(result: dict[str, Any], name: str) -> dict[str, Any]:
         gained += len(mine - theirs)
         lost += len(theirs - mine)
         for j, (subject, *_rest) in enumerate(log["gt"]):
-            u = units.setdefault((cam, subject), [0, 0, 0])
+            u = units.setdefault(subject, [0, 0, 0])
             u[0] += 1
             u[1] += j in mine
             u[2] += j in theirs

@@ -19,8 +19,9 @@ Candidates, fixed before any number was computed:
 - ``motion_adaptive``: ``adaptive``'s cadence, but only on frames the motion
   gate is awake (no motion, no run).
 
-The shadow tracker is ``Tracker(TrackerConfig())`` stepped on the tracked
-class of each run, as in ``detect_camera``. Nothing here is tuned: strides
+The shadow tracker is the scored tracker (default the product tracker,
+IoU-only from Day 44) stepped on the tracked class of each run, as in
+``detect_camera``. Nothing here is tuned: strides
 are the ones named in the Day-43 instruction and every threshold is the
 pipeline's stated default.
 
@@ -29,10 +30,11 @@ functions (``src.pipeline.evaluate``): event precision/recall (estimator),
 ID switches for the pipeline tracker and the IoU-only baseline, position
 RMSE by distance bucket, and invocations per camera-minute (a count). Event
 recall/precision and ID switches carry a 95% percentile bootstrap interval
-over *units*: one unit per GT person track (camera, object id), carrying its
-GT events, the matched events and the predicted events attributed to it,
-plus one unit per predicted track that matched no GT person (its events are
-false positives that belong to no GT track). Per-class coverage: the share
+over *clusters*: one per GT person (scene-wide object id, its per-camera
+GT events, matched events and attributed predicted events summed across
+cameras; Day 43 resampled per camera, which counted one person up to four
+times), plus one per predicted track that matched no GT person (its events
+are false positives that belong to no GT person). Per-class coverage: the share
 of GT objects (any class, per camera) on which the schedule ran the detector
 at least ``min_hits`` times while the object was visible, with a Wilson
 interval; it depends only on the schedule and the GT, not on the detector's
@@ -67,7 +69,7 @@ from src.pipeline.anchor import Camera
 from src.pipeline.events import ZoneConfig, compile_trajectory
 from src.pipeline.floor import FloorProjector
 from src.pipeline.run import Detections, estimate_tracks, track_camera, trajectories
-from src.pipeline.tracker import IOU_ONLY, Tracker, TrackerConfig
+from src.pipeline.tracker import IOU_ONLY, PRODUCT_TRACKER, Tracker, TrackerConfig
 from src.pipeline.truth import CameraTruth
 
 FloatArray = npt.NDArray[np.float64]
@@ -139,7 +141,7 @@ def schedule(
         return np.arange(0, n, k, dtype=np.int64)
     if name not in ("gate_keepalive", "adaptive", "motion_adaptive"):
         raise ValueError(f"unknown candidate {name!r}; known: {CANDIDATES}")
-    shadow = Tracker(tracker_config)
+    shadow = Tracker(tracker_config or PRODUCT_TRACKER)
     runs: list[int] = []
     last: int | None = None
     for f in range(n):
@@ -205,8 +207,13 @@ def _switches_by_gt(
 
 @dataclass
 class Unit:
-    """One bootstrap unit: a GT person track, or an unmatched predicted track."""
+    """One bootstrap unit before clustering: a GT person on one camera, or a
+    predicted track that matched no GT person. ``key`` is the cluster: the GT
+    person's scene-wide object id (the same on every camera), or the track
+    itself. Units sharing a key are summed before resampling (Day 44): four
+    cameras watching one person are one draw, not four."""
 
+    key: str = ""
     gt_events: int = 0
     matched: int = 0
     predicted: int = 0
@@ -244,7 +251,7 @@ def evaluate_schedule(
     anchor_camera: Camera | None = None,
     anchor_mode: str = "foot",
 ) -> CameraResult:
-    tracker_config = tracker_config or TrackerConfig()
+    tracker_config = tracker_config or PRODUCT_TRACKER
     dets = detections_for(source, run_frames, backend)
     assignments = track_camera(dets, person_label, tracker_config)
     points, _ = estimate_tracks(
@@ -297,7 +304,7 @@ def evaluate_schedule(
     pairs = match_event_pairs(predicted, gt_events, subject_of)
 
     units: dict[str, Unit] = {
-        f"gt/{int(g)}": Unit() for g in np.unique(truth.object_id)
+        f"gt/{int(g)}": Unit(key=f"gt/{int(g)}") for g in np.unique(truth.object_id)
     }
     for g in gt_events:
         units[g.subject_id].gt_events += 1
@@ -306,7 +313,8 @@ def evaluate_schedule(
     for p in predicted:
         owner = subject_of.get(p.subject_id)
         if owner is None:
-            units.setdefault(f"pred/{p.subject_id}", Unit()).predicted += 1
+            pred_key = f"pred/{p.subject_id}"
+            units.setdefault(pred_key, Unit(key=pred_key)).predicted += 1
         else:
             units[owner].predicted += 1
     for gid, k in _switches_by_gt(truth, matches).items():
@@ -356,6 +364,19 @@ def evaluate_schedule(
 
 def _ratio(num: float, den: float) -> float | None:
     return num / den if den else None
+
+
+def cluster(units: Sequence[Unit]) -> list[Unit]:
+    """Sum units that share a key (one GT person across cameras)."""
+    merged: dict[str, Unit] = {}
+    for u in units:
+        m = merged.setdefault(u.key, Unit(key=u.key))
+        m.gt_events += u.gt_events
+        m.matched += u.matched
+        m.predicted += u.predicted
+        m.switches += u.switches
+        m.switches_baseline += u.switches_baseline
+    return list(merged.values())
 
 
 def bootstrap(
@@ -417,7 +438,7 @@ def summarise(results: Sequence[CameraResult]) -> dict[str, Any]:
             counts = cov.setdefault(cls, [0, 0])
             counts[0] += total
             counts[1] += hit
-    units = [u for r in results for u in r.units]
+    units = cluster([u for r in results for u in r.units])
     return {
         "invocations": inv,
         "camera_minutes": minutes,
@@ -445,6 +466,10 @@ def summarise(results: Sequence[CameraResult]) -> dict[str, Any]:
         },
         "bootstrap95_over_gt_tracks": bootstrap(units),
         "bootstrap_units": len(units),
+        "bootstrap_cluster": (
+            "GT person by scene-wide object id, summed across cameras (Day 44); "
+            "an unmatched predicted track is its own cluster"
+        ),
     }
 
 
@@ -455,14 +480,18 @@ def frontier(
     backend: str,
     candidates: Sequence[str] = CANDIDATES,
     progress: Callable[[str], None] = print,
+    tracker_config: TrackerConfig | None = None,
 ) -> dict[str, Any]:
+    """``tracker_config`` is the tracker scored AND the shadow tracker the
+    keep-alive and adaptive schedules read (default: the product tracker)."""
+    tracker_config = tracker_config or PRODUCT_TRACKER
     out: dict[str, Any] = {}
     for name in candidates:
         per_camera: dict[str, Any] = {}
         results = []
         for s in sources:
-            runs = schedule(name, s.frames, s.gate_awake, person_label)
-            r = evaluate_schedule(s, runs, person_label, zones, backend)
+            runs = schedule(name, s.frames, s.gate_awake, person_label, tracker_config)
+            r = evaluate_schedule(s, runs, person_label, zones, backend, tracker_config)
             results.append(r)
             per_camera[s.camera_id] = {**summarise([r]), "event_log": r.event_log}
         out[name] = {"pooled": summarise(results), "cameras": per_camera}

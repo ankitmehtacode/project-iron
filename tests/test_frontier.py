@@ -132,3 +132,31 @@ def test_keepalive_reads_live_tracks_before_the_frame_and_steps_only_on_runs() -
     runs = schedule("gate_keepalive", frames, gate, "person").tolist()
     # Track born at 0, matched at 1-2, ends after 30 missed runs (3..32).
     assert runs == list(range(33)) + [60, 61, 62]
+
+
+def test_bootstrap_clusters_one_person_across_cameras() -> None:
+    from src.pipeline.frontier import cluster
+
+    units = [
+        Unit(key="gt/7", gt_events=2, matched=1, predicted=1),
+        Unit(key="gt/7", gt_events=1, matched=1, predicted=2),
+        Unit(key="pred/Camera_0000/t3", predicted=1),
+    ]
+    merged = {u.key: u for u in cluster(units)}
+    assert set(merged) == {"gt/7", "pred/Camera_0000/t3"}
+    assert (merged["gt/7"].gt_events, merged["gt/7"].matched) == (3, 2)
+    assert merged["gt/7"].predicted == 3
+
+
+def test_the_product_tracker_is_iou_only_and_kalman_is_behind_a_flag() -> None:
+    from src.pipeline.tracker import (
+        IOU_ONLY,
+        KALMAN_TWO_STAGE,
+        PRODUCT_TRACKER,
+        TRACKERS,
+    )
+
+    assert PRODUCT_TRACKER == IOU_ONLY
+    assert not PRODUCT_TRACKER.use_kalman and not PRODUCT_TRACKER.second_stage
+    assert TRACKERS == {"iou": IOU_ONLY, "kalman": KALMAN_TWO_STAGE}
+    assert KALMAN_TWO_STAGE.use_kalman and KALMAN_TWO_STAGE.second_stage

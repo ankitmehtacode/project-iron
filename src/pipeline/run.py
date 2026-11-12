@@ -71,7 +71,7 @@ from src.model.uncertainty import Uncertainty
 from src.pipeline.detcache import CacheKey, DetectionCache, FrameRecord
 from src.pipeline.events import Trajectory, ZoneConfig, compile_events
 from src.pipeline.floor import FloorProjector
-from src.pipeline.tracker import Assignment, Tracker, TrackerConfig
+from src.pipeline.tracker import PRODUCT_TRACKER, Assignment, Tracker, TrackerConfig
 
 FloatArray = npt.NDArray[np.float64]
 
@@ -645,7 +645,7 @@ def run(
             IronConfig.load().paths.resolved_data_dir / "derived" / "detections"
         )
     out_dir.mkdir(parents=True, exist_ok=True)
-    tracker_config = tracker_config or TrackerConfig()
+    tracker_config = tracker_config or PRODUCT_TRACKER
     video_shas = {c.camera_id: _sha256_file(c.video) for c in cameras}
     gate_identity: Any = (
         "off"
