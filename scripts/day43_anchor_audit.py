@@ -102,13 +102,13 @@ def position_audit(scene_dir: Path, n: int) -> dict[str, Any]:
             err = np.full(len(boxes), np.nan)
             err[ok] = np.linalg.norm(a.xy[ok] - floor[ok], axis=1)
             cov = np.zeros(len(boxes), dtype=bool)
-            cov[ok] = covered95(a.xy[ok] - floor[ok], a.cov[ok])
+            cov[ok] = covered95(a.xy[ok] - floor[ok], a.ray_cov[ok])
             ll = np.full(len(boxes), np.nan)
             e = a.xy[ok] - floor[ok]
-            inv = np.linalg.inv(a.cov[ok])
+            inv = np.linalg.inv(a.ray_cov[ok])
             ll[ok] = (
                 -np.log(2 * np.pi)
-                - 0.5 * np.log(np.linalg.det(a.cov[ok]))
+                - 0.5 * np.log(np.linalg.det(a.ray_cov[ok]))
                 - 0.5 * np.einsum("ni,nij,nj->n", e, inv, e)
             )
             slot = rows.setdefault(

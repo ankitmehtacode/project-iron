@@ -1,0 +1,143 @@
+{
+  "label": "lane S synthetic; oracle person boxes; fallback anchor",
+  "train_scenes": [
+    "Warehouse_000",
+    "Warehouse_002",
+    "Warehouse_004",
+    "Warehouse_006"
+  ],
+  "heldout_scenes": [
+    "Warehouse_020",
+    "Warehouse_022"
+  ],
+  "frames_per_camera": 1800,
+  "coefficients_log_sigma": {
+    "intercept": -2.89115133841005,
+    "log_range": 0.5838951936426359,
+    "log_width": 0.6277398266963512,
+    "width_missing": 0.8347523765964813,
+    "anchor_head": 1.0821408792778158,
+    "anchor_foot_flagged": 0.0
+  },
+  "train_rows_by_anchor": {
+    "foot": 147262,
+    "head": 70159
+  },
+  "unidentified": [
+    "anchor_foot_flagged"
+  ],
+  "unidentified_note": "a level with no training rows keeps its starting coefficient 0: it is NOT fitted, and such detections get the foot-level sigma",
+  "constant_sigma_m": 7.218589553655194,
+  "width_fill_m": 10.668501691278713,
+  "train": {
+    "n": 217421,
+    "persons": 159,
+    "mean_loglik_fitted": -5.0342231166800575,
+    "mean_loglik_constant": -6.7911962286925025,
+    "mean_loglik_analytic_ellipse": -59.91645955361983,
+    "margin_over_constant_fitted": {
+      "nats": 1.7569731120124457,
+      "ci95_by_person": [
+        1.323247393984358,
+        2.369692455422461
+      ]
+    },
+    "margin_over_constant_analytic_ellipse": {
+      "nats": -53.12526332492733,
+      "ci95_by_person": [
+        -86.1703383733613,
+        -28.646297642020503
+      ]
+    },
+    "coverage68_fitted": 0.803836795893681,
+    "coverage68_constant": 0.8409445269776149,
+    "coverage68_analytic_ellipse": 0.36494174895709247,
+    "coverage95_fitted": 0.884928318791653,
+    "coverage95_constant": 0.9274449110251539,
+    "coverage95_analytic_ellipse": 0.5403341903495983
+  },
+  "heldout": {
+    "Warehouse_020": {
+      "n": 58139,
+      "persons": 55,
+      "mean_loglik_fitted": -3.954061934631637,
+      "mean_loglik_constant": -5.994748218170482,
+      "mean_loglik_analytic_ellipse": -64.20212158430051,
+      "margin_over_constant_fitted": {
+        "nats": 2.0406862835388453,
+        "ci95_by_person": [
+          1.6226653850325008,
+          2.4911718543435732
+        ]
+      },
+      "margin_over_constant_analytic_ellipse": {
+        "nats": -58.20737336613002,
+        "ci95_by_person": [
+          -114.52352544140842,
+          -21.659544963798144
+        ]
+      },
+      "coverage68_fitted": 0.8513906327938217,
+      "coverage68_constant": 0.9535251724315864,
+      "coverage68_analytic_ellipse": 0.3258225975678976,
+      "coverage95_fitted": 0.9257297167133938,
+      "coverage95_constant": 0.9899895079034727,
+      "coverage95_analytic_ellipse": 0.5407901752696125
+    },
+    "Warehouse_022": {
+      "n": 20415,
+      "persons": 17,
+      "mean_loglik_fitted": -0.5893825810361285,
+      "mean_loglik_constant": -5.795817786809424,
+      "mean_loglik_analytic_ellipse": -12.417448378351867,
+      "margin_over_constant_fitted": {
+        "nats": 5.206435205773295,
+        "ci95_by_person": [
+          4.758814992828598,
+          5.51382903035542
+        ]
+      },
+      "margin_over_constant_analytic_ellipse": {
+        "nats": -6.621630591542445,
+        "ci95_by_person": [
+          -11.580381971721375,
+          -0.6310804326880847
+        ]
+      },
+      "coverage68_fitted": 0.9415135929463629,
+      "coverage68_constant": 1.0,
+      "coverage68_analytic_ellipse": 0.4131276022532452,
+      "coverage95_fitted": 0.988243938280676,
+      "coverage95_constant": 1.0,
+      "coverage95_analytic_ellipse": 0.5874112172422239
+    },
+    "pooled": {
+      "n": 78554,
+      "persons": 72,
+      "mean_loglik_fitted": -3.079632510240106,
+      "mean_loglik_constant": -5.943049198945032,
+      "mean_loglik_analytic_ellipse": -50.744065934690795,
+      "margin_over_constant_fitted": {
+        "nats": 2.863416688704926,
+        "ci95_by_person": [
+          2.3086075202130396,
+          3.3988165191936637
+        ]
+      },
+      "margin_over_constant_analytic_ellipse": {
+        "nats": -44.80101673574576,
+        "ci95_by_person": [
+          -88.03287156785422,
+          -16.92600990561434
+        ]
+      },
+      "coverage68_fitted": 0.8748122310767116,
+      "coverage68_constant": 0.9656032792728569,
+      "coverage68_analytic_ellipse": 0.34851185171983606,
+      "coverage95_fitted": 0.9419762201797489,
+      "coverage95_constant": 0.9925910838404155,
+      "coverage95_analytic_ellipse": 0.5529062810296103
+    }
+  },
+  "replaces_analytic_ellipse": true
+}

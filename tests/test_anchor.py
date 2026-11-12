@@ -199,3 +199,33 @@ def test_project_inverts_to_plane() -> None:
     back, ok = cam.to_plane(uv, p[:, 2])
     assert ok.all()
     np.testing.assert_allclose(back, p[:, :2], atol=1e-6)
+
+
+def test_fitted_error_model_constants_equal_the_artifact() -> None:
+    import json
+    from pathlib import Path
+
+    from src.pipeline.anchor import (
+        FITTED_ERROR_MODEL,
+        FITTED_ERROR_MODEL_WIDTH_FILL_M,
+    )
+
+    art = Path(__file__).resolve().parent.parent / "artifacts/day44/error_model.json"
+    d = json.loads(art.read_text())
+    fitted = {
+        k: v
+        for k, v in d["coefficients_log_sigma"].items()
+        if k not in d["unidentified"]
+    }
+    assert FITTED_ERROR_MODEL == fitted
+    assert FITTED_ERROR_MODEL_WIDTH_FILL_M == d["width_fill_m"]
+    assert d["replaces_analytic_ellipse"] is True
+
+
+def test_person_boxes_carry_the_fitted_sigma_and_others_the_ray_covariance() -> None:
+    cam = _camera()
+    boxes = np.stack([_box(cam, (12.0, 1.0), 1.7), _box(cam, (14.0, 0.0), 3.0)])
+    a = anchor_boxes(cam, boxes, ["Person", "Forklift"])
+    assert a.cov_source.tolist() == ["fitted_error_model_v1", "ray_geometry"]
+    assert a.cov[0, 0, 1] == 0.0 and a.cov[0, 0, 0] == a.cov[0, 1, 1] > 0
+    np.testing.assert_allclose(a.cov[1], a.ray_cov[1])

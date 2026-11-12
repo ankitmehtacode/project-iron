@@ -173,10 +173,17 @@ class Anchored:
     xy: FloatArray
     """``[N, 2]``; NaN where ``anchor == "none"``."""
     cov: FloatArray
-    """``[N, 2, 2]`` position covariance (m^2)."""
+    """``[N, 2, 2]`` position covariance (m^2): the fitted error model
+    (:data:`FITTED_ERROR_MODEL`) for person classes, else ``ray_cov``."""
     anchor: npt.NDArray[np.str_]
     implied_height_m: FloatArray
     """From the foot anchor; NaN when the foot ray misses the floor."""
+    ray_cov: FloatArray
+    """The analytic ray-geometry covariance (pixel noise + prior spread).
+    Kept for diagnosis: Day 43/44 measured it uninformative (worse than a
+    single fitted constant on held-out scenes, -44.8 nats per detection)."""
+    cov_source: npt.NDArray[np.str_]
+    """Per row: ``fitted_error_model_v1`` or ``ray_geometry``."""
 
 
 def implied_height(
@@ -248,7 +255,23 @@ def anchor_boxes(
         )
         anchor[idx] = "head"
     xy[anchor == "none"] = np.nan
-    return Anchored(xy=xy, cov=cov, anchor=anchor, implied_height_m=height)
+    ray_cov = cov.copy()
+    source = np.full(n, "ray_geometry", dtype="<U21")
+    person = np.isin(labels, list(FITTED_ERROR_MODEL_CLASSES)) & (anchor != "none")
+    if person.any():
+        ri = range_interval(camera, boxes[person], PERSON_MAX_HEIGHT_M)
+        rng = np.linalg.norm(xy[person] - camera.centre[:2], axis=1)
+        sigma = fitted_sigma_m(rng, ri.width_m, anchor[person])
+        cov[person] = np.eye(2)[None] * (sigma**2)[:, None, None]
+        source[person] = "fitted_error_model_v1"
+    return Anchored(
+        xy=xy,
+        cov=cov,
+        anchor=anchor,
+        implied_height_m=height,
+        ray_cov=ray_cov,
+        cov_source=source,
+    )
 
 
 CHI2_2DOF_95 = 5.991464547107979
@@ -317,3 +340,46 @@ def range_interval(
     r_foot = np.where(foot_ok, np.linalg.norm(foot_xy - c, axis=1), np.nan)
     r_head = np.where(head_ok, np.linalg.norm(head_xy - c, axis=1), np.nan)
     return RangeInterval(r_foot, r_head, foot_xy, head_xy, max_height_m)
+
+
+FITTED_ERROR_MODEL: dict[str, float] = {
+    "intercept": -2.89115133841005,
+    "log_range": 0.5838951936426359,
+    "log_width": 0.6277398266963512,
+    "width_missing": 0.8347523765964813,
+    "anchor_head": 1.0821408792778158,
+}
+"""Isotropic position error, log sigma (m) = intercept + log_range *
+log(estimated range) + log_width * log(interval width + 0.1) + width_missing
+* [no width] + anchor_head * [head anchor]. Fitted by maximum likelihood
+(scripts/day44_error_model.py) on oracle person boxes, fallback anchor,
+Warehouse_000/002/004/006 cams 0-3 x 60 s; held out on Warehouse_020/022 it
+beats a single fitted constant by +2.86 nats per detection [2.31, 3.40],
+95% region coverage 0.942 (artifacts/day44/error_model.json;
+tests/test_anchor.py checks these numbers equal the artifact's). NOT
+validated on detector boxes. ``foot_flagged`` had no training rows: it is
+not a term here and such detections get the foot-level sigma."""
+
+FITTED_ERROR_MODEL_WIDTH_FILL_M = 10.668501691278713
+"""Training median interval width, used where a box has no width."""
+
+FITTED_ERROR_MODEL_CLASSES = frozenset({"Person", "person"})
+
+
+def fitted_sigma_m(
+    range_m: FloatArray, width_m: FloatArray, anchor: npt.ArrayLike
+) -> FloatArray:
+    """Per-detection isotropic position sigma (m) from :data:`FITTED_ERROR_MODEL`."""
+    c = FITTED_ERROR_MODEL
+    w = np.asarray(width_m, dtype=np.float64).copy()
+    missing = ~np.isfinite(w) | (w < 0)
+    w[missing] = FITTED_ERROR_MODEL_WIDTH_FILL_M
+    log_sigma = (
+        c["intercept"]
+        + c["log_range"] * np.log(np.maximum(np.asarray(range_m, np.float64), 0.1))
+        + c["log_width"] * np.log(w + 0.1)
+        + c["width_missing"] * missing
+        + c["anchor_head"] * (np.asarray(anchor) == "head")
+    )
+    out: FloatArray = np.exp(log_sigma)
+    return out
