@@ -1,0 +1,660 @@
+{
+  "cameras": [
+    "Camera_0000",
+    "Camera_0001",
+    "Camera_0002",
+    "Camera_0003"
+  ],
+  "frames_per_camera": 1800,
+  "label": "lane S synthetic; oracle (ground-truth) boxes; not real cameras",
+  "pixel_sigma_px": 2.0,
+  "priors": {
+    "AgilityDigit": {
+      "mean_m": 1.75,
+      "range_m": [
+        1.6,
+        1.9
+      ],
+      "sd_m": 0.05,
+      "source": "Agility Robotics spec; spread ASSUMED"
+    },
+    "FourierGR1T2": {
+      "mean_m": 1.65,
+      "range_m": [
+        1.5,
+        1.8
+      ],
+      "sd_m": 0.05,
+      "source": "Fourier GR-1 spec; spread ASSUMED"
+    },
+    "Person": {
+      "mean_m": 1.716,
+      "range_m": [
+        1.352,
+        1.977
+      ],
+      "sd_m": 0.101,
+      "source": "NCD-RisC 2016 eLife 5:e13410; Jelenkovic 2016 via Our World in Data"
+    },
+    "person": {
+      "mean_m": 1.716,
+      "range_m": [
+        1.352,
+        1.977
+      ],
+      "sd_m": 0.101,
+      "source": "NCD-RisC 2016 eLife 5:e13410; Jelenkovic 2016 via Our World in Data"
+    }
+  },
+  "scenes": {
+    "Warehouse_000": {
+      "events": {
+        "fallback": {
+          "gt": 54,
+          "matched": 35,
+          "precision": 0.5147058823529411,
+          "predicted": 68,
+          "recall": 0.6481481481481481,
+          "track_point_anchors": {
+            "foot": 47959,
+            "head": 22047
+          }
+        },
+        "foot": {
+          "gt": 54,
+          "matched": 36,
+          "precision": 0.47368421052631576,
+          "predicted": 76,
+          "recall": 0.6666666666666666,
+          "track_point_anchors": {
+            "foot": 47959,
+            "foot_flagged": 22047
+          }
+        }
+      },
+      "position": {
+        "fallback": {
+          "Forklift": {
+            "all": {
+              "covered95": 0.3556087505818206,
+              "informativeness_nats": -57.94408428818291,
+              "mean_loglik_fitted_constant": -8.633553303505341,
+              "mean_loglik_stated": -66.57763759168824,
+              "median_m": 1.4650020534676391,
+              "n": 15039,
+              "p90_m": 44.846513613893876,
+              "p99_m": 68.12024754742305,
+              "share": 1.0
+            },
+            "foot_unchecked": {
+              "covered95": 0.3556087505818206,
+              "informativeness_nats": -57.94408428818291,
+              "mean_loglik_fitted_constant": -8.633553303505341,
+              "mean_loglik_stated": -66.57763759168824,
+              "median_m": 1.4650020534676391,
+              "n": 15039,
+              "p90_m": 44.846513613893876,
+              "p99_m": 68.12024754742305,
+              "share": 1.0
+            }
+          },
+          "PalletTruck": {
+            "all": {
+              "covered95": 0.19812704501861672,
+              "informativeness_nats": -86.23687891377534,
+              "mean_loglik_fitted_constant": -8.253928234051303,
+              "mean_loglik_stated": -94.49080714782664,
+              "median_m": 16.764737193593387,
+              "n": 8863,
+              "p90_m": 23.843166748136337,
+              "p99_m": 72.65336213529325,
+              "share": 1.0
+            },
+            "foot_unchecked": {
+              "covered95": 0.19812704501861672,
+              "informativeness_nats": -86.23687891377534,
+              "mean_loglik_fitted_constant": -8.253928234051303,
+              "mean_loglik_stated": -94.49080714782664,
+              "median_m": 16.764737193593387,
+              "n": 8863,
+              "p90_m": 23.843166748136337,
+              "p99_m": 72.65336213529325,
+              "share": 1.0
+            }
+          },
+          "Person": {
+            "all": {
+              "covered95": 0.5838494099712812,
+              "informativeness_nats": -10.241197487170886,
+              "mean_loglik_fitted_constant": -5.337222210642688,
+              "mean_loglik_stated": -15.578419697813574,
+              "median_m": 0.574662927107232,
+              "n": 73471,
+              "p90_m": 7.282004855514636,
+              "p99_m": 19.109738454775087,
+              "share": 1.0
+            },
+            "foot": {
+              "covered95": 0.6079015949129574,
+              "informativeness_nats": -9.18044971328939,
+              "mean_loglik_fitted_constant": -4.3792136230884395,
+              "mean_loglik_stated": -13.55966333637783,
+              "median_m": 0.22856016322834607,
+              "n": 47965,
+              "p90_m": 4.583311505940789,
+              "p99_m": 12.841655724729385,
+              "share": 0.652842618175879
+            },
+            "head": {
+              "covered95": 0.5386183643064377,
+              "informativeness_nats": -13.267873350589372,
+              "mean_loglik_fitted_constant": -6.1068942213034605,
+              "mean_loglik_stated": -19.374767571892832,
+              "median_m": 3.174005778861142,
+              "n": 25506,
+              "p90_m": 13.602780299583685,
+              "p99_m": 23.19946779517557,
+              "share": 0.3471573818241211
+            }
+          }
+        },
+        "foot": {
+          "Forklift": {
+            "all": {
+              "covered95": 0.3556087505818206,
+              "informativeness_nats": -57.94408428818291,
+              "mean_loglik_fitted_constant": -8.633553303505341,
+              "mean_loglik_stated": -66.57763759168824,
+              "median_m": 1.4650020534676391,
+              "n": 15039,
+              "p90_m": 44.846513613893876,
+              "p99_m": 68.12024754742305,
+              "share": 1.0
+            },
+            "foot_unchecked": {
+              "covered95": 0.3556087505818206,
+              "informativeness_nats": -57.94408428818291,
+              "mean_loglik_fitted_constant": -8.633553303505341,
+              "mean_loglik_stated": -66.57763759168824,
+              "median_m": 1.4650020534676391,
+              "n": 15039,
+              "p90_m": 44.846513613893876,
+              "p99_m": 68.12024754742305,
+              "share": 1.0
+            }
+          },
+          "PalletTruck": {
+            "all": {
+              "covered95": 0.19812704501861672,
+              "informativeness_nats": -86.23687891377534,
+              "mean_loglik_fitted_constant": -8.253928234051303,
+              "mean_loglik_stated": -94.49080714782664,
+              "median_m": 16.764737193593387,
+              "n": 8863,
+              "p90_m": 23.843166748136337,
+              "p99_m": 72.65336213529325,
+              "share": 1.0
+            },
+            "foot_unchecked": {
+              "covered95": 0.19812704501861672,
+              "informativeness_nats": -86.23687891377534,
+              "mean_loglik_fitted_constant": -8.253928234051303,
+              "mean_loglik_stated": -94.49080714782664,
+              "median_m": 16.764737193593387,
+              "n": 8863,
+              "p90_m": 23.843166748136337,
+              "p99_m": 72.65336213529325,
+              "share": 1.0
+            }
+          },
+          "Person": {
+            "all": {
+              "covered95": 0.4051938860230567,
+              "informativeness_nats": -126.40362822005741,
+              "mean_loglik_fitted_constant": -7.280238391447632,
+              "mean_loglik_stated": -133.68386661150504,
+              "median_m": 0.5677897681745592,
+              "n": 73471,
+              "p90_m": 23.85984947697438,
+              "p99_m": 44.987677337758484,
+              "share": 1.0
+            },
+            "foot": {
+              "covered95": 0.6079015949129574,
+              "informativeness_nats": -9.18044971328939,
+              "mean_loglik_fitted_constant": -4.3792136230884395,
+              "mean_loglik_stated": -13.55966333637783,
+              "median_m": 0.22856016322834607,
+              "n": 47965,
+              "p90_m": 4.583311505940789,
+              "p99_m": 12.841655724729385,
+              "share": 0.652842618175879
+            },
+            "foot_flagged": {
+              "covered95": 0.02399435426958363,
+              "informativeness_nats": -351.2803140504267,
+              "mean_loglik_fitted_constant": -8.301671046590677,
+              "mean_loglik_stated": -359.58198509701737,
+              "median_m": 16.855264941241245,
+              "n": 25506,
+              "p90_m": 34.93689630478971,
+              "p99_m": 49.67945082365006,
+              "share": 0.3471573818241211
+            }
+          }
+        }
+      },
+      "zones": "configs/zones/warehouse_000.yaml"
+    },
+    "Warehouse_020": {
+      "events": {
+        "fallback": {
+          "gt": 45,
+          "matched": 32,
+          "precision": 0.6666666666666666,
+          "predicted": 48,
+          "recall": 0.7111111111111111,
+          "track_point_anchors": {
+            "foot": 40213,
+            "head": 16737
+          }
+        },
+        "foot": {
+          "gt": 45,
+          "matched": 29,
+          "precision": 0.6904761904761905,
+          "predicted": 42,
+          "recall": 0.6444444444444445,
+          "track_point_anchors": {
+            "foot": 40213,
+            "foot_flagged": 16737
+          }
+        }
+      },
+      "position": {
+        "fallback": {
+          "Forklift": {
+            "all": {
+              "covered95": 0.2818708609271523,
+              "informativeness_nats": -227.8811004278164,
+              "mean_loglik_fitted_constant": -12.121997456150618,
+              "mean_loglik_stated": -240.003097883967,
+              "median_m": 1.5850403746761437,
+              "n": 19328,
+              "p90_m": 56.30539027173664,
+              "p99_m": 454.01068547490763,
+              "share": 1.0
+            },
+            "foot_unchecked": {
+              "covered95": 0.2818708609271523,
+              "informativeness_nats": -227.8811004278164,
+              "mean_loglik_fitted_constant": -12.121997456150618,
+              "mean_loglik_stated": -240.003097883967,
+              "median_m": 1.5850403746761437,
+              "n": 19328,
+              "p90_m": 56.30539027173664,
+              "p99_m": 454.01068547490763,
+              "share": 1.0
+            }
+          },
+          "PalletTruck": {
+            "all": {
+              "covered95": 0.5398776834747878,
+              "informativeness_nats": -9.137728660651774,
+              "mean_loglik_fitted_constant": -8.698440152951111,
+              "mean_loglik_stated": -17.836168813602885,
+              "median_m": 0.32040884251883717,
+              "n": 16024,
+              "p90_m": 67.09102434604885,
+              "p99_m": 104.63885674369166,
+              "share": 1.0
+            },
+            "foot_unchecked": {
+              "covered95": 0.5398776834747878,
+              "informativeness_nats": -9.137728660651774,
+              "mean_loglik_fitted_constant": -8.698440152951111,
+              "mean_loglik_stated": -17.836168813602885,
+              "median_m": 0.32040884251883717,
+              "n": 16024,
+              "p90_m": 67.09102434604885,
+              "p99_m": 104.63885674369166,
+              "share": 1.0
+            }
+          },
+          "Person": {
+            "all": {
+              "covered95": 0.5407901752696125,
+              "informativeness_nats": -59.002759185785806,
+              "mean_loglik_fitted_constant": -5.1993623985147055,
+              "mean_loglik_stated": -64.20212158430051,
+              "median_m": 0.38828713099596407,
+              "n": 58139,
+              "p90_m": 7.398495067323216,
+              "p99_m": 17.683104240246163,
+              "share": 1.0
+            },
+            "foot": {
+              "covered95": 0.5167586652742553,
+              "informativeness_nats": -56.8462098130131,
+              "mean_loglik_fitted_constant": -4.519657539049436,
+              "mean_loglik_stated": -61.36586735206253,
+              "median_m": 0.2135131422317318,
+              "n": 40218,
+              "p90_m": 4.182593916475846,
+              "p99_m": 12.150476511045373,
+              "share": 0.6917559641548702
+            },
+            "head": {
+              "covered95": 0.5947212767144691,
+              "informativeness_nats": -64.62261161058264,
+              "mean_loglik_fitted_constant": -5.944582944654052,
+              "mean_loglik_stated": -70.5671945552367,
+              "median_m": 3.8130099925958505,
+              "n": 17921,
+              "p90_m": 11.307502555930057,
+              "p99_m": 20.965404621427083,
+              "share": 0.30824403584512977
+            }
+          }
+        },
+        "foot": {
+          "Forklift": {
+            "all": {
+              "covered95": 0.2818708609271523,
+              "informativeness_nats": -227.8811004278164,
+              "mean_loglik_fitted_constant": -12.121997456150618,
+              "mean_loglik_stated": -240.003097883967,
+              "median_m": 1.5850403746761437,
+              "n": 19328,
+              "p90_m": 56.30539027173664,
+              "p99_m": 454.01068547490763,
+              "share": 1.0
+            },
+            "foot_unchecked": {
+              "covered95": 0.2818708609271523,
+              "informativeness_nats": -227.8811004278164,
+              "mean_loglik_fitted_constant": -12.121997456150618,
+              "mean_loglik_stated": -240.003097883967,
+              "median_m": 1.5850403746761437,
+              "n": 19328,
+              "p90_m": 56.30539027173664,
+              "p99_m": 454.01068547490763,
+              "share": 1.0
+            }
+          },
+          "PalletTruck": {
+            "all": {
+              "covered95": 0.5398776834747878,
+              "informativeness_nats": -9.137728660651774,
+              "mean_loglik_fitted_constant": -8.698440152951111,
+              "mean_loglik_stated": -17.836168813602885,
+              "median_m": 0.32040884251883717,
+              "n": 16024,
+              "p90_m": 67.09102434604885,
+              "p99_m": 104.63885674369166,
+              "share": 1.0
+            },
+            "foot_unchecked": {
+              "covered95": 0.5398776834747878,
+              "informativeness_nats": -9.137728660651774,
+              "mean_loglik_fitted_constant": -8.698440152951111,
+              "mean_loglik_stated": -17.836168813602885,
+              "median_m": 0.32040884251883717,
+              "n": 16024,
+              "p90_m": 67.09102434604885,
+              "p99_m": 104.63885674369166,
+              "share": 1.0
+            }
+          },
+          "Person": {
+            "all": {
+              "covered95": 0.3667589741825625,
+              "informativeness_nats": -170.9806253328451,
+              "mean_loglik_fitted_constant": -8.01628333207522,
+              "mean_loglik_stated": -178.99690866492034,
+              "median_m": 0.37090868684520256,
+              "n": 58139,
+              "p90_m": 27.990406761085087,
+              "p99_m": 97.13757168143475,
+              "share": 1.0
+            },
+            "foot": {
+              "covered95": 0.5167586652742553,
+              "informativeness_nats": -56.8462098130131,
+              "mean_loglik_fitted_constant": -4.519657539049436,
+              "mean_loglik_stated": -61.36586735206253,
+              "median_m": 0.2135131422317318,
+              "n": 40218,
+              "p90_m": 4.182593916475846,
+              "p99_m": 12.150476511045373,
+              "share": 0.6917559641548702
+            },
+            "foot_flagged": {
+              "covered95": 0.030132247084426092,
+              "informativeness_nats": -433.8105043773003,
+              "mean_loglik_fitted_constant": -9.17196421845619,
+              "mean_loglik_stated": -442.9824685957565,
+              "median_m": 19.15740458461212,
+              "n": 17921,
+              "p90_m": 48.96463326966607,
+              "p99_m": 108.79521042523572,
+              "share": 0.30824403584512977
+            }
+          }
+        }
+      },
+      "zones": "configs/zones/warehouse_020.yaml"
+    },
+    "Warehouse_022": {
+      "events": {
+        "fallback": {
+          "gt": 78,
+          "matched": 77,
+          "precision": 0.9390243902439024,
+          "predicted": 82,
+          "recall": 0.9871794871794872,
+          "track_point_anchors": {
+            "foot": 18294,
+            "foot_flagged": 558,
+            "head": 1468
+          }
+        },
+        "foot": {
+          "gt": 78,
+          "matched": 76,
+          "precision": 0.9620253164556962,
+          "predicted": 79,
+          "recall": 0.9743589743589743,
+          "track_point_anchors": {
+            "foot": 18294,
+            "foot_flagged": 2026
+          }
+        }
+      },
+      "position": {
+        "fallback": {
+          "NovaCarter": {
+            "all": {
+              "covered95": 0.15450643776824036,
+              "informativeness_nats": -11.944275712347478,
+              "mean_loglik_fitted_constant": 0.057566207885756566,
+              "mean_loglik_stated": -11.886709504461722,
+              "median_m": 0.26275002659585084,
+              "n": 466,
+              "p90_m": 0.44885843476713627,
+              "p99_m": 0.9096542720289513,
+              "share": 1.0
+            },
+            "foot_unchecked": {
+              "covered95": 0.15450643776824036,
+              "informativeness_nats": -11.944275712347478,
+              "mean_loglik_fitted_constant": 0.057566207885756566,
+              "mean_loglik_stated": -11.886709504461722,
+              "median_m": 0.26275002659585084,
+              "n": 466,
+              "p90_m": 0.44885843476713627,
+              "p99_m": 0.9096542720289513,
+              "share": 1.0
+            }
+          },
+          "Person": {
+            "all": {
+              "covered95": 0.5874112172422239,
+              "informativeness_nats": -11.003275525660696,
+              "mean_loglik_fitted_constant": -1.4141728526911714,
+              "mean_loglik_stated": -12.417448378351867,
+              "median_m": 0.13625894043628248,
+              "n": 20415,
+              "p90_m": 0.3048387350163996,
+              "p99_m": 3.094603147210703,
+              "share": 1.0
+            },
+            "foot": {
+              "covered95": 0.6177981851973324,
+              "informativeness_nats": -9.244377742011835,
+              "mean_loglik_fitted_constant": 1.0160217837364232,
+              "mean_loglik_stated": -8.228355958275412,
+              "median_m": 0.13084492212946985,
+              "n": 18294,
+              "p90_m": 0.26227273815545354,
+              "p99_m": 0.5769981712076088,
+              "share": 0.896105804555474
+            },
+            "foot_flagged": {
+              "covered95": 0.953405017921147,
+              "informativeness_nats": -1.3210655736455605,
+              "mean_loglik_fitted_constant": -1.287736155999094,
+              "mean_loglik_stated": -2.6088017296446546,
+              "median_m": 0.08599093136842612,
+              "n": 558,
+              "p90_m": 0.22966536418418632,
+              "p99_m": 3.7729385850335837,
+              "share": 0.02733284349742836
+            },
+            "head": {
+              "covered95": 0.10108765195137556,
+              "informativeness_nats": -61.0748868930173,
+              "mean_loglik_fitted_constant": -3.8751792478792386,
+              "mean_loglik_stated": -64.95006614089654,
+              "median_m": 0.9425215682608813,
+              "n": 1563,
+              "p90_m": 3.3034148316018643,
+              "p99_m": 10.303217704358278,
+              "share": 0.07656135194709772
+            }
+          },
+          "Transporter": {
+            "all": {
+              "covered95": 0.4258373205741627,
+              "informativeness_nats": -12.223711055625154,
+              "mean_loglik_fitted_constant": -0.3078364848916145,
+              "mean_loglik_stated": -12.531547540516769,
+              "median_m": 0.3529869850650436,
+              "n": 1045,
+              "p90_m": 0.5547188177752462,
+              "p99_m": 0.8086058681098458,
+              "share": 1.0
+            },
+            "foot_unchecked": {
+              "covered95": 0.4258373205741627,
+              "informativeness_nats": -12.223711055625154,
+              "mean_loglik_fitted_constant": -0.3078364848916145,
+              "mean_loglik_stated": -12.531547540516769,
+              "median_m": 0.3529869850650436,
+              "n": 1045,
+              "p90_m": 0.5547188177752462,
+              "p99_m": 0.8086058681098458,
+              "share": 1.0
+            }
+          }
+        },
+        "foot": {
+          "NovaCarter": {
+            "all": {
+              "covered95": 0.15450643776824036,
+              "informativeness_nats": -11.944275712347478,
+              "mean_loglik_fitted_constant": 0.057566207885756566,
+              "mean_loglik_stated": -11.886709504461722,
+              "median_m": 0.26275002659585084,
+              "n": 466,
+              "p90_m": 0.44885843476713627,
+              "p99_m": 0.9096542720289513,
+              "share": 1.0
+            },
+            "foot_unchecked": {
+              "covered95": 0.15450643776824036,
+              "informativeness_nats": -11.944275712347478,
+              "mean_loglik_fitted_constant": 0.057566207885756566,
+              "mean_loglik_stated": -11.886709504461722,
+              "median_m": 0.26275002659585084,
+              "n": 466,
+              "p90_m": 0.44885843476713627,
+              "p99_m": 0.9096542720289513,
+              "share": 1.0
+            }
+          },
+          "Person": {
+            "all": {
+              "covered95": 0.5801616458486407,
+              "informativeness_nats": -103.49738528868183,
+              "mean_loglik_fitted_constant": -1.4818314273701692,
+              "mean_loglik_stated": -104.979216716052,
+              "median_m": 0.1388254198895596,
+              "n": 20415,
+              "p90_m": 0.35046719980692986,
+              "p99_m": 3.491122571712868,
+              "share": 1.0
+            },
+            "foot": {
+              "covered95": 0.6177981851973324,
+              "informativeness_nats": -9.244377742011835,
+              "mean_loglik_fitted_constant": 1.0160217837364232,
+              "mean_loglik_stated": -8.228355958275412,
+              "median_m": 0.13084492212946985,
+              "n": 18294,
+              "p90_m": 0.26227273815545354,
+              "p99_m": 0.5769981712076088,
+              "share": 0.896105804555474
+            },
+            "foot_flagged": {
+              "covered95": 0.25553983969825556,
+              "informativeness_nats": -935.8028561905943,
+              "mean_loglik_fitted_constant": -3.6696404418955604,
+              "mean_loglik_stated": -939.4724966324899,
+              "median_m": 1.2829689006563156,
+              "n": 2121,
+              "p90_m": 3.3333829386230818,
+              "p99_m": 5.767520540550547,
+              "share": 0.10389419544452608
+            }
+          },
+          "Transporter": {
+            "all": {
+              "covered95": 0.4258373205741627,
+              "informativeness_nats": -12.223711055625154,
+              "mean_loglik_fitted_constant": -0.3078364848916145,
+              "mean_loglik_stated": -12.531547540516769,
+              "median_m": 0.3529869850650436,
+              "n": 1045,
+              "p90_m": 0.5547188177752462,
+              "p99_m": 0.8086058681098458,
+              "share": 1.0
+            },
+            "foot_unchecked": {
+              "covered95": 0.4258373205741627,
+              "informativeness_nats": -12.223711055625154,
+              "mean_loglik_fitted_constant": -0.3078364848916145,
+              "mean_loglik_stated": -12.531547540516769,
+              "median_m": 0.3529869850650436,
+              "n": 1045,
+              "p90_m": 0.5547188177752462,
+              "p99_m": 0.8086058681098458,
+              "share": 1.0
+            }
+          }
+        }
+      },
+      "zones": "configs/zones/warehouse_022.yaml"
+    }
+  }
+}
