@@ -12789,3 +12789,14 @@ labelling and reporting issues fixed) · then this report.
 
 **No timing, throughput, CPU-percentage, memory-rate or latency claim is
 made in this section.**
+
+## Fresh clone at the report commit
+
+`scripts/fresh_clone_check.sh f774eff` (the commit carrying this report and
+every Day-43 code change): **1683 passed, 0 failed, 0 errors, 16 skipped**,
+pip freeze matching all 38 lockfile pins
+(`artifacts/pytest/fresh_clone_f774eff2be3b.xml`). The checkout's own full
+run at the same code had 1739 passed and 4 skipped
+(`artifacts/pytest/day43_full.xml`); the difference is the clone lacking
+`data/` and the signed weights, which the repository never ships, as on
+Day 42. No test fails in either.
