@@ -63,6 +63,7 @@ from src.pipeline.evaluate import (
     match_frames,
     position_errors,
 )
+from src.pipeline.anchor import Camera
 from src.pipeline.events import ZoneConfig, compile_trajectory
 from src.pipeline.floor import FloorProjector
 from src.pipeline.run import Detections, estimate_tracks, track_camera, trajectories
@@ -223,6 +224,8 @@ class CameraResult:
     errors: dict[str, dict[str, list[float]]]
     units: list[Unit]
     class_coverage: dict[str, list[int]] = field(default_factory=dict)
+    anchor_counts: dict[str, int] = field(default_factory=dict)
+    """Track points by anchor (:data:`src.pipeline.anchor.ANCHORS`)."""
     event_log: dict[str, list[list[Any]]] = field(default_factory=dict)
     """``gt``: ``[subject, verb, zone, ts_ns]`` per GT event; ``predicted``:
     ``[track, attributed GT subject or None, verb, zone, ts_ns]``; ``pairs``:
@@ -238,6 +241,8 @@ def evaluate_schedule(
     zones: ZoneConfig,
     backend: str,
     tracker_config: TrackerConfig | None = None,
+    anchor_camera: Camera | None = None,
+    anchor_mode: str = "foot",
 ) -> CameraResult:
     tracker_config = tracker_config or TrackerConfig()
     dets = detections_for(source, run_frames, backend)
@@ -248,6 +253,9 @@ def evaluate_schedule(
         source.fps,
         FrameGeometry(source.width, source.height),
         "frontier",
+        anchor_camera=anchor_camera,
+        anchor_mode=anchor_mode,
+        label=person_label,
     )
     n = len(source.frames)
     truth = source.truth
@@ -328,6 +336,7 @@ def evaluate_schedule(
         errors=errors,
         units=list(units.values()),
         class_coverage=class_coverage,
+        anchor_counts=dict(sorted(Counter(p.anchor for p in points).items())),
         event_log={
             "gt": [[g.subject_id, g.verb.value, g.zone, g.ts_ns] for g in gt_events],
             "predicted": [

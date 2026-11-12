@@ -42,6 +42,7 @@ import hashlib
 import json
 import subprocess
 import time
+from collections import Counter
 from collections.abc import Callable, Sequence
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -65,6 +66,7 @@ from src.model.frame_of_reference import FrameOfReference
 from src.model.measurement import WorldPositionMeasurement
 from src.model.observation import Observation
 from src.model.ulid import generate_ulid
+from src.pipeline.anchor import Camera, anchor_boxes
 from src.model.uncertainty import Uncertainty
 from src.pipeline.detcache import CacheKey, DetectionCache, FrameRecord
 from src.pipeline.events import Trajectory, ZoneConfig, compile_events
@@ -91,6 +93,11 @@ class CameraInput:
     camera_id: str
     video: Path
     projector: FloorProjector
+    anchor_camera: Camera | None = None
+    """The full pinhole camera when the calibration gives one (SmartSpaces):
+    lets every track point record its anchor and the foot anchor's implied
+    height check (:mod:`src.pipeline.anchor`). ``None`` for a floor-points
+    calibration, where only the foot anchor exists."""
 
 
 @dataclass(frozen=True)
@@ -342,6 +349,10 @@ class TrackPoint:
     est_v: tuple[float, float] | None = None
     """The filter's floor velocity (m/s); ``None`` in runs written before it
     was recorded."""
+    anchor: str = "foot"
+    """Which point of the box was put on the floor (:data:`src.pipeline.
+    anchor.ANCHORS`). Runs written before Day 43's anchor work used the
+    foot anchor unchecked, and read back as ``"foot"``."""
 
 
 def estimate_tracks(
@@ -350,10 +361,20 @@ def estimate_tracks(
     fps: float,
     frame: FrameGeometry,
     manifest_sha: str,
+    anchor_camera: Camera | None = None,
+    anchor_mode: str = "foot",
+    label: str = "person",
 ) -> tuple[list[TrackPoint], int]:
     """Project each assignment to the floor and run estimator config A per
     track. Returns the points and how many assignments could not be projected
-    (box bottom on or above the horizon)."""
+    (no anchor's ray meets its plane in front of the camera).
+
+    Without ``anchor_camera`` every box is put on the floor at its
+    bottom-centre by ``projector`` and recorded as ``"foot"``. With it, the
+    anchor module decides and records the anchor; ``anchor_mode="foot"``
+    gives positions identical to ``projector`` (checked, Day 43) and only
+    adds the record, ``"fallback"`` uses the head anchor where the foot
+    anchor's implied height is implausible for ``label``."""
     motion = motion_model_for("person", velocity_covariance_floor=False)
     measurement = measurement_model_for(sensor=projector.camera_id)
     origin = np.array(projector.camera_xyz_m)
@@ -368,9 +389,19 @@ def estimate_tracks(
     points: list[TrackPoint] = []
     unprojectable = 0
     for track_id, items in sorted(by_track.items()):
-        xy, valid = projector.project_boxes(np.array([a.box_xyxy for a in items]))
+        boxes = np.array([a.box_xyxy for a in items])
+        if anchor_camera is None:
+            xy, valid = projector.project_boxes(boxes)
+            anchors = np.full(len(items), "foot")
+        else:
+            anchored = anchor_boxes(
+                anchor_camera, boxes, [label] * len(items), mode=anchor_mode
+            )
+            xy, anchors = anchored.xy, anchored.anchor
+            valid = anchors != "none"
         unprojectable += int((~valid).sum())
         kept = [(a, p) for a, p, v in zip(items, xy, valid) if v]
+        kept_anchors = [str(k) for k, v in zip(anchors, valid) if v]
         if not kept:
             continue
         observations = []
@@ -416,7 +447,7 @@ def estimate_tracks(
                     f"estimator factor {f.factor_id} carries no estimate"
                 )
             estimates.append(payload.estimate)
-        for (a, p), est in zip(kept, estimates):
+        for (a, p), est, anchor in zip(kept, estimates, kept_anchors):
             mean, cov = est.mean_array(), est.cov_array()
             points.append(
                 TrackPoint(
@@ -430,6 +461,7 @@ def estimate_tracks(
                     est_xy=(float(mean[0]), float(mean[1])),
                     est_sigma_m=float(np.sqrt(max(cov[0, 0], cov[1, 1]))),
                     est_v=(float(mean[3]), float(mean[4])),
+                    anchor=anchor,
                 )
             )
     return points, unprojectable
@@ -477,6 +509,7 @@ def points_table(points: Sequence[TrackPoint]) -> pa.Table:
             "est_sigma_m": [p.est_sigma_m for p in points],
             "est_vx": [p.est_v[0] if p.est_v else None for p in points],
             "est_vy": [p.est_v[1] if p.est_v else None for p in points],
+            "anchor": [p.anchor for p in points],
         }
     )
 
@@ -499,6 +532,7 @@ def read_points(path: Path) -> list[TrackPoint]:
                 if r.get("est_vx") is not None and r.get("est_vy") is not None
                 else None
             ),
+            anchor=r.get("anchor") or "foot",
         )
         for r in rows
     ]
@@ -663,6 +697,9 @@ def run(
             detections.fps,
             FrameGeometry(detections.width, detections.height),
             manifest_sha,
+            anchor_camera=camera.anchor_camera,
+            anchor_mode="foot",
+            label=person_label,
         )
         all_points.extend(points)
         per_camera[camera.camera_id] = {
@@ -675,6 +712,9 @@ def run(
             "tracks": len({p.track_id for p in points}),
             "track_points": len(points),
             "unprojectable_assignments": unprojectable,
+            "track_point_anchors": dict(
+                sorted(Counter(p.anchor for p in points).items())
+            ),
             "calibration": camera.projector.source,
             "twin_rev": camera.projector.twin_rev,
             "camera_xyz_m": list(camera.projector.camera_xyz_m),

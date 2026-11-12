@@ -29,20 +29,37 @@ def _camera_id(video: Path, explicit: str | None) -> str:
     return explicit or video.stem
 
 
+def _camera_input(video: Path, calibration: Path, camera_id: str) -> Any:
+    """A SmartSpaces calibration also yields the full camera, so every track
+    point records its anchor and implied-height check; a floor-points file
+    gives the foot anchor only."""
+    from src.pipeline.anchor import camera_from_smartspaces
+    from src.pipeline.floor import load_projector
+    from src.pipeline.run import CameraInput
+
+    projector = load_projector(calibration, camera_id)
+    anchor_camera = (
+        camera_from_smartspaces(calibration, camera_id)
+        if projector.source == "smartspaces:K@E"
+        else None
+    )
+    return CameraInput(
+        camera_id=camera_id,
+        video=video,
+        projector=projector,
+        anchor_camera=anchor_camera,
+    )
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
     from src.pipeline.events import load_zone_config
-    from src.pipeline.floor import load_projector
     from src.pipeline.run import CameraInput, DirtyTreeError, run
 
     if args.camera and len(args.video) != 1:
         print("--camera names the camera of a single --video", file=sys.stderr)
         return 2
     cameras = [
-        CameraInput(
-            camera_id=_camera_id(v, args.camera),
-            video=v,
-            projector=load_projector(args.calibration, _camera_id(v, args.camera)),
-        )
+        _camera_input(v, args.calibration, _camera_id(v, args.camera))
         for v in args.video
     ]
     zones = load_zone_config(args.zones)
