@@ -59,6 +59,14 @@ def _cmd_run(args: argparse.Namespace) -> int:
     if args.camera and len(args.video) != 1:
         print("--camera names the camera of a single --video", file=sys.stderr)
         return 2
+    from src.data.footage import require_consented
+    from src.data.registry import LaneViolation
+
+    try:
+        require_consented(list(args.video))
+    except LaneViolation as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        return 2
     cameras = [
         _camera_input(v, args.calibration, _camera_id(v, args.camera))
         for v in args.video

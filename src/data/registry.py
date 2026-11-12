@@ -57,6 +57,7 @@ rather than a silent absence.
 
 from __future__ import annotations
 
+import hashlib
 import re
 import sys
 from datetime import date
@@ -66,6 +67,9 @@ from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+"""Consent-record paths in the registry are relative to the repository."""
 
 Lane = Literal["S", "R", "C", "C_pending_consent"]
 
@@ -634,6 +638,9 @@ class DatasetRegistry:
                 :class:`ConsentRecord` is attached. Every other lane is a
                 no-op here.
         """
+        if entry.lane == "C":
+            self._require_lane_c_consent(entry)
+            return
         if entry.lane == "C_pending_consent" and entry.consent_record is None:
             raise LaneViolation(
                 f"{entry.name!r} is lane C_pending_consent: self-collected "
@@ -644,6 +651,44 @@ class DatasetRegistry:
                 "and consent. Attach a ConsentRecord to this entry's "
                 "consent_record field before it may be used for training, "
                 "calibration, or eval."
+            )
+
+    def _cleared(self, name: str) -> DatasetEntry:
+        """Consent first, then the licence -- except lane C, whose verified
+        consent record IS its clearance: self-recorded footage has no
+        third-party licence to read (Day 45)."""
+        entry = self.get(name)
+        self._require_consent(entry)
+        if entry.lane == "C":
+            return entry
+        return self.require_fetchable(name)
+
+    def _require_lane_c_consent(self, entry: DatasetEntry) -> None:
+        """Day 44/45: lane ``C`` used to ASSUME its consent was settled at
+        registration. The first real capture (site-zero-solo) makes that
+        assumption load-bearing, so it is now checked: a lane-C entry is
+        opened only with a :class:`ConsentRecord` attached whose file exists
+        and still hashes to the recorded sha (an edited record is not the one
+        that was signed). Written by ``scripts/sign_consent.py``, a human
+        signature, never by the tool on its own."""
+        record = entry.consent_record
+        if record is None:
+            raise LaneViolation(
+                f"{entry.name!r} is lane C with no consent record attached. "
+                "Footage of people is opened only with a signed record "
+                "(python scripts/sign_consent.py, run by the subject)."
+            )
+        path = _REPO_ROOT / record.path
+        if not path.exists():
+            raise LaneViolation(
+                f"{entry.name!r}: consent record {record.path} is missing"
+            )
+        sha = hashlib.sha256(path.read_bytes()).hexdigest()
+        if sha != record.sha:
+            raise LaneViolation(
+                f"{entry.name!r}: consent record {record.path} hashes to "
+                f"{sha[:12]}, not the signed {record.sha[:12]}; it was edited "
+                "after signing"
             )
 
     def open_for_training(self, name: str) -> DatasetEntry:
@@ -658,8 +703,7 @@ class DatasetRegistry:
                 irreversible mistake — there is no warn-and-continue for
                 either.
         """
-        self._require_consent(self.get(name))
-        entry = self.require_fetchable(name)
+        entry = self._cleared(name)
         if entry.lane == "R":
             raise LaneViolation(
                 f"{entry.name!r} is lane R ({LANE_DESCRIPTIONS['R']}). It must "
@@ -684,8 +728,7 @@ class DatasetRegistry:
                 :func:`scripts.ingest_capture.ConsentRecord.load` already
                 applies at ingest time.
         """
-        self._require_consent(self.get(name))
-        entry = self.require_fetchable(name)
+        entry = self._cleared(name)
         if entry.lane == "R" and _calling_context_is_training():
             raise LaneViolation(
                 f"{entry.name!r} is lane R and this call reaches it from a "

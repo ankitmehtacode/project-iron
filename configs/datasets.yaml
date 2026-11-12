@@ -1128,6 +1128,17 @@ datasets:
   notes: 'Our office as deployment #1 and dataset #1. The only lane admissible for
     INT8 calibration. Does not exist yet; the capture protocol and consent template
     are in the Day-5 report.'
+- name: site-zero-solo
+  lane: C
+  subsystem: everything
+  hypothesis_class: ours — the owner is the sole subject and signs the consent
+    record (scripts/sign_consent.py)
+  notes: 'Day 45. First real footage: clips A (empty room), B (owner standing on six
+    measured test marks, 10 s each, twice), C (free walking with entries and exits),
+    and marks.csv, under data/raw/site_zero_solo/ (git-ignored). The only person in
+    frame is the owner. Lane C is opened only with a signed consent record whose
+    file still hashes to the recorded sha (src/data/registry.py). No frame
+    containing the owner may enter git, docs or a report.'
 - name: office-capture-v1
   lane: C
   subsystem: everything

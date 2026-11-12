@@ -119,7 +119,7 @@ def test_lane_c_is_only_ever_our_own_consented_captures() -> None:
     """
     registry = DatasetRegistry.load(SEED_PATH)
     lane_c = {e.name for e in registry.entries() if not e.blocked and e.lane == "C"}
-    assert lane_c == {"site-zero", "office-capture-v1"}
+    assert lane_c == {"site-zero", "office-capture-v1", "site-zero-solo"}
 
     for entry in registry.entries():
         if entry.blocked or entry.lane != "C":
@@ -206,10 +206,56 @@ def test_lane_r_refuses_the_training_path() -> None:
         registry.open_for_training("Market-1501")
 
 
-@pytest.mark.parametrize("lane", ["S", "C"])
-def test_lanes_s_and_c_may_train(lane: str) -> None:
-    registry = registry_with(entry("ok-data", lane))
-    assert registry.open_for_training("ok-data").lane == lane
+def test_lane_s_may_train() -> None:
+    registry = registry_with(entry("ok-data", "S"))
+    assert registry.open_for_training("ok-data").lane == "S"
+
+
+def _consented(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> DatasetEntry:
+    import hashlib
+
+    import src.data.registry as reg
+    from src.data.registry import ConsentRecord
+
+    monkeypatch.setattr(reg, "_REPO_ROOT", tmp_path)
+    record = tmp_path / "consent.json"
+    record.write_text('{"subjects": 1}')
+    return DatasetEntry(
+        name="ok-data",
+        lane="C",
+        license_snapshot=snapshot(),
+        consent_record=ConsentRecord(
+            path="consent.json",
+            sha=hashlib.sha256(record.read_bytes()).hexdigest(),
+            subjects=1,
+            captured_on=date(2026, 11, 12),
+        ),
+    )
+
+
+def test_lane_c_may_train_with_a_signed_consent_record(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry = registry_with(_consented(tmp_path, monkeypatch))
+    assert registry.open_for_training("ok-data").lane == "C"
+    assert registry.open_for_eval("ok-data").lane == "C"
+
+
+def test_lane_c_without_a_consent_record_is_refused() -> None:
+    """Day 45: lane C no longer assumes consent; it must be attached."""
+    registry = registry_with(entry("ok-data", "C"))
+    for gate in (registry.open_for_training, registry.open_for_eval):
+        with pytest.raises(LaneViolation, match="no consent record"):
+            gate("ok-data")
+
+
+def test_a_consent_record_edited_after_signing_is_refused(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    registry = registry_with(_consented(tmp_path, monkeypatch))
+    (tmp_path / "consent.json").write_text('{"subjects": 2}')
+    with pytest.raises(LaneViolation, match="edited after signing"):
+        registry.open_for_eval("ok-data")
 
 
 def test_lane_descriptions_covers_every_lane() -> None:
