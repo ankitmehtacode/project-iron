@@ -134,6 +134,16 @@ class Camera:
         xy[valid] = self.centre[:2] + s[valid, None] * d[valid, :2]
         return xy, valid
 
+    def project(self, points: FloatArray) -> FloatArray:
+        """``[N, 3]`` world points to ``[N, 2]`` pixels (NaN behind the camera)."""
+        p = np.asarray(points, dtype=np.float64).reshape(-1, 3)
+        cam = (p - self.centre) @ self.rotation.T
+        uvw = cam @ self.intrinsic.T
+        out = np.full((p.shape[0], 2), np.nan)
+        front = uvw[:, 2] > 0
+        out[front] = uvw[front, :2] / uvw[front, 2:3]
+        return out
+
     def jacobian(self, uv: FloatArray, z: float | FloatArray) -> FloatArray:
         """``[N, 2, 2]`` d(floor xy)/d(pixel uv) on plane ``z``, central
         differences of half a pixel."""
@@ -252,3 +262,58 @@ def covered95(error_xy: FloatArray, cov: FloatArray) -> npt.NDArray[np.bool_]:
     m2: FloatArray = np.einsum("ni,nij,nj->n", e, inv, e)
     inside: npt.NDArray[np.bool_] = m2 <= CHI2_2DOF_95
     return inside
+
+
+PERSON_MAX_HEIGHT_M = 1.825 + 3 * 0.0776
+"""2.058 m: the tallest national mean adult height (men, Netherlands, 1996
+cohort, 182.5 cm; NCD-RisC 2016, eLife 5:e13410) plus three
+within-population standard deviations (7.76 cm, Jelenkovic 2016 via Our
+World in Data). A population bound, NOT an absolute one: the tallest
+recorded human was 2.72 m (Robert Wadlow, Guinness World Records), which is
+:data:`HUMAN_RECORD_HEIGHT_M`. A person taller than this violates the
+range interval's lower end, and is reported as such."""
+
+HUMAN_RECORD_HEIGHT_M = 2.72
+"""Robert Wadlow, Guinness World Records "tallest man ever"."""
+
+
+@dataclass(frozen=True)
+class RangeInterval:
+    """Bounds on a detection's horizontal range from the camera (m).
+
+    ``r_foot``: the box bottom-centre ray meets the floor. An UPPER bound if
+    the box bottom is at or above the feet (occlusion and an image-edge cut
+    only raise it). ``r_head``: the box top-centre ray meets the plane
+    ``z = max_height_m``. A LOWER bound if the box top is at or below the top
+    of the head, the head is no higher than ``max_height_m``, and the camera
+    is above that plane. Assumes an upright person on a flat floor at z = 0.
+    NaN where a ray does not meet its plane in front of the camera."""
+
+    r_foot: FloatArray
+    r_head: FloatArray
+    foot_xy: FloatArray
+    head_xy: FloatArray
+    max_height_m: float
+
+    @property
+    def width_m(self) -> FloatArray:
+        out: FloatArray = self.r_foot - self.r_head
+        return out
+
+
+def range_interval(
+    camera: Camera, boxes_xyxy: FloatArray, max_height_m: float = PERSON_MAX_HEIGHT_M
+) -> RangeInterval:
+    boxes = np.asarray(boxes_xyxy, dtype=np.float64).reshape(-1, 4)
+    cx = (boxes[:, 0] + boxes[:, 2]) / 2.0
+    foot_xy, foot_ok = camera.to_plane(np.stack([cx, boxes[:, 3]], axis=1), 0.0)
+    head_xy, head_ok = camera.to_plane(
+        np.stack([cx, boxes[:, 1]], axis=1), max_height_m
+    )
+    if camera.centre[2] <= max_height_m:
+        head_ok[:] = False
+        head_xy[:] = np.nan
+    c = camera.centre[:2]
+    r_foot = np.where(foot_ok, np.linalg.norm(foot_xy - c, axis=1), np.nan)
+    r_head = np.where(head_ok, np.linalg.norm(head_xy - c, axis=1), np.nan)
+    return RangeInterval(r_foot, r_head, foot_xy, head_xy, max_height_m)

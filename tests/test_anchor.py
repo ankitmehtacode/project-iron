@@ -163,3 +163,39 @@ def test_estimate_tracks_records_the_anchor_without_moving_foot_points() -> None
     )
     assert fallback[5].anchor == "head"
     assert np.linalg.norm(np.subtract(fallback[5].raw_xy, (12.2, 1.0))) < 0.2
+
+
+def test_range_interval_brackets_an_upright_person() -> None:
+    from src.pipeline.anchor import PERSON_MAX_HEIGHT_M, range_interval
+
+    cam = _camera()
+    true_r = float(np.hypot(12.0, 1.0))
+    for hidden in (0.0, 0.9):
+        ri = range_interval(cam, _box(cam, (12.0, 1.0), 1.7, hidden)[None])
+        assert ri.r_head[0] < true_r <= ri.r_foot[0] + 1e-6
+    assert PERSON_MAX_HEIGHT_M == pytest.approx(2.0578)
+
+
+def test_a_person_taller_than_the_bound_breaks_the_lower_end() -> None:
+    from src.pipeline.anchor import range_interval
+
+    cam = _camera()
+    ri = range_interval(cam, _box(cam, (12.0, 1.0), 2.3)[None])
+    assert ri.r_head[0] > np.hypot(12.0, 1.0)
+
+
+def test_no_lower_end_when_the_camera_is_below_the_plane() -> None:
+    from src.pipeline.anchor import range_interval
+
+    cam = _camera()
+    ri = range_interval(cam, _box(cam, (12.0, 1.0), 1.7)[None], max_height_m=6.0)
+    assert np.isnan(ri.r_head).all() and np.isfinite(ri.r_foot).all()
+
+
+def test_project_inverts_to_plane() -> None:
+    cam = _camera()
+    p = np.array([[12.0, 1.0, 0.0], [20.0, -3.0, 1.7]])
+    uv = cam.project(p)
+    back, ok = cam.to_plane(uv, p[:, 2])
+    assert ok.all()
+    np.testing.assert_allclose(back, p[:, :2], atol=1e-6)

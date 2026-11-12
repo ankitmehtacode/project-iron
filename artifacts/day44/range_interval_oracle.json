@@ -1,0 +1,460 @@
+{
+  "label": "lane S synthetic; oracle (ground-truth) person boxes",
+  "frames_per_camera": 1800,
+  "assumptions": [
+    "upright person",
+    "flat floor at z = 0, feet on it",
+    "box bottom at or above the feet",
+    "box top at or below the top of the head",
+    "head no higher than H_max",
+    "camera above H_max (else no lower end)"
+  ],
+  "scenes": {
+    "Warehouse_022": {
+      "population_bound": {
+        "h_max_m": 2.0578,
+        "boxes": 20415,
+        "inside": 6852,
+        "coverage": 0.335635562086701,
+        "boxes_without_lower_end": 0,
+        "violations_lower_end": {},
+        "violations_upper_end": {
+          "box_bottom_below_floor": 11942,
+          "reference_offset": 1621
+        },
+        "upper_end_crosstab": {
+          "below=True,within_footprint=True": 11942,
+          "below=False,within_footprint=True": 1621
+        },
+        "upper_end_excess_m": {
+          "n": 13563,
+          "p10": 0.03886795715706555,
+          "p50": 0.12813229467589693,
+          "p90": 0.24338869508921132,
+          "p99": 0.3559050031257448
+        },
+        "upper_end_excess_over_half_footprint": {
+          "n": 13563,
+          "p10": 0.09414111720225074,
+          "p50": 0.34102827745896475,
+          "p90": 0.5942224267394106,
+          "p99": 0.7711134324028557
+        },
+        "width_m": {
+          "n": 20415,
+          "p10": 0.5457423793579018,
+          "p50": 1.4106342523805218,
+          "p90": 3.8634106623223943,
+          "p99": 8.02666904446015
+        },
+        "width_relative_to_true_range": {
+          "n": 20415,
+          "p10": 0.04204050988364042,
+          "p50": 0.06891038704165486,
+          "p90": 0.12316658631910289,
+          "p99": 0.3799487103771149
+        },
+        "cameras": {
+          "Camera_0000": {
+            "camera_height_m": 6.206062593817368,
+            "boxes": 5142,
+            "inside": 1736
+          },
+          "Camera_0001": {
+            "camera_height_m": 6.6486373838131545,
+            "boxes": 6531,
+            "inside": 3080
+          },
+          "Camera_0002": {
+            "camera_height_m": 7.466380519200641,
+            "boxes": 6746,
+            "inside": 1698
+          },
+          "Camera_0003": {
+            "camera_height_m": 6.759188046406777,
+            "boxes": 1996,
+            "inside": 338
+          }
+        },
+        "gt_person_height_m": {
+          "n": 20415,
+          "p10": 1.618805819749832,
+          "p50": 1.6784087978303432,
+          "p90": 1.7930223058909178,
+          "p99": 1.8070610389113426
+        }
+      },
+      "record_bound": {
+        "h_max_m": 2.72,
+        "boxes": 20415,
+        "inside": 6852,
+        "coverage": 0.335635562086701,
+        "boxes_without_lower_end": 0,
+        "violations_lower_end": {},
+        "violations_upper_end": {
+          "box_bottom_below_floor": 11942,
+          "reference_offset": 1621
+        },
+        "upper_end_crosstab": {
+          "below=True,within_footprint=True": 11942,
+          "below=False,within_footprint=True": 1621
+        },
+        "upper_end_excess_m": {
+          "n": 13563,
+          "p10": 0.03886795715706555,
+          "p50": 0.12813229467589693,
+          "p90": 0.24338869508921132,
+          "p99": 0.3559050031257448
+        },
+        "upper_end_excess_over_half_footprint": {
+          "n": 13563,
+          "p10": 0.09414111720225074,
+          "p50": 0.34102827745896475,
+          "p90": 0.5942224267394106,
+          "p99": 0.7711134324028557
+        },
+        "width_m": {
+          "n": 20415,
+          "p10": 1.9609240133587782,
+          "p50": 4.232846857363267,
+          "p90": 8.771962219574458,
+          "p99": 11.432064324373663
+        },
+        "width_relative_to_true_range": {
+          "n": 20415,
+          "p10": 0.16148387986128537,
+          "p50": 0.20295502562433165,
+          "p90": 0.23961042525628254,
+          "p99": 0.508713720479439
+        },
+        "cameras": {
+          "Camera_0000": {
+            "camera_height_m": 6.206062593817368,
+            "boxes": 5142,
+            "inside": 1736
+          },
+          "Camera_0001": {
+            "camera_height_m": 6.6486373838131545,
+            "boxes": 6531,
+            "inside": 3080
+          },
+          "Camera_0002": {
+            "camera_height_m": 7.466380519200641,
+            "boxes": 6746,
+            "inside": 1698
+          },
+          "Camera_0003": {
+            "camera_height_m": 6.759188046406777,
+            "boxes": 1996,
+            "inside": 338
+          }
+        },
+        "gt_person_height_m": {
+          "n": 20415,
+          "p10": 1.618805819749832,
+          "p50": 1.6784087978303432,
+          "p90": 1.7930223058909178,
+          "p99": 1.8070610389113426
+        }
+      }
+    },
+    "Warehouse_020": {
+      "population_bound": {
+        "h_max_m": 2.0578,
+        "boxes": 58139,
+        "inside": 38996,
+        "coverage": 0.6707373707838112,
+        "boxes_without_lower_end": 0,
+        "violations_lower_end": {
+          "box_top_above_head": 4
+        },
+        "violations_upper_end": {
+          "reference_offset": 10435,
+          "box_bottom_below_floor": 8704
+        },
+        "upper_end_crosstab": {
+          "below=False,within_footprint=True": 10435,
+          "below=True,within_footprint=True": 8704
+        },
+        "upper_end_excess_m": {
+          "n": 19139,
+          "p10": 0.029222681783222983,
+          "p50": 0.11929118715122655,
+          "p90": 0.26515841461624473,
+          "p99": 0.39604205749467775
+        },
+        "upper_end_excess_over_half_footprint": {
+          "n": 19139,
+          "p10": 0.0685782510446305,
+          "p50": 0.285718795550245,
+          "p90": 0.5634083409501354,
+          "p99": 0.7441087523152273
+        },
+        "width_m": {
+          "n": 58139,
+          "p10": 1.263314421877066,
+          "p50": 6.95584944582685,
+          "p90": 37.68081133820842,
+          "p99": 106.72771655637177
+        },
+        "width_relative_to_true_range": {
+          "n": 58139,
+          "p10": 0.06387610399934582,
+          "p50": 0.2002436634089479,
+          "p90": 0.6488383983475999,
+          "p99": 1.8778775705639519
+        },
+        "cameras": {
+          "Camera_0000": {
+            "camera_height_m": 2.863371598639466,
+            "boxes": 7865,
+            "inside": 3946
+          },
+          "Camera_0001": {
+            "camera_height_m": 2.3063826530612324,
+            "boxes": 6840,
+            "inside": 2964
+          },
+          "Camera_0002": {
+            "camera_height_m": 5.028747640573524,
+            "boxes": 10546,
+            "inside": 6948
+          },
+          "Camera_0003": {
+            "camera_height_m": 4.494615545553279,
+            "boxes": 32888,
+            "inside": 25138
+          }
+        },
+        "gt_person_height_m": {
+          "n": 58139,
+          "p10": 1.6371854946017266,
+          "p50": 1.8572348728777879,
+          "p90": 1.9458081595599652,
+          "p99": 2.0
+        }
+      },
+      "record_bound": {
+        "h_max_m": 2.72,
+        "boxes": 58139,
+        "inside": 39000,
+        "coverage": 0.670806171416777,
+        "boxes_without_lower_end": 6840,
+        "violations_lower_end": {},
+        "violations_upper_end": {
+          "reference_offset": 10435,
+          "box_bottom_below_floor": 8704
+        },
+        "upper_end_crosstab": {
+          "below=False,within_footprint=True": 10435,
+          "below=True,within_footprint=True": 8704
+        },
+        "upper_end_excess_m": {
+          "n": 19139,
+          "p10": 0.029222681783222983,
+          "p50": 0.11929118715122655,
+          "p90": 0.26515841461624473,
+          "p99": 0.39604205749467775
+        },
+        "upper_end_excess_over_half_footprint": {
+          "n": 19139,
+          "p10": 0.0685782510446305,
+          "p50": 0.285718795550245,
+          "p90": 0.5634083409501354,
+          "p99": 0.7441087523152273
+        },
+        "width_m": {
+          "n": 51299,
+          "p10": 4.909124862869573,
+          "p50": 16.943309562663842,
+          "p90": 57.24293381401154,
+          "p99": 168.6157244215957
+        },
+        "width_relative_to_true_range": {
+          "n": 51299,
+          "p10": 0.2899844664825954,
+          "p50": 0.40859710908449626,
+          "p90": 0.8872791868471059,
+          "p99": 2.3960345758250696
+        },
+        "cameras": {
+          "Camera_0000": {
+            "camera_height_m": 2.863371598639466,
+            "boxes": 7865,
+            "inside": 3950
+          },
+          "Camera_0001": {
+            "camera_height_m": 2.3063826530612324,
+            "boxes": 6840,
+            "inside": 2964
+          },
+          "Camera_0002": {
+            "camera_height_m": 5.028747640573524,
+            "boxes": 10546,
+            "inside": 6948
+          },
+          "Camera_0003": {
+            "camera_height_m": 4.494615545553279,
+            "boxes": 32888,
+            "inside": 25138
+          }
+        },
+        "gt_person_height_m": {
+          "n": 58139,
+          "p10": 1.6371854946017266,
+          "p50": 1.8572348728777879,
+          "p90": 1.9458081595599652,
+          "p99": 2.0
+        }
+      }
+    },
+    "Warehouse_000": {
+      "population_bound": {
+        "h_max_m": 2.0578,
+        "boxes": 73471,
+        "inside": 56672,
+        "coverage": 0.7713519619986117,
+        "boxes_without_lower_end": 0,
+        "violations_lower_end": {},
+        "violations_upper_end": {
+          "reference_offset": 10731,
+          "box_bottom_below_floor": 6068
+        },
+        "upper_end_crosstab": {
+          "below=False,within_footprint=True": 10731,
+          "below=True,within_footprint=True": 6068
+        },
+        "upper_end_excess_m": {
+          "n": 16799,
+          "p10": 0.02374525705480579,
+          "p50": 0.11726718286313798,
+          "p90": 0.2522530323616536,
+          "p99": 0.40337431850357147
+        },
+        "upper_end_excess_over_half_footprint": {
+          "n": 16799,
+          "p10": 0.05749316302684183,
+          "p50": 0.27105266985529924,
+          "p90": 0.5364480810757719,
+          "p99": 0.763894522278472
+        },
+        "width_m": {
+          "n": 73471,
+          "p10": 1.9021952825187185,
+          "p50": 7.172970147871695,
+          "p90": 35.51540181020292,
+          "p99": 53.2124988865705
+        },
+        "width_relative_to_true_range": {
+          "n": 73471,
+          "p10": 0.0633096699055901,
+          "p50": 0.15757338302138416,
+          "p90": 0.5760059844397636,
+          "p99": 0.9857519232848145
+        },
+        "cameras": {
+          "Camera_0000": {
+            "camera_height_m": 3.8019663609003302,
+            "boxes": 7133,
+            "inside": 5588
+          },
+          "Camera_0001": {
+            "camera_height_m": 4.781015949481051,
+            "boxes": 22436,
+            "inside": 16345
+          },
+          "Camera_0002": {
+            "camera_height_m": 3.072501360869242,
+            "boxes": 7671,
+            "inside": 4422
+          },
+          "Camera_0003": {
+            "camera_height_m": 4.570990721666427,
+            "boxes": 36231,
+            "inside": 30317
+          }
+        },
+        "gt_person_height_m": {
+          "n": 73471,
+          "p10": 1.632808743044734,
+          "p50": 1.8405737280845642,
+          "p90": 1.9394205324351788,
+          "p99": 2.014754378050566
+        }
+      },
+      "record_bound": {
+        "h_max_m": 2.72,
+        "boxes": 73471,
+        "inside": 56672,
+        "coverage": 0.7713519619986117,
+        "boxes_without_lower_end": 0,
+        "violations_lower_end": {},
+        "violations_upper_end": {
+          "reference_offset": 10731,
+          "box_bottom_below_floor": 6068
+        },
+        "upper_end_crosstab": {
+          "below=False,within_footprint=True": 10731,
+          "below=True,within_footprint=True": 6068
+        },
+        "upper_end_excess_m": {
+          "n": 16799,
+          "p10": 0.02374525705480579,
+          "p50": 0.11726718286313798,
+          "p90": 0.2522530323616536,
+          "p99": 0.40337431850357147
+        },
+        "upper_end_excess_over_half_footprint": {
+          "n": 16799,
+          "p10": 0.05749316302684183,
+          "p50": 0.27105266985529924,
+          "p90": 0.5364480810757719,
+          "p99": 0.763894522278472
+        },
+        "width_m": {
+          "n": 73471,
+          "p10": 6.964524347614425,
+          "p50": 20.8946422748429,
+          "p90": 52.221684275174795,
+          "p99": 73.91068430698641
+        },
+        "width_relative_to_true_range": {
+          "n": 73471,
+          "p10": 0.30420204828620895,
+          "p50": 0.43814433450957463,
+          "p90": 0.8079150808220614,
+          "p99": 1.4155591293566594
+        },
+        "cameras": {
+          "Camera_0000": {
+            "camera_height_m": 3.8019663609003302,
+            "boxes": 7133,
+            "inside": 5588
+          },
+          "Camera_0001": {
+            "camera_height_m": 4.781015949481051,
+            "boxes": 22436,
+            "inside": 16345
+          },
+          "Camera_0002": {
+            "camera_height_m": 3.072501360869242,
+            "boxes": 7671,
+            "inside": 4422
+          },
+          "Camera_0003": {
+            "camera_height_m": 4.570990721666427,
+            "boxes": 36231,
+            "inside": 30317
+          }
+        },
+        "gt_person_height_m": {
+          "n": 73471,
+          "p10": 1.632808743044734,
+          "p50": 1.8405737280845642,
+          "p90": 1.9394205324351788,
+          "p99": 2.014754378050566
+        }
+      }
+    }
+  }
+}
