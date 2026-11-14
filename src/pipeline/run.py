@@ -478,11 +478,26 @@ def estimate_tracks(
     return points, unprojectable
 
 
+REPORTED_POSITION = "raw"
+"""Which floor position the product reports and compiles events from.
+
+Day 46, rule R5 (``artifacts/day46/rules.json``): on pretrained detections
+(Warehouse_022, gate-off, IoU-only, Day 44) the estimator's position RMSE was
+higher than raw projection's in three of four distance buckets ([10,20)
+0.246 vs 0.231 m, [20,30) 0.506 vs 0.394 m, [30,inf) 0.679 vs 0.529 m), so
+the raw projection is the reported position. The estimator still supplies
+velocity (``est_v``) and uncertainty (``est_sigma_m``); ``est_xy`` stays in
+``tracks.parquet`` so the comparison can be re-run."""
+
+
 def trajectories(
-    points: Sequence[TrackPoint], use_estimate: bool = True
+    points: Sequence[TrackPoint], use_estimate: bool | None = None
 ) -> list[Trajectory]:
-    """Per-track floor trajectories for the event compiler. ``use_estimate=
-    False`` gives the raw-projection baseline."""
+    """Per-track floor trajectories for the event compiler. The default is
+    the reported position (:data:`REPORTED_POSITION`); ``use_estimate``
+    picks one explicitly (evaluation scores both)."""
+    if use_estimate is None:
+        use_estimate = REPORTED_POSITION == "estimator"
     by_track: dict[tuple[str, int], list[TrackPoint]] = {}
     for p in points:
         by_track.setdefault((p.camera_id, p.track_id), []).append(p)
@@ -674,6 +689,7 @@ def run(
         "estimator_config": ESTIMATOR_CONFIG,
         "max_seconds": max_seconds,
         "person_label": person_label,
+        "reported_position": REPORTED_POSITION,
         "motion_gate": gate_identity,
         **({"detector_step": detector_step} if detector_step != 1 else {}),
     }
@@ -765,7 +781,11 @@ def run(
                 "wall clock"
             ),
             "world_frame": "scene floor frame, X_Y_Z_UP, metres, floor at z=0",
-            "position": "bottom-centre of the person box projected to the floor",
+            "position": (
+                "bottom-centre of the person box projected to the floor; "
+                f"events compile from the {REPORTED_POSITION} position "
+                "(Day 46, R5)"
+            ),
             "confidence": (
                 "mean UNCALIBRATED detector score of the track (1.0 for the "
                 "oracle); not a probability"

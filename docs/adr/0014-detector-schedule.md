@@ -157,3 +157,31 @@ What changed in the evidence:
   that ablation but not on events; it is not a candidate here.
 - 17 clusters is a small sample: the intervals are wide, and the overlap
   rule passes candidates it cannot tell apart.
+
+## Day 46 update (appended; the text above is left as written)
+
+Rule R1 of the Day-46 prompt, fixed before the numbers were read: *on
+pretrained detections with the IoU-only tracker, pick the candidate with the
+fewest invocations whose event-recall interval overlaps gate-off's; if none,
+stride 6.* Applied by `scripts/day46_rules.py` to the recorded Day-44 run
+(`artifacts/day44/frontier_w022_pretrained_iou.json`; result in
+`artifacts/day46/rules.json`, key `R1`): gate-off recall [0.630, 0.836];
+overlapping: gate_keepalive (6011), stride_6 (1200), adaptive (1154); not
+overlapping: gate_default, motion_adaptive, stride_15. **Outcome: adaptive**,
+1154 invocations (288 per camera-minute), paired against gate-off +8 / −10,
+−0.026 [−0.118, +0.078]. This is the same choice as Days 43 and 44, from
+the same single scene (Warehouse_022) and 17 person clusters.
+
+One thing changed after these numbers were recorded: from Day 46 (rule R5)
+the product compiles events from the raw floor projection, not the
+estimator's position. The Day-44 replay compiled them from the estimator, so
+the numbers above describe the previous position source; Day 46 Objective 4
+re-scores the schedule with the new one.
+
+Status stays Proposed. To accept, the human edits line 3 of this file from
+
+    - **Status:** Proposed
+
+to
+
+    - **Status:** Accepted

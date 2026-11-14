@@ -298,7 +298,7 @@ def evaluate_schedule(
     ]
     predicted = [
         e
-        for t in trajectories(points, use_estimate=True)
+        for t in trajectories(points)
         for e in compile_trajectory(t, zones.zones, zones.rules)
     ]
     pairs = match_event_pairs(predicted, gt_events, subject_of)
