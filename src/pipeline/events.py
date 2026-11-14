@@ -83,16 +83,46 @@ class EventRules:
 
 
 @dataclass(frozen=True)
+class ExclusionMask:
+    """An image-space polygon on one camera covering something the camera
+    sees but the site does not own (a doorway to another room, a window, a
+    screen). Pixels, the camera's canonical frame (Day 46)."""
+
+    camera_id: str
+    name: str
+    polygon: tuple[tuple[float, float], ...]
+
+    def __post_init__(self) -> None:
+        if not self.camera_id or not self.name:
+            raise ValueError("an exclusion mask needs a camera_id and a name")
+        if len(self.polygon) < 3:
+            raise ValueError(f"mask {self.region_id!r} needs at least three vertices")
+
+    @property
+    def region_id(self) -> str:
+        """The id a coverage record and an absence query use for it."""
+        return f"{self.camera_id}/mask/{self.name}"
+
+    def contains(self, uv: FloatArray) -> npt.NDArray[np.bool_]:
+        return Zone(self.region_id, self.polygon).contains(uv)
+
+
+@dataclass(frozen=True)
 class ZoneConfig:
     site_id: str
     zones: tuple[Zone, ...]
     rules: EventRules
+    masks: tuple[ExclusionMask, ...] = ()
+
+    def masks_for(self, camera_id: str) -> tuple[ExclusionMask, ...]:
+        return tuple(m for m in self.masks if m.camera_id == camera_id)
 
 
 def load_zone_config(path: Path) -> ZoneConfig:
     raw = yaml.safe_load(path.read_text())
-    if not isinstance(raw, dict) or set(raw) - {"site_id", "zones", "rules"}:
-        raise ValueError(f"{path}: expected keys site_id, zones, rules")
+    allowed = {"site_id", "zones", "rules", "exclusion_masks"}
+    if not isinstance(raw, dict) or set(raw) - allowed:
+        raise ValueError(f"{path}: expected keys {sorted(allowed)}")
     zones = tuple(
         Zone(
             name=z["name"], polygon=tuple((float(x), float(y)) for x, y in z["polygon"])
@@ -101,10 +131,22 @@ def load_zone_config(path: Path) -> ZoneConfig:
     )
     if len({z.name for z in zones}) != len(zones):
         raise ValueError(f"{path}: zone names must be unique")
+    masks = tuple(
+        ExclusionMask(
+            camera_id=str(camera_id),
+            name=str(m["name"]),
+            polygon=tuple((float(u), float(v)) for u, v in m["polygon"]),
+        )
+        for camera_id, items in (raw.get("exclusion_masks") or {}).items()
+        for m in items
+    )
+    if len({m.region_id for m in masks}) != len(masks):
+        raise ValueError(f"{path}: mask names must be unique per camera")
     return ZoneConfig(
         site_id=str(raw["site_id"]),
         zones=zones,
         rules=EventRules(**(raw.get("rules") or {})),
+        masks=masks,
     )
 
 

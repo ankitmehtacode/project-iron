@@ -44,7 +44,7 @@ import subprocess
 import time
 from collections import Counter
 from collections.abc import Callable, Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Any
 
@@ -69,7 +69,12 @@ from src.model.ulid import generate_ulid
 from src.pipeline.anchor import Camera, anchor_boxes
 from src.model.uncertainty import Uncertainty
 from src.pipeline.detcache import CacheKey, DetectionCache, FrameRecord
-from src.pipeline.events import Trajectory, ZoneConfig, compile_events
+from src.pipeline.events import (
+    ExclusionMask,
+    Trajectory,
+    ZoneConfig,
+    compile_events,
+)
 from src.pipeline.floor import FloorProjector
 from src.pipeline.tracker import PRODUCT_TRACKER, Assignment, Tracker, TrackerConfig
 
@@ -156,6 +161,36 @@ class Detections:
             k = keep[s:e]
             out.append((int(f), self.boxes[s:e][k], self.scores[s:e][k]))
         return out
+
+
+def apply_exclusion_masks(
+    detections: Detections, masks: Sequence[ExclusionMask]
+) -> tuple[Detections, dict[str, int]]:
+    """Drop every detection (any class) whose anchor, the box bottom-centre,
+    lies inside one of ``masks``; return the rest and the count dropped per
+    mask (``suppressed_by_mask``). Nothing is dropped without being counted;
+    ``run_frames`` is unchanged (the detector did run on those frames)."""
+    counts = {m.name: 0 for m in masks}
+    if not masks or detections.boxes.shape[0] == 0:
+        return detections, counts
+    b = detections.boxes
+    anchor = np.stack([(b[:, 0] + b[:, 2]) / 2.0, b[:, 3]], axis=1)
+    drop = np.zeros(b.shape[0], dtype=bool)
+    for m in masks:
+        inside = m.contains(anchor) & ~drop
+        counts[m.name] = int(inside.sum())
+        drop |= inside
+    keep = ~drop
+    return (
+        replace(
+            detections,
+            frame=detections.frame[keep],
+            boxes=detections.boxes[keep],
+            scores=detections.scores[keep],
+            labels=detections.labels[keep],
+        ),
+        counts,
+    )
 
 
 def frame_ts_ns(frame_index: int, fps: float) -> int:
@@ -720,6 +755,9 @@ def run(
         )
         detections.save(out_dir / camera.camera_id / "detections.npz")
         detect_s = time.perf_counter() - started
+        detections, suppressed = apply_exclusion_masks(
+            detections, zones.masks_for(camera.camera_id)
+        )
         assignments = track_camera(detections, person_label, tracker_config)
         points, unprojectable = estimate_tracks(
             assignments,
@@ -742,6 +780,7 @@ def run(
             "tracks": len({p.track_id for p in points}),
             "track_points": len(points),
             "unprojectable_assignments": unprojectable,
+            "suppressed_by_mask": suppressed,
             "track_point_anchors": dict(
                 sorted(Counter(p.anchor for p in points).items())
             ),

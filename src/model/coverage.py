@@ -118,6 +118,11 @@ class Coverage:
             ``interval`` — a gap outside the interval it is attached to
             is a bookkeeping error, not data.
         manifest_sha: The run that produced this record.
+        masked_regions: Ids of the parts of this subject's view that were
+            excluded by an exclusion mask (``<camera>/mask/<name>``, Day
+            46). Detections there were dropped, so nothing was observed
+            there: an absence can be established neither for a masked
+            region nor for the whole subject whose view contains one.
     """
 
     subject_id: str
@@ -127,6 +132,7 @@ class Coverage:
     envelope_ref: str
     gaps: tuple[Gap, ...]
     manifest_sha: str
+    masked_regions: tuple[str, ...] = ()
 
     def __post_init__(self) -> None:
         if not self.subject_id:
@@ -273,6 +279,25 @@ def prove_absence(
             when there is no Coverage at all for ``subject_id`` — an empty
             ``coverage_log`` can never yield a proven absence.
     """
+    masking = [
+        c
+        for c in coverage_log
+        if c.interval.overlaps(interval)
+        and (
+            subject_id in c.masked_regions
+            or (c.subject_id == subject_id and c.masked_regions)
+        )
+    ]
+    if masking:
+        return CannotEstablish(
+            reason="masked_region",
+            uncovered_subintervals=(interval,),
+            envelope_violations=tuple(
+                f"{c.subject_id}:masked:{','.join(c.masked_regions)}" for c in masking
+            ),
+            gaps=(),
+        )
+
     relevant = [c for c in coverage_log if c.subject_id == subject_id]
 
     if not relevant:
