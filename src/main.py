@@ -29,7 +29,7 @@ def _camera_id(video: Path, explicit: str | None) -> str:
     return explicit or video.stem
 
 
-def _camera_input(video: Path, calibration: Path, camera_id: str) -> Any:
+def camera_input(video: Path, calibration: Path, camera_id: str) -> Any:
     """A SmartSpaces calibration also yields the full camera, so every track
     point records its anchor and implied-height check; a floor-points file
     gives the foot anchor only."""
@@ -51,6 +51,23 @@ def _camera_input(video: Path, calibration: Path, camera_id: str) -> Any:
     )
 
 
+def pretrained_detector_factory() -> Any:
+    """The product detector, RT-DETRv2-S (COCO), loaded once and shared by
+    every camera of a run."""
+    from src.detect.backends import PretrainedDetector
+
+    shared: list[Any] = []
+
+    def factory(camera: Any) -> Any:
+        if not shared:
+            shared.append(
+                PretrainedDetector("RT-DETRv2-S-COCO", "rtdetr_v2_r18vd", 0.05)
+            )
+        return shared[0]
+
+    return factory
+
+
 def _cmd_run(args: argparse.Namespace) -> int:
     from src.pipeline.events import load_zone_config
     from src.pipeline.run import CameraInput, DirtyTreeError, run
@@ -68,7 +85,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
         print(f"refused: {exc}", file=sys.stderr)
         return 2
     cameras = [
-        _camera_input(v, args.calibration, _camera_id(v, args.camera))
+        camera_input(v, args.calibration, _camera_id(v, args.camera))
         for v in args.video
     ]
     zones = load_zone_config(args.zones)
@@ -86,16 +103,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
             return OracleDetector(oracle_boxes(gt, camera.camera_id), vocabulary(gt))
 
     else:
-        from src.detect.backends import PretrainedDetector
-
-        shared: list[Any] = []
-
-        def factory(camera: CameraInput) -> Any:
-            if not shared:
-                shared.append(
-                    PretrainedDetector("RT-DETRv2-S-COCO", "rtdetr_v2_r18vd", 0.05)
-                )
-            return shared[0]
+        factory = pretrained_detector_factory()
 
     started = time.perf_counter()
     try:
