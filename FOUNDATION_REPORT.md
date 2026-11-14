@@ -12930,3 +12930,65 @@ pip freeze matching all 38 lockfile pins
 at the same code: 1748 passed, 4 skipped (`artifacts/pytest/day44_full.xml`);
 the difference is the clone lacking `data/` and the signed weights, as on
 Days 42 and 43. No test fails in either.
+
+# Day 45
+
+**BLOCKED ON FOOTAGE.** `data/raw/site_zero_solo/` holds no clips, no
+`marks.csv` and no segment notes (`ls data/raw/` lists only `CHIRLA` and
+`PhysicalAI-SmartSpaces`, checked 2026-11-15), so nothing on Day 45 was
+measured. This section was written on Day 46 to park the day cleanly.
+
+## Verdicts
+
+- **Built, unmeasured on real footage** (commits on `foundation/day-45`):
+  lane C opens only with a signed, unedited consent record, and
+  `scripts/sign_consent.py` signs it for the sole subject (`3f79b81`);
+  `scripts/day45_verify_clips.py` decodes every frame with the pinned
+  OpenCV, reads container facts, strips audio only if the decoded frames are
+  identical, and validates `marks.csv` (`8636946`); the calibration page
+  writes the floor-points file whose hash is the `twin_rev` (`c6a06c0`);
+  `iron run --detector-step k` (`727bc1b`); `scripts/on_ac.py` runs a
+  command only on AC and SIGINTs it when AC drops (`17ad560`).
+- **Commands to run when the footage exists** (in order; the last one lands
+  on `foundation/day-46`, Day 46 Objective 1):
+  1. `python scripts/sign_consent.py site-zero-solo --signed-by <name>
+     --captured-on <YYYY-MM-DD> --i-am-the-sole-subject`
+  2. `python scripts/day45_verify_clips.py --strip-audio --out
+     artifacts/day45/clips_manifest.json` (stop if it exits 1)
+  3. `python -m src.inspector.calibrate --clip data/raw/site_zero_solo/A.mp4
+     --marks data/raw/site_zero_solo/marks.csv --camera-id site_zero_cam
+     --out configs/calibration/site_zero_solo/site_zero_cam.yaml`, click the
+     calib marks, type the camera position, save; read the residuals.
+  4. Write `data/raw/site_zero_solo/notes.yaml` (segments per clip:
+     `empty` / `on_mark` with start and end seconds, and the expected
+     entries and exits) and `zones.yaml` (the room zone) before any run;
+     the format is in `src/eval/site_zero.py`.
+  5. `python scripts/on_ac.py -- python scripts/site_zero_eval.py
+     --calibration configs/calibration/site_zero_solo/site_zero_cam.yaml
+     --out outputs/site_zero/<name>`
+- **Scratchpad `scan.jsonl`**: not found anywhere it could have been left
+  (`find /private/tmp /tmp ~/Desktop ~/.claude -name scan.jsonl` returns
+  nothing); nothing to delete.
+- **Suite**: not run on Day 45. Day 46's suite runs this code.
+
+### Checks that did not run
+
+| skipped | reason | prerequisite found elsewhere on this machine |
+|---:|---|---|
+| all | no suite was run on Day 45 (blocked on footage); Day 46's run covers this code | n/a |
+
+## Blockers
+
+Open on `docs/blocker_ledger.yaml` (`python scripts/blocker_report.py
+--verify-git`): `dataset-license-and-consent-verification`,
+`consent-template-counsel-review`, `reference-hardware-procurement`,
+`site-zero-capture` (the footage itself), `git-history-divergence`,
+`chirla-deployment-scope-legal-review`, `registry-deployment-scope-reaudit`,
+`component-cap-carrier-identity-type-change`,
+`smartspaces-nvidia-terms-of-service`, `smartspaces-smpl-provenance`,
+`adr-0012-acceptance`, `adr-0013-detector-fine-tuning-decision`,
+`adr-0014-detector-schedule-decision`, `detector-base-training-data-licence`,
+`texture-floor-resolution-dependence`. None added.
+
+**No timing, throughput, CPU-percentage, memory-rate or latency claim is
+made in this section.**
