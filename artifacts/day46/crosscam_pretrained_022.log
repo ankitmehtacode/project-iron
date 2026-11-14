@@ -1,0 +1,7 @@
+Warehouse_022 {"pairs_judged_with_shared_frames": 586, "true_pairs": 47, "accepted_directly": 26, "same_fused_identity": 32, "same_fused_identity_correct": 32, "precision": 1.0, "recall": 0.6808510638297872, "verdicts": {"decisive": 90, "ambiguous": 1}, "fused_identities_with_2plus_tracklets": 7}
+  single_camera {'1': (6019, 0.22369797957399903, 0.49506848561183797), '2': (3436, 0.205781450461134, 0.4406998919634283), '3+': (974, 0.2122845811559673, 0.30957942319108556)}
+  gt_pairing_ceiling {'1': (6019, 0.22369797957399903, 0.49506848561183797), '2': (3436, 0.1522368112770527, 0.909010301366556), '3+': (974, 0.07702245921880792, 0.11554417608462039)}
+  association {'1': (6019, 0.22369797957399903, 0.49506848561183797), '2': (3436, 0.18368380166451798, 0.8684078370385163), '3+': (974, 0.07729891185138013, 0.11730589968712803)}
+  events {'single_camera': {'predicted': 61, 'gt': 42, 'matched': 33}, 'gt_pairing_ceiling': {'predicted': 42, 'gt': 42, 'matched': 36}, 'association': {'predicted': 40, 'gt': 42, 'matched': 32}}
+  coupling {'coupling_distance_m': 0.8745296432336063, 'definition': 'median over tracklet points of REGION_K * stated sigma', 'nearest_other_below': {'pairs': 1, 'errors': 0}, 'nearest_other_at_or_above': {'pairs': 72, 'errors': 15}}
+wrote artifacts/day46/crosscam_pretrained_022.json

@@ -1,0 +1,19 @@
+Warehouse_020 {"pairs_judged_with_shared_frames": 6200, "true_pairs": 55, "accepted_directly": 21, "same_fused_identity": 21, "same_fused_identity_correct": 5, "precision": 0.23809523809523808, "recall": 0.09090909090909091, "verdicts": {"decisive": 207, "ambiguous": 19}, "fused_identities_with_2plus_tracklets": 20}
+  single_camera {'1': (50342, 0.3191653642604205, 23.30101634491427), '2': (3294, 0.21890874570413726, 2.0414678854938306), '3+': (0, None, None)}
+  gt_pairing_ceiling {'1': (50342, 0.3191653642604205, 23.30101634491427), '2': (3294, 0.09199243713083691, 0.2184495653689772), '3+': (0, None, None)}
+  association {'1': (50342, 0.3347607600574639, 23.55067267902586), '2': (3294, 0.21485528575741042, 2.0179682553781015), '3+': (0, None, None)}
+  events {'single_camera': {'predicted': 39, 'gt': 39, 'matched': 29}, 'gt_pairing_ceiling': {'predicted': 40, 'gt': 39, 'matched': 30}, 'association': {'predicted': 41, 'gt': 39, 'matched': 27}}
+  coupling {'coupling_distance_m': 3.5554593712726583, 'definition': 'median over tracklet points of REGION_K * stated sigma', 'nearest_other_below': {'pairs': 130, 'errors': 10}, 'nearest_other_at_or_above': {'pairs': 261, 'errors': 20}}
+Warehouse_000 {"pairs_judged_with_shared_frames": 11321, "true_pairs": 235, "accepted_directly": 59, "same_fused_identity": 62, "same_fused_identity_correct": 31, "precision": 0.5, "recall": 0.13191489361702127, "verdicts": {"decisive": 517, "ambiguous": 29}, "fused_identities_with_2plus_tracklets": 51}
+  single_camera {'1': (41991, 0.7789984786419432, 23.195993093446475), '2': (13957, 0.1814629355238575, 7.133339168773264), '3+': (17, 8.554288082842818, 23.737558812504524)}
+  gt_pairing_ceiling {'1': (41991, 0.7789984786419432, 23.195993093446475), '2': (13957, 0.10051881184743804, 0.195512291946603), '3+': (17, 0.07661338453183938, 0.11148337574361739)}
+  association {'1': (41991, 0.8720674281056039, 22.50528161131269), '2': (13957, 0.1490452959172724, 7.665360858800207), '3+': (17, 16.270839792407923, 23.737558812504524)}
+  events {'single_camera': {'predicted': 61, 'gt': 33, 'matched': 28}, 'gt_pairing_ceiling': {'predicted': 56, 'gt': 33, 'matched': 30}, 'association': {'predicted': 47, 'gt': 33, 'matched': 28}}
+  coupling {'coupling_distance_m': 4.365502490996147, 'definition': 'median over tracklet points of REGION_K * stated sigma', 'nearest_other_below': {'pairs': 458, 'errors': 52}, 'nearest_other_at_or_above': {'pairs': 721, 'errors': 111}}
+Warehouse_022 {"pairs_judged_with_shared_frames": 504, "true_pairs": 67, "accepted_directly": 27, "same_fused_identity": 33, "same_fused_identity_correct": 33, "precision": 1.0, "recall": 0.4925373134328358, "verdicts": {"decisive": 94, "ambiguous": 2}, "fused_identities_with_2plus_tracklets": 8}
+  single_camera {'1': (8036, 0.1262393810876788, 0.3558492565493878), '2': (3181, 0.21073931152272393, 0.7888363237161415), '3+': (1589, 0.16387960510137664, 0.2685544063447089)}
+  gt_pairing_ceiling {'1': (8036, 0.1262393810876788, 0.3558492565493878), '2': (3181, 0.1420351323667658, 1.3183103171838053), '3+': (1589, 0.07891290238709354, 0.11523918996182582)}
+  association {'1': (8036, 0.1262393810876788, 0.3558492565493878), '2': (3181, 0.1420351323667658, 1.3183103171838053), '3+': (1589, 0.07654503227928391, 0.12200544813094444)}
+  events {'single_camera': {'predicted': 79, 'gt': 48, 'matched': 48}, 'gt_pairing_ceiling': {'predicted': 53, 'gt': 48, 'matched': 48}, 'association': {'predicted': 53, 'gt': 48, 'matched': 48}}
+  coupling {'coupling_distance_m': 1.073873116931385, 'definition': 'median over tracklet points of REGION_K * stated sigma', 'nearest_other_below': {'pairs': 0, 'errors': 0}, 'nearest_other_at_or_above': {'pairs': 76, 'errors': 27}}
+wrote artifacts/day46/crosscam_oracle.json

@@ -1,0 +1,117 @@
+{
+  "label": "lane S synthetic (SmartSpaces), calibration given; geometry-only association; not evidence about real cameras",
+  "scenes": {
+    "Warehouse_022": {
+      "detector": "pretrained",
+      "detections_from": "outputs/runs/day44-c0aca5b/rtdetr_v2_s_gate-off_iou",
+      "frames_per_camera": 1800,
+      "detector_step": 1,
+      "tracklets": 85,
+      "association": {
+        "pairs_judged_with_shared_frames": 586,
+        "true_pairs": 47,
+        "accepted_directly": 26,
+        "same_fused_identity": 32,
+        "same_fused_identity_correct": 32,
+        "precision": 1.0,
+        "recall": 0.6808510638297872,
+        "verdicts": {
+          "decisive": 90,
+          "ambiguous": 1
+        },
+        "fused_identities_with_2plus_tracklets": 7
+      },
+      "position_error_by_views": {
+        "single_camera": {
+          "1": {
+            "n": 6019,
+            "p50_m": 0.22369797957399903,
+            "p90_m": 0.49506848561183797,
+            "p99_m": 2.357819154331817
+          },
+          "2": {
+            "n": 3436,
+            "p50_m": 0.205781450461134,
+            "p90_m": 0.4406998919634283,
+            "p99_m": 1.498235891750667
+          },
+          "3+": {
+            "n": 974,
+            "p50_m": 0.2122845811559673,
+            "p90_m": 0.30957942319108556,
+            "p99_m": 0.45415972284735295
+          }
+        },
+        "gt_pairing_ceiling": {
+          "1": {
+            "n": 6019,
+            "p50_m": 0.22369797957399903,
+            "p90_m": 0.49506848561183797,
+            "p99_m": 2.357819154331817
+          },
+          "2": {
+            "n": 3436,
+            "p50_m": 0.1522368112770527,
+            "p90_m": 0.909010301366556,
+            "p99_m": 41.99228545488422
+          },
+          "3+": {
+            "n": 974,
+            "p50_m": 0.07702245921880792,
+            "p90_m": 0.11554417608462039,
+            "p99_m": 0.149961818091745
+          }
+        },
+        "association": {
+          "1": {
+            "n": 6019,
+            "p50_m": 0.22369797957399903,
+            "p90_m": 0.49506848561183797,
+            "p99_m": 2.357819154331817
+          },
+          "2": {
+            "n": 3436,
+            "p50_m": 0.18368380166451798,
+            "p90_m": 0.8684078370385163,
+            "p99_m": 4.253649064168397
+          },
+          "3+": {
+            "n": 974,
+            "p50_m": 0.07729891185138013,
+            "p90_m": 0.11730589968712803,
+            "p99_m": 0.149961818091745
+          }
+        }
+      },
+      "events": {
+        "single_camera": {
+          "predicted": 61,
+          "gt": 42,
+          "matched": 33
+        },
+        "gt_pairing_ceiling": {
+          "predicted": 42,
+          "gt": 42,
+          "matched": 36
+        },
+        "association": {
+          "predicted": 40,
+          "gt": 42,
+          "matched": 32
+        }
+      },
+      "coupling_distance": {
+        "coupling_distance_m": 0.8745296432336063,
+        "definition": "median over tracklet points of REGION_K * stated sigma",
+        "nearest_other_below": {
+          "pairs": 1,
+          "errors": 0
+        },
+        "nearest_other_at_or_above": {
+          "pairs": 72,
+          "errors": 15
+        }
+      }
+    }
+  }
+}

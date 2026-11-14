@@ -221,7 +221,7 @@ def r6_fusion() -> dict[str, Any]:
 
 
 def main() -> int:
-    result = {
+    result: dict[str, Any] = {
         "label": "Day-44 recorded results, rules fixed in the Day-46 prompt",
         "R1": r1_schedule(),
         "R2": r2_tracker(),
