@@ -191,3 +191,26 @@ def test_events_outside_the_mask_are_unchanged_on_smartspaces(tmp_path: Path) ->
     assert not (outside - after), "an event outside the mask changed"
     other = Counter({k: n for k, n in after.items() if k[0] == CAMS[1]})
     assert other == Counter({k: n for k, n in outside.items() if k[0] == CAMS[1]})
+
+
+def test_a_mask_for_a_camera_the_run_lacks_is_refused(tmp_path: Path) -> None:
+    from tests.test_pipeline_slice import _synthetic
+
+    from src.pipeline.run import run
+
+    camera, factory, zones = _synthetic(tmp_path, n=5)
+    typo = ExclusionMask("cam_typo", "door", SQUARE)
+    masked = ZoneConfig(zones.site_id, zones.zones, zones.rules, masks=(typo,))
+    with pytest.raises(ValueError, match="cam_typo"):
+        run(
+            [camera],
+            factory,
+            "Person",
+            masked,
+            tmp_path / "run",
+            max_seconds=None,
+            progress=lambda _m: None,
+            gate_mode="off",
+            cache_root=tmp_path / "cache",
+            allow_dirty=True,
+        )

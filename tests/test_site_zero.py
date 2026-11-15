@@ -131,3 +131,53 @@ def test_notes_are_validated(tmp_path: Path) -> None:
     bad.write_text(head + "[{kind: on_mark, start_s: 0, end_s: 1}]}\n")
     with pytest.raises(ValueError, match="without a mark"):
         site_zero.load_notes(bad)
+
+
+def test_an_unexpected_entry_elsewhere_fails_the_match(tmp_path: Path) -> None:
+    """Events in a zone the notes did not list still count against them."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    run = tmp_path / "C"
+    (run / "cam").mkdir(parents=True)
+    (run / "manifest.json").write_text(
+        json.dumps(
+            {
+                "manifest_sha": "m",
+                "cameras": {"cam": {"fps": 10.0}},
+                "identity": {"person_label": "Person", "motion_gate": "off"},
+            }
+        )
+    )
+    np.savez(
+        run / "cam" / "detections.npz",
+        run_frames=np.arange(3),
+        frame=np.zeros(0, np.int64),
+        labels=np.array([], dtype=str),
+    )
+    pq.write_table(
+        pa.table(
+            {
+                c: pa.array([], t)
+                for c, t in (
+                    ("frame_index", pa.int64()),
+                    ("raw_x", pa.float64()),
+                    ("raw_y", pa.float64()),
+                    ("est_x", pa.float64()),
+                    ("est_y", pa.float64()),
+                )
+            }
+        ),
+        run / "tracks.parquet",
+    )
+    zone = {"kind": "zone", "id": "hall"}
+    pq.write_table(
+        pa.Table.from_pylist([{"verb": "entered", "zone": zone}]),
+        run / "events.parquet",
+    )
+    notes = {
+        "camera_id": "cam",
+        "clips": {"C": {"file": "C.mp4", "expected_events": {"room": {}}}},
+    }
+    report = site_zero.site_zero_report({"C": run}, notes, {})
+    assert report["entries_exits"]["C"]["matches"] is False

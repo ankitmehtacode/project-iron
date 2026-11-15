@@ -735,6 +735,14 @@ def run(
     all_points: list[TrackPoint] = []
     per_camera: dict[str, Any] = {}
     detector_name = ""
+    unknown = sorted(
+        {m.camera_id for m in zones.masks} - {c.camera_id for c in cameras}
+    )
+    if unknown:
+        raise ValueError(
+            f"exclusion masks name cameras this run does not have: {unknown}; "
+            "a mask that matches nothing would suppress nothing and say nothing"
+        )
     for camera in cameras:
         progress(f"{camera.camera_id}: gate + detector on {camera.video.name}")
         started = time.perf_counter()
@@ -753,6 +761,9 @@ def run(
             progress=progress,
             detector_step=detector_step,
         )
+        # detections.npz keeps what the detector reported, masked boxes
+        # included; tracks and events see only what survives the masks, and
+        # the difference is suppressed_by_mask in the manifest.
         detections.save(out_dir / camera.camera_id / "detections.npz")
         detect_s = time.perf_counter() - started
         detections, suppressed = apply_exclusion_masks(

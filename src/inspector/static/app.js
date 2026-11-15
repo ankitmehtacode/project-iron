@@ -806,12 +806,15 @@ async function floorPlot() {
     panel.append(el("p", "note", "The run wrote no track points."));
     return panel;
   }
-  const xs = [], ys = [];
-  data.points.forEach((p) => { xs.push(p[3]); ys.push(p[4]); });
-  data.zones.forEach((z) => z.polygon.forEach(([x, y]) => { xs.push(x); ys.push(y); }));
+  // a loop, not Math.min(...array): spreading 100k+ points throws RangeError
+  let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity, tMax = 0;
+  const grow = (x, y) => {
+    x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y);
+  };
+  data.points.forEach((p) => { grow(p[3], p[4]); tMax = Math.max(tMax, p[2]); });
+  data.zones.forEach((z) => z.polygon.forEach(([x, y]) => grow(x, y)));
   const pad = 1;
-  const x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + pad;
-  const y0 = Math.min(...ys) - pad, y1 = Math.max(...ys) + pad;
+  x0 -= pad; x1 += pad; y0 -= pad; y1 += pad;
   const W = 720, H = Math.max(240, Math.round(W * (y1 - y0) / Math.max(x1 - x0, 1e-6)));
   const sx = (x) => ((x - x0) / (x1 - x0)) * W;
   const sy = (y) => H - ((y - y0) / (y1 - y0)) * H;  // world y up
@@ -844,7 +847,6 @@ async function floorPlot() {
     line.append(t); svg.append(line);
     lines.push([line, pts]);
   });
-  const tMax = Math.max(...data.points.map((p) => p[2]));
   const slider = el("input");
   slider.type = "range"; slider.min = 0; slider.max = tMax; slider.value = tMax;
   slider.setAttribute("aria-label", "video time shown");

@@ -15,9 +15,10 @@ in video seconds; ``expected_events`` is ``{zone: {entered: n, exited: n}}``.
 (product defaults: motion gate on, IoU-only tracker, detector every frame),
 then :func:`site_zero_report`. The only thing the caller chooses is the
 detector: RT-DETRv2-S for the real capture, the oracle over the stand-in's
-known boxes for the synthetic one. Nothing else differs, and
-``tests/test_site_zero.py`` fails if the two entry points stop sharing this
-function.
+known boxes for the synthetic one. The synthetic run also passes a
+temporary detection cache and ``allow_dirty`` (its manifest records the dirty
+tree); everything else is shared, and ``tests/test_site_zero.py`` fails if
+the two entry points stop calling this function.
 
 Rules fixed before any data exists:
 
@@ -218,11 +219,11 @@ def site_zero_report(
             "observed": counted,
             "matches": (
                 all(
-                    counted.get(z, {}).get(v, 0) == n
-                    for z, verbs in expected.items()
-                    for v, n in verbs.items()
+                    counted.get(z, {}).get(v, 0) == expected.get(z, {}).get(v, 0)
+                    for z in set(counted) | set(expected)
+                    for v in ("entered", "exited")
                 )
-                if expected
+                if "expected_events" in clip
                 else None
             ),
             "events_total": len(rows),
