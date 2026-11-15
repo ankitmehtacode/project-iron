@@ -248,6 +248,46 @@ def read_events(artifacts: Artifacts) -> dict[str, Any] | Absent:
     return {"_source": artifacts.relative(artifacts.events_path), "rows": rows}
 
 
+def read_tracks(artifacts: Artifacts) -> dict[str, Any] | Absent:
+    """A run's track points as floor coordinates over time (Day 46).
+
+    Coordinates only: camera, track, video time and the reported floor
+    position (the run's ``reported_position``, raw projection from Day 46).
+    No frame and no box image is served. The zones come from the run's own
+    manifest, so the plot shows the zones the events were compiled against.
+    """
+    produced_by = "python -m iron run --video V --calibration C --out DIR"
+    if artifacts.run_dir is None:
+        return Absent(what="slice run", looked_for="--run DIR", produced_by=produced_by)
+    path = artifacts.run_dir / "tracks.parquet"
+    manifest_path = artifacts.run_dir / "manifest.json"
+    if not path.exists() or not manifest_path.exists():
+        return Absent(
+            what="track points",
+            looked_for=artifacts.relative(path),
+            produced_by=produced_by,
+        )
+    import pyarrow.parquet as pq
+
+    identity = json.loads(manifest_path.read_text()).get("identity", {})
+    reported = identity.get("reported_position", "estimator")
+    xs, ys = ("raw_x", "raw_y") if reported == "raw" else ("est_x", "est_y")
+    table = pq.read_table(path, columns=["camera_id", "track_id", "ts_ns", xs, ys])
+    cols = table.to_pydict()
+    return {
+        "_source": artifacts.relative(path),
+        "reported_position": reported,
+        "zones": identity.get("zones", {}).get("zones", []),
+        "points": [
+            [c, int(t), int(ts), x, y]
+            for c, t, ts, x, y in zip(
+                cols["camera_id"], cols["track_id"], cols["ts_ns"], cols[xs], cols[ys]
+            )
+            if x is not None and y is not None
+        ],
+    }
+
+
 def read_run(artifacts: Artifacts) -> dict[str, Any] | Absent:
     """A slice run's manifest and every evaluation of it, newest first."""
     produced_by = "python -m iron inspect --run DIR (DIR from python -m iron run)"

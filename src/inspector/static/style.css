@@ -393,3 +393,11 @@ td.assoc-pruned { font-style: italic; }
 @media (prefers-reduced-motion: reduce) {
   * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* floor plot (Day 46): page tokens, so it follows the light and dark themes */
+.floorplot { width: 100%; max-width: 720px; height: auto; border: 1px solid var(--rule); background: var(--bg); }
+.floorplot .zone { fill: none; stroke: var(--rule-strong); stroke-width: 1; stroke-dasharray: 4 3; }
+.floorplot .track { fill: none; stroke-width: 1.5; }
+.floorplot .cam0 { stroke: #2f7fd1; } .floorplot .cam1 { stroke: #d1503f; }
+.floorplot .cam2 { stroke: #2e9e5b; } .floorplot .cam3 { stroke: #9b59c4; }
+.floorplot .cam4 { stroke: #d9822b; } .floorplot .cam5 { stroke: var(--ink-faint); }

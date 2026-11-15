@@ -930,3 +930,57 @@ def test_a_slice_run_is_viewable(tmp_path: Path) -> None:
     assert status == 200
     assert payload["manifest"] == {"manifest_sha": "m"}
     assert [e["label"] for e in payload["evals"]] == ["synthetic"]
+
+
+def test_a_run_s_tracks_are_served_as_floor_coordinates(tmp_path: Path) -> None:
+    """Day 46: /api/tracks serves a run's track points as camera, track,
+    video time and the reported floor position (raw from Day 46), plus the
+    run's own zones. Coordinates only: no frame, no box image."""
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    base = art.Artifacts(
+        project_root=tmp_path,
+        scorecards_dir=tmp_path / "s",
+        golden_dir=tmp_path / "g",
+        envelope_path=tmp_path / "e.json",
+        data_dir=tmp_path / "data",
+        events_path=tmp_path / "events.parquet",
+        associations_dir=tmp_path / "a",
+        coverage_queries_dir=tmp_path / "c",
+    )
+    status, payload = call(base, "/api/tracks")
+    assert status == 404 and payload["absent"] is True
+
+    run_dir = tmp_path / "run"
+    run_dir.mkdir()
+    zone = {"name": "z", "polygon": [[0, 0], [1, 0], [1, 1]]}
+    (run_dir / "manifest.json").write_text(
+        json.dumps(
+            {"identity": {"reported_position": "raw", "zones": {"zones": [zone]}}}
+        )
+    )
+    status, payload = call(base.with_run(run_dir), "/api/tracks")
+    assert status == 404 and payload["absent"] is True  # no tracks.parquet yet
+
+    pq.write_table(
+        pa.table(
+            {
+                "camera_id": ["c0", "c0"],
+                "track_id": pa.array([1, 1], pa.int64()),
+                "ts_ns": pa.array([0, 100], pa.int64()),
+                "raw_x": [1.0, 2.0],
+                "raw_y": [3.0, 4.0],
+                "est_x": [9.0, 9.0],
+                "est_y": [9.0, 9.0],
+                "x0": [0.0, 0.0],
+            }
+        ),
+        run_dir / "tracks.parquet",
+    )
+    status, payload = call(base.with_run(run_dir), "/api/tracks")
+    assert status == 200
+    assert payload["reported_position"] == "raw"
+    assert payload["points"] == [["c0", 1, 0, 1.0, 3.0], ["c0", 1, 100, 2.0, 4.0]]
+    assert payload["zones"] == [zone]
+    assert set(payload) == {"_source", "reported_position", "zones", "points"}

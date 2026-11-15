@@ -74,6 +74,9 @@ def build_routes(store: art.Artifacts) -> list[tuple[re.Pattern[str], Callable]]
     def run(_: re.Match[str], __: dict[str, list[str]]):
         return json_response(art.read_run(store))
 
+    def tracks(_: re.Match[str], __: dict[str, list[str]]):
+        return json_response(art.read_tracks(store))
+
     def provenance(_: re.Match[str], __: dict[str, list[str]]):
         return json_response(art.provenance(store))
 
@@ -106,6 +109,7 @@ def build_routes(store: art.Artifacts) -> list[tuple[re.Pattern[str], Callable]]
         (re.compile(r"^/api/golden$"), golden),
         (re.compile(r"^/api/events$"), events),
         (re.compile(r"^/api/run$"), run),
+        (re.compile(r"^/api/tracks$"), tracks),
         (re.compile(r"^/api/provenance$"), provenance),
         (re.compile(r"^/api/associations$"), associations),
         (re.compile(r"^/api/association/(?P<component>[\w.\-]+)$"), association),

@@ -766,6 +766,7 @@ async function viewRun(root) {
     ])));
   panel.append(el("p", "note", `source: ${data._source}`));
   root.append(panel);
+  root.append(await floorPlot());
 
   (data.evals || []).forEach((ev) => {
     const p = el("div", "panel");
@@ -791,6 +792,77 @@ async function viewRun(root) {
     p.append(el("p", "note", `source: ${ev._source}`));
     root.append(p);
   });
+}
+
+/* Tracks on the floor (Day 46): coordinates only, never a video frame. Each
+ * track is a polyline in world metres; the slider shows the points up to a
+ * video time, so the plot reads as tracks over time. Zones are the run's own. */
+async function floorPlot() {
+  const panel = el("div", "panel");
+  panel.append(el("h3", null, "Tracks on the floor"));
+  const data = await api("/api/tracks");
+  if (data.absent) { panel.append(absentBlock(data)); return panel; }
+  if (!data.points.length) {
+    panel.append(el("p", "note", "The run wrote no track points."));
+    return panel;
+  }
+  const xs = [], ys = [];
+  data.points.forEach((p) => { xs.push(p[3]); ys.push(p[4]); });
+  data.zones.forEach((z) => z.polygon.forEach(([x, y]) => { xs.push(x); ys.push(y); }));
+  const pad = 1;
+  const x0 = Math.min(...xs) - pad, x1 = Math.max(...xs) + pad;
+  const y0 = Math.min(...ys) - pad, y1 = Math.max(...ys) + pad;
+  const W = 720, H = Math.max(240, Math.round(W * (y1 - y0) / Math.max(x1 - x0, 1e-6)));
+  const sx = (x) => ((x - x0) / (x1 - x0)) * W;
+  const sy = (y) => H - ((y - y0) / (y1 - y0)) * H;  // world y up
+  const NS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(NS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.setAttribute("class", "floorplot");
+  svg.setAttribute("role", "img");
+  svg.setAttribute("aria-label", `floor plot of ${data.points.length} track points`);
+  data.zones.forEach((z) => {
+    const poly = document.createElementNS(NS, "polygon");
+    poly.setAttribute("points", z.polygon.map(([x, y]) => `${sx(x)},${sy(y)}`).join(" "));
+    poly.setAttribute("class", "zone");
+    const t = document.createElementNS(NS, "title"); t.textContent = `zone ${z.name}`;
+    poly.append(t); svg.append(poly);
+  });
+  const tracks = new Map();
+  data.points.forEach((p) => {
+    const key = `${p[0]}/t${p[1]}`;
+    if (!tracks.has(key)) tracks.set(key, []);
+    tracks.get(key).push(p);
+  });
+  const cams = [...new Set(data.points.map((p) => p[0]))].sort();
+  const lines = [];
+  tracks.forEach((pts, key) => {
+    pts.sort((a, b) => a[2] - b[2]);
+    const line = document.createElementNS(NS, "polyline");
+    line.setAttribute("class", `track cam${cams.indexOf(pts[0][0]) % 6}`);
+    const t = document.createElementNS(NS, "title"); t.textContent = key;
+    line.append(t); svg.append(line);
+    lines.push([line, pts]);
+  });
+  const tMax = Math.max(...data.points.map((p) => p[2]));
+  const slider = el("input");
+  slider.type = "range"; slider.min = 0; slider.max = tMax; slider.value = tMax;
+  slider.setAttribute("aria-label", "video time shown");
+  const label = el("span", "note");
+  const draw = () => {
+    const t = Number(slider.value);
+    lines.forEach(([line, pts]) => {
+      line.setAttribute("points", pts.filter((p) => p[2] <= t)
+        .map((p) => `${sx(p[3])},${sy(p[4])}`).join(" "));
+    });
+    label.textContent = ` up to ${(t / 1e9).toFixed(1)} s of video`;
+  };
+  slider.addEventListener("input", draw);
+  draw();
+  panel.append(svg, slider, label);
+  panel.append(el("p", "note",
+    `${tracks.size} tracks · position: ${data.reported_position} · cameras: ${cams.join(", ")} · source: ${data._source}`));
+  return panel;
 }
 
 /* --- view: association / identity --------------------------------------- */
