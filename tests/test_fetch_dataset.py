@@ -428,7 +428,7 @@ def _stub_hf_config(
     monkeypatch.setattr(
         fetch_dataset,
         "_fetch_hf_file",
-        lambda repo_id, commit_sha, path, token, destination, on_progress=None, kind="dataset": (
+        lambda repo_id, commit_sha, path, token, destination, on_progress=None, kind="dataset": (  # noqa: E501 - black keeps this on one line
             destination.write_bytes(content_by_path[path])
         ),
     )
@@ -488,7 +488,7 @@ def test_hf_fetch_hash_mismatch_deletes_and_refuses(
     monkeypatch.setattr(
         fetch_dataset,
         "_fetch_hf_file",
-        lambda repo_id, commit_sha, path, token, destination, on_progress=None, kind="dataset": (
+        lambda repo_id, commit_sha, path, token, destination, on_progress=None, kind="dataset": (  # noqa: E501 - black keeps this on one line
             destination.write_bytes(b"corrupted in transit")
         ),
     )

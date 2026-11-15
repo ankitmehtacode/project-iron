@@ -31,7 +31,6 @@ probe's numbers as a floor on render-stage cost, not a prediction of it.
 from __future__ import annotations
 
 import argparse
-import sys
 
 
 def main(argv: list[str] | None = None) -> int:

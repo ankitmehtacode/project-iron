@@ -80,7 +80,7 @@ class MinimalRtspServer:
             lines = header_blob.decode("iso-8859-1").split("\r\n")
             method = lines[0].split(" ")[0]
             cseq_line = next(
-                (l for l in lines if l.lower().startswith("cseq")), "CSeq: 1"
+                (line for line in lines if line.lower().startswith("cseq")), "CSeq: 1"
             )
             cseq = cseq_line.split(":", 1)[1].strip()
 
@@ -96,12 +96,15 @@ class MinimalRtspServer:
                 self._respond(
                     conn,
                     cseq,
-                    extra=f"Content-Type: application/sdp\r\nContent-Length: {len(sdp)}\r\n",
+                    extra=(
+                        "Content-Type: application/sdp\r\n"
+                        f"Content-Length: {len(sdp)}\r\n"
+                    ),
                     body=sdp,
                 )
             elif method == "SETUP":
                 transport_line = next(
-                    l for l in lines if l.lower().startswith("transport")
+                    line for line in lines if line.lower().startswith("transport")
                 )
                 requested = transport_line.split(":", 1)[1].strip()
                 match = re.search(r"interleaved=(\d+)-(\d+)", requested)
@@ -109,7 +112,10 @@ class MinimalRtspServer:
                 self._respond(
                     conn,
                     cseq,
-                    extra=f"Transport: RTP/AVP/TCP;unicast;{channels}\r\nSession: TESTSESSION\r\n",
+                    extra=(
+                        f"Transport: RTP/AVP/TCP;unicast;{channels}\r\n"
+                        "Session: TESTSESSION\r\n"
+                    ),
                 )
             elif method == "PLAY":
                 self._respond(

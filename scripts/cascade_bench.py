@@ -525,7 +525,9 @@ def main(argv: list[str] | None = None) -> int:
                 "scenario_speedups": scenario_speedups,
                 "measured_stack": current_stack_string(),
                 "config_sha": config.config_sha(),
-                "gate_resolution": f"{config.cascade.gate_width}x{config.cascade.gate_height}",
+                "gate_resolution": (
+                    f"{config.cascade.gate_width}x{config.cascade.gate_height}"
+                ),
                 "source_resolution": f"{args.width}x{args.height}",
                 "fps": args.fps,
             }

@@ -220,14 +220,18 @@ def main(argv: list[str] | None = None) -> int:
                         os.fsync(cache.fileno())
                         done[(scene, cam, f, mode)] = r
                     print(
-                        f"{scene}/{cam} frame {f}: {len(done)} of {len(frames) * len(modes)}",
+                        f"{scene}/{cam} frame {f}: "
+                        f"{len(done)} of {len(frames) * len(modes)}",
                         flush=True,
                     )
                 cap.release()
     result = score(frames, done, modes)
     result["accepts_1280"] = accepts_1280 or {
         "accepted": any(k[3] == "full_1280" for k in done),
-        "how": "the model ran on a 1280x1280 input and returned boxes; see full_1280 rows",
+        "how": (
+            "the model ran on a 1280x1280 input and returned boxes; "
+            "see full_1280 rows"
+        ),
     }
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(result, indent=2) + "\n")

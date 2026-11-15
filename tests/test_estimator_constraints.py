@@ -446,7 +446,8 @@ def test_every_twin_dependent_predicate_is_unevaluable_without_geometry(
 @pytest.mark.parametrize("factory", TWIN_DEPENDENT_CONSTRAINT_FACTORIES)
 def test_unevaluable_is_not_satisfied_and_not_a_violation(factory: object) -> None:
     """The whole structural point: three outcomes, not two-plus-a-guess."""
-    outcome = evaluate_constraint(factory(4), ORIGIN, ONE_METRE_EAST)  # type: ignore[operator]
+    constraint = factory(4)  # type: ignore[operator]
+    outcome = evaluate_constraint(constraint, ORIGIN, ONE_METRE_EAST)
     assert not isinstance(outcome, Satisfied)
     assert not isinstance(outcome, TwinRevisionHypothesis)
     assert not isinstance(outcome, HardConstraintViolation)

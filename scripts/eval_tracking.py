@@ -224,7 +224,8 @@ def main(argv: list[str] | None = None) -> int:
             "Install with:\n"
             "    pip install -r locking-requirements.txt\n"
             "or, for just this dep:\n"
-            "    pip install einops 'git+https://github.com/facebookresearch/co-tracker.git@<sha>'",
+            "    pip install einops "
+            "'git+https://github.com/facebookresearch/co-tracker.git@<sha>'",
             file=sys.stderr,
         )
         return 2
@@ -312,7 +313,8 @@ def main(argv: list[str] | None = None) -> int:
         scored.append(result)
         if result.get("scored"):
             print(
-                f"  {clip.clip_id}: pts<avg={result['all_frames']['pts_within_avg']:.3f} "
+                f"  {clip.clip_id}: "
+                f"pts<avg={result['all_frames']['pts_within_avg']:.3f} "
                 f"OA={result['all_frames']['occlusion_accuracy']:.3f} "
                 f"AJ={result['all_frames']['average_jaccard']:.3f} "
                 f"(N={result['n_queries']} queries, T={result['n_frames']} frames)"

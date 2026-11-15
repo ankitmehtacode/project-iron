@@ -111,8 +111,8 @@ def render_scene(
         f"execute_tasks.generate_resolution=[{width},{height}]",
         f"configure_render_cycles.num_samples={samples}",
         f"configure_render_cycles.min_samples={samples}",
-        f"configure_render_cycles.adaptive_threshold=0.1",
-        f"compose_indoors.terrain_enabled=False",
+        "configure_render_cycles.adaptive_threshold=0.1",
+        "compose_indoors.terrain_enabled=False",
     ]
     print("running (cwd=", site_packages, "):", " ".join(cmd))
     return subprocess.run(cmd, capture_output=True, text=True, cwd=site_packages)

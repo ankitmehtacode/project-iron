@@ -52,7 +52,8 @@ WS_DISCOVERY_MULTICAST_ADDR = "239.255.255.250"
 WS_DISCOVERY_PORT = 3702
 _WS_DISCOVERY_TIMEOUT_S = 4.0
 
-_PROBE_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
+_PROBE_TEMPLATE = (
+    """<?xml version="1.0" encoding="UTF-8"?>
 <e:Envelope xmlns:e="http://www.w3.org/2003/05/soap-envelope"
             xmlns:w="http://schemas.xmlsoap.org/ws/2004/08/addressing"
             xmlns:d="http://schemas.xmlsoap.org/ws/2005/04/discovery"
@@ -60,7 +61,9 @@ _PROBE_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
   <e:Header>
     <w:MessageID>uuid:{message_id}</w:MessageID>
     <w:To e:mustUnderstand="true">urn:schemas-xmlsoap-org:ws:2005:04:discovery</w:To>
-    <w:Action e:mustUnderstand="true">http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe</w:Action>
+    <w:Action e:mustUnderstand="true">"""
+    "http://schemas.xmlsoap.org/ws/2005/04/discovery/Probe"
+    """</w:Action>
   </e:Header>
   <e:Body>
     <d:Probe>
@@ -68,6 +71,7 @@ _PROBE_TEMPLATE = """<?xml version="1.0" encoding="UTF-8"?>
     </d:Probe>
   </e:Body>
 </e:Envelope>"""
+)
 
 _CREDENTIAL_PATTERN = re.compile(r"(rtsp://)([^/@]+)@")
 
@@ -329,7 +333,8 @@ def main(argv: list[str] | None = None) -> int:
         )
     else:
         print(
-            f"WS-Discovery probe (multicast {WS_DISCOVERY_MULTICAST_ADDR}:{WS_DISCOVERY_PORT})..."
+            "WS-Discovery probe "
+            f"(multicast {WS_DISCOVERY_MULTICAST_ADDR}:{WS_DISCOVERY_PORT})..."
         )
         found = ws_discover()
         print(f"{len(found)} device(s) responded")
@@ -392,7 +397,8 @@ def main(argv: list[str] | None = None) -> int:
                     else "?"
                 )
                 print(
-                    f"    {profile.name:20} {res:12} {profile.codec or '?':8} {profile.fps or '?'}fps  {profile.rtsp_uri_masked}"
+                    f"    {profile.name:20} {res:12} {profile.codec or '?':8} "
+                    f"{profile.fps or '?'}fps  {profile.rtsp_uri_masked}"
                 )
             manifest["devices"].append(
                 {

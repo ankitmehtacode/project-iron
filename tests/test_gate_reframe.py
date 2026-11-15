@@ -360,7 +360,7 @@ def test_undefined_metric_renders_as_undefined_never_as_a_number() -> None:
     assert value == {"undefined": True, "reason": "no moving frames in denominator"}
 
 
-def test_gate_rates_from_totals_recall_retained_is_undefined_with_zero_moving_frames() -> (
+def test_gate_rates_from_totals_recall_retained_is_undefined_with_zero_moving_frames() -> (  # noqa: E501 - black keeps this on one line
     None
 ):
     """Applied per condition bucket, not only in the aggregate (Day 18):
@@ -391,7 +391,7 @@ def test_gate_rates_from_totals_recall_retained_is_undefined_with_zero_moving_fr
     assert rates["wake_fraction"] == pytest.approx(0.0)
 
 
-def test_gate_rates_from_totals_recall_retained_is_a_real_number_when_moving_frames_exist() -> (
+def test_gate_rates_from_totals_recall_retained_is_a_real_number_when_moving_frames_exist() -> (  # noqa: E501 - black keeps this on one line
     None
 ):
     totals = {

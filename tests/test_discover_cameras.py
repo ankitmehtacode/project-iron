@@ -10,7 +10,7 @@ credential, which are exactly the two places a mistake would be silent.
 
 from __future__ import annotations
 
-from discover_cameras import DiscoveredDevice, _parse_probe_match, mask_credentials
+from discover_cameras import _parse_probe_match, mask_credentials
 
 
 def test_mask_credentials_hides_user_and_password() -> None:

@@ -81,10 +81,10 @@ from src.contracts.ground_truth import (  # noqa: E402
     gt_position_track,
 )
 from src.data.golden import GoldenSetError, load_golden_set  # noqa: E402
-from src.estimator.motion_model import (
+from src.estimator.motion_model import (  # noqa: E402
     PERSON_SIGMA_A_MPS2,
     motion_model_for,
-)  # noqa: E402
+)
 from src.estimator.motion_model import PEDESTRIAN_STOP_DURATION_S  # noqa: E402
 from src.estimator.regime import classify_track  # noqa: E402
 

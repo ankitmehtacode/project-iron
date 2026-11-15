@@ -144,11 +144,10 @@ def main(argv: list[str] | None = None) -> int:
         return 1
 
     if not args.main_capture.exists() or not args.sub_capture.exists():
-        print(
-            f"capture file missing: "
-            f"{args.main_capture if not args.main_capture.exists() else args.sub_capture}",
-            file=sys.stderr,
+        missing = (
+            args.main_capture if not args.main_capture.exists() else args.sub_capture
         )
+        print(f"capture file missing: {missing}", file=sys.stderr)
         return 1
 
     main_frames = np.load(args.main_capture)["rgb"]
@@ -192,14 +191,17 @@ def main(argv: list[str] | None = None) -> int:
     variance_delta = mog2_variance_delta(main_frames, sub_frames)
 
     print(
-        f"main : {main_result.wake_rate:.3f} wake rate, {main_result.total_seconds*1000:.1f} ms total"
+        f"main : {main_result.wake_rate:.3f} wake rate, "
+        f"{main_result.total_seconds*1000:.1f} ms total"
     )
     print(
-        f"sub  : {sub_result.wake_rate:.3f} wake rate, {sub_result.total_seconds*1000:.1f} ms total"
+        f"sub  : {sub_result.wake_rate:.3f} wake rate, "
+        f"{sub_result.total_seconds*1000:.1f} ms total"
     )
     print(f"wake-decision parity: {agreement:.3%}")
     print(
-        f"cost ratio (sub/main): {cost_ratio:.3f} ({'cheaper' if cost_ratio < 1 else 'not cheaper'})"
+        f"cost ratio (sub/main): {cost_ratio:.3f} "
+        f"({'cheaper' if cost_ratio < 1 else 'not cheaper'})"
     )
     if variance_delta is not None:
         print(f"frame-diff variance delta (sub - main): {variance_delta:+.4f}")

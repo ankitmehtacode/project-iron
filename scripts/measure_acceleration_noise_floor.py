@@ -569,7 +569,8 @@ def _print_report(report: dict[str, Any]) -> None:
     )
     print(f"  PERSON_SIGMA_A_MPS2 = {PERSON_SIGMA_A_MPS2:.4f} m/s^2")
     print(
-        f"  SNR (PERSON_SIGMA_A_MPS2 / noise floor) = {report['snr_vs_person_sigma_a']:.4f}"
+        "  SNR (PERSON_SIGMA_A_MPS2 / noise floor) = "
+        f"{report['snr_vs_person_sigma_a']:.4f}"
     )
     print("  per-regime SNR (regime's own mean GT |accel| / noise floor):")
     for regime, value in report["transient_regime_snr"].items():

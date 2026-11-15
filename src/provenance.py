@@ -240,7 +240,7 @@ def current_stack_string() -> str:
     from importlib.metadata import PackageNotFoundError, version
 
     try:
-        import cv2
+        import cv2  # noqa: F401 - availability probe; the version comes from metadata
 
         try:
             cv2_version = version("opencv-python-headless")
@@ -250,7 +250,10 @@ def current_stack_string() -> str:
         cv2_version = "not installed"
 
     versions = library_versions()
-    return f"opencv {cv2_version} / numpy {versions['numpy']} / python {versions['python']}"
+    return (
+        f"opencv {cv2_version} / numpy {versions['numpy']} "
+        f"/ python {versions['python']}"
+    )
 
 
 def cpu_description() -> str:

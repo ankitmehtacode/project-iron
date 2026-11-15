@@ -123,7 +123,8 @@ def main() -> int:
     finally:
         server.stop()
     print(
-        f"  PASS: negotiated TCP-interleaved transport, {len(ingest_frames)} frames demuxed"
+        "  PASS: negotiated TCP-interleaved transport, "
+        f"{len(ingest_frames)} frames demuxed"
     )
 
     print("\n[3/6] decoded frames (cv2.imdecode on each frame's payload)")
@@ -136,7 +137,8 @@ def main() -> int:
         decoded.append(cv2.cvtColor(arr, cv2.COLOR_BGR2RGB))
     if len(decoded) == len(ingest_frames) and decoded:
         print(
-            f"  PASS: {len(decoded)}/{len(ingest_frames)} frames decoded, shape {decoded[0].shape}"
+            f"  PASS: {len(decoded)}/{len(ingest_frames)} frames decoded, "
+            f"shape {decoded[0].shape}"
         )
     else:
         print(f"  FAIL: {len(decoded)}/{len(ingest_frames)} frames decoded")
@@ -171,13 +173,15 @@ def main() -> int:
         and gaps[0].observed_seq == 5
         and gaps[0].gap_count == 2
     ):
-        print(f"  PASS: FrameGap(expected=3, observed=5, gap_count=2) detected")
+        print("  PASS: FrameGap(expected=3, observed=5, gap_count=2) detected")
     else:
         failures.append(f"expected exactly one FrameGap(3->5); got {gaps}")
         print(f"  FAIL: {gaps}")
     if len(coverage_gaps) == 1 and coverage_gaps[0].reason == "dropped_frame":
         print(
-            f"  PASS: projects into Coverage.Gap(reason={coverage_gaps[0].reason!r}, camera_id={coverage_gaps[0].camera_id!r})"
+            "  PASS: projects into Coverage.Gap("
+            f"reason={coverage_gaps[0].reason!r}, "
+            f"camera_id={coverage_gaps[0].camera_id!r})"
         )
     else:
         failures.append("FrameGap did not project into exactly one Coverage.Gap")
@@ -226,7 +230,8 @@ def main() -> int:
         json.dumps(manifest, indent=2, sort_keys=True, default=str) + "\n"
     )
     print(
-        f"  PASS: lane C manifest, conditions={[c.value for c in conditions]} -> {manifest_path}"
+        "  PASS: lane C manifest, "
+        f"conditions={[c.value for c in conditions]} -> {manifest_path}"
     )
 
     print("\n" + "=" * 78)

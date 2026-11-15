@@ -38,7 +38,9 @@ RTCP_SR_PACKET_TYPE = 200
 """RFC 3550 §12.1: PT=200 identifies a Sender Report packet."""
 
 _SR_FIXED_HEADER_LEN = 4  # V/P/RC byte, PT byte, 2-byte length
-_SR_SENDER_INFO_LEN = 20  # SSRC(4) + NTP MSW(4) + NTP LSW(4) + RTP ts(4) + pkt count(4) + octet count(4) - SSRC counted separately below
+# SSRC(4) + NTP MSW(4) + NTP LSW(4) + RTP ts(4) + pkt count(4) + octet count(4)
+# - SSRC counted separately below
+_SR_SENDER_INFO_LEN = 20
 _SR_MIN_LEN = 28  # header(4) + SSRC(4) + sender info(20)
 
 

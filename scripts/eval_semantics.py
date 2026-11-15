@@ -352,7 +352,9 @@ def run_gap_sweep(
             results[k] = {
                 "n_pairs": 0,
                 "n_pool": int(pool_embs.shape[0]),
-                "note": "no track crossed a patch boundary between frame 0 and this gap",
+                "note": (
+                    "no track crossed a patch boundary between frame 0 and this gap"
+                ),
             }
             continue
 
@@ -501,7 +503,8 @@ def main(argv: list[str] | None = None) -> int:
     per_gap_report = {}
     print("\n---- per-gap results ----")
     print(
-        f"{'gap':>5} {'pairs':>6} {'pool':>6} {'mAP':>8} {'baseline':<24} {'margin':>9}  {'delta(fix-prefix)':>18}"
+        f"{'gap':>5} {'pairs':>6} {'pool':>6} {'mAP':>8} {'baseline':<24} "
+        f"{'margin':>9}  {'delta(fix-prefix)':>18}"
     )
     for k in gaps:
         f = fixed.get(k, {})
@@ -509,7 +512,8 @@ def main(argv: list[str] | None = None) -> int:
         n_pairs = f.get("n_pairs", 0)
         if n_pairs == 0:
             print(
-                f"{k:>5} {0:>6}   -- no surviving cross-boundary pairs --  ({f.get('note', '')})"
+                f"{k:>5} {0:>6}   -- no surviving cross-boundary pairs --  "
+                f"({f.get('note', '')})"
             )
             per_gap_report[k] = {"standardised": f, "prefix": p}
             continue

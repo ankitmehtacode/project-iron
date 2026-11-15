@@ -218,14 +218,16 @@ def test_server_refusing_tcp_is_not_silently_downgraded_to_udp() -> None:
                 lines = header_blob.decode("iso-8859-1").split("\r\n")
                 method = lines[0].split(" ")[0]
                 cseq = (
-                    next(l for l in lines if l.lower().startswith("cseq"))
+                    next(line for line in lines if line.lower().startswith("cseq"))
                     .split(":", 1)[1]
                     .strip()
                 )
                 if method == "SETUP":
                     conn.sendall(
-                        f"RTSP/1.0 200 OK\r\nCSeq: {cseq}\r\n"
-                        f"Transport: RTP/AVP;unicast;client_port=5000-5001\r\n\r\n".encode()
+                        (
+                            f"RTSP/1.0 200 OK\r\nCSeq: {cseq}\r\n"
+                            "Transport: RTP/AVP;unicast;client_port=5000-5001\r\n\r\n"
+                        ).encode()
                     )
                 else:
                     conn.sendall(f"RTSP/1.0 200 OK\r\nCSeq: {cseq}\r\n\r\n".encode())

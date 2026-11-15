@@ -22,7 +22,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from src.data.scorecard import Metric, _metric_with_baselines, _strongest_baseline
+from src.data.scorecard import _metric_with_baselines
 from src.data.scorecard import OBSERVABILITY_INSTANCE_MASK  # noqa: E402
 from src.eval.baselines import (
     Baseline,
@@ -30,7 +30,6 @@ from src.eval.baselines import (
     _Registry,
     compute_baselines,
     margin,
-    register_baseline,
     require_baseline,
 )
 
