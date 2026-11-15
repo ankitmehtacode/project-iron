@@ -48,7 +48,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from cascade_frontier import oracle_frames, read_cache, video_props  # noqa: E402
+from cascade_frontier import oracle_frames, video_props  # noqa: E402
 from src.contracts.frames import FrameGeometry  # noqa: E402
 from src.pipeline.anchor import (  # noqa: E402
     camera_from_smartspaces,
@@ -68,13 +68,44 @@ from src.pipeline.events import (  # noqa: E402
     load_zone_config,
 )
 from src.pipeline.floor import load_projector  # noqa: E402
-from src.pipeline.frontier import CameraSource, detections_for  # noqa: E402
+from src.pipeline.frontier import (  # noqa: E402
+    CameraSource,
+    FrameDets,
+    detections_for,
+)
 from src.pipeline.run import estimate_tracks, frame_ts_ns, track_camera  # noqa: E402
 from src.pipeline.tracker import PRODUCT_TRACKER  # noqa: E402
 from src.pipeline.truth import load_truth, person_truth  # noqa: E402
 
 CAMERAS = ("Camera_0000", "Camera_0001", "Camera_0002", "Camera_0003")
 ESTIMATES = ("single_camera", "gt_pairing_ceiling", "association")
+
+
+def read_cache_by_frame(path: Path, n: int, step: int) -> list[FrameDets]:
+    """Detections by frame index from a detection cache, every-frame or
+    strided (``frame_step`` k: lines for frames 0, k, 2k, ...). Frames the
+    cache does not hold stay empty and are never scheduled (``--step`` must be
+    a multiple of the cache's step); a scheduled frame the cache lacks is an
+    error, never an empty frame."""
+    lines = path.read_text().splitlines()
+    labels = json.loads(lines[0])["header"]["labels"]
+    empty = FrameDets(np.zeros((0, 4)), np.zeros(0), ())
+    out = [empty] * n
+    held = set()
+    for line in lines[1:]:
+        r = json.loads(line)
+        f = int(r["f"])
+        if f < n:
+            out[f] = FrameDets(
+                boxes=np.asarray(r["b"], np.float64).reshape(-1, 4),
+                scores=np.asarray(r["s"], np.float64),
+                labels=tuple(labels[int(c)] for c in r["c"]),
+            )
+            held.add(f)
+    missing = [f for f in range(0, n, step) if f not in held]
+    if missing:
+        raise SystemExit(f"{path}: {len(missing)} scheduled frames not cached")
+    return out
 
 
 def stats(err: list[float]) -> dict[str, Any]:
@@ -115,8 +146,8 @@ def scene_eval(
         frames = (
             oracle_frames(gt, cam, n)
             if detector == "oracle"
-            else read_cache(
-                Path(manifest["cameras"][cam]["detection_cache"]["cache_file"]), n
+            else read_cache_by_frame(
+                Path(manifest["cameras"][cam]["detection_cache"]["cache_file"]), n, step
             )
         )
         projector = load_projector(scene_dir / "calibration.json", cam)

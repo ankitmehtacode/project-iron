@@ -1,0 +1,313 @@
+{
+  "label": "lane S synthetic (SmartSpaces), calibration given; geometry-only association; not evidence about real cameras",
+  "scenes": {
+    "Warehouse_020": {
+      "detector": "pretrained",
+      "detections_from": "../project-iron-main/outputs/runs/day46-c2b0f26/Warehouse_020_rtdetr_step6_iou",
+      "frames_per_camera": 1800,
+      "detector_step": 6,
+      "tracklets": 107,
+      "association": {
+        "pairs_judged_with_shared_frames": 855,
+        "true_pairs": 0,
+        "accepted_directly": 0,
+        "same_fused_identity": 0,
+        "same_fused_identity_correct": 0,
+        "precision": null,
+        "recall": null,
+        "verdicts": {
+          "decisive": 2
+        },
+        "fused_identities_with_2plus_tracklets": 0
+      },
+      "position_error_by_views": {
+        "single_camera": {
+          "1": {
+            "n": 3156,
+            "p50_m": 0.22495351316638157,
+            "p90_m": 0.9062477163609741,
+            "p99_m": 5.87737622412129
+          },
+          "2": {
+            "n": 0
+          },
+          "3+": {
+            "n": 0
+          }
+        },
+        "gt_pairing_ceiling": {
+          "1": {
+            "n": 3156,
+            "p50_m": 0.22495351316638157,
+            "p90_m": 0.9062477163609741,
+            "p99_m": 5.87737622412129
+          },
+          "2": {
+            "n": 0
+          },
+          "3+": {
+            "n": 0
+          }
+        },
+        "association": {
+          "1": {
+            "n": 3156,
+            "p50_m": 0.22495351316638157,
+            "p90_m": 0.9062477163609741,
+            "p99_m": 5.87737622412129
+          },
+          "2": {
+            "n": 0
+          },
+          "3+": {
+            "n": 0
+          }
+        }
+      },
+      "events": {
+        "single_camera": {
+          "predicted": 21,
+          "gt": 22,
+          "matched": 16
+        },
+        "gt_pairing_ceiling": {
+          "predicted": 23,
+          "gt": 22,
+          "matched": 22
+        },
+        "association": {
+          "predicted": 21,
+          "gt": 22,
+          "matched": 16
+        }
+      },
+      "coupling_distance": {
+        "coupling_distance_m": 1.1033073820729127,
+        "definition": "median over tracklet points of REGION_K * stated sigma",
+        "nearest_other_below": {
+          "pairs": 0,
+          "errors": 0
+        },
+        "nearest_other_at_or_above": {
+          "pairs": 1,
+          "errors": 0
+        }
+      }
+    },
+    "Warehouse_000": {
+      "detector": "pretrained",
+      "detections_from": "../project-iron-main/outputs/runs/day46-c2b0f26/Warehouse_000_rtdetr_step6_iou",
+      "frames_per_camera": 1800,
+      "detector_step": 6,
+      "tracklets": 122,
+      "association": {
+        "pairs_judged_with_shared_frames": 1124,
+        "true_pairs": 22,
+        "accepted_directly": 12,
+        "same_fused_identity": 12,
+        "same_fused_identity_correct": 12,
+        "precision": 1.0,
+        "recall": 0.5454545454545454,
+        "verdicts": {
+          "ambiguous": 3,
+          "decisive": 41
+        },
+        "fused_identities_with_2plus_tracklets": 12
+      },
+      "position_error_by_views": {
+        "single_camera": {
+          "1": {
+            "n": 3173,
+            "p50_m": 0.23392931577501216,
+            "p90_m": 0.9953423337848657,
+            "p99_m": 6.475191954356762
+          },
+          "2": {
+            "n": 136,
+            "p50_m": 0.23118712577610723,
+            "p90_m": 0.4111382731692052,
+            "p99_m": 2.055713287835713
+          },
+          "3+": {
+            "n": 0
+          }
+        },
+        "gt_pairing_ceiling": {
+          "1": {
+            "n": 3173,
+            "p50_m": 0.23392931577501216,
+            "p90_m": 0.9953423337848657,
+            "p99_m": 6.475191954356762
+          },
+          "2": {
+            "n": 136,
+            "p50_m": 0.09189221261395429,
+            "p90_m": 0.15624076384350932,
+            "p99_m": 0.20616438272150406
+          },
+          "3+": {
+            "n": 0
+          }
+        },
+        "association": {
+          "1": {
+            "n": 3173,
+            "p50_m": 0.23499315853117034,
+            "p90_m": 1.004844123589283,
+            "p99_m": 6.475191954356762
+          },
+          "2": {
+            "n": 136,
+            "p50_m": 0.10568504235596288,
+            "p90_m": 0.32280732894228314,
+            "p99_m": 2.055713287835713
+          },
+          "3+": {
+            "n": 0
+          }
+        }
+      },
+      "events": {
+        "single_camera": {
+          "predicted": 14,
+          "gt": 10,
+          "matched": 5
+        },
+        "gt_pairing_ceiling": {
+          "predicted": 10,
+          "gt": 10,
+          "matched": 9
+        },
+        "association": {
+          "predicted": 14,
+          "gt": 10,
+          "matched": 8
+        }
+      },
+      "coupling_distance": {
+        "coupling_distance_m": 2.0223457483127896,
+        "definition": "median over tracklet points of REGION_K * stated sigma",
+        "nearest_other_below": {
+          "pairs": 3,
+          "errors": 0
+        },
+        "nearest_other_at_or_above": {
+          "pairs": 38,
+          "errors": 9
+        }
+      }
+    },
+    "Warehouse_022": {
+      "detector": "pretrained",
+      "detections_from": "../project-iron-main/outputs/runs/day44-c0aca5b/rtdetr_v2_s_gate-off_iou",
+      "frames_per_camera": 1800,
+      "detector_step": 6,
+      "tracklets": 53,
+      "association": {
+        "pairs_judged_with_shared_frames": 361,
+        "true_pairs": 30,
+        "accepted_directly": 21,
+        "same_fused_identity": 26,
+        "same_fused_identity_correct": 23,
+        "precision": 0.8846153846153846,
+        "recall": 0.7666666666666667,
+        "verdicts": {
+          "decisive": 64,
+          "ambiguous": 3
+        },
+        "fused_identities_with_2plus_tracklets": 6
+      },
+      "position_error_by_views": {
+        "single_camera": {
+          "1": {
+            "n": 1002,
+            "p50_m": 0.22542363690474398,
+            "p90_m": 0.4890380360835233,
+            "p99_m": 2.263238019185757
+          },
+          "2": {
+            "n": 573,
+            "p50_m": 0.1999064901734522,
+            "p90_m": 0.4320382310852894,
+            "p99_m": 1.3994137690636799
+          },
+          "3+": {
+            "n": 161,
+            "p50_m": 0.2104238277427151,
+            "p90_m": 0.30576565716334797,
+            "p99_m": 0.4221657580395768
+          }
+        },
+        "gt_pairing_ceiling": {
+          "1": {
+            "n": 1002,
+            "p50_m": 0.22542363690474398,
+            "p90_m": 0.4890380360835233,
+            "p99_m": 2.263238019185757
+          },
+          "2": {
+            "n": 573,
+            "p50_m": 0.15137626672864324,
+            "p90_m": 0.983445506951643,
+            "p99_m": 48.39602150294322
+          },
+          "3+": {
+            "n": 161,
+            "p50_m": 0.07720747598302816,
+            "p90_m": 0.11481252779511748,
+            "p99_m": 0.1448324854461271
+          }
+        },
+        "association": {
+          "1": {
+            "n": 1002,
+            "p50_m": 0.22542363690474398,
+            "p90_m": 0.4890380360835233,
+            "p99_m": 2.263238019185757
+          },
+          "2": {
+            "n": 573,
+            "p50_m": 0.18732198337243053,
+            "p90_m": 0.7883455668488007,
+            "p99_m": 3.524446881209045
+          },
+          "3+": {
+            "n": 161,
+            "p50_m": 0.07741250440854279,
+            "p90_m": 0.11940584835821363,
+            "p99_m": 0.35290115581225867
+          }
+        }
+      },
+      "events": {
+        "single_camera": {
+          "predicted": 61,
+          "gt": 39,
+          "matched": 33
+        },
+        "gt_pairing_ceiling": {
+          "predicted": 37,
+          "gt": 39,
+          "matched": 35
+        },
+        "association": {
+          "predicted": 41,
+          "gt": 39,
+          "matched": 32
+        }
+      },
+      "coupling_distance": {
+        "coupling_distance_m": 0.8733601025126597,
+        "definition": "median over tracklet points of REGION_K * stated sigma",
+        "nearest_other_below": {
+          "pairs": 1,
+          "errors": 0
+        },
+        "nearest_other_at_or_above": {
+          "pairs": 53,
+          "errors": 8
+        }
+      }
+    }
+  }
+}

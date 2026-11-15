@@ -1,0 +1,716 @@
+{
+  "label": "lane S synthetic (NVIDIA PhysicalAI-SmartSpaces), calibration given; not evidence about real cameras or real crowding",
+  "run": "outputs/runs/day46-c2b0f26/Warehouse_000_rtdetr_step6_iou",
+  "manifest_sha": "08c93a059caee6ba99a6d1af5e2fc1866f427fa7ca2b65294982c4f39dae1eb9",
+  "detector": "RT-DETRv2-S-COCO",
+  "ground_truth_sha256": "0c160199a14f04bcb95e2ece7c9c3be37f1ffa29a4b1fd1a390c607d21c28109",
+  "match_iou": 0.5,
+  "event_tolerance_s": 2.0,
+  "cameras": {
+    "Camera_0000": {
+      "frames": 1800,
+      "gt_person_ids": 18,
+      "mot": {
+        "pipeline": {
+          "gt": 7133,
+          "matches": 360,
+          "misses": 6773,
+          "false_positives": 14,
+          "id_switches": 15
+        },
+        "iou_only_baseline": {
+          "gt": 7133,
+          "matches": 360,
+          "misses": 6773,
+          "false_positives": 14,
+          "id_switches": 15
+        }
+      },
+      "rmse_m_by_distance": {
+        "[0,10)": {
+          "estimator": 1.2010978564821344,
+          "raw_projection": 1.2049858435284018,
+          "estimator_p50": 0.5134001737057342,
+          "raw_projection_p50": 0.5138445125746179,
+          "n": 72
+        },
+        "[10,20)": {
+          "estimator": 0.3217964684030532,
+          "raw_projection": 0.34316937994131025,
+          "estimator_p50": 0.31607999263435266,
+          "raw_projection_p50": 0.2578574895108062,
+          "n": 23
+        },
+        "[20,30)": {
+          "estimator": 0.3808711526729173,
+          "raw_projection": 0.239396609539298,
+          "estimator_p50": 0.2662809014967753,
+          "raw_projection_p50": 0.24558619472878482,
+          "n": 142
+        },
+        "[30,inf)": {
+          "estimator": 0.9539674297678601,
+          "raw_projection": 0.5680005011396957,
+          "estimator_p50": 0.412008182466576,
+          "raw_projection_p50": 0.32224093774219986,
+          "n": 123
+        }
+      },
+      "velocity_rmse_mps_by_distance": {
+        "[0,10)": {
+          "estimator": 0.889539452886581,
+          "raw_projection": 0.9963807560744503,
+          "estimator_p50": 0.7798293213039644,
+          "raw_projection_p50": 0.8360786895417648,
+          "n": 71
+        },
+        "[10,20)": {
+          "estimator": 0.6828400459346302,
+          "raw_projection": 1.3347617728092789,
+          "estimator_p50": 0.6730026815109863,
+          "raw_projection_p50": 1.2865366474204023,
+          "n": 22
+        },
+        "[20,30)": {
+          "estimator": 0.3108046646616701,
+          "raw_projection": 0.2840826380799208,
+          "estimator_p50": 0.04517233478243346,
+          "raw_projection_p50": 0.12495249932764121,
+          "n": 142
+        },
+        "[30,inf)": {
+          "estimator": 1.4841518162718177,
+          "raw_projection": 6.9608233157833,
+          "estimator_p50": 0.7617762117646643,
+          "raw_projection_p50": 1.1244062519829026,
+          "n": 110
+        }
+      },
+      "coverage_by_distance": {
+        "[0,10)": {
+          "gt": 727,
+          "matched": 72,
+          "coverage": 0.09903713892709766
+        },
+        "[10,20)": {
+          "gt": 135,
+          "matched": 23,
+          "coverage": 0.17037037037037037
+        },
+        "[20,30)": {
+          "gt": 953,
+          "matched": 142,
+          "coverage": 0.14900314795383002
+        },
+        "[30,inf)": {
+          "gt": 5318,
+          "matched": 123,
+          "coverage": 0.02312899586310643
+        }
+      },
+      "events": {
+        "estimator": {
+          "predicted": 0,
+          "gt": 11,
+          "matched": 0,
+          "by_verb": {
+            "entered": {
+              "predicted": 0,
+              "gt": 4,
+              "matched": 0
+            },
+            "exited": {
+              "predicted": 0,
+              "gt": 4,
+              "matched": 0
+            },
+            "dwelled": {
+              "predicted": 0,
+              "gt": 3,
+              "matched": 0
+            }
+          },
+          "precision": null,
+          "recall": 0.0
+        },
+        "raw_projection": {
+          "predicted": 0,
+          "gt": 11,
+          "matched": 0,
+          "by_verb": {
+            "entered": {
+              "predicted": 0,
+              "gt": 4,
+              "matched": 0
+            },
+            "exited": {
+              "predicted": 0,
+              "gt": 4,
+              "matched": 0
+            },
+            "dwelled": {
+              "predicted": 0,
+              "gt": 3,
+              "matched": 0
+            }
+          },
+          "precision": null,
+          "recall": 0.0
+        }
+      }
+    },
+    "Camera_0001": {
+      "frames": 1800,
+      "gt_person_ids": 27,
+      "mot": {
+        "pipeline": {
+          "gt": 22436,
+          "matches": 1298,
+          "misses": 21138,
+          "false_positives": 67,
+          "id_switches": 47
+        },
+        "iou_only_baseline": {
+          "gt": 22436,
+          "matches": 1298,
+          "misses": 21138,
+          "false_positives": 67,
+          "id_switches": 47
+        }
+      },
+      "rmse_m_by_distance": {
+        "[10,20)": {
+          "estimator": 0.43511564958555216,
+          "raw_projection": 0.8788601359009257,
+          "estimator_p50": 0.21858035169655843,
+          "raw_projection_p50": 0.210401420007343,
+          "n": 221
+        },
+        "[20,30)": {
+          "estimator": 2.1949927428643496,
+          "raw_projection": 2.314259768782559,
+          "estimator_p50": 0.26481903092899955,
+          "raw_projection_p50": 0.20007100717840717,
+          "n": 282
+        },
+        "[30,inf)": {
+          "estimator": 2.230868391171696,
+          "raw_projection": 2.143611833651265,
+          "estimator_p50": 0.5823352080621313,
+          "raw_projection_p50": 0.35624369026974567,
+          "n": 795
+        }
+      },
+      "velocity_rmse_mps_by_distance": {
+        "[10,20)": {
+          "estimator": 0.630879688515661,
+          "raw_projection": 1.6546629684241598,
+          "estimator_p50": 0.3121745576473026,
+          "raw_projection_p50": 0.43554114247097325,
+          "n": 215
+        },
+        "[20,30)": {
+          "estimator": 1.5154641840819252,
+          "raw_projection": 3.1852371033509694,
+          "estimator_p50": 0.7595570164504659,
+          "raw_projection_p50": 0.9239226072302081,
+          "n": 270
+        },
+        "[30,inf)": {
+          "estimator": 1.5103765888491463,
+          "raw_projection": 5.211759321037287,
+          "estimator_p50": 0.7638699963054197,
+          "raw_projection_p50": 0.960476711375333,
+          "n": 771
+        }
+      },
+      "coverage_by_distance": {
+        "[10,20)": {
+          "gt": 1693,
+          "matched": 221,
+          "coverage": 0.1305375073833432
+        },
+        "[20,30)": {
+          "gt": 4362,
+          "matched": 282,
+          "coverage": 0.06464924346629987
+        },
+        "[30,inf)": {
+          "gt": 16381,
+          "matched": 795,
+          "coverage": 0.04853183566326842
+        }
+      },
+      "events": {
+        "estimator": {
+          "predicted": 10,
+          "gt": 22,
+          "matched": 1,
+          "by_verb": {
+            "entered": {
+              "predicted": 4,
+              "gt": 5,
+              "matched": 0
+            },
+            "exited": {
+              "predicted": 3,
+              "gt": 8,
+              "matched": 1
+            },
+            "dwelled": {
+              "predicted": 3,
+              "gt": 9,
+              "matched": 0
+            }
+          },
+          "precision": 0.1,
+          "recall": 0.045454545454545456
+        },
+        "raw_projection": {
+          "predicted": 6,
+          "gt": 22,
+          "matched": 2,
+          "by_verb": {
+            "entered": {
+              "predicted": 2,
+              "gt": 5,
+              "matched": 1
+            },
+            "exited": {
+              "predicted": 1,
+              "gt": 8,
+              "matched": 1
+            },
+            "dwelled": {
+              "predicted": 3,
+              "gt": 9,
+              "matched": 0
+            }
+          },
+          "precision": 0.3333333333333333,
+          "recall": 0.09090909090909091
+        }
+      }
+    },
+    "Camera_0002": {
+      "frames": 1800,
+      "gt_person_ids": 9,
+      "mot": {
+        "pipeline": {
+          "gt": 7671,
+          "matches": 832,
+          "misses": 6839,
+          "false_positives": 145,
+          "id_switches": 23
+        },
+        "iou_only_baseline": {
+          "gt": 7671,
+          "matches": 832,
+          "misses": 6839,
+          "false_positives": 145,
+          "id_switches": 23
+        }
+      },
+      "rmse_m_by_distance": {
+        "[0,10)": {
+          "estimator": 1.3090434438799536,
+          "raw_projection": 1.312501601155156,
+          "estimator_p50": 0.33715177521647854,
+          "raw_projection_p50": 0.37187108641574346,
+          "n": 119
+        },
+        "[10,20)": {
+          "estimator": 0.26977070516805424,
+          "raw_projection": 0.2908233347601501,
+          "estimator_p50": 0.23744123907497855,
+          "raw_projection_p50": 0.21901715784565046,
+          "n": 169
+        },
+        "[20,30)": {
+          "estimator": 1.5194696152117702,
+          "raw_projection": 1.4995102593268588,
+          "estimator_p50": 0.26733697594360994,
+          "raw_projection_p50": 0.17817737219055785,
+          "n": 224
+        },
+        "[30,inf)": {
+          "estimator": 0.9557856128074731,
+          "raw_projection": 0.990737394832358,
+          "estimator_p50": 0.34389684709874546,
+          "raw_projection_p50": 0.285953601680885,
+          "n": 320
+        }
+      },
+      "velocity_rmse_mps_by_distance": {
+        "[0,10)": {
+          "estimator": 0.9740796319654356,
+          "raw_projection": 1.1336300249620659,
+          "estimator_p50": 0.6693423820480459,
+          "raw_projection_p50": 0.9160930501528409,
+          "n": 115
+        },
+        "[10,20)": {
+          "estimator": 0.5717284246015716,
+          "raw_projection": 0.8662938135193715,
+          "estimator_p50": 0.43830497143732944,
+          "raw_projection_p50": 0.5063106573755976,
+          "n": 167
+        },
+        "[20,30)": {
+          "estimator": 1.3379054796349452,
+          "raw_projection": 2.4938270995847494,
+          "estimator_p50": 0.7864626878473584,
+          "raw_projection_p50": 0.919493184537838,
+          "n": 221
+        },
+        "[30,inf)": {
+          "estimator": 0.9708719734105979,
+          "raw_projection": 4.008657914850818,
+          "estimator_p50": 0.7158236869984684,
+          "raw_projection_p50": 0.7805954492320075,
+          "n": 310
+        }
+      },
+      "coverage_by_distance": {
+        "[0,10)": {
+          "gt": 852,
+          "matched": 119,
+          "coverage": 0.1396713615023474
+        },
+        "[10,20)": {
+          "gt": 1090,
+          "matched": 169,
+          "coverage": 0.15504587155963304
+        },
+        "[20,30)": {
+          "gt": 1663,
+          "matched": 224,
+          "coverage": 0.13469633193024655
+        },
+        "[30,inf)": {
+          "gt": 4066,
+          "matched": 320,
+          "coverage": 0.07870142646335465
+        }
+      },
+      "events": {
+        "estimator": {
+          "predicted": 3,
+          "gt": 1,
+          "matched": 0,
+          "by_verb": {
+            "entered": {
+              "predicted": 1,
+              "gt": 0,
+              "matched": 0
+            },
+            "exited": {
+              "predicted": 0,
+              "gt": 0,
+              "matched": 0
+            },
+            "dwelled": {
+              "predicted": 2,
+              "gt": 1,
+              "matched": 0
+            }
+          },
+          "precision": 0.0,
+          "recall": 0.0
+        },
+        "raw_projection": {
+          "predicted": 3,
+          "gt": 1,
+          "matched": 0,
+          "by_verb": {
+            "entered": {
+              "predicted": 1,
+              "gt": 0,
+              "matched": 0
+            },
+            "exited": {
+              "predicted": 0,
+              "gt": 0,
+              "matched": 0
+            },
+            "dwelled": {
+              "predicted": 2,
+              "gt": 1,
+              "matched": 0
+            }
+          },
+          "precision": 0.0,
+          "recall": 0.0
+        }
+      }
+    },
+    "Camera_0003": {
+      "frames": 1800,
+      "gt_person_ids": 42,
+      "mot": {
+        "pipeline": {
+          "gt": 36231,
+          "matches": 955,
+          "misses": 35276,
+          "false_positives": 12,
+          "id_switches": 29
+        },
+        "iou_only_baseline": {
+          "gt": 36231,
+          "matches": 955,
+          "misses": 35276,
+          "false_positives": 12,
+          "id_switches": 29
+        }
+      },
+      "rmse_m_by_distance": {
+        "[0,10)": {
+          "estimator": 0.4986115008362228,
+          "raw_projection": 0.49587639634673125,
+          "estimator_p50": 0.21250530561193645,
+          "raw_projection_p50": 0.20537072244360427,
+          "n": 105
+        },
+        "[10,20)": {
+          "estimator": 0.22663162943924334,
+          "raw_projection": 0.2362500588440387,
+          "estimator_p50": 0.19331002826368426,
+          "raw_projection_p50": 0.18911441925988182,
+          "n": 410
+        },
+        "[20,30)": {
+          "estimator": 0.18577345690429667,
+          "raw_projection": 0.16924089939189965,
+          "estimator_p50": 0.18292255203578067,
+          "raw_projection_p50": 0.1759342319899574,
+          "n": 72
+        },
+        "[30,inf)": {
+          "estimator": 0.6967769245839632,
+          "raw_projection": 0.5642814800847262,
+          "estimator_p50": 0.3783869969266788,
+          "raw_projection_p50": 0.2465789574263269,
+          "n": 368
+        }
+      },
+      "velocity_rmse_mps_by_distance": {
+        "[0,10)": {
+          "estimator": 0.856833137800498,
+          "raw_projection": 1.0353582648649728,
+          "estimator_p50": 0.5498248457336425,
+          "raw_projection_p50": 0.5017754753501702,
+          "n": 100
+        },
+        "[10,20)": {
+          "estimator": 0.7339336227599789,
+          "raw_projection": 1.0782894584709135,
+          "estimator_p50": 0.2937878455760051,
+          "raw_projection_p50": 0.30845904410668273,
+          "n": 402
+        },
+        "[20,30)": {
+          "estimator": 0.5681282936144624,
+          "raw_projection": 0.5995502101620596,
+          "estimator_p50": 0.2760672284541736,
+          "raw_projection_p50": 0.20002494969623097,
+          "n": 69
+        },
+        "[30,inf)": {
+          "estimator": 1.0859676080878,
+          "raw_projection": 2.1787983295087265,
+          "estimator_p50": 0.5480351012266999,
+          "raw_projection_p50": 0.7587193004608277,
+          "n": 351
+        }
+      },
+      "coverage_by_distance": {
+        "[0,10)": {
+          "gt": 746,
+          "matched": 105,
+          "coverage": 0.14075067024128687
+        },
+        "[10,20)": {
+          "gt": 3011,
+          "matched": 410,
+          "coverage": 0.13616738625041513
+        },
+        "[20,30)": {
+          "gt": 939,
+          "matched": 72,
+          "coverage": 0.07667731629392971
+        },
+        "[30,inf)": {
+          "gt": 31535,
+          "matched": 368,
+          "coverage": 0.011669573489773268
+        }
+      },
+      "events": {
+        "estimator": {
+          "predicted": 5,
+          "gt": 20,
+          "matched": 2,
+          "by_verb": {
+            "entered": {
+              "predicted": 3,
+              "gt": 6,
+              "matched": 2
+            },
+            "exited": {
+              "predicted": 0,
+              "gt": 6,
+              "matched": 0
+            },
+            "dwelled": {
+              "predicted": 2,
+              "gt": 8,
+              "matched": 0
+            }
+          },
+          "precision": 0.4,
+          "recall": 0.1
+        },
+        "raw_projection": {
+          "predicted": 5,
+          "gt": 20,
+          "matched": 2,
+          "by_verb": {
+            "entered": {
+              "predicted": 3,
+              "gt": 6,
+              "matched": 2
+            },
+            "exited": {
+              "predicted": 0,
+              "gt": 6,
+              "matched": 0
+            },
+            "dwelled": {
+              "predicted": 2,
+              "gt": 8,
+              "matched": 0
+            }
+          },
+          "precision": 0.4,
+          "recall": 0.1
+        }
+      }
+    }
+  },
+  "pooled": {
+    "rmse_m_by_distance": {
+      "[0,10)": {
+        "estimator": 1.0620797741631713,
+        "raw_projection": 1.064410039205635,
+        "estimator_p50": 0.3145275116214067,
+        "raw_projection_p50": 0.3141964022364083,
+        "n": 296
+      },
+      "[10,20)": {
+        "estimator": 0.3070263498354167,
+        "raw_projection": 0.5058412390985981,
+        "estimator_p50": 0.20573739234695676,
+        "raw_projection_p50": 0.1994970860910405,
+        "n": 823
+      },
+      "[20,30)": {
+        "estimator": 1.6240066744097794,
+        "raw_projection": 1.6767223506049087,
+        "estimator_p50": 0.2535798348211292,
+        "raw_projection_p50": 0.20097105027621137,
+        "n": 720
+      },
+      "[30,inf)": {
+        "estimator": 1.681239135055778,
+        "raw_projection": 1.6024654895685215,
+        "estimator_p50": 0.46269367298393105,
+        "raw_projection_p50": 0.31215168636240204,
+        "n": 1606
+      }
+    },
+    "velocity_rmse_mps_by_distance": {
+      "[0,10)": {
+        "estimator": 0.9135973497578956,
+        "raw_projection": 1.0667775964147617,
+        "estimator_p50": 0.6447722429906011,
+        "raw_projection_p50": 0.7820190820807145,
+        "n": 286
+      },
+      "[10,20)": {
+        "estimator": 0.6747470109235252,
+        "raw_projection": 1.2305972231789308,
+        "estimator_p50": 0.3520879350506617,
+        "raw_projection_p50": 0.4205755262346612,
+        "n": 806
+      },
+      "[20,30)": {
+        "estimator": 1.2239693216879672,
+        "raw_projection": 2.431409060887703,
+        "estimator_p50": 0.5917077067554349,
+        "raw_projection_p50": 0.6632728380743838,
+        "n": 702
+      },
+      "[30,inf)": {
+        "estimator": 1.3250256919559944,
+        "raw_projection": 4.620474304496126,
+        "estimator_p50": 0.7106534045158457,
+        "raw_projection_p50": 0.8897142983673796,
+        "n": 1542
+      }
+    },
+    "coverage_by_distance": {
+      "[0,10)": {
+        "gt": 2325,
+        "matched": 296,
+        "coverage": 0.12731182795698925
+      },
+      "[10,20)": {
+        "gt": 5929,
+        "matched": 823,
+        "coverage": 0.1388092427053466
+      },
+      "[20,30)": {
+        "gt": 7917,
+        "matched": 720,
+        "coverage": 0.09094353921940129
+      },
+      "[30,inf)": {
+        "gt": 57300,
+        "matched": 1606,
+        "coverage": 0.028027923211169283
+      }
+    },
+    "mot": {
+      "pipeline": {
+        "gt": 73471,
+        "matches": 3445,
+        "misses": 70026,
+        "false_positives": 238,
+        "id_switches": 114
+      },
+      "iou_only_baseline": {
+        "gt": 73471,
+        "matches": 3445,
+        "misses": 70026,
+        "false_positives": 238,
+        "id_switches": 114
+      }
+    },
+    "events": {
+      "estimator": {
+        "predicted": 18,
+        "gt": 54,
+        "matched": 3,
+        "precision": 0.16666666666666666,
+        "recall": 0.05555555555555555
+      },
+      "raw_projection": {
+        "predicted": 14,
+        "gt": 54,
+        "matched": 4,
+        "precision": 0.2857142857142857,
+        "recall": 0.07407407407407407
+      }
+    }
+  }
+}

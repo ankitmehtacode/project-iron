@@ -1,0 +1,12 @@
+Camera_0000: 1800 frames loaded, gate awake 1239
+Camera_0001: 1800 frames loaded, gate awake 777
+Camera_0002: 1800 frames loaded, gate awake 1204
+Camera_0003: 1800 frames loaded, gate awake 952
+  gate_off: 1800 inv/cam-min, event recall 0.8076923076923077, precision 0.7974683544303798
+  gate_default: 1043 inv/cam-min, event recall 0.5, precision 0.78
+  gate_keepalive: 1506 inv/cam-min, event recall 0.7307692307692307, precision 0.7808219178082192
+  stride_6: 300 inv/cam-min, event recall 0.7692307692307693, precision 0.8450704225352113
+  stride_15: 120 inv/cam-min, event recall 0.6025641025641025, precision 0.7966101694915254
+  adaptive: 289 inv/cam-min, event recall 0.7564102564102564, precision 0.8676470588235294
+  motion_adaptive: 176 inv/cam-min, event recall 0.38461538461538464, precision 0.7692307692307693
+wrote artifacts/day46/frontier_w022_pretrained_kalman.json (170.3 s)

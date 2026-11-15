@@ -1,0 +1,313 @@
+{
+  "manifest_sha": "08c93a059caee6ba99a6d1af5e2fc1866f427fa7ca2b65294982c4f39dae1eb9",
+  "identity": {
+    "git_commit": "c2b0f26f08478068836a9c7a0e94d8a4f4726ca6",
+    "git_dirty": false,
+    "videos": {
+      "Camera_0000": "5634dc4558360047de82642c458505f344d188b47cccd9afcbe0d81c7be51ff2",
+      "Camera_0001": "aebf51f04434f0cccfb27d9e0385a5bde5d91a15307a91aa17f112088c6e7256",
+      "Camera_0002": "465f33311e7ebff3d7dc95a8eff2ea27e2f66665e3bf9e0034a7c1a9ff091726",
+      "Camera_0003": "7668fc49c5903174626894ceb7cc2fd30a69c362a9a2734d7e75a3f2b4eb15db"
+    },
+    "twin_revs": {
+      "Camera_0000": 662189359929521664,
+      "Camera_0001": 662189359929521664,
+      "Camera_0002": 662189359929521664,
+      "Camera_0003": 662189359929521664
+    },
+    "tracker": {
+      "high_score": 0.5,
+      "low_score": 0.1,
+      "stage1_min_iou": 0.2,
+      "stage2_min_iou": 0.4,
+      "max_missed": 30,
+      "min_hits": 3,
+      "max_extrapolation_frames": 1,
+      "use_kalman": false,
+      "second_stage": false
+    },
+    "zones": {
+      "site_id": "smartspaces-warehouse-000",
+      "zones": [
+        {
+          "name": "cell_0",
+          "polygon": [
+            [
+              -64.0,
+              -96.0
+            ],
+            [
+              -56.0,
+              -96.0
+            ],
+            [
+              -56.0,
+              -88.0
+            ],
+            [
+              -64.0,
+              -88.0
+            ]
+          ]
+        },
+        {
+          "name": "cell_1",
+          "polygon": [
+            [
+              -40.0,
+              -64.0
+            ],
+            [
+              -32.0,
+              -64.0
+            ],
+            [
+              -32.0,
+              -56.0
+            ],
+            [
+              -40.0,
+              -56.0
+            ]
+          ]
+        },
+        {
+          "name": "cell_2",
+          "polygon": [
+            [
+              -96.0,
+              -56.0
+            ],
+            [
+              -88.0,
+              -56.0
+            ],
+            [
+              -88.0,
+              -48.0
+            ],
+            [
+              -96.0,
+              -48.0
+            ]
+          ]
+        }
+      ],
+      "rules": {
+        "min_presence_s": 0.5,
+        "dwell_s": 5.0,
+        "max_gap_s": 2.0
+      }
+    },
+    "estimator_config": "A",
+    "max_seconds": 60.0,
+    "person_label": "person",
+    "reported_position": "raw",
+    "motion_gate": "off",
+    "detector_step": 6
+  },
+  "detector": "RT-DETRv2-S-COCO",
+  "git_dirty_paths": [],
+  "cameras": {
+    "Camera_0000": {
+      "video": "data/raw/PhysicalAI-SmartSpaces/2cbe9563cbe9f47f846e5c871ee994572bbbc60e/paths-0deaa0fe541fbaf1/MTMC_Tracking_2026/train/Warehouse_000/videos/Camera_0000.mp4",
+      "video_sha256": "5634dc4558360047de82642c458505f344d188b47cccd9afcbe0d81c7be51ff2",
+      "fps": 30.0,
+      "frames_decoded": 1800,
+      "detector_runs": 300,
+      "person_detections": 15591,
+      "tracks": 18,
+      "track_points": 374,
+      "unprojectable_assignments": 0,
+      "track_point_anchors": {
+        "foot": 313,
+        "foot_flagged": 61
+      },
+      "calibration": "smartspaces:K@E",
+      "twin_rev": 662189359929521664,
+      "camera_xyz_m": [
+        -98.96541614556669,
+        -89.55334854787043,
+        3.8019663609003302
+      ],
+      "detector_producer_shas": [
+        "4130c2847260b4e877709d9212147476d202549fec8085eafc6a661b1ebe3707",
+        "12277211dcbe5bed4c277626afe9d3ddf7e34ef461eb94608442e6c9c59c15b7",
+        "2d48f53ee667b48af1a04e13bdb819f9499b88411f6322d7d4eebd1e2d0f34c7"
+      ],
+      "wall_s_gate_and_detector": 259.8,
+      "detection_cache": {
+        "cache_file": "/Users/manishmehta/Desktop/project-iron-main/data/derived/detections/5634dc4558360047/3506e4b104cc7beb137acefa.jsonl",
+        "cache_key": {
+          "video_sha256": "5634dc4558360047de82642c458505f344d188b47cccd9afcbe0d81c7be51ff2",
+          "model_sha": "4130c2847260b4e877709d9212147476d202549fec8085eafc6a661b1ebe3707",
+          "preprocess_sha": "12277211dcbe5bed4c277626afe9d3ddf7e34ef461eb94608442e6c9c59c15b7",
+          "input_hw": [
+            640,
+            640
+          ],
+          "frame_step": 6
+        },
+        "cache_hits": 0,
+        "cache_misses": 300,
+        "cache_resumed_from_frame": 0,
+        "gate_mode": "off",
+        "detector_step": 6
+      }
+    },
+    "Camera_0001": {
+      "video": "data/raw/PhysicalAI-SmartSpaces/2cbe9563cbe9f47f846e5c871ee994572bbbc60e/paths-0deaa0fe541fbaf1/MTMC_Tracking_2026/train/Warehouse_000/videos/Camera_0001.mp4",
+      "video_sha256": "aebf51f04434f0cccfb27d9e0385a5bde5d91a15307a91aa17f112088c6e7256",
+      "fps": 30.0,
+      "frames_decoded": 1800,
+      "detector_runs": 300,
+      "person_detections": 5313,
+      "tracks": 46,
+      "track_points": 1365,
+      "unprojectable_assignments": 0,
+      "track_point_anchors": {
+        "foot": 1101,
+        "foot_flagged": 264
+      },
+      "calibration": "smartspaces:K@E",
+      "twin_rev": 662189359929521664,
+      "camera_xyz_m": [
+        -64.35948746162941,
+        -37.38899945739964,
+        4.781015949481051
+      ],
+      "detector_producer_shas": [
+        "4130c2847260b4e877709d9212147476d202549fec8085eafc6a661b1ebe3707",
+        "12277211dcbe5bed4c277626afe9d3ddf7e34ef461eb94608442e6c9c59c15b7",
+        "2d48f53ee667b48af1a04e13bdb819f9499b88411f6322d7d4eebd1e2d0f34c7"
+      ],
+      "wall_s_gate_and_detector": 387.3,
+      "detection_cache": {
+        "cache_file": "/Users/manishmehta/Desktop/project-iron-main/data/derived/detections/aebf51f04434f0cc/f53836911bb1064db497d68e.jsonl",
+        "cache_key": {
+          "video_sha256": "aebf51f04434f0cccfb27d9e0385a5bde5d91a15307a91aa17f112088c6e7256",
+          "model_sha": "4130c2847260b4e877709d9212147476d202549fec8085eafc6a661b1ebe3707",
+          "preprocess_sha": "12277211dcbe5bed4c277626afe9d3ddf7e34ef461eb94608442e6c9c59c15b7",
+          "input_hw": [
+            640,
+            640
+          ],
+          "frame_step": 6
+        },
+        "cache_hits": 0,
+        "cache_misses": 300,
+        "cache_resumed_from_frame": 0,
+        "gate_mode": "off",
+        "detector_step": 6
+      }
+    },
+    "Camera_0002": {
+      "video": "data/raw/PhysicalAI-SmartSpaces/2cbe9563cbe9f47f846e5c871ee994572bbbc60e/paths-0deaa0fe541fbaf1/MTMC_Tracking_2026/train/Warehouse_000/videos/Camera_0002.mp4",
+      "video_sha256": "465f33311e7ebff3d7dc95a8eff2ea27e2f66665e3bf9e0034a7c1a9ff091726",
+      "fps": 30.0,
+      "frames_decoded": 1800,
+      "detector_runs": 300,
+      "person_detections": 20290,
+      "tracks": 22,
+      "track_points": 977,
+      "unprojectable_assignments": 0,
+      "track_point_anchors": {
+        "foot": 872,
+        "foot_flagged": 105
+      },
+      "calibration": "smartspaces:K@E",
+      "twin_rev": 662189359929521664,
+      "camera_xyz_m": [
+        -95.54852972879107,
+        -98.11357898579257,
+        3.072501360869242
+      ],
+      "detector_producer_shas": [
+        "4130c2847260b4e877709d9212147476d202549fec8085eafc6a661b1ebe3707",
+        "12277211dcbe5bed4c277626afe9d3ddf7e34ef461eb94608442e6c9c59c15b7",
+        "2d48f53ee667b48af1a04e13bdb819f9499b88411f6322d7d4eebd1e2d0f34c7"
+      ],
+      "wall_s_gate_and_detector": 641.4,
+      "detection_cache": {
+        "cache_file": "/Users/manishmehta/Desktop/project-iron-main/data/derived/detections/465f33311e7ebff3/70d729fcc18fdd69f2a5ce65.jsonl",
+        "cache_key": {
+          "video_sha256": "465f33311e7ebff3d7dc95a8eff2ea27e2f66665e3bf9e0034a7c1a9ff091726",
+          "model_sha": "4130c2847260b4e877709d9212147476d202549fec8085eafc6a661b1ebe3707",
+          "preprocess_sha": "12277211dcbe5bed4c277626afe9d3ddf7e34ef461eb94608442e6c9c59c15b7",
+          "input_hw": [
+            640,
+            640
+          ],
+          "frame_step": 6
+        },
+        "cache_hits": 0,
+        "cache_misses": 300,
+        "cache_resumed_from_frame": 0,
+        "gate_mode": "off",
+        "detector_step": 6
+      }
+    },
+    "Camera_0003": {
+      "video": "data/raw/PhysicalAI-SmartSpaces/2cbe9563cbe9f47f846e5c871ee994572bbbc60e/paths-0deaa0fe541fbaf1/MTMC_Tracking_2026/train/Warehouse_000/videos/Camera_0003.mp4",
+      "video_sha256": "7668fc49c5903174626894ceb7cc2fd30a69c362a9a2734d7e75a3f2b4eb15db",
+      "fps": 30.0,
+      "frames_decoded": 1800,
+      "detector_runs": 300,
+      "person_detections": 2934,
+      "tracks": 36,
+      "track_points": 967,
+      "unprojectable_assignments": 0,
+      "track_point_anchors": {
+        "foot": 829,
+        "foot_flagged": 138
+      },
+      "calibration": "smartspaces:K@E",
+      "twin_rev": 662189359929521664,
+      "camera_xyz_m": [
+        -1.1042152334185733,
+        -53.51283922619857,
+        4.570990721666427
+      ],
+      "detector_producer_shas": [
+        "4130c2847260b4e877709d9212147476d202549fec8085eafc6a661b1ebe3707",
+        "12277211dcbe5bed4c277626afe9d3ddf7e34ef461eb94608442e6c9c59c15b7",
+        "2d48f53ee667b48af1a04e13bdb819f9499b88411f6322d7d4eebd1e2d0f34c7"
+      ],
+      "wall_s_gate_and_detector": 204.9,
+      "detection_cache": {
+        "cache_file": "/Users/manishmehta/Desktop/project-iron-main/data/derived/detections/7668fc49c5903174/37dac32030230e273ec2d0bd.jsonl",
+        "cache_key": {
+          "video_sha256": "7668fc49c5903174626894ceb7cc2fd30a69c362a9a2734d7e75a3f2b4eb15db",
+          "model_sha": "4130c2847260b4e877709d9212147476d202549fec8085eafc6a661b1ebe3707",
+          "preprocess_sha": "12277211dcbe5bed4c277626afe9d3ddf7e34ef461eb94608442e6c9c59c15b7",
+          "input_hw": [
+            640,
+            640
+          ],
+          "frame_step": 6
+        },
+        "cache_hits": 0,
+        "cache_misses": 300,
+        "cache_resumed_from_frame": 0,
+        "gate_mode": "off",
+        "detector_step": 6
+      }
+    }
+  },
+  "events": 14,
+  "events_by_verb": {
+    "entered": 6,
+    "exited": 1,
+    "dwelled": 7
+  },
+  "conventions": {
+    "ts_ns": "nanoseconds from the start of each video; the source has no wall clock",
+    "world_frame": "scene floor frame, X_Y_Z_UP, metres, floor at z=0",
+    "position": "bottom-centre of the person box projected to the floor; events compile from the raw position (Day 46, R5)",
+    "confidence": "mean UNCALIBRATED detector score of the track (1.0 for the oracle); not a probability",
+    "importance": "0.0: no triage policy applied",
+    "measurement_noise": "illustrative-unmeasured envelope (src.estimator.measurement_model); no camera has a measured one",
+    "scope": "per-camera; the same person on two cameras is two subjects"
+  },
+  "zones_file": "configs/zones/warehouse_000.yaml"
+}

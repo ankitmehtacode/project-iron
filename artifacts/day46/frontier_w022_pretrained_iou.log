@@ -1,0 +1,12 @@
+Camera_0000: 1800 frames loaded, gate awake 1239
+Camera_0001: 1800 frames loaded, gate awake 777
+Camera_0002: 1800 frames loaded, gate awake 1204
+Camera_0003: 1800 frames loaded, gate awake 952
+  gate_off: 1800 inv/cam-min, event recall 0.7051282051282052, precision 0.9016393442622951
+  gate_default: 1043 inv/cam-min, event recall 0.4230769230769231, precision 0.825
+  gate_keepalive: 1503 inv/cam-min, event recall 0.6410256410256411, precision 0.8928571428571429
+  stride_6: 300 inv/cam-min, event recall 0.6923076923076923, precision 0.8852459016393442
+  stride_15: 120 inv/cam-min, event recall 0.5, precision 0.7959183673469388
+  adaptive: 288 inv/cam-min, event recall 0.6794871794871795, precision 0.8833333333333333
+  motion_adaptive: 176 inv/cam-min, event recall 0.358974358974359, precision 0.7777777777777778
+wrote artifacts/day46/frontier_w022_pretrained_iou.json (119.7 s)
